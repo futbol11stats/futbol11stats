@@ -49,19 +49,22 @@ export default async function GrupoPage({
   params,
   searchParams,
 }: {
-  params: { categoria: string; codgrupo: string }
-  searchParams: { temp?: string; tab?: string }
+  params: Promise<{ categoria: string; codgrupo: string }>
+  searchParams: Promise<{ temp?: string; tab?: string }>
 }) {
-  const grupo = await getGrupo(params.codgrupo)
+  const { categoria, codgrupo } = await params
+  const { temp, tab: tabParam } = await searchParams
+
+  const grupo = await getGrupo(codgrupo)
   if (!grupo) notFound()
 
-  const codtemporada = searchParams.temp ? parseInt(searchParams.temp) : grupo.codtemporada
-  const tab = searchParams.tab || 'clasificacion'
+  const codtemporada = temp ? parseInt(temp) : grupo.codtemporada
+  const tab = tabParam || 'clasificacion'
 
   const [clasificacion, resultados, topJugadores] = await Promise.all([
-    getClasificacion(params.codgrupo, codtemporada),
-    getResultados(params.codgrupo, codtemporada, grupo.jornada_actual),
-    getTopJugadores(params.codgrupo, codtemporada),
+    getClasificacion(codgrupo, codtemporada),
+    getResultados(codgrupo, codtemporada, grupo.jornada_actual),
+    getTopJugadores(codgrupo, codtemporada),
   ])
 
   const goleadores = topJugadores.filter(j => j.tipo === 'goleadores_temp')
@@ -88,7 +91,7 @@ export default async function GrupoPage({
       <nav className="text-sm text-chalk-600 mb-6 flex items-center gap-2">
         <Link href="/" className="hover:text-white transition-colors">Inicio</Link>
         <span>·</span>
-        <Link href={`/${params.categoria}`} className="hover:text-white transition-colors capitalize">{params.categoria}</Link>
+        <Link href={`/${categoria}`} className="hover:text-white transition-colors capitalize">{categoria}</Link>
         <span>·</span>
         <span className="text-white">{grupo.nombre_comp}</span>
       </nav>
@@ -105,7 +108,7 @@ export default async function GrupoPage({
           {TEMPORADAS.map(t => (
             <Link
               key={t.cod}
-              href={`/${params.categoria}/${params.codgrupo}?temp=${t.cod}&tab=${tab}`}
+              href={`/${categoria}/${codgrupo}?temp=${t.cod}&tab=${tab}`}
               className={`text-xs px-3 py-1.5 rounded-md transition-colors ${
                 codtemporada === t.cod
                   ? 'bg-grass-500 text-white font-semibold'
@@ -123,7 +126,7 @@ export default async function GrupoPage({
         {TABS.map(t => (
           <Link
             key={t.id}
-            href={`/${params.categoria}/${params.codgrupo}?temp=${codtemporada}&tab=${t.id}`}
+            href={`/${categoria}/${codgrupo}?temp=${codtemporada}&tab=${t.id}`}
             className={`px-4 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px ${
               tab === t.id
                 ? 'border-grass-400 text-white'
