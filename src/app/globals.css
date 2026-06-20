@@ -1,0 +1,41 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700;800&display=swap');
+
+:root {
+  --font-display: 'Barlow Condensed', system-ui, sans-serif;
+  --font-body: 'Inter', system-ui, sans-serif;
+}
+
+body {
+  font-family: var(--font-body);
+}
+
+.font-display {
+  font-family: var(--font-display);
+}
+
+/* Zona colors */
+.zona-ascenso_directo { @apply bg-grass-500/20 border-l-2 border-grass-400; }
+.zona-playoff_ascenso { @apply bg-amber-500/20 border-l-2 border-amber-400; }
+.zona-descenso_directo { @apply bg-red-500/20 border-l-2 border-red-500; }
+.zona-descenso_arrastre { @apply bg-red-400/10 border-l-2 border-red-400; }
+
+/* Tabla de clasificación */
+.tabla-clasificacion th {
+  @apply text-xs uppercase tracking-wider text-chalk-600 font-semibold py-2 px-3;
+}
+.tabla-clasificacion td {
+  @apply py-2 px-3 text-sm;
+}
+.tabla-clasificacion tr:hover td {
+  @apply bg-pitch-700/50;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: #0a1628; }
+::-webkit-scrollbar-thumb { background: #142952; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #1a7a3c; }
