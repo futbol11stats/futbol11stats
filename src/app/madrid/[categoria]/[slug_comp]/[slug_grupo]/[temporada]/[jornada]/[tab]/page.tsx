@@ -317,7 +317,7 @@ function ClasificacionTab({ rows }: { rows: any[] }) {
                 : 'text-chalk-600'
               }`}>{row.mov}</td>
               <td className="text-center text-chalk-600 hidden md:table-cell text-xs">{Math.round(row.elo)}</td>
-              <td className="text-center text-chalk-600 hidden md:table-cell text-xs">{row.pts_fantasy?.toFixed(1)}</td>
+              <td className="text-center text-chalk-600 hidden md:table-cell text-xs">{row.pts_fantasy ? Math.round(row.pts_fantasy) : ''}</td>
               <td className="text-center hidden md:table-cell whitespace-nowrap text-xs">{row.forma}</td>
               <td className="text-center text-chalk-600 hidden md:table-cell text-xs">{row.racha}</td>
               <td className="text-center text-chalk-600">{row.p0}</td>
