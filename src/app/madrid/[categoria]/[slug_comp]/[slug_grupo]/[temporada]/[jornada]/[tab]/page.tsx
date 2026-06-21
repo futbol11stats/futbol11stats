@@ -268,12 +268,26 @@ export default async function GrupoPage({
 const ZONA_BG: Record<string, React.CSSProperties> = {
   ascenso_directo:      { backgroundColor: 'rgb(20,83,45)',   borderLeft: '4px solid rgb(34,197,94)'  },
   playoff_ascenso:      { backgroundColor: 'rgb(78,53,0)',    borderLeft: '4px solid rgb(234,179,8)'  },
+  ascenso_arrastre:     { backgroundColor: 'rgb(60,40,0)',    borderLeft: '4px solid rgb(234,179,8)'  },
   descenso_directo:     { backgroundColor: 'rgb(83,20,20)',   borderLeft: '4px solid rgb(239,68,68)'  },
   descenso_coeficiente: { backgroundColor: 'rgb(60,15,15)',   borderLeft: '4px solid rgba(239,68,68,0.6)'  },
+  descenso_arrastre:    { backgroundColor: 'rgb(60,15,15)',   borderLeft: '4px solid rgba(239,68,68,0.6)'  },
 }
 
+const ZONA_LEYENDA: { tipo: string; label: string }[] = [
+  { tipo: 'ascenso_directo',      label: 'Ascenso directo' },
+  { tipo: 'playoff_ascenso',      label: 'Playoff ascenso' },
+  { tipo: 'ascenso_arrastre',     label: 'Ascenso por arrastre' },
+  { tipo: 'descenso_directo',     label: 'Descenso directo' },
+  { tipo: 'descenso_coeficiente', label: 'Descenso por coeficiente' },
+  { tipo: 'descenso_arrastre',    label: 'Descenso por arrastre' },
+]
+
 function ClasificacionTab({ rows }: { rows: any[] }) {
+  const zonasPresentes = new Set(rows.map(r => r.zona).filter(Boolean))
+  const leyenda = ZONA_LEYENDA.filter(z => zonasPresentes.has(z.tipo))
   return (
+    <>
     <div className="bg-pitch-800 rounded-xl border border-pitch-700 overflow-hidden">
       <table className="w-full tabla-clasificacion">
         <thead>
@@ -333,6 +347,17 @@ function ClasificacionTab({ rows }: { rows: any[] }) {
         </tbody>
       </table>
     </div>
+    {leyenda.length > 0 && (
+      <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1.5">
+        {leyenda.map(z => (
+          <span key={z.tipo} className="flex items-center gap-1.5 text-xs text-chalk-600">
+            <span className="inline-block w-3 h-3 rounded-sm" style={ZONA_BG[z.tipo]} />
+            {z.label}
+          </span>
+        ))}
+      </div>
+    )}
+    </>
   )
 }
 
