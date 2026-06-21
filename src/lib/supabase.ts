@@ -5,6 +5,12 @@ const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
 export const supabase = createClient(supabaseUrl, supabaseKey)
 
+// Construye la URL pública de un escudo en Supabase Storage a partir del filename
+export function escudoUrl(filename: string | null): string | null {
+  if (!filename) return null
+  return `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/escudos/${filename}`
+}
+
 // Tipos principales
 export type Grupo = {
   codtemporada: number

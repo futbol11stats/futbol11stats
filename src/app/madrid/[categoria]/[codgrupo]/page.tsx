@@ -1,4 +1,4 @@
-import { supabase } from '@/lib/supabase'
+import { supabase, escudoUrl } from '@/lib/supabase'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 
@@ -221,7 +221,14 @@ function ClasificacionTab({ rows }: { rows: any[] }) {
           {rows.map(row => (
             <tr key={row.codequipo} className="border-b border-pitch-700/50 last:border-0">
               <td className="text-chalk-600 font-mono text-xs">{row.pos}</td>
-              <td className="font-medium text-white">{row.nombre_equipo}</td>
+              <td className="font-medium text-white">
+                <span className="flex items-center gap-2">
+                  {escudoUrl(row.escudo) && (
+                    <img src={escudoUrl(row.escudo)!} alt="" className="w-5 h-5 object-contain flex-shrink-0" />
+                  )}
+                  {row.nombre_equipo}
+                </span>
+              </td>
               <td className="text-center text-chalk-600">{row.pj}</td>
               <td className="text-center">{row.pg}</td>
               <td className="text-center text-chalk-600">{row.pe}</td>
@@ -246,13 +253,23 @@ function ResultadosTab({ resultados, jornada }: { resultados: any[]; jornada: nu
       <div className="space-y-2">
         {resultados.map(r => (
           <div key={r.codacta} className="bg-pitch-800 rounded-xl border border-pitch-700 px-4 py-3 flex items-center gap-4">
-            <span className="text-white font-medium flex-1 text-right text-sm">{r.nombre_local}</span>
+            <div className="flex-1 flex items-center justify-end gap-2 text-sm">
+              <span className="text-white font-medium text-right">{r.nombre_local}</span>
+              {escudoUrl(r.escudo_local) && (
+                <img src={escudoUrl(r.escudo_local)!} alt="" className="w-6 h-6 object-contain flex-shrink-0" />
+              )}
+            </div>
             <div className="flex items-center gap-2 min-w-[80px] justify-center">
               <span className="font-display text-2xl font-bold text-white">{r.goles_local}</span>
               <span className="text-chalk-600">–</span>
               <span className="font-display text-2xl font-bold text-white">{r.goles_visitante}</span>
             </div>
-            <span className="text-white font-medium flex-1 text-sm">{r.nombre_visitante}</span>
+            <div className="flex-1 flex items-center gap-2 text-sm">
+              {escudoUrl(r.escudo_visitante) && (
+                <img src={escudoUrl(r.escudo_visitante)!} alt="" className="w-6 h-6 object-contain flex-shrink-0" />
+              )}
+              <span className="text-white font-medium">{r.nombre_visitante}</span>
+            </div>
           </div>
         ))}
         {resultados.length === 0 && (
