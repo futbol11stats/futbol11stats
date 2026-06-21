@@ -7,6 +7,7 @@ async function getCompeticiones() {
     .select('codtemporada, nombre_comp, nombre_grupo, codgrupo, categoria, jornada_actual')
     .eq('codtemporada', 21)
     .order('nombre_comp')
+    .order('nombre_grupo')
   return data || []
 }
 
