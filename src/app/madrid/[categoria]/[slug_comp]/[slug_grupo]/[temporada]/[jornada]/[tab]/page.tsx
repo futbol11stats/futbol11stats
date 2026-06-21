@@ -357,6 +357,9 @@ function ClasificacionTab({ rows }: { rows: any[] }) {
         ))}
       </div>
     )}
+    <p className="mt-2 text-xs text-chalk-600 leading-relaxed">
+      PJ Partidos jugados · PG Ganados · PE Empatados · PP Perdidos · GF Goles a favor · GC Goles en contra · DG Diferencia de goles · Pts Puntos · Mov Movimiento · ELO Rating ELO · Pts Fan Puntos fantasy · Forma Últimos 5 resultados · Racha Racha actual · P0 Porterías a cero
+    </p>
     </>
   )
 }
