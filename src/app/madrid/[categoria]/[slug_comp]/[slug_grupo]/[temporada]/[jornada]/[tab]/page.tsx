@@ -250,7 +250,7 @@ export default async function GrupoPage({
 
       {/* Contenido por tab */}
       {tab === 'clasificacion' && (
-        <ClasificacionTab rows={clasificacion} />
+        <ClasificacionTab rows={clasificacion} jornadaNum={jornadaNum} totalJornadas={grupo.total_jornadas} />
       )}
       {tab === 'resultados' && (
         <ResultadosTab resultados={resultados} jornada={jornadaNum} />
@@ -283,8 +283,13 @@ const ZONA_LEYENDA: { tipo: string; label: string }[] = [
   { tipo: 'descenso_arrastre',    label: 'Descenso por arrastre' },
 ]
 
-function ClasificacionTab({ rows }: { rows: any[] }) {
-  const zonasPresentes = new Set(rows.map(r => r.zona).filter(Boolean))
+// Zonas que dependen del resultado final; solo se muestran en las 2 últimas jornadas
+const ARRASTRE_TIPOS = new Set(['descenso_arrastre', 'ascenso_arrastre', 'descenso_coeficiente'])
+
+function ClasificacionTab({ rows, jornadaNum, totalJornadas }: { rows: any[]; jornadaNum: number; totalJornadas: number }) {
+  const mostrarArrastre = jornadaNum >= totalJornadas - 1
+  const zonaEf = (z: string) => (!mostrarArrastre && ARRASTRE_TIPOS.has(z)) ? '' : z
+  const zonasPresentes = new Set(rows.map(r => zonaEf(r.zona)).filter(Boolean))
   const leyenda = ZONA_LEYENDA.filter(z => zonasPresentes.has(z.tipo))
   return (
     <>
@@ -312,7 +317,7 @@ function ClasificacionTab({ rows }: { rows: any[] }) {
         </thead>
         <tbody>
           {rows.map(row => (
-            <tr key={row.codequipo} className="border-b border-pitch-700/50 last:border-0" style={ZONA_BG[row.zona]}>
+            <tr key={row.codequipo} className="border-b border-pitch-700/50 last:border-0" style={ZONA_BG[zonaEf(row.zona)]}>
               <td className="text-chalk-600 font-mono text-xs">{row.pos}</td>
               <td className="font-medium text-white">
                 <span className="flex items-center gap-2">
@@ -358,7 +363,7 @@ function ClasificacionTab({ rows }: { rows: any[] }) {
       </div>
     )}
     <p className="mt-2 text-xs text-chalk-600 leading-relaxed">
-      PJ Partidos jugados · PG Ganados · PE Empatados · PP Perdidos · GF Goles a favor · GC Goles en contra · DG Diferencia de goles · Pts Puntos · Mov Movimiento · ELO Rating ELO · Pts Fan Puntos fantasy · Forma Últimos 5 resultados · Racha Racha actual · P0 Porterías a cero
+      <strong>PJ</strong> Partidos jugados · <strong>PG</strong> Ganados · <strong>PE</strong> Empatados · <strong>PP</strong> Perdidos · <strong>GF</strong> Goles a favor · <strong>GC</strong> Goles en contra · <strong>DG</strong> Diferencia de goles · <strong>Pts</strong> Puntos · <strong>Mov</strong> Movimiento · <strong>ELO</strong> Rating ELO · <strong>Pts Fan</strong> Puntos fantasy · <strong>Forma</strong> Últimos 5 resultados · <strong>Racha</strong> Racha actual · <strong>P0</strong> Porterías a cero
     </p>
     </>
   )
