@@ -8,6 +8,7 @@ async function getGrupos() {
     .eq('categoria', 'AFICIONADO')
     .eq('codtemporada', 21)
     .order('nombre_comp')
+    .order('nombre_grupo')
   return data || []
 }
 
