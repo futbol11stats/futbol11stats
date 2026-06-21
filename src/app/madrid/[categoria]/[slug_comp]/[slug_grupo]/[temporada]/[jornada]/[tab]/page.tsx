@@ -1,6 +1,7 @@
 import { supabase, escudoUrl } from '@/lib/supabase'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
+import JornadaSelector from '@/components/JornadaSelector'
 
 const TEMPORADA_MAP: Record<string, number> = {
   '2021-22': 17,
@@ -131,8 +132,10 @@ export default async function GrupoPage({
 
   const TEMPORADAS = [21, 20, 19, 18, 17]
 
+  // Base de URL sin jornada ni tab (para el selector de jornada)
+  const baseUrl = `/madrid/${categoria}/${slug_comp}/${slug_grupo}/${temporada}`
   // Base de URL para los enlaces de tabs (misma temporada/jornada, cambia el tab)
-  const baseTab = `/madrid/${categoria}/${slug_comp}/${slug_grupo}/${temporada}/jornada-${jornadaNum}`
+  const baseTab = `${baseUrl}/jornada-${jornadaNum}`
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
@@ -158,6 +161,40 @@ export default async function GrupoPage({
               Actualmente denominada {grupo.nombre_comp}
             </p>
           )}
+
+          {/* Selector de jornada */}
+          <div className="flex items-center gap-2 mt-3">
+            {jornadaNum > 1 ? (
+              <Link
+                href={`${baseUrl}/jornada-${jornadaNum - 1}/${tab}`}
+                className="text-xs px-3 py-1.5 rounded-md bg-pitch-700 text-chalk-200 hover:bg-grass-500 hover:text-white transition-colors"
+              >
+                ← Anterior
+              </Link>
+            ) : (
+              <span className="text-xs px-3 py-1.5 rounded-md bg-pitch-800 text-chalk-700 opacity-40 cursor-not-allowed">
+                ← Anterior
+              </span>
+            )}
+            <JornadaSelector
+              jornadaNum={jornadaNum}
+              totalJornadas={grupo.total_jornadas}
+              baseUrl={baseUrl}
+              tab={tab}
+            />
+            {jornadaNum < grupo.total_jornadas ? (
+              <Link
+                href={`${baseUrl}/jornada-${jornadaNum + 1}/${tab}`}
+                className="text-xs px-3 py-1.5 rounded-md bg-pitch-700 text-chalk-200 hover:bg-grass-500 hover:text-white transition-colors"
+              >
+                Siguiente →
+              </Link>
+            ) : (
+              <span className="text-xs px-3 py-1.5 rounded-md bg-pitch-800 text-chalk-700 opacity-40 cursor-not-allowed">
+                Siguiente →
+              </span>
+            )}
+          </div>
         </div>
         {/* Selector de temporada — enlaza a la variante (slug propio) de cada temporada */}
         <div className="flex gap-1.5 flex-wrap">
