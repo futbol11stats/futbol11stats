@@ -1,4 +1,4 @@
-import { supabase, escudoUrl } from '@/lib/supabase'
+import { supabase, escudoUrl, formatNombre } from '@/lib/supabase'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import JornadaSelector from '@/components/JornadaSelector'
@@ -74,6 +74,19 @@ async function getGruposCompeticion(nombreComp: string, codtemporada: number) {
   return sorted
 }
 
+// Destacados por jornada (web_top_jugadores: mvp_jornada, goleadores_jornada, ...)
+async function getDestacadosJornada(codgrupo: string, codtemporada: number, jornada: number, tipo: string) {
+  const { data } = await supabase
+    .from('web_top_jugadores')
+    .select('*')
+    .eq('codgrupo', codgrupo)
+    .eq('codtemporada', codtemporada)
+    .eq('jornada', jornada)
+    .eq('tipo', tipo)
+    .order('rank')
+  return data || []
+}
+
 async function getClasificacion(codgrupo: string, codtemporada: number, jornada: number) {
   const { data } = await supabase
     .from('web_clasificacion')
@@ -129,12 +142,17 @@ export default async function GrupoPage({
 
   const jornadaNum = parseInt(jornada.replace('jornada-', '')) || grupo.jornada_actual
 
-  const [clasificacion, resultados, topJugadores, variantes, gruposComp] = await Promise.all([
+  const [clasificacion, resultados, topJugadores, variantes, gruposComp,
+         golesJ, tarjetasJ, mvpJ, xiJ] = await Promise.all([
     getClasificacion(grupo.codgrupo, codtemporada, jornadaNum),
     getResultados(grupo.codgrupo, codtemporada, jornadaNum),
     getTopJugadores(grupo.codgrupo, codtemporada),
     getVariantesPorTemporada(grupo.nombre_comp, grupo.nombre_grupo),
     getGruposCompeticion(grupo.nombre_comp, codtemporada),
+    getDestacadosJornada(grupo.codgrupo, codtemporada, jornadaNum, 'goleadores_jornada'),
+    getDestacadosJornada(grupo.codgrupo, codtemporada, jornadaNum, 'tarjetas_jornada'),
+    getDestacadosJornada(grupo.codgrupo, codtemporada, jornadaNum, 'mvp_jornada'),
+    getDestacadosJornada(grupo.codgrupo, codtemporada, jornadaNum, 'xi_jornada'),
   ])
 
   const goleadores = topJugadores.filter(j => j.tipo === 'goleadores_temp')
@@ -326,7 +344,10 @@ export default async function GrupoPage({
       {tab === 'fantasy-t' && (
         <JugadoresTab jugadores={fantasy} tipo="fantasy" />
       )}
-      {['goleadores-j', 'tarjetas-j', 'top5-j', 'equipos-j', 'xi-j', 'porteros-t', 'tarjetas-t', 'elo-t', 'xi-t'].includes(tab) && (
+      {tab === 'goleadores-j' && (
+        <GoleadoresJornadaTab jugadores={golesJ} />
+      )}
+      {['tarjetas-j', 'top5-j', 'equipos-j', 'xi-j', 'porteros-t', 'tarjetas-t', 'elo-t', 'xi-t'].includes(tab) && (
         <p className="text-chalk-600 text-sm py-8 text-center">Próximamente</p>
       )}
     </div>
@@ -522,6 +543,44 @@ function JugadoresTab({ jugadores, tipo }: { jugadores: any[]; tipo: string }) {
               )}
             </tr>
           ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
+function GoleadoresJornadaTab({ jugadores }: { jugadores: any[] }) {
+  return (
+    <div className="bg-pitch-800 rounded-xl border border-pitch-700 overflow-hidden">
+      <table className="w-full tabla-clasificacion">
+        <thead>
+          <tr className="border-b border-pitch-700">
+            <th className="text-left w-8">#</th>
+            <th className="text-left w-10"></th>
+            <th className="text-left">Jugador</th>
+            <th className="text-left hidden md:table-cell">Equipo</th>
+            <th className="text-grass-400">Goles</th>
+          </tr>
+        </thead>
+        <tbody>
+          {jugadores.map(j => (
+            <tr key={`${j.codjugador}-${j.codequipo}`} className="border-b border-pitch-700/50 last:border-0">
+              <td className="text-chalk-600 font-mono text-xs">{j.rank}</td>
+              <td>
+                {escudoUrl(j.escudo) && (
+                  <span className="inline-flex items-center justify-center w-7 h-7 bg-white rounded-sm flex-shrink-0 p-0.5">
+                    <img src={escudoUrl(j.escudo)!} alt="" className="w-full h-full object-contain" />
+                  </span>
+                )}
+              </td>
+              <td className="font-medium text-white">{formatNombre(j.nombre)}</td>
+              <td className="text-chalk-600 hidden md:table-cell text-xs">{j.nombre_equipo}</td>
+              <td className="text-center font-bold text-white">{j.goles}</td>
+            </tr>
+          ))}
+          {jugadores.length === 0 && (
+            <tr><td colSpan={5} className="text-chalk-600 text-sm text-center py-8">Sin goleadores en esta jornada</td></tr>
+          )}
         </tbody>
       </table>
     </div>
