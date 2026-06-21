@@ -527,6 +527,7 @@ function JugadoresTab({ jugadores, tipo }: { jugadores: any[]; tipo: string }) {
       <table className="w-full tabla-clasificacion">
         <thead>
           <tr className="border-b border-pitch-700">
+            <th className="text-left w-8">#</th>
             <th className="text-left w-12">Pos</th>
             <th className="text-left">Jugador</th>
             <th className="text-left w-10"></th>
@@ -549,6 +550,7 @@ function JugadoresTab({ jugadores, tipo }: { jugadores: any[]; tipo: string }) {
         <tbody>
           {jugadores.map(j => (
             <tr key={`${j.codjugador}-${j.codequipo}`} className="border-b border-pitch-700/50 last:border-0">
+              <td className="text-chalk-600 font-mono text-xs">{j.rank}</td>
               <td className="text-chalk-600 font-mono text-xs">{j.posicion || '—'}</td>
               <td className="font-medium text-white">{formatNombre(j.nombre)}</td>
               <EscudoCell escudo={j.escudo} />
