@@ -59,12 +59,13 @@ async function getVariantesPorTemporada(nombreComp: string, nombreGrupo: string)
   return map
 }
 
-async function getClasificacion(codgrupo: string, codtemporada: number) {
+async function getClasificacion(codgrupo: string, codtemporada: number, jornada: number) {
   const { data } = await supabase
     .from('web_clasificacion')
     .select('*')
     .eq('codgrupo', codgrupo)
     .eq('codtemporada', codtemporada)
+    .eq('jornada', jornada)
     .order('pos')
   return data || []
 }
@@ -114,7 +115,7 @@ export default async function GrupoPage({
   const jornadaNum = parseInt(jornada.replace('jornada-', '')) || grupo.jornada_actual
 
   const [clasificacion, resultados, topJugadores, variantes] = await Promise.all([
-    getClasificacion(grupo.codgrupo, codtemporada),
+    getClasificacion(grupo.codgrupo, codtemporada, jornadaNum),
     getResultados(grupo.codgrupo, codtemporada, jornadaNum),
     getTopJugadores(grupo.codgrupo, codtemporada),
     getVariantesPorTemporada(grupo.nombre_comp, grupo.nombre_grupo),
