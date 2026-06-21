@@ -45,6 +45,21 @@ async function getTopJugadores(codgrupo: string, codtemporada: number) {
   return data || []
 }
 
+// El codgrupo cambia cada temporada para el mismo grupo (nombre_comp + nombre_grupo).
+// Devuelve un mapa codtemporada -> codgrupo para que el selector enlace al grupo correcto.
+async function getGruposPorTemporada(nombreComp: string, nombreGrupo: string) {
+  const { data } = await supabase
+    .from('web_grupos')
+    .select('codtemporada, codgrupo')
+    .eq('nombre_comp', nombreComp)
+    .eq('nombre_grupo', nombreGrupo)
+  const map: Record<number, string> = {}
+  for (const g of data || []) {
+    map[g.codtemporada] = String(g.codgrupo)
+  }
+  return map
+}
+
 export default async function GrupoPage({
   params,
   searchParams,
@@ -60,6 +75,9 @@ export default async function GrupoPage({
 
   const codtemporada = temp ? parseInt(temp) : grupo.codtemporada
   const tab = tabParam || 'clasificacion'
+
+  // Mapa codtemporada -> codgrupo para el selector (mismo grupo, distinto codgrupo por temporada)
+  const gruposPorTemp = await getGruposPorTemporada(grupo.nombre_comp, grupo.nombre_grupo)
 
   const [clasificacion, resultados, topJugadores] = await Promise.all([
     getClasificacion(codgrupo, codtemporada),
@@ -103,21 +121,36 @@ export default async function GrupoPage({
           <h1 className="font-display text-4xl font-bold text-white">{grupo.nombre_grupo}</h1>
           <p className="text-chalk-600 text-sm mt-1">Jornada {grupo.jornada_actual}</p>
         </div>
-        {/* Selector de temporada */}
+        {/* Selector de temporada — enlaza al codgrupo correcto de cada temporada */}
         <div className="flex gap-1.5 flex-wrap">
-          {TEMPORADAS.map(t => (
-            <Link
-              key={t.cod}
-              href={`/${categoria}/${codgrupo}?temp=${t.cod}&tab=${tab}`}
-              className={`text-xs px-3 py-1.5 rounded-md transition-colors ${
-                codtemporada === t.cod
-                  ? 'bg-grass-500 text-white font-semibold'
-                  : 'bg-pitch-700 text-chalk-600 hover:text-white'
-              }`}
-            >
-              {t.nombre}
-            </Link>
-          ))}
+          {TEMPORADAS.map(t => {
+            const codgrupoTemp = gruposPorTemp[t.cod]
+            // El grupo no existió en esta temporada: opción deshabilitada
+            if (!codgrupoTemp) {
+              return (
+                <span
+                  key={t.cod}
+                  title="Sin datos en esta temporada"
+                  className="text-xs px-3 py-1.5 rounded-md bg-pitch-800 text-chalk-700 opacity-40 cursor-not-allowed"
+                >
+                  {t.nombre}
+                </span>
+              )
+            }
+            return (
+              <Link
+                key={t.cod}
+                href={`/${categoria}/${codgrupoTemp}?temp=${t.cod}&tab=${tab}`}
+                className={`text-xs px-3 py-1.5 rounded-md transition-colors ${
+                  codtemporada === t.cod
+                    ? 'bg-grass-500 text-white font-semibold'
+                    : 'bg-pitch-700 text-chalk-600 hover:text-white'
+                }`}
+              >
+                {t.nombre}
+              </Link>
+            )
+          })}
         </div>
       </div>
 
