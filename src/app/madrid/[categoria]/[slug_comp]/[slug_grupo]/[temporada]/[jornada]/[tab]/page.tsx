@@ -282,10 +282,11 @@ function ClasificacionTab({ rows }: { rows: any[] }) {
             <th>DG</th>
             <th className="text-grass-400">Pts</th>
             <th>Mov</th>
+            <th className="hidden md:table-cell">ELO</th>
+            <th className="hidden md:table-cell">Pts Fantasy</th>
             <th className="hidden md:table-cell">Forma</th>
             <th className="hidden md:table-cell">Racha</th>
             <th>P0</th>
-            <th className="hidden md:table-cell">ELO</th>
           </tr>
         </thead>
         <tbody>
@@ -315,10 +316,11 @@ function ClasificacionTab({ rows }: { rows: any[] }) {
                 : row.mov?.startsWith('↓') ? 'text-red-400'
                 : 'text-chalk-600'
               }`}>{row.mov}</td>
+              <td className="text-center text-chalk-600 hidden md:table-cell text-xs">{Math.round(row.elo)}</td>
+              <td className="text-center text-chalk-600 hidden md:table-cell text-xs">{row.pts_fantasy?.toFixed(1)}</td>
               <td className="text-center hidden md:table-cell whitespace-nowrap text-xs">{row.forma}</td>
               <td className="text-center text-chalk-600 hidden md:table-cell text-xs">{row.racha}</td>
               <td className="text-center text-chalk-600">{row.p0}</td>
-              <td className="text-center text-chalk-600 hidden md:table-cell text-xs">{Math.round(row.elo)}</td>
             </tr>
           ))}
         </tbody>
