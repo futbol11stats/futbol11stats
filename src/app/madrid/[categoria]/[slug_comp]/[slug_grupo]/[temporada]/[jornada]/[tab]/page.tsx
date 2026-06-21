@@ -148,8 +148,8 @@ export default async function GrupoPage({
       {/* Header */}
       <div className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
-          <p className="text-grass-400 text-xs font-semibold uppercase tracking-widest mb-1">{grupo.nombre_historico || grupo.nombre_comp}</p>
-          <h1 className="font-display text-4xl font-bold text-white">{grupo.nombre_grupo}</h1>
+          <h1 className="font-display text-4xl font-bold text-white">{grupo.nombre_historico || grupo.nombre_comp} · {grupo.nombre_grupo}</h1>
+          <p className="text-chalk-600 text-sm mt-1">Jornada {jornadaNum} · Temporada {temporada}</p>
           {grupo.nombre_historico && (
             <p className="text-chalk-600 text-xs mt-1.5 flex items-center gap-1.5">
               <svg className="w-3.5 h-3.5 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
@@ -158,7 +158,6 @@ export default async function GrupoPage({
               Actualmente denominada {grupo.nombre_comp}
             </p>
           )}
-          <p className="text-chalk-600 text-sm mt-1">Jornada {jornadaNum}</p>
         </div>
         {/* Selector de temporada — enlaza a la variante (slug propio) de cada temporada */}
         <div className="flex gap-1.5 flex-wrap">
