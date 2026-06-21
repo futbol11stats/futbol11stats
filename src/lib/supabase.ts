@@ -11,6 +11,19 @@ export function escudoUrl(filename: string | null): string | null {
   return `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/escudos/${filename}`
 }
 
+// "APELLIDO1 APELLIDO2, NOMBRE" -> "Nombre Apellido1 Apellido2" (Title Case)
+export function formatNombre(nombre: string | null): string {
+  if (!nombre) return ''
+  const [apellidos = '', nombrePila = ''] = nombre.split(',').map(s => s.trim())
+  const full = nombrePila ? `${nombrePila} ${apellidos}` : apellidos
+  return full
+    .toLowerCase()
+    .split(/\s+/)
+    .filter(Boolean)
+    .map(w => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(' ')
+}
+
 // Tipos principales
 export type Grupo = {
   codtemporada: number

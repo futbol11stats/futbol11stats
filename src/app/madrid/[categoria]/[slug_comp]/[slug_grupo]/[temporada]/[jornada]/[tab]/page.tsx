@@ -140,11 +140,22 @@ export default async function GrupoPage({
   const goleadores = topJugadores.filter(j => j.tipo === 'goleadores_temp')
   const fantasy = topJugadores.filter(j => j.tipo === 'fantasy_temp')
 
-  const TABS = [
+  const TABS_JORNADA = [
     { id: 'clasificacion', label: 'Clasificación' },
-    { id: 'resultados', label: 'Resultados' },
-    { id: 'goleadores', label: 'Goleadores' },
-    { id: 'fantasy', label: 'Fantasy' },
+    { id: 'resultados',    label: 'Resultados' },
+    { id: 'goleadores-j',  label: 'Goleadores' },
+    { id: 'tarjetas-j',    label: 'Tarjetas' },
+    { id: 'top5-j',        label: 'Top 5' },
+    { id: 'equipos-j',     label: 'Equipos' },
+    { id: 'xi-j',          label: 'XI ideal' },
+  ]
+  const TABS_TEMPORADA = [
+    { id: 'goleadores-t', label: 'Goleadores' },
+    { id: 'porteros-t',   label: 'Porteros' },
+    { id: 'tarjetas-t',   label: 'Tarjetas' },
+    { id: 'fantasy-t',    label: 'Fantasy' },
+    { id: 'elo-t',        label: 'ELO' },
+    { id: 'xi-t',         label: 'XI ideal' },
   ]
 
   const TEMPORADAS = [21, 20, 19, 18, 17]
@@ -266,12 +277,31 @@ export default async function GrupoPage({
         </div>
       )}
 
-      {/* Tabs */}
-      <div className="border-b border-pitch-700 mb-6 flex gap-1">
-        {TABS.map(t => (
+      {/* Tabs — JORNADA */}
+      <p className="text-[11px] font-semibold uppercase tracking-widest text-chalk-600 mb-1">Jornada</p>
+      <div className="border-b border-pitch-700 mb-4 flex gap-1 flex-wrap">
+        {TABS_JORNADA.map(t => (
           <Link
             key={t.id}
             href={`${baseTab}/${t.id}`}
+            className={`px-4 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px ${
+              tab === t.id
+                ? 'border-grass-400 text-white'
+                : 'border-transparent text-chalk-600 hover:text-white'
+            }`}
+          >
+            {t.label}
+          </Link>
+        ))}
+      </div>
+
+      {/* Tabs — TEMPORADA */}
+      <p className="text-[11px] font-semibold uppercase tracking-widest text-chalk-600 mb-1">Temporada</p>
+      <div className="border-b border-pitch-700 mb-6 flex gap-1 flex-wrap">
+        {TABS_TEMPORADA.map(t => (
+          <Link
+            key={t.id}
+            href={`${baseUrl}/jornada-1/${t.id}`}
             className={`px-4 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px ${
               tab === t.id
                 ? 'border-grass-400 text-white'
@@ -290,11 +320,14 @@ export default async function GrupoPage({
       {tab === 'resultados' && (
         <ResultadosTab resultados={resultados} jornada={jornadaNum} />
       )}
-      {tab === 'goleadores' && (
+      {tab === 'goleadores-t' && (
         <JugadoresTab jugadores={goleadores} tipo="goleadores" />
       )}
-      {tab === 'fantasy' && (
+      {tab === 'fantasy-t' && (
         <JugadoresTab jugadores={fantasy} tipo="fantasy" />
+      )}
+      {['goleadores-j', 'tarjetas-j', 'top5-j', 'equipos-j', 'xi-j', 'porteros-t', 'tarjetas-t', 'elo-t', 'xi-t'].includes(tab) && (
+        <p className="text-chalk-600 text-sm py-8 text-center">Próximamente</p>
       )}
     </div>
   )
