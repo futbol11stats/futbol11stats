@@ -25,11 +25,11 @@ async function getHistoricoMap() {
 }
 
 const COMPETICION_ORDER = [
-  'NACIONAL JUVENIL',
-  'PRIMERA DIVISION AUTONOMICA',
-  'PREFERENTE',
-  'PRIMERA',
-  'SEGUNDA',
+  'Nacional Juvenil Madrid',
+  '1ª Autonómica Juvenil Madrid',
+  'Preferente Juvenil Madrid',
+  '1ª Juvenil Madrid',
+  '2ª Juvenil Madrid',
 ]
 
 export default async function JuvenilPage() {
@@ -95,11 +95,11 @@ function CompeticionCard({
   nombreHistorico?: string
 }) {
   const nombreCorto: Record<string, string> = {
-    'NACIONAL JUVENIL': 'Nacional Juvenil',
-    'PRIMERA DIVISION AUTONOMICA': '1ª Autonómica',
-    'PREFERENTE': 'Preferente',
-    'PRIMERA': '1ª Juvenil',
-    'SEGUNDA': '2ª Juvenil',
+    'Nacional Juvenil Madrid': 'Nacional Juvenil',
+    '1ª Autonómica Juvenil Madrid': '1ª Autonómica',
+    'Preferente Juvenil Madrid': 'Preferente',
+    '1ª Juvenil Madrid': '1ª Juvenil',
+    '2ª Juvenil Madrid': '2ª Juvenil',
   }
 
   return (

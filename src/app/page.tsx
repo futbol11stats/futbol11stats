@@ -11,11 +11,18 @@ async function getCompeticiones() {
 }
 
 const COMPETICION_ORDER = [
-  'TERCERA FEDERACION RFEF',
-  'PRIMERA DIVISION AUTONOMICA',
-  'PREFERENTE',
-  'PRIMERA',
-  'SEGUNDA',
+  // Aficionados
+  '3ª RFEF Madrid',
+  '1ª Autonómica Madrid',
+  'Preferente Madrid',
+  '1ª Aficionados Madrid',
+  '2ª Aficionados Madrid',
+  // Juveniles
+  'Nacional Juvenil Madrid',
+  '1ª Autonómica Juvenil Madrid',
+  'Preferente Juvenil Madrid',
+  '1ª Juvenil Madrid',
+  '2ª Juvenil Madrid',
 ]
 
 export default async function Home() {
@@ -125,12 +132,16 @@ function CompeticionCard({
   categoria: string
 }) {
   const nombreCorto: Record<string, string> = {
-    'TERCERA FEDERACION RFEF': '3ª RFEF',
-    'PRIMERA DIVISION AUTONOMICA': '1ª Autonómica',
-    'PREFERENTE': 'Preferente',
-    'PRIMERA': '1ª Aficionada',
-    'SEGUNDA': '2ª Aficionada',
-    'NACIONAL JUVENIL': 'Nacional Juvenil',
+    '3ª RFEF Madrid': '3ª RFEF',
+    '1ª Autonómica Madrid': '1ª Autonómica',
+    'Preferente Madrid': 'Preferente',
+    '1ª Aficionados Madrid': '1ª Aficionados',
+    '2ª Aficionados Madrid': '2ª Aficionados',
+    'Nacional Juvenil Madrid': 'Nacional Juvenil',
+    '1ª Autonómica Juvenil Madrid': '1ª Autonómica',
+    'Preferente Juvenil Madrid': 'Preferente',
+    '1ª Juvenil Madrid': '1ª Juvenil',
+    '2ª Juvenil Madrid': '2ª Juvenil',
   }
 
   return (

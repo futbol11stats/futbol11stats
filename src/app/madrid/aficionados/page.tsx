@@ -25,11 +25,11 @@ async function getHistoricoMap() {
 }
 
 const COMPETICION_ORDER = [
-  'TERCERA FEDERACION RFEF',
-  'PRIMERA DIVISION AUTONOMICA',
-  'PREFERENTE',
-  'PRIMERA',
-  'SEGUNDA',
+  '3ª RFEF Madrid',
+  '1ª Autonómica Madrid',
+  'Preferente Madrid',
+  '1ª Aficionados Madrid',
+  '2ª Aficionados Madrid',
 ]
 
 export default async function AficionadosPage() {
@@ -95,11 +95,11 @@ function CompeticionCard({
   nombreHistorico?: string
 }) {
   const nombreCorto: Record<string, string> = {
-    'TERCERA FEDERACION RFEF': '3ª RFEF',
-    'PRIMERA DIVISION AUTONOMICA': '1ª Autonómica',
-    'PREFERENTE': 'Preferente',
-    'PRIMERA': '1ª Aficionada',
-    'SEGUNDA': '2ª Aficionada',
+    '3ª RFEF Madrid': '3ª RFEF',
+    '1ª Autonómica Madrid': '1ª Autonómica',
+    'Preferente Madrid': 'Preferente',
+    '1ª Aficionados Madrid': '1ª Aficionados',
+    '2ª Aficionados Madrid': '2ª Aficionados',
   }
 
   return (
