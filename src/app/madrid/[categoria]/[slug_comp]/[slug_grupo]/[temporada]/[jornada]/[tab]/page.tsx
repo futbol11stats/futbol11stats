@@ -266,10 +266,10 @@ export default async function GrupoPage({
 }
 
 const ZONA_BG: Record<string, React.CSSProperties> = {
-  ascenso_directo:      { backgroundColor: 'rgba(34,197,94,0.25)',  borderLeft: '3px solid rgba(34,197,94,0.8)'  },
-  playoff_ascenso:      { backgroundColor: 'rgba(234,179,8,0.25)',  borderLeft: '3px solid rgba(234,179,8,0.8)'  },
-  descenso_directo:     { backgroundColor: 'rgba(239,68,68,0.25)',  borderLeft: '3px solid rgba(239,68,68,0.8)'  },
-  descenso_coeficiente: { backgroundColor: 'rgba(239,68,68,0.15)',  borderLeft: '3px solid rgba(239,68,68,0.5)'  },
+  ascenso_directo:      { backgroundColor: 'rgba(34,197,94,0.20)',  borderLeft: '4px solid rgb(34,197,94)'  },
+  playoff_ascenso:      { backgroundColor: 'rgba(234,179,8,0.20)',  borderLeft: '4px solid rgb(234,179,8)'  },
+  descenso_directo:     { backgroundColor: 'rgba(239,68,68,0.20)',  borderLeft: '4px solid rgb(239,68,68)'  },
+  descenso_coeficiente: { backgroundColor: 'rgba(239,68,68,0.12)',  borderLeft: '4px solid rgba(239,68,68,0.6)'  },
 }
 
 function ClasificacionTab({ rows }: { rows: any[] }) {
