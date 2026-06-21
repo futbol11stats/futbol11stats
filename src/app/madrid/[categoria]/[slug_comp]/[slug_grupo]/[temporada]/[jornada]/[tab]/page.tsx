@@ -265,6 +265,13 @@ export default async function GrupoPage({
   )
 }
 
+const ZONA_BG: Record<string, string> = {
+  ascenso_directo: 'bg-green-900/30',
+  playoff_ascenso: 'bg-yellow-900/30',
+  descenso_directo: 'bg-red-900/30',
+  descenso_coeficiente: 'bg-red-900/20',
+}
+
 function ClasificacionTab({ rows }: { rows: any[] }) {
   return (
     <div className="bg-pitch-800 rounded-xl border border-pitch-700 overflow-hidden">
@@ -291,7 +298,7 @@ function ClasificacionTab({ rows }: { rows: any[] }) {
         </thead>
         <tbody>
           {rows.map(row => (
-            <tr key={row.codequipo} className="border-b border-pitch-700/50 last:border-0">
+            <tr key={row.codequipo} className={`border-b border-pitch-700/50 last:border-0 ${ZONA_BG[row.zona] || ''}`}>
               <td className="text-chalk-600 font-mono text-xs">{row.pos}</td>
               <td className="font-medium text-white">
                 <span className="flex items-center gap-2">
