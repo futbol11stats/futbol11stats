@@ -582,6 +582,7 @@ function GoleadoresJornadaTab({ jugadores }: { jugadores: any[] }) {
       <table className="w-full tabla-clasificacion">
         <thead>
           <tr className="border-b border-pitch-700">
+            <th className="text-left w-8">#</th>
             <th className="text-left w-12">Pos</th>
             <th className="text-left">Jugador</th>
             <th className="text-left w-10"></th>
@@ -592,6 +593,7 @@ function GoleadoresJornadaTab({ jugadores }: { jugadores: any[] }) {
         <tbody>
           {jugadores.map(j => (
             <tr key={`${j.codjugador}-${j.codequipo}`} className="border-b border-pitch-700/50 last:border-0">
+              <td className="text-chalk-600 font-mono text-xs">{j.rank}</td>
               <td className="text-chalk-600 font-mono text-xs">{j.posicion || '—'}</td>
               <td className="font-medium text-white">{formatNombre(j.nombre)}</td>
               <EscudoCell escudo={j.escudo} />
@@ -600,7 +602,7 @@ function GoleadoresJornadaTab({ jugadores }: { jugadores: any[] }) {
             </tr>
           ))}
           {jugadores.length === 0 && (
-            <tr><td colSpan={5} className="text-chalk-600 text-sm text-center py-8">Sin goleadores en esta jornada</td></tr>
+            <tr><td colSpan={6} className="text-chalk-600 text-sm text-center py-8">Sin goleadores en esta jornada</td></tr>
           )}
         </tbody>
       </table>
@@ -625,6 +627,7 @@ function TarjetasJornadaTab({ jugadores }: { jugadores: any[] }) {
       <table className="w-full tabla-clasificacion">
         <thead>
           <tr className="border-b border-pitch-700">
+            <th className="text-left w-8">#</th>
             <th className="text-left w-12">Pos</th>
             <th className="text-left">Jugador</th>
             <th className="text-left w-10"></th>
@@ -637,6 +640,7 @@ function TarjetasJornadaTab({ jugadores }: { jugadores: any[] }) {
         <tbody>
           {jugadores.map(j => (
             <tr key={`${j.codjugador}-${j.codequipo}`} className="border-b border-pitch-700/50 last:border-0">
+              <td className="text-chalk-600 font-mono text-xs">{j.rank}</td>
               <td className="text-chalk-600 font-mono text-xs">{j.posicion || '—'}</td>
               <td className="font-medium text-white">{formatNombre(j.nombre)}</td>
               <EscudoCell escudo={j.escudo} />
@@ -647,7 +651,7 @@ function TarjetasJornadaTab({ jugadores }: { jugadores: any[] }) {
             </tr>
           ))}
           {jugadores.length === 0 && (
-            <tr><td colSpan={7} className="text-chalk-600 text-sm text-center py-8">Sin tarjetas en esta jornada</td></tr>
+            <tr><td colSpan={8} className="text-chalk-600 text-sm text-center py-8">Sin tarjetas en esta jornada</td></tr>
           )}
         </tbody>
       </table>
@@ -661,6 +665,7 @@ function Top5JugadoresTab({ jugadores }: { jugadores: any[] }) {
       <table className="w-full tabla-clasificacion">
         <thead>
           <tr className="border-b border-pitch-700">
+            <th className="text-left w-8">#</th>
             <th className="text-left w-12">Pos</th>
             <th className="text-left">Jugador</th>
             <th className="text-left w-10"></th>
@@ -671,6 +676,7 @@ function Top5JugadoresTab({ jugadores }: { jugadores: any[] }) {
         <tbody>
           {jugadores.map(j => (
             <tr key={`${j.codjugador}-${j.codequipo}`} className="border-b border-pitch-700/50 last:border-0">
+              <td className="text-chalk-600 font-mono text-xs">{j.rank}</td>
               <td className="text-chalk-600 font-mono text-xs">{j.posicion || '—'}</td>
               <td className="font-medium text-white">{formatNombre(j.nombre)}</td>
               <EscudoCell escudo={j.escudo} />
@@ -679,7 +685,7 @@ function Top5JugadoresTab({ jugadores }: { jugadores: any[] }) {
             </tr>
           ))}
           {jugadores.length === 0 && (
-            <tr><td colSpan={5} className="text-chalk-600 text-sm text-center py-8">Sin datos en esta jornada</td></tr>
+            <tr><td colSpan={6} className="text-chalk-600 text-sm text-center py-8">Sin datos en esta jornada</td></tr>
           )}
         </tbody>
       </table>
