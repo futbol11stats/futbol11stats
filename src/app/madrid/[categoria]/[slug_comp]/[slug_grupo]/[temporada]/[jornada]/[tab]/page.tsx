@@ -170,6 +170,7 @@ export default async function GrupoPage({
 
   const goleadores = topJugadores.filter(j => j.tipo === 'goleadores_temp')
   const fantasy = topJugadores.filter(j => j.tipo === 'fantasy_temp')
+  const eloJugadores = topJugadores.filter(j => j.tipo === 'elo_temp')
 
   const TABS_JORNADA = [
     { id: 'clasificacion',           label: 'Clasificación' },
@@ -357,6 +358,9 @@ export default async function GrupoPage({
       {tab === 'top10-fantasy-temporada' && (
         <JugadoresTab jugadores={fantasy} tipo="fantasy" />
       )}
+      {tab === 'top10-elo-jugadores-temporada' && (
+        <EloTemporadaTab jugadores={eloJugadores} />
+      )}
       {tab === 'goleadores-jornada' && (
         <GoleadoresJornadaTab jugadores={golesJ} />
       )}
@@ -372,7 +376,7 @@ export default async function GrupoPage({
       {tab === 'once-optimo-jornada' && (
         <XiOptimoJornadaTab jugadores={xiJ} />
       )}
-      {['top10-porteros-temporada', 'top10-tarjetas-temporada', 'top10-elo-jugadores-temporada', 'once-optimo-temporada'].includes(tab) && (
+      {['top10-porteros-temporada', 'top10-tarjetas-temporada', 'once-optimo-temporada'].includes(tab) && (
         <p className="text-chalk-600 text-sm py-8 text-center">Próximamente</p>
       )}
     </div>
@@ -536,12 +540,13 @@ function JugadoresTab({ jugadores, tipo }: { jugadores: any[]; tipo: string }) {
               <>
                 <th className="text-grass-400">Goles</th>
                 <th>PJ</th>
-                <th className="hidden md:table-cell">Pts Fantasy</th>
+                <th className="hidden md:table-cell">Goles/PJ</th>
+                <th className="hidden md:table-cell">Pts totales</th>
               </>
             ) : (
               <>
-                <th className="text-grass-400">Pts</th>
-                <th>PJ</th>
+                <th>Partidos</th>
+                <th className="text-grass-400">Puntos</th>
                 <th className="hidden md:table-cell">Media</th>
               </>
             )}
@@ -559,17 +564,54 @@ function JugadoresTab({ jugadores, tipo }: { jugadores: any[]; tipo: string }) {
                 <>
                   <td className="text-center font-bold text-white">{j.goles}</td>
                   <td className="text-center text-chalk-600">{j.pj}</td>
+                  <td className="text-center text-chalk-600 hidden md:table-cell">{j.goles_pj?.toFixed(2)}</td>
                   <td className="text-center text-chalk-600 hidden md:table-cell">{j.pts_fantasy}</td>
                 </>
               ) : (
                 <>
-                  <td className="text-center font-bold text-white">{j.pts_fantasy}</td>
                   <td className="text-center text-chalk-600">{j.pj}</td>
+                  <td className="text-center font-bold text-white">{j.pts_fantasy}</td>
                   <td className="text-center text-chalk-600 hidden md:table-cell">{j.media_fantasy?.toFixed(1)}</td>
                 </>
               )}
             </tr>
           ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
+function EloTemporadaTab({ jugadores }: { jugadores: any[] }) {
+  return (
+    <div className="bg-pitch-800 rounded-xl border border-pitch-700 overflow-hidden">
+      <table className="w-full tabla-clasificacion">
+        <thead>
+          <tr className="border-b border-pitch-700">
+            <th className="text-left w-8">#</th>
+            <th className="text-left w-12">Pos</th>
+            <th className="text-left">Jugador</th>
+            <th className="text-left w-10"></th>
+            <th className="text-left hidden md:table-cell">Equipo</th>
+            <th className="text-grass-400">ELO</th>
+            <th>PJ</th>
+          </tr>
+        </thead>
+        <tbody>
+          {jugadores.map(j => (
+            <tr key={`${j.codjugador}-${j.codequipo}`} className="border-b border-pitch-700/50 last:border-0">
+              <td className="text-chalk-600 font-mono text-xs">{j.rank}</td>
+              <td className="text-chalk-600 font-mono text-xs">{j.posicion || '—'}</td>
+              <td className="font-medium text-white">{formatNombre(j.nombre)}</td>
+              <EscudoCell escudo={j.escudo} />
+              <td className="text-chalk-600 hidden md:table-cell text-xs">{j.nombre_equipo}</td>
+              <td className="text-center font-bold text-white">{j.elo != null ? Math.round(j.elo) : ''}</td>
+              <td className="text-center text-chalk-600">{j.pj}</td>
+            </tr>
+          ))}
+          {jugadores.length === 0 && (
+            <tr><td colSpan={7} className="text-chalk-600 text-sm text-center py-8">Sin datos</td></tr>
+          )}
         </tbody>
       </table>
     </div>
