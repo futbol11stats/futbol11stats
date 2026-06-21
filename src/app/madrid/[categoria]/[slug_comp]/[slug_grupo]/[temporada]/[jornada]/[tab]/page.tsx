@@ -59,6 +59,17 @@ async function getVariantesPorTemporada(nombreComp: string, nombreGrupo: string)
   return map
 }
 
+// Grupos de la misma competición (para navegar entre ellos)
+async function getGruposCompeticion(nombreComp: string, codtemporada: number) {
+  const { data } = await supabase
+    .from('web_grupos')
+    .select('slug_grupo, nombre_grupo, slug_comp, codgrupo')
+    .eq('nombre_comp', nombreComp)
+    .eq('codtemporada', codtemporada)
+    .order('slug_grupo')
+  return data || []
+}
+
 async function getClasificacion(codgrupo: string, codtemporada: number, jornada: number) {
   const { data } = await supabase
     .from('web_clasificacion')
@@ -114,11 +125,12 @@ export default async function GrupoPage({
 
   const jornadaNum = parseInt(jornada.replace('jornada-', '')) || grupo.jornada_actual
 
-  const [clasificacion, resultados, topJugadores, variantes] = await Promise.all([
+  const [clasificacion, resultados, topJugadores, variantes, gruposComp] = await Promise.all([
     getClasificacion(grupo.codgrupo, codtemporada, jornadaNum),
     getResultados(grupo.codgrupo, codtemporada, jornadaNum),
     getTopJugadores(grupo.codgrupo, codtemporada),
     getVariantesPorTemporada(grupo.nombre_comp, grupo.nombre_grupo),
+    getGruposCompeticion(grupo.nombre_comp, codtemporada),
   ])
 
   const goleadores = topJugadores.filter(j => j.tipo === 'goleadores_temp')
@@ -230,6 +242,25 @@ export default async function GrupoPage({
           })}
         </div>
       </div>
+
+      {/* Grupos de la misma competición */}
+      {gruposComp.length > 1 && (
+        <div className="mb-6 flex gap-1.5 flex-wrap">
+          {gruposComp.map(g => (
+            <Link
+              key={g.codgrupo}
+              href={`/madrid/${categoria}/${g.slug_comp}/${g.slug_grupo}/${temporada}/jornada-${jornadaNum}/${tab}`}
+              className={`text-xs px-3 py-1.5 rounded-md transition-colors ${
+                String(g.codgrupo) === String(grupo.codgrupo)
+                  ? 'bg-grass-500 text-white font-semibold'
+                  : 'bg-pitch-700 text-chalk-200 hover:bg-grass-500 hover:text-white'
+              }`}
+            >
+              {g.nombre_grupo}
+            </Link>
+          ))}
+        </div>
+      )}
 
       {/* Tabs */}
       <div className="border-b border-pitch-700 mb-6 flex gap-1">
