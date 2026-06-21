@@ -11,6 +11,19 @@ async function getGrupos() {
   return data || []
 }
 
+// nombre_historico solo está poblado en T17-T19; mapeamos nombre_comp -> nombre_historico
+async function getHistoricoMap() {
+  const { data } = await supabase
+    .from('web_grupos')
+    .select('nombre_comp, nombre_historico')
+    .not('nombre_historico', 'is', null)
+  const map: Record<string, string> = {}
+  for (const g of data || []) {
+    if (g.nombre_historico) map[g.nombre_comp] = g.nombre_historico
+  }
+  return map
+}
+
 const COMPETICION_ORDER = [
   'NACIONAL JUVENIL',
   'PRIMERA DIVISION AUTONOMICA',
@@ -20,7 +33,7 @@ const COMPETICION_ORDER = [
 ]
 
 export default async function JuvenilPage() {
-  const grupos = await getGrupos()
+  const [grupos, historicoMap] = await Promise.all([getGrupos(), getHistoricoMap()])
 
   const map: Record<string, typeof grupos> = {}
   for (const g of grupos) {
@@ -60,7 +73,7 @@ export default async function JuvenilPage() {
       {/* Competiciones */}
       <div className="space-y-3">
         {ordenadas.map(comp => (
-          <CompeticionCard key={comp} nombre={comp} grupos={map[comp]} />
+          <CompeticionCard key={comp} nombre={comp} grupos={map[comp]} nombreHistorico={historicoMap[comp]} />
         ))}
         {grupos.length === 0 && (
           <p className="text-chalk-600 text-sm text-center py-12">
@@ -75,9 +88,11 @@ export default async function JuvenilPage() {
 function CompeticionCard({
   nombre,
   grupos,
+  nombreHistorico,
 }: {
   nombre: string
   grupos: { codgrupo: string; nombre_grupo: string; jornada_actual: number }[]
+  nombreHistorico?: string
 }) {
   const nombreCorto: Record<string, string> = {
     'NACIONAL JUVENIL': 'Nacional Juvenil',
@@ -89,9 +104,19 @@ function CompeticionCard({
 
   return (
     <div className="bg-pitch-800 rounded-xl border border-pitch-700 overflow-hidden hover:border-grass-500/50 transition-colors">
-      <div className="px-4 py-3 border-b border-pitch-700 flex items-center justify-between">
-        <span className="font-semibold text-white text-sm">{nombreCorto[nombre] || nombre}</span>
-        <span className="text-xs text-chalk-600">{grupos.length} grupo{grupos.length !== 1 ? 's' : ''}</span>
+      <div className="px-4 py-3 border-b border-pitch-700">
+        <div className="flex items-center justify-between">
+          <span className="font-semibold text-white text-sm">{nombreCorto[nombre] || nombre}</span>
+          <span className="text-xs text-chalk-600">{grupos.length} grupo{grupos.length !== 1 ? 's' : ''}</span>
+        </div>
+        {nombreHistorico && (
+          <p className="text-chalk-600 text-[11px] mt-1 flex items-center gap-1">
+            <svg className="w-3 h-3 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+            </svg>
+            Hasta 2023-24: {nombreHistorico}
+          </p>
+        )}
       </div>
       <div className="px-4 py-2 flex flex-wrap gap-2">
         {grupos.map(g => (
