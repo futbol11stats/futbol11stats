@@ -159,21 +159,21 @@ export default async function GrupoPage({
   const fantasy = topJugadores.filter(j => j.tipo === 'fantasy_temp')
 
   const TABS_JORNADA = [
-    { id: 'clasificacion', label: 'Clasificación' },
-    { id: 'resultados',    label: 'Resultados' },
-    { id: 'goleadores-j',  label: 'Goleadores' },
-    { id: 'tarjetas-j',    label: 'Tarjetas' },
-    { id: 'top5-j',        label: 'Top 5' },
-    { id: 'equipos-j',     label: 'Equipos' },
-    { id: 'xi-j',          label: 'XI ideal' },
+    { id: 'clasificacion',           label: 'Clasificación' },
+    { id: 'resultados',              label: 'Resultados' },
+    { id: 'goleadores-jornada',      label: 'Goleadores' },
+    { id: 'tarjetas-jornada',        label: 'Tarjetas' },
+    { id: 'top5-jugadores-jornada',  label: 'Top 5 Jugadores' },
+    { id: 'top5-equipos-jornada',    label: 'Top 5 Equipos' },
+    { id: 'once-optimo-jornada',     label: 'XI Óptimo' },
   ]
   const TABS_TEMPORADA = [
-    { id: 'goleadores-t', label: 'Goleadores' },
-    { id: 'porteros-t',   label: 'Porteros' },
-    { id: 'tarjetas-t',   label: 'Tarjetas' },
-    { id: 'fantasy-t',    label: 'Fantasy' },
-    { id: 'elo-t',        label: 'ELO' },
-    { id: 'xi-t',         label: 'XI ideal' },
+    { id: 'top10-goleadores-temporada',    label: 'Goleadores' },
+    { id: 'top10-porteros-temporada',      label: 'Porteros' },
+    { id: 'top10-tarjetas-temporada',      label: 'Tarjetas' },
+    { id: 'top10-fantasy-temporada',       label: 'Fantasy' },
+    { id: 'top10-elo-jugadores-temporada', label: 'ELO' },
+    { id: 'once-optimo-temporada',         label: 'XI Óptimo' },
   ]
 
   const TEMPORADAS = [21, 20, 19, 18, 17]
@@ -338,16 +338,16 @@ export default async function GrupoPage({
       {tab === 'resultados' && (
         <ResultadosTab resultados={resultados} jornada={jornadaNum} />
       )}
-      {tab === 'goleadores-t' && (
+      {tab === 'top10-goleadores-temporada' && (
         <JugadoresTab jugadores={goleadores} tipo="goleadores" />
       )}
-      {tab === 'fantasy-t' && (
+      {tab === 'top10-fantasy-temporada' && (
         <JugadoresTab jugadores={fantasy} tipo="fantasy" />
       )}
-      {tab === 'goleadores-j' && (
+      {tab === 'goleadores-jornada' && (
         <GoleadoresJornadaTab jugadores={golesJ} />
       )}
-      {['tarjetas-j', 'top5-j', 'equipos-j', 'xi-j', 'porteros-t', 'tarjetas-t', 'elo-t', 'xi-t'].includes(tab) && (
+      {['tarjetas-jornada', 'top5-jugadores-jornada', 'top5-equipos-jornada', 'once-optimo-jornada', 'top10-porteros-temporada', 'top10-tarjetas-temporada', 'top10-elo-jugadores-temporada', 'once-optimo-temporada'].includes(tab) && (
         <p className="text-chalk-600 text-sm py-8 text-center">Próximamente</p>
       )}
     </div>
