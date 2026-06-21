@@ -287,7 +287,7 @@ const ZONA_LEYENDA: { tipo: string; label: string }[] = [
 const ARRASTRE_TIPOS = new Set(['descenso_arrastre', 'ascenso_arrastre', 'descenso_coeficiente'])
 
 function ClasificacionTab({ rows, jornadaNum, totalJornadas }: { rows: any[]; jornadaNum: number; totalJornadas: number }) {
-  const mostrarArrastre = jornadaNum >= totalJornadas - 1
+  const mostrarArrastre = jornadaNum >= totalJornadas
   const zonaEf = (z: string) => (!mostrarArrastre && ARRASTRE_TIPOS.has(z)) ? '' : z
   const zonasPresentes = new Set(rows.map(r => zonaEf(r.zona)).filter(Boolean))
   const leyenda = ZONA_LEYENDA.filter(z => zonasPresentes.has(z.tipo))
