@@ -7,7 +7,6 @@ async function getCompeticiones() {
     .select('codtemporada, nombre_comp, nombre_grupo, codgrupo, categoria, jornada_actual')
     .eq('codtemporada', 21)
     .order('nombre_comp')
-    .order('nombre_grupo')
   return data || []
 }
 
@@ -28,6 +27,13 @@ const COMPETICION_ORDER = [
 
 export default async function Home() {
   const grupos = await getCompeticiones()
+
+  // Ordenar por número de grupo en cliente (evita orden alfabético tipo "Grupo 10" < "Grupo 2")
+  grupos.sort((a, b) => {
+    const numA = parseInt(a.nombre_grupo.replace(/\D/g, '')) || 0
+    const numB = parseInt(b.nombre_grupo.replace(/\D/g, '')) || 0
+    return numA - numB
+  })
 
   const aficionados = grupos.filter(g => g.categoria === 'AFICIONADO')
   const juvenil = grupos.filter(g => g.categoria === 'JUVENIL')
