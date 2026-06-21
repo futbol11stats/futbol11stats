@@ -66,8 +66,12 @@ async function getGruposCompeticion(nombreComp: string, codtemporada: number) {
     .select('slug_grupo, nombre_grupo, slug_comp, codgrupo')
     .eq('nombre_comp', nombreComp)
     .eq('codtemporada', codtemporada)
-    .order('slug_grupo')
-  return data || []
+  const sorted = (data || []).sort((a, b) => {
+    const numA = parseInt(a.nombre_grupo.replace(/\D/g, '')) || 0
+    const numB = parseInt(b.nombre_grupo.replace(/\D/g, '')) || 0
+    return numA - numB
+  })
+  return sorted
 }
 
 async function getClasificacion(codgrupo: string, codtemporada: number, jornada: number) {
