@@ -2,15 +2,46 @@ import { supabase, escudoUrl } from '@/lib/supabase'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 
-async function getGrupo(codgrupo: string) {
+const TEMPORADA_MAP: Record<string, number> = {
+  '2021-22': 17,
+  '2022-23': 18,
+  '2023-24': 19,
+  '2024-25': 20,
+  '2025-26': 21,
+}
+const COD_TO_LABEL: Record<number, string> = Object.fromEntries(
+  Object.entries(TEMPORADA_MAP).map(([label, cod]) => [cod, label])
+)
+
+async function getGrupoBySlug(slugComp: string, slugGrupo: string, codtemporada: number) {
   const { data } = await supabase
     .from('web_grupos')
     .select('*')
-    .eq('codgrupo', codgrupo)
-    .order('codtemporada', { ascending: false })
+    .eq('slug_comp', slugComp)
+    .eq('slug_grupo', slugGrupo)
+    .eq('codtemporada', codtemporada)
     .limit(1)
     .single()
   return data
+}
+
+// Mismo grupo en otras temporadas (mismo nombre_comp + nombre_grupo, consistentes
+// entre temporadas), con el slug propio de cada temporada para construir su URL.
+async function getVariantesPorTemporada(nombreComp: string, nombreGrupo: string) {
+  const { data } = await supabase
+    .from('web_grupos')
+    .select('codtemporada, slug_comp, slug_grupo, jornada_actual')
+    .eq('nombre_comp', nombreComp)
+    .ilike('nombre_grupo', nombreGrupo)
+  const map: Record<number, { slug_comp: string; slug_grupo: string; jornada_actual: number }> = {}
+  for (const g of data || []) {
+    map[g.codtemporada] = {
+      slug_comp: g.slug_comp,
+      slug_grupo: g.slug_grupo,
+      jornada_actual: g.jornada_actual,
+    }
+  }
+  return map
 }
 
 async function getClasificacion(codgrupo: string, codtemporada: number) {
@@ -45,46 +76,33 @@ async function getTopJugadores(codgrupo: string, codtemporada: number) {
   return data || []
 }
 
-// El codgrupo cambia cada temporada para el mismo grupo (nombre_comp + nombre_grupo).
-// Devuelve un mapa codtemporada -> codgrupo para que el selector enlace al grupo correcto.
-async function getGruposPorTemporada(nombreComp: string, nombreGrupo: string) {
-  // nombre_grupo varía en capitalización entre temporadas (p.ej. 'Grupo 7' vs
-  // 'GRUPO 7'), así que comparamos sin distinción de mayúsculas con ilike.
-  const { data } = await supabase
-    .from('web_grupos')
-    .select('codtemporada, codgrupo')
-    .eq('nombre_comp', nombreComp)
-    .ilike('nombre_grupo', nombreGrupo)
-  const map: Record<number, string> = {}
-  for (const g of data || []) {
-    map[g.codtemporada] = String(g.codgrupo)
-  }
-  return map
-}
-
 export default async function GrupoPage({
   params,
-  searchParams,
 }: {
-  params: Promise<{ categoria: string; codgrupo: string }>
-  searchParams: Promise<{ temp?: string; tab?: string }>
+  params: Promise<{
+    categoria: string
+    slug_comp: string
+    slug_grupo: string
+    temporada: string
+    jornada: string
+    tab: string
+  }>
 }) {
-  const { categoria, codgrupo } = await params
-  const { temp, tab: tabParam } = await searchParams
+  const { categoria, slug_comp, slug_grupo, temporada, jornada, tab } = await params
 
-  const grupo = await getGrupo(codgrupo)
+  const codtemporada = TEMPORADA_MAP[temporada]
+  if (!codtemporada) notFound()
+
+  const grupo = await getGrupoBySlug(slug_comp, slug_grupo, codtemporada)
   if (!grupo) notFound()
 
-  const codtemporada = temp ? parseInt(temp) : grupo.codtemporada
-  const tab = tabParam || 'clasificacion'
+  const jornadaNum = parseInt(jornada) || grupo.jornada_actual
 
-  // Mapa codtemporada -> codgrupo para el selector (mismo grupo, distinto codgrupo por temporada)
-  const gruposPorTemp = await getGruposPorTemporada(grupo.nombre_comp, grupo.nombre_grupo)
-
-  const [clasificacion, resultados, topJugadores] = await Promise.all([
-    getClasificacion(codgrupo, codtemporada),
-    getResultados(codgrupo, codtemporada, grupo.jornada_actual),
-    getTopJugadores(codgrupo, codtemporada),
+  const [clasificacion, resultados, topJugadores, variantes] = await Promise.all([
+    getClasificacion(grupo.codgrupo, codtemporada),
+    getResultados(grupo.codgrupo, codtemporada, jornadaNum),
+    getTopJugadores(grupo.codgrupo, codtemporada),
+    getVariantesPorTemporada(grupo.nombre_comp, grupo.nombre_grupo),
   ])
 
   const goleadores = topJugadores.filter(j => j.tipo === 'goleadores_temp')
@@ -97,13 +115,10 @@ export default async function GrupoPage({
     { id: 'fantasy', label: 'Fantasy' },
   ]
 
-  const TEMPORADAS = [
-    { cod: 21, nombre: '2025-26' },
-    { cod: 20, nombre: '2024-25' },
-    { cod: 19, nombre: '2023-24' },
-    { cod: 18, nombre: '2022-23' },
-    { cod: 17, nombre: '2021-22' },
-  ]
+  const TEMPORADAS = [21, 20, 19, 18, 17]
+
+  // Base de URL para los enlaces de tabs (misma temporada/jornada, cambia el tab)
+  const baseTab = `/madrid/${categoria}/${slug_comp}/${slug_grupo}/${temporada}/${jornadaNum}`
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
@@ -129,35 +144,36 @@ export default async function GrupoPage({
               Actualmente denominada {grupo.nombre_comp}
             </p>
           )}
-          <p className="text-chalk-600 text-sm mt-1">Jornada {grupo.jornada_actual}</p>
+          <p className="text-chalk-600 text-sm mt-1">Jornada {jornadaNum}</p>
         </div>
-        {/* Selector de temporada — enlaza al codgrupo correcto de cada temporada */}
+        {/* Selector de temporada — enlaza a la variante (slug propio) de cada temporada */}
         <div className="flex gap-1.5 flex-wrap">
-          {TEMPORADAS.map(t => {
-            const codgrupoTemp = gruposPorTemp[t.cod]
+          {TEMPORADAS.map(cod => {
+            const v = variantes[cod]
+            const label = COD_TO_LABEL[cod]
             // El grupo no existió en esta temporada: opción deshabilitada
-            if (!codgrupoTemp) {
+            if (!v) {
               return (
                 <span
-                  key={t.cod}
+                  key={cod}
                   title="Sin datos en esta temporada"
                   className="text-xs px-3 py-1.5 rounded-md bg-pitch-800 text-chalk-700 opacity-40 cursor-not-allowed"
                 >
-                  {t.nombre}
+                  {label}
                 </span>
               )
             }
             return (
               <Link
-                key={t.cod}
-                href={`/madrid/${categoria}/${codgrupoTemp}?temp=${t.cod}&tab=${tab}`}
+                key={cod}
+                href={`/madrid/${categoria}/${v.slug_comp}/${v.slug_grupo}/${label}/${v.jornada_actual}/${tab}`}
                 className={`text-xs px-3 py-1.5 rounded-md transition-colors ${
-                  codtemporada === t.cod
+                  codtemporada === cod
                     ? 'bg-grass-500 text-white font-semibold'
                     : 'bg-pitch-700 text-chalk-600 hover:text-white'
                 }`}
               >
-                {t.nombre}
+                {label}
               </Link>
             )
           })}
@@ -169,7 +185,7 @@ export default async function GrupoPage({
         {TABS.map(t => (
           <Link
             key={t.id}
-            href={`/madrid/${categoria}/${codgrupo}?temp=${codtemporada}&tab=${t.id}`}
+            href={`${baseTab}/${t.id}`}
             className={`px-4 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px ${
               tab === t.id
                 ? 'border-grass-400 text-white'
@@ -186,7 +202,7 @@ export default async function GrupoPage({
         <ClasificacionTab rows={clasificacion} />
       )}
       {tab === 'resultados' && (
-        <ResultadosTab resultados={resultados} jornada={grupo.jornada_actual} />
+        <ResultadosTab resultados={resultados} jornada={jornadaNum} />
       )}
       {tab === 'goleadores' && (
         <JugadoresTab jugadores={goleadores} tipo="goleadores" />

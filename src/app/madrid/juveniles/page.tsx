@@ -4,7 +4,7 @@ import Link from 'next/link'
 async function getGrupos() {
   const { data } = await supabase
     .from('web_grupos')
-    .select('codtemporada, nombre_comp, nombre_grupo, codgrupo, categoria, jornada_actual')
+    .select('codtemporada, nombre_comp, nombre_grupo, codgrupo, categoria, jornada_actual, slug_comp, slug_grupo')
     .eq('categoria', 'JUVENIL')
     .eq('codtemporada', 21)
     .order('nombre_comp')
@@ -98,7 +98,7 @@ function CompeticionCard({
   nombreHistorico,
 }: {
   nombre: string
-  grupos: { codgrupo: string; nombre_grupo: string; jornada_actual: number }[]
+  grupos: { codgrupo: string; nombre_grupo: string; jornada_actual: number; slug_comp: string; slug_grupo: string }[]
   nombreHistorico?: string
 }) {
   const nombreCorto: Record<string, string> = {
@@ -129,7 +129,7 @@ function CompeticionCard({
         {grupos.map(g => (
           <Link
             key={g.codgrupo}
-            href={`/madrid/juveniles/${g.codgrupo}`}
+            href={`/madrid/juveniles/${g.slug_comp}/${g.slug_grupo}/2025-26/${g.jornada_actual}/clasificacion`}
             className="text-xs bg-pitch-700 hover:bg-grass-500 text-chalk-200 hover:text-white px-3 py-1.5 rounded-md transition-colors"
           >
             {g.nombre_grupo} · J{g.jornada_actual}
