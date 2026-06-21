@@ -13,15 +13,29 @@ const COD_TO_LABEL: Record<number, string> = Object.fromEntries(
   Object.entries(TEMPORADA_MAP).map(([label, cod]) => [cod, label])
 )
 
-async function getGrupoBySlug(slugComp: string, slugGrupo: string, codtemporada: number) {
-  const { data } = await supabase
+// El segmento [categoria] de la URL ('aficionados'|'juveniles') mapea a la
+// columna categoria de la BD ('AFICIONADO'|'JUVENIL').
+const CATEGORIA_MAP: Record<string, string> = {
+  aficionados: 'AFICIONADO',
+  juveniles: 'JUVENIL',
+}
+
+async function getGrupoBySlug(
+  categoria: string,
+  slugComp: string,
+  slugGrupo: string,
+  codtemporada: number,
+) {
+  let query = supabase
     .from('web_grupos')
     .select('*')
     .eq('slug_comp', slugComp)
     .eq('slug_grupo', slugGrupo)
     .eq('codtemporada', codtemporada)
-    .limit(1)
-    .single()
+  // Evita mezclar aficionados con juveniles (mismos slugs entre categorías).
+  const cat = CATEGORIA_MAP[categoria]
+  if (cat) query = query.eq('categoria', cat)
+  const { data } = await query.limit(1).single()
   return data
 }
 
@@ -93,7 +107,7 @@ export default async function GrupoPage({
   const codtemporada = TEMPORADA_MAP[temporada]
   if (!codtemporada) notFound()
 
-  const grupo = await getGrupoBySlug(slug_comp, slug_grupo, codtemporada)
+  const grupo = await getGrupoBySlug(categoria, slug_comp, slug_grupo, codtemporada)
   if (!grupo) notFound()
 
   const jornadaNum = parseInt(jornada) || grupo.jornada_actual
