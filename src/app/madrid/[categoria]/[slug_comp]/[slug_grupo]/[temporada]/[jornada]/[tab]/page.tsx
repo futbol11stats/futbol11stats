@@ -527,10 +527,10 @@ function JugadoresTab({ jugadores, tipo }: { jugadores: any[]; tipo: string }) {
       <table className="w-full tabla-clasificacion">
         <thead>
           <tr className="border-b border-pitch-700">
-            <th className="text-left w-8">#</th>
+            <th className="text-left w-12">Pos</th>
             <th className="text-left">Jugador</th>
+            <th className="text-left w-10"></th>
             <th className="text-left hidden md:table-cell">Equipo</th>
-            <th className="hidden md:table-cell">Pos.</th>
             {tipo === 'goleadores' ? (
               <>
                 <th className="text-grass-400">Goles</th>
@@ -549,10 +549,10 @@ function JugadoresTab({ jugadores, tipo }: { jugadores: any[]; tipo: string }) {
         <tbody>
           {jugadores.map(j => (
             <tr key={`${j.codjugador}-${j.codequipo}`} className="border-b border-pitch-700/50 last:border-0">
-              <td className="text-chalk-600 font-mono text-xs">{j.rank}</td>
-              <td className="font-medium text-white">{j.nombre}</td>
+              <td className="text-chalk-600 font-mono text-xs">{j.posicion || '—'}</td>
+              <td className="font-medium text-white">{formatNombre(j.nombre)}</td>
+              <EscudoCell escudo={j.escudo} />
               <td className="text-chalk-600 hidden md:table-cell text-xs">{j.nombre_equipo}</td>
-              <td className="text-center text-chalk-600 text-xs hidden md:table-cell">{j.posicion || '—'}</td>
               {tipo === 'goleadores' ? (
                 <>
                   <td className="text-center font-bold text-white">{j.goles}</td>
@@ -580,9 +580,9 @@ function GoleadoresJornadaTab({ jugadores }: { jugadores: any[] }) {
       <table className="w-full tabla-clasificacion">
         <thead>
           <tr className="border-b border-pitch-700">
-            <th className="text-left w-8">#</th>
-            <th className="text-left w-10"></th>
+            <th className="text-left w-12">Pos</th>
             <th className="text-left">Jugador</th>
+            <th className="text-left w-10"></th>
             <th className="text-left hidden md:table-cell">Equipo</th>
             <th className="text-grass-400">Goles</th>
           </tr>
@@ -590,15 +590,9 @@ function GoleadoresJornadaTab({ jugadores }: { jugadores: any[] }) {
         <tbody>
           {jugadores.map(j => (
             <tr key={`${j.codjugador}-${j.codequipo}`} className="border-b border-pitch-700/50 last:border-0">
-              <td className="text-chalk-600 font-mono text-xs">{j.rank}</td>
-              <td>
-                {escudoUrl(j.escudo) && (
-                  <span className="inline-flex items-center justify-center w-7 h-7 bg-white rounded-sm flex-shrink-0 p-0.5">
-                    <img src={escudoUrl(j.escudo)!} alt="" className="w-full h-full object-contain" />
-                  </span>
-                )}
-              </td>
+              <td className="text-chalk-600 font-mono text-xs">{j.posicion || '—'}</td>
               <td className="font-medium text-white">{formatNombre(j.nombre)}</td>
+              <EscudoCell escudo={j.escudo} />
               <td className="text-chalk-600 hidden md:table-cell text-xs">{j.nombre_equipo}</td>
               <td className="text-center font-bold text-white">{j.goles}</td>
             </tr>
@@ -629,6 +623,7 @@ function TarjetasJornadaTab({ jugadores }: { jugadores: any[] }) {
       <table className="w-full tabla-clasificacion">
         <thead>
           <tr className="border-b border-pitch-700">
+            <th className="text-left w-12">Pos</th>
             <th className="text-left">Jugador</th>
             <th className="text-left w-10"></th>
             <th className="text-left hidden md:table-cell">Equipo</th>
@@ -640,6 +635,7 @@ function TarjetasJornadaTab({ jugadores }: { jugadores: any[] }) {
         <tbody>
           {jugadores.map(j => (
             <tr key={`${j.codjugador}-${j.codequipo}`} className="border-b border-pitch-700/50 last:border-0">
+              <td className="text-chalk-600 font-mono text-xs">{j.posicion || '—'}</td>
               <td className="font-medium text-white">{formatNombre(j.nombre)}</td>
               <EscudoCell escudo={j.escudo} />
               <td className="text-chalk-600 hidden md:table-cell text-xs">{j.nombre_equipo}</td>
@@ -649,7 +645,7 @@ function TarjetasJornadaTab({ jugadores }: { jugadores: any[] }) {
             </tr>
           ))}
           {jugadores.length === 0 && (
-            <tr><td colSpan={6} className="text-chalk-600 text-sm text-center py-8">Sin tarjetas en esta jornada</td></tr>
+            <tr><td colSpan={7} className="text-chalk-600 text-sm text-center py-8">Sin tarjetas en esta jornada</td></tr>
           )}
         </tbody>
       </table>
@@ -663,9 +659,9 @@ function Top5JugadoresTab({ jugadores }: { jugadores: any[] }) {
       <table className="w-full tabla-clasificacion">
         <thead>
           <tr className="border-b border-pitch-700">
-            <th className="text-left w-8">#</th>
-            <th className="text-left w-10"></th>
+            <th className="text-left w-12">Pos</th>
             <th className="text-left">Jugador</th>
+            <th className="text-left w-10"></th>
             <th className="text-left hidden md:table-cell">Equipo</th>
             <th className="text-grass-400">Pts Fantasy</th>
           </tr>
@@ -673,9 +669,9 @@ function Top5JugadoresTab({ jugadores }: { jugadores: any[] }) {
         <tbody>
           {jugadores.map(j => (
             <tr key={`${j.codjugador}-${j.codequipo}`} className="border-b border-pitch-700/50 last:border-0">
-              <td className="text-chalk-600 font-mono text-xs">{j.rank}</td>
-              <EscudoCell escudo={j.escudo} />
+              <td className="text-chalk-600 font-mono text-xs">{j.posicion || '—'}</td>
               <td className="font-medium text-white">{formatNombre(j.nombre)}</td>
+              <EscudoCell escudo={j.escudo} />
               <td className="text-chalk-600 hidden md:table-cell text-xs">{j.nombre_equipo}</td>
               <td className="text-center font-bold text-white">{j.pts_fantasy}</td>
             </tr>
@@ -726,8 +722,8 @@ function XiOptimoJornadaTab({ jugadores }: { jugadores: any[] }) {
         <thead>
           <tr className="border-b border-pitch-700">
             <th className="text-left w-12">Pos</th>
-            <th className="text-left w-10"></th>
             <th className="text-left">Jugador</th>
+            <th className="text-left w-10"></th>
             <th className="text-left hidden md:table-cell">Equipo</th>
             <th className="text-grass-400">Pts</th>
             <th>Goles</th>
@@ -736,9 +732,9 @@ function XiOptimoJornadaTab({ jugadores }: { jugadores: any[] }) {
         <tbody>
           {jugadores.map(j => (
             <tr key={`${j.codjugador}-${j.codequipo}`} className="border-b border-pitch-700/50 last:border-0">
-              <td className="text-chalk-600 font-mono text-xs">{j.posicion}</td>
-              <EscudoCell escudo={j.escudo} />
+              <td className="text-chalk-600 font-mono text-xs">{j.posicion || '—'}</td>
               <td className="font-medium text-white">{formatNombre(j.nombre)}</td>
+              <EscudoCell escudo={j.escudo} />
               <td className="text-chalk-600 hidden md:table-cell text-xs">{j.nombre_equipo}</td>
               <td className="text-center font-bold text-white">{j.pts_fantasy}</td>
               <td className="text-center text-chalk-600">{j.goles}</td>
