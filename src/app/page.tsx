@@ -161,7 +161,7 @@ function CompeticionCard({
         {grupos.map(g => (
           <Link
             key={g.codgrupo}
-            href={`/madrid/${categoria}/${g.slug_comp}/${g.slug_grupo}/2025-26/${g.jornada_actual}/clasificacion`}
+            href={`/madrid/${categoria}/${g.slug_comp}/${g.slug_grupo}/2025-26/jornada-${g.jornada_actual}/clasificacion`}
             className="text-xs bg-pitch-700 hover:bg-grass-500 text-chalk-200 hover:text-white px-3 py-1.5 rounded-md transition-colors"
           >
             {g.nombre_grupo} · J{g.jornada_actual}

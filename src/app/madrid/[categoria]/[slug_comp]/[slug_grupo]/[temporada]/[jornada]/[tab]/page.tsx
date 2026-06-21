@@ -110,7 +110,7 @@ export default async function GrupoPage({
   const grupo = await getGrupoBySlug(categoria, slug_comp, slug_grupo, codtemporada)
   if (!grupo) notFound()
 
-  const jornadaNum = parseInt(jornada) || grupo.jornada_actual
+  const jornadaNum = parseInt(jornada.replace('jornada-', '')) || grupo.jornada_actual
 
   const [clasificacion, resultados, topJugadores, variantes] = await Promise.all([
     getClasificacion(grupo.codgrupo, codtemporada),
@@ -132,7 +132,7 @@ export default async function GrupoPage({
   const TEMPORADAS = [21, 20, 19, 18, 17]
 
   // Base de URL para los enlaces de tabs (misma temporada/jornada, cambia el tab)
-  const baseTab = `/madrid/${categoria}/${slug_comp}/${slug_grupo}/${temporada}/${jornadaNum}`
+  const baseTab = `/madrid/${categoria}/${slug_comp}/${slug_grupo}/${temporada}/jornada-${jornadaNum}`
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
@@ -180,7 +180,7 @@ export default async function GrupoPage({
             return (
               <Link
                 key={cod}
-                href={`/madrid/${categoria}/${v.slug_comp}/${v.slug_grupo}/${label}/${v.jornada_actual}/${tab}`}
+                href={`/madrid/${categoria}/${v.slug_comp}/${v.slug_grupo}/${label}/jornada-${v.jornada_actual}/${tab}`}
                 className={`text-xs px-3 py-1.5 rounded-md transition-colors ${
                   codtemporada === cod
                     ? 'bg-grass-500 text-white font-semibold'
