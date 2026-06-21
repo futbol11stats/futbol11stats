@@ -60,10 +60,10 @@ export default async function Home() {
               5 temporadas · 110.000+ partidos · 38.000+ jugadores.
             </p>
             <div className="flex gap-3">
-              <Link href="/aficionados" className="bg-grass-500 hover:bg-grass-400 text-white font-semibold px-5 py-2.5 rounded-lg transition-colors text-sm">
+              <Link href="/madrid/aficionados" className="bg-grass-500 hover:bg-grass-400 text-white font-semibold px-5 py-2.5 rounded-lg transition-colors text-sm">
                 Aficionados
               </Link>
-              <Link href="/juvenil" className="bg-pitch-700 hover:bg-pitch-600 text-white font-semibold px-5 py-2.5 rounded-lg transition-colors text-sm border border-pitch-600">
+              <Link href="/madrid/juveniles" className="bg-pitch-700 hover:bg-pitch-600 text-white font-semibold px-5 py-2.5 rounded-lg transition-colors text-sm border border-pitch-600">
                 Juvenil
               </Link>
             </div>
@@ -104,7 +104,7 @@ export default async function Home() {
                   key={comp}
                   nombre={comp}
                   grupos={juvenilMap[comp]}
-                  categoria="juvenil"
+                  categoria="juveniles"
                 />
               ))}
             </div>
@@ -143,7 +143,7 @@ function CompeticionCard({
         {grupos.map(g => (
           <Link
             key={g.codgrupo}
-            href={`/${categoria}/${g.codgrupo}`}
+            href={`/madrid/${categoria}/${g.codgrupo}`}
             className="text-xs bg-pitch-700 hover:bg-grass-500 text-chalk-200 hover:text-white px-3 py-1.5 rounded-md transition-colors"
           >
             {g.nombre_grupo} · J{g.jornada_actual}

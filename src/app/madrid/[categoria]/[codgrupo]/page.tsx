@@ -109,7 +109,7 @@ export default async function GrupoPage({
       <nav className="text-sm text-chalk-600 mb-6 flex items-center gap-2">
         <Link href="/" className="hover:text-white transition-colors">Inicio</Link>
         <span>·</span>
-        <Link href={`/${categoria}`} className="hover:text-white transition-colors capitalize">{categoria}</Link>
+        <Link href={`/madrid/${categoria}`} className="hover:text-white transition-colors capitalize">{categoria}</Link>
         <span>·</span>
         <span className="text-white">{grupo.nombre_comp}</span>
       </nav>
@@ -140,7 +140,7 @@ export default async function GrupoPage({
             return (
               <Link
                 key={t.cod}
-                href={`/${categoria}/${codgrupoTemp}?temp=${t.cod}&tab=${tab}`}
+                href={`/madrid/${categoria}/${codgrupoTemp}?temp=${t.cod}&tab=${tab}`}
                 className={`text-xs px-3 py-1.5 rounded-md transition-colors ${
                   codtemporada === t.cod
                     ? 'bg-grass-500 text-white font-semibold'
@@ -159,7 +159,7 @@ export default async function GrupoPage({
         {TABS.map(t => (
           <Link
             key={t.id}
-            href={`/${categoria}/${codgrupo}?temp=${codtemporada}&tab=${t.id}`}
+            href={`/madrid/${categoria}/${codgrupo}?temp=${codtemporada}&tab=${t.id}`}
             className={`px-4 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px ${
               tab === t.id
                 ? 'border-grass-400 text-white'

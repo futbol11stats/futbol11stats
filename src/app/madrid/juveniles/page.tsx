@@ -5,21 +5,21 @@ async function getGrupos() {
   const { data } = await supabase
     .from('web_grupos')
     .select('codtemporada, nombre_comp, nombre_grupo, codgrupo, categoria, jornada_actual')
-    .eq('categoria', 'AFICIONADO')
+    .eq('categoria', 'JUVENIL')
     .eq('codtemporada', 21)
     .order('nombre_comp')
   return data || []
 }
 
 const COMPETICION_ORDER = [
-  'TERCERA FEDERACION RFEF',
+  'NACIONAL JUVENIL',
   'PRIMERA DIVISION AUTONOMICA',
   'PREFERENTE',
   'PRIMERA',
   'SEGUNDA',
 ]
 
-export default async function AficionadosPage() {
+export default async function JuvenilPage() {
   const grupos = await getGrupos()
 
   const map: Record<string, typeof grupos> = {}
@@ -40,7 +40,7 @@ export default async function AficionadosPage() {
       <nav className="text-sm text-chalk-600 mb-6 flex items-center gap-2">
         <Link href="/" className="hover:text-white transition-colors">Inicio</Link>
         <span>·</span>
-        <span className="text-white">Aficionados</span>
+        <span className="text-white">Juvenil</span>
       </nav>
 
       {/* Header */}
@@ -49,8 +49,8 @@ export default async function AficionadosPage() {
           Categoría
         </p>
         <h1 className="font-display text-4xl font-bold text-white flex items-center gap-3">
-          <span className="w-1.5 h-9 bg-grass-500 rounded-full inline-block" />
-          Aficionados
+          <span className="w-1.5 h-9 bg-amber-500 rounded-full inline-block" />
+          Juvenil
         </h1>
         <p className="text-chalk-600 text-sm mt-2">
           {grupos.length} grupo{grupos.length !== 1 ? 's' : ''} · Temporada 2025-26
@@ -80,11 +80,11 @@ function CompeticionCard({
   grupos: { codgrupo: string; nombre_grupo: string; jornada_actual: number }[]
 }) {
   const nombreCorto: Record<string, string> = {
-    'TERCERA FEDERACION RFEF': '3ª RFEF',
+    'NACIONAL JUVENIL': 'Nacional Juvenil',
     'PRIMERA DIVISION AUTONOMICA': '1ª Autonómica',
     'PREFERENTE': 'Preferente',
-    'PRIMERA': '1ª Aficionada',
-    'SEGUNDA': '2ª Aficionada',
+    'PRIMERA': '1ª Juvenil',
+    'SEGUNDA': '2ª Juvenil',
   }
 
   return (
@@ -97,7 +97,7 @@ function CompeticionCard({
         {grupos.map(g => (
           <Link
             key={g.codgrupo}
-            href={`/aficionados/${g.codgrupo}`}
+            href={`/madrid/juveniles/${g.codgrupo}`}
             className="text-xs bg-pitch-700 hover:bg-grass-500 text-chalk-200 hover:text-white px-3 py-1.5 rounded-md transition-colors"
           >
             {g.nombre_grupo} · J{g.jornada_actual}
