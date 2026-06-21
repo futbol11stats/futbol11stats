@@ -87,6 +87,18 @@ async function getDestacadosJornada(codgrupo: string, codtemporada: number, jorn
   return data || []
 }
 
+// Equipos en forma por jornada (web_equipos_forma)
+async function getEquiposForma(codgrupo: string, codtemporada: number, jornada: number) {
+  const { data } = await supabase
+    .from('web_equipos_forma')
+    .select('*')
+    .eq('codgrupo', codgrupo)
+    .eq('codtemporada', codtemporada)
+    .eq('jornada', jornada)
+    .order('rank')
+  return data || []
+}
+
 async function getClasificacion(codgrupo: string, codtemporada: number, jornada: number) {
   const { data } = await supabase
     .from('web_clasificacion')
@@ -143,7 +155,7 @@ export default async function GrupoPage({
   const jornadaNum = parseInt(jornada.replace('jornada-', '')) || grupo.jornada_actual
 
   const [clasificacion, resultados, topJugadores, variantes, gruposComp,
-         golesJ, tarjetasJ, mvpJ, xiJ] = await Promise.all([
+         golesJ, tarjetasJ, mvpJ, xiJ, equiposForma] = await Promise.all([
     getClasificacion(grupo.codgrupo, codtemporada, jornadaNum),
     getResultados(grupo.codgrupo, codtemporada, jornadaNum),
     getTopJugadores(grupo.codgrupo, codtemporada),
@@ -153,6 +165,7 @@ export default async function GrupoPage({
     getDestacadosJornada(grupo.codgrupo, codtemporada, jornadaNum, 'tarjetas_jornada'),
     getDestacadosJornada(grupo.codgrupo, codtemporada, jornadaNum, 'mvp_jornada'),
     getDestacadosJornada(grupo.codgrupo, codtemporada, jornadaNum, 'xi_jornada'),
+    getEquiposForma(grupo.codgrupo, codtemporada, jornadaNum),
   ])
 
   const goleadores = topJugadores.filter(j => j.tipo === 'goleadores_temp')
@@ -347,7 +360,19 @@ export default async function GrupoPage({
       {tab === 'goleadores-jornada' && (
         <GoleadoresJornadaTab jugadores={golesJ} />
       )}
-      {['tarjetas-jornada', 'top5-jugadores-jornada', 'top5-equipos-jornada', 'once-optimo-jornada', 'top10-porteros-temporada', 'top10-tarjetas-temporada', 'top10-elo-jugadores-temporada', 'once-optimo-temporada'].includes(tab) && (
+      {tab === 'tarjetas-jornada' && (
+        <TarjetasJornadaTab jugadores={tarjetasJ} />
+      )}
+      {tab === 'top5-jugadores-jornada' && (
+        <Top5JugadoresTab jugadores={mvpJ} />
+      )}
+      {tab === 'top5-equipos-jornada' && (
+        <Top5EquiposTab equipos={equiposForma} />
+      )}
+      {tab === 'once-optimo-jornada' && (
+        <XiOptimoJornadaTab jugadores={xiJ} />
+      )}
+      {['top10-porteros-temporada', 'top10-tarjetas-temporada', 'top10-elo-jugadores-temporada', 'once-optimo-temporada'].includes(tab) && (
         <p className="text-chalk-600 text-sm py-8 text-center">Próximamente</p>
       )}
     </div>
@@ -580,6 +605,147 @@ function GoleadoresJornadaTab({ jugadores }: { jugadores: any[] }) {
           ))}
           {jugadores.length === 0 && (
             <tr><td colSpan={5} className="text-chalk-600 text-sm text-center py-8">Sin goleadores en esta jornada</td></tr>
+          )}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
+function EscudoCell({ escudo }: { escudo: string | null }) {
+  if (!escudoUrl(escudo)) return <td className="w-10" />
+  return (
+    <td className="w-10">
+      <span className="inline-flex items-center justify-center w-7 h-7 bg-white rounded-sm flex-shrink-0 p-0.5">
+        <img src={escudoUrl(escudo)!} alt="" className="w-full h-full object-contain" />
+      </span>
+    </td>
+  )
+}
+
+function TarjetasJornadaTab({ jugadores }: { jugadores: any[] }) {
+  return (
+    <div className="bg-pitch-800 rounded-xl border border-pitch-700 overflow-hidden">
+      <table className="w-full tabla-clasificacion">
+        <thead>
+          <tr className="border-b border-pitch-700">
+            <th className="text-left">Jugador</th>
+            <th className="text-left w-10"></th>
+            <th className="text-left hidden md:table-cell">Equipo</th>
+            <th>🟨</th>
+            <th>🟨🟨</th>
+            <th>🟥</th>
+          </tr>
+        </thead>
+        <tbody>
+          {jugadores.map(j => (
+            <tr key={`${j.codjugador}-${j.codequipo}`} className="border-b border-pitch-700/50 last:border-0">
+              <td className="font-medium text-white">{formatNombre(j.nombre)}</td>
+              <EscudoCell escudo={j.escudo} />
+              <td className="text-chalk-600 hidden md:table-cell text-xs">{j.nombre_equipo}</td>
+              <td className="text-center text-chalk-600">{j.goles}</td>
+              <td className="text-center text-chalk-600">{j.goles_enc}</td>
+              <td className="text-center text-chalk-600">{j.racha_5p}</td>
+            </tr>
+          ))}
+          {jugadores.length === 0 && (
+            <tr><td colSpan={6} className="text-chalk-600 text-sm text-center py-8">Sin tarjetas en esta jornada</td></tr>
+          )}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
+function Top5JugadoresTab({ jugadores }: { jugadores: any[] }) {
+  return (
+    <div className="bg-pitch-800 rounded-xl border border-pitch-700 overflow-hidden">
+      <table className="w-full tabla-clasificacion">
+        <thead>
+          <tr className="border-b border-pitch-700">
+            <th className="text-left w-8">#</th>
+            <th className="text-left w-10"></th>
+            <th className="text-left">Jugador</th>
+            <th className="text-left hidden md:table-cell">Equipo</th>
+            <th className="text-grass-400">Pts Fantasy</th>
+          </tr>
+        </thead>
+        <tbody>
+          {jugadores.map(j => (
+            <tr key={`${j.codjugador}-${j.codequipo}`} className="border-b border-pitch-700/50 last:border-0">
+              <td className="text-chalk-600 font-mono text-xs">{j.rank}</td>
+              <EscudoCell escudo={j.escudo} />
+              <td className="font-medium text-white">{formatNombre(j.nombre)}</td>
+              <td className="text-chalk-600 hidden md:table-cell text-xs">{j.nombre_equipo}</td>
+              <td className="text-center font-bold text-white">{j.pts_fantasy}</td>
+            </tr>
+          ))}
+          {jugadores.length === 0 && (
+            <tr><td colSpan={5} className="text-chalk-600 text-sm text-center py-8">Sin datos en esta jornada</td></tr>
+          )}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
+function Top5EquiposTab({ equipos }: { equipos: any[] }) {
+  return (
+    <div className="bg-pitch-800 rounded-xl border border-pitch-700 overflow-hidden">
+      <table className="w-full tabla-clasificacion">
+        <thead>
+          <tr className="border-b border-pitch-700">
+            <th className="text-left w-8">#</th>
+            <th className="text-left w-10"></th>
+            <th className="text-left">Equipo</th>
+            <th className="text-grass-400">Pts Fantasy</th>
+          </tr>
+        </thead>
+        <tbody>
+          {equipos.map(e => (
+            <tr key={e.codequipo} className="border-b border-pitch-700/50 last:border-0">
+              <td className="text-chalk-600 font-mono text-xs">{e.rank}</td>
+              <EscudoCell escudo={e.escudo} />
+              <td className="font-medium text-white">{e.nombre_equipo}</td>
+              <td className="text-center font-bold text-white">{e.pts_fantasy ? Math.round(e.pts_fantasy) : ''}</td>
+            </tr>
+          ))}
+          {equipos.length === 0 && (
+            <tr><td colSpan={4} className="text-chalk-600 text-sm text-center py-8">Sin datos en esta jornada</td></tr>
+          )}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
+function XiOptimoJornadaTab({ jugadores }: { jugadores: any[] }) {
+  return (
+    <div className="bg-pitch-800 rounded-xl border border-pitch-700 overflow-hidden">
+      <table className="w-full tabla-clasificacion">
+        <thead>
+          <tr className="border-b border-pitch-700">
+            <th className="text-left w-12">Pos</th>
+            <th className="text-left w-10"></th>
+            <th className="text-left">Jugador</th>
+            <th className="text-left hidden md:table-cell">Equipo</th>
+            <th className="text-grass-400">Pts</th>
+            <th>Goles</th>
+          </tr>
+        </thead>
+        <tbody>
+          {jugadores.map(j => (
+            <tr key={`${j.codjugador}-${j.codequipo}`} className="border-b border-pitch-700/50 last:border-0">
+              <td className="text-chalk-600 font-mono text-xs">{j.posicion}</td>
+              <EscudoCell escudo={j.escudo} />
+              <td className="font-medium text-white">{formatNombre(j.nombre)}</td>
+              <td className="text-chalk-600 hidden md:table-cell text-xs">{j.nombre_equipo}</td>
+              <td className="text-center font-bold text-white">{j.pts_fantasy}</td>
+              <td className="text-center text-chalk-600">{j.goles}</td>
+            </tr>
+          ))}
+          {jugadores.length === 0 && (
+            <tr><td colSpan={6} className="text-chalk-600 text-sm text-center py-8">Sin datos en esta jornada</td></tr>
           )}
         </tbody>
       </table>
