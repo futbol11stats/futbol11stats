@@ -224,7 +224,7 @@ function ClasificacionTab({ rows }: { rows: any[] }) {
               <td className="font-medium text-white">
                 <span className="flex items-center gap-2">
                   {escudoUrl(row.escudo) && (
-                    <span className="inline-flex items-center justify-center w-6 h-6 bg-white rounded-sm flex-shrink-0 p-0.5">
+                    <span className="inline-flex items-center justify-center w-8 h-8 bg-white rounded-sm flex-shrink-0 p-0.5">
                       <img src={escudoUrl(row.escudo)!} alt="" className="w-full h-full object-contain" />
                     </span>
                   )}
@@ -258,7 +258,7 @@ function ResultadosTab({ resultados, jornada }: { resultados: any[]; jornada: nu
             <div className="flex-1 flex items-center justify-end gap-2 text-sm">
               <span className="text-white font-medium text-right">{r.nombre_local}</span>
               {escudoUrl(r.escudo_local) && (
-                <span className="inline-flex items-center justify-center w-7 h-7 bg-white rounded-sm flex-shrink-0 p-0.5">
+                <span className="inline-flex items-center justify-center w-9 h-9 bg-white rounded-sm flex-shrink-0 p-0.5">
                   <img src={escudoUrl(r.escudo_local)!} alt="" className="w-full h-full object-contain" />
                 </span>
               )}
@@ -270,7 +270,7 @@ function ResultadosTab({ resultados, jornada }: { resultados: any[]; jornada: nu
             </div>
             <div className="flex-1 flex items-center gap-2 text-sm">
               {escudoUrl(r.escudo_visitante) && (
-                <span className="inline-flex items-center justify-center w-7 h-7 bg-white rounded-sm flex-shrink-0 p-0.5">
+                <span className="inline-flex items-center justify-center w-9 h-9 bg-white rounded-sm flex-shrink-0 p-0.5">
                   <img src={escudoUrl(r.escudo_visitante)!} alt="" className="w-full h-full object-contain" />
                 </span>
               )}
