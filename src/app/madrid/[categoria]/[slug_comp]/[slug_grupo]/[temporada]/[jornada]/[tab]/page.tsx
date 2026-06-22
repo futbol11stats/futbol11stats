@@ -399,6 +399,7 @@ const ZONA_BG: Record<string, React.CSSProperties> = {
   descenso_directo:     { backgroundColor: 'rgb(83,20,20)',   borderLeft: '4px solid rgb(239,68,68)'  },
   descenso_coeficiente: { backgroundColor: 'rgb(60,15,15)',   borderLeft: '4px solid rgba(239,68,68,0.6)'  },
   descenso_arrastre:    { backgroundColor: 'rgb(60,15,15)',   borderLeft: '4px solid rgba(239,68,68,0.6)'  },
+  filial_bloqueado:     { backgroundColor: 'rgb(30,58,138)',  borderLeft: '4px solid rgb(59,130,246)'  },
 }
 
 const ZONA_LEYENDA: { tipo: string; label: string }[] = [
@@ -408,10 +409,11 @@ const ZONA_LEYENDA: { tipo: string; label: string }[] = [
   { tipo: 'descenso_directo',     label: 'Descenso directo' },
   { tipo: 'descenso_coeficiente', label: 'Descenso por coeficiente' },
   { tipo: 'descenso_arrastre',    label: 'Descenso por arrastre' },
+  { tipo: 'filial_bloqueado',     label: 'Filial bloqueado (no puede ascender)' },
 ]
 
 // Zonas que dependen del resultado final; solo se muestran en las 2 últimas jornadas
-const ARRASTRE_TIPOS = new Set(['descenso_arrastre', 'ascenso_arrastre', 'descenso_coeficiente'])
+const ARRASTRE_TIPOS = new Set(['descenso_arrastre', 'ascenso_arrastre', 'descenso_coeficiente', 'filial_bloqueado'])
 
 function ClasificacionTab({ rows, jornadaNum, totalJornadas }: { rows: any[]; jornadaNum: number; totalJornadas: number }) {
   const mostrarArrastre = jornadaNum >= totalJornadas
