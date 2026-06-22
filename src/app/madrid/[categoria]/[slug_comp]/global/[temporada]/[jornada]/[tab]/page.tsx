@@ -2,6 +2,7 @@ import { supabase } from '@/lib/supabase'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import JornadaSelector from '@/components/JornadaSelector'
+import { ZONA_BG, ZONA_LEYENDA, ARRASTRE_TIPOS, EscudoCell } from '@/components/tablas'
 
 const TEMPORADA_MAP: Record<string, number> = {
   '2021-22': 17,
@@ -88,6 +89,18 @@ async function getTopJugadoresGlobal(slugComp: string, categoria: string, codtem
   return data || []
 }
 
+// Clasificación de un grupo en una jornada: solo las filas en zona (zona != '').
+async function getClasificacionGrupo(codgrupo: string, codtemporada: number, jornada: number) {
+  const { data } = await supabase
+    .from('web_clasificacion')
+    .select('*')
+    .eq('codgrupo', codgrupo)
+    .eq('codtemporada', codtemporada)
+    .eq('jornada', jornada)
+    .order('pos')
+  return (data || []).filter(r => r.zona && r.zona !== '')
+}
+
 export default async function GlobalPage({
   params,
 }: {
@@ -114,7 +127,17 @@ export default async function GlobalPage({
     getVariantesComp(competicion.nombre_comp, categoria),
   ])
 
+  // Clasificación global: solo se carga en el tab clasificacion (todos los grupos en paralelo)
+  const clasificaciones: Record<string, any[]> = {}
+  if (tab === 'clasificacion') {
+    const results = await Promise.all(
+      gruposComp.map(g => getClasificacionGrupo(String(g.codgrupo), codtemporada, jornadaNum))
+    )
+    gruposComp.forEach((g, i) => { clasificaciones[String(g.codgrupo)] = results[i] })
+  }
+
   const TABS_JORNADA = [
+    { id: 'clasificacion',           label: 'Clasificación' },
     { id: 'top5-jugadores-jornada',  label: 'Top 5 Jugadores' },
     { id: 'top5-equipos-jornada',    label: 'Top 5 Equipos' },
     { id: 'once-optimo-jornada',     label: 'XI Óptimo' },
@@ -278,8 +301,102 @@ export default async function GlobalPage({
         ))}
       </div>
 
-      {/* Contenido por tab — pendiente de implementar */}
-      <p className="text-chalk-600 text-sm py-8 text-center">Próximamente</p>
+      {/* Contenido por tab */}
+      {tab === 'clasificacion' ? (
+        <ClasificacionGlobalTab
+          grupos={gruposComp}
+          clasificaciones={clasificaciones}
+          jornadaNum={jornadaNum}
+          totalJornadas={competicion.total_jornadas}
+        />
+      ) : (
+        <p className="text-chalk-600 text-sm py-8 text-center">Próximamente</p>
+      )}
+    </div>
+  )
+}
+
+function ClasificacionGlobalTab({
+  grupos,
+  clasificaciones,
+  jornadaNum,
+  totalJornadas,
+}: {
+  grupos: { codgrupo: string; nombre_grupo: string }[]
+  clasificaciones: Record<string, any[]>
+  jornadaNum: number
+  totalJornadas: number
+}) {
+  const mostrarArrastre = jornadaNum >= totalJornadas
+  const zonaEf = (z: string) => (!mostrarArrastre && ARRASTRE_TIPOS.has(z)) ? '' : z
+  const esAscenso = (z: string) => z.includes('ascenso')
+  const esDescenso = (z: string) => z.includes('descenso') || z === 'filial_bloqueado'
+
+  // Zonas presentes (efectivas) en cualquier grupo, para la leyenda
+  const zonasPresentes = new Set<string>()
+  for (const g of grupos) {
+    for (const r of clasificaciones[g.codgrupo] || []) {
+      const z = zonaEf(r.zona)
+      if (z) zonasPresentes.add(z)
+    }
+  }
+  const leyenda = ZONA_LEYENDA.filter(z => zonasPresentes.has(z.tipo))
+
+  const Fila = ({ r, zona }: { r: any; zona: string }) => (
+    <tr className="border-b border-pitch-700/50 last:border-0" style={ZONA_BG[zona]}>
+      <td className="text-chalk-600 font-mono text-xs">{r.pos}</td>
+      <EscudoCell escudo={r.escudo} />
+      <td className="font-medium text-white">{r.nombre_equipo}</td>
+      <td className="text-center text-chalk-600">{r.pj}</td>
+      <td className="text-center font-bold text-white">{r.pts}</td>
+    </tr>
+  )
+
+  return (
+    <div className="space-y-6">
+      {grupos.map(g => {
+        const rows = (clasificaciones[g.codgrupo] || [])
+          .map(r => ({ r, zona: zonaEf(r.zona) }))
+          .filter(x => x.zona)
+        const ascenso = rows.filter(x => esAscenso(x.zona))
+        const descenso = rows.filter(x => esDescenso(x.zona))
+        if (ascenso.length === 0 && descenso.length === 0) return null
+        return (
+          <div key={g.codgrupo}>
+            <p className="text-grass-400 text-xs font-semibold mb-2">{g.nombre_grupo}</p>
+            <div className="bg-pitch-800 rounded-xl border border-pitch-700 overflow-hidden">
+              <table className="w-full tabla-clasificacion">
+                <thead>
+                  <tr className="border-b border-pitch-700">
+                    <th className="text-left w-8">#</th>
+                    <th className="text-left w-10"></th>
+                    <th className="text-left">Equipo</th>
+                    <th>PJ</th>
+                    <th className="text-grass-400">Pts</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {ascenso.map(x => <Fila key={x.r.codequipo} r={x.r} zona={x.zona} />)}
+                  {ascenso.length > 0 && descenso.length > 0 && (
+                    <tr><td colSpan={5} className="text-center text-chalk-700 py-1 select-none">···</td></tr>
+                  )}
+                  {descenso.map(x => <Fila key={x.r.codequipo} r={x.r} zona={x.zona} />)}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )
+      })}
+      {leyenda.length > 0 && (
+        <div className="flex flex-wrap gap-x-4 gap-y-1.5">
+          {leyenda.map(z => (
+            <span key={z.tipo} className="flex items-center gap-1.5 text-xs text-chalk-600">
+              <span className="inline-block w-3 h-3 rounded-sm" style={ZONA_BG[z.tipo]} />
+              {z.label}
+            </span>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
