@@ -30,8 +30,8 @@ export default function RootLayout({
               </span>
             </a>
             <nav className="hidden md:flex items-center gap-6 text-sm text-chalk-600">
-              <a href="/aficionados" className="hover:text-white transition-colors">Aficionados</a>
-              <a href="/juvenil" className="hover:text-white transition-colors">Juvenil</a>
+              <a href="/madrid/aficionados" className="hover:text-white transition-colors">Aficionados</a>
+              <a href="/madrid/juveniles" className="hover:text-white transition-colors">Juveniles</a>
               <a href="/buscar" className="hover:text-white transition-colors">Buscar</a>
             </nav>
           </div>
