@@ -127,7 +127,7 @@ async function getTopJugadores(codgrupo: string, codtemporada: number) {
     .select('*')
     .eq('codgrupo', codgrupo)
     .eq('codtemporada', codtemporada)
-    .in('tipo', ['goleadores_temp', 'fantasy_temp', 'elo_temp'])
+    .in('tipo', ['goleadores_temp', 'fantasy_temp', 'elo_temp', 'porteros_temp', 'tarjetas_temp', 'xi_optimo_temp'])
     .order('rank')
   return data || []
 }
@@ -171,6 +171,9 @@ export default async function GrupoPage({
   const goleadores = topJugadores.filter(j => j.tipo === 'goleadores_temp')
   const fantasy = topJugadores.filter(j => j.tipo === 'fantasy_temp')
   const eloJugadores = topJugadores.filter(j => j.tipo === 'elo_temp')
+  const porteros = topJugadores.filter(j => j.tipo === 'porteros_temp')
+  const tarjetasTemp = topJugadores.filter(j => j.tipo === 'tarjetas_temp')
+  const xiTemp = topJugadores.filter(j => j.tipo === 'xi_optimo_temp')
 
   const TABS_JORNADA = [
     { id: 'clasificacion',           label: 'Clasificación' },
@@ -376,8 +379,14 @@ export default async function GrupoPage({
       {tab === 'once-optimo-jornada' && (
         <XiOptimoJornadaTab jugadores={xiJ} />
       )}
-      {['top10-porteros-temporada', 'top10-tarjetas-temporada', 'once-optimo-temporada'].includes(tab) && (
-        <p className="text-chalk-600 text-sm py-8 text-center">Próximamente</p>
+      {tab === 'top10-porteros-temporada' && (
+        <PorterosTemporadaTab jugadores={porteros} />
+      )}
+      {tab === 'top10-tarjetas-temporada' && (
+        <TarjetasTemporadaTab jugadores={tarjetasTemp} />
+      )}
+      {tab === 'once-optimo-temporada' && (
+        <XiOptimoTemporadaTab jugadores={xiTemp} />
       )}
     </div>
   )
@@ -611,6 +620,132 @@ function EloTemporadaTab({ jugadores }: { jugadores: any[] }) {
           ))}
           {jugadores.length === 0 && (
             <tr><td colSpan={7} className="text-chalk-600 text-sm text-center py-8">Sin datos</td></tr>
+          )}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
+function PorterosTemporadaTab({ jugadores }: { jugadores: any[] }) {
+  return (
+    <div className="bg-pitch-800 rounded-xl border border-pitch-700 overflow-hidden">
+      <table className="w-full tabla-clasificacion">
+        <thead>
+          <tr className="border-b border-pitch-700">
+            <th className="text-left w-8">#</th>
+            <th className="text-left w-12">Pos</th>
+            <th className="text-left">Jugador</th>
+            <th className="text-left w-10"></th>
+            <th className="text-left hidden md:table-cell">Equipo</th>
+            <th className="text-grass-400">Goles enc.</th>
+            <th>PJ</th>
+            <th className="hidden md:table-cell">P0</th>
+            <th className="hidden md:table-cell">Goles/P</th>
+            <th className="hidden md:table-cell">P0%</th>
+            <th className="hidden md:table-cell">Pts totales</th>
+            <th className="hidden md:table-cell">ELO</th>
+          </tr>
+        </thead>
+        <tbody>
+          {jugadores.map(j => (
+            <tr key={`${j.codjugador}-${j.codequipo}`} className="border-b border-pitch-700/50 last:border-0">
+              <td className="text-chalk-600 font-mono text-xs">{j.rank}</td>
+              <td className="text-chalk-600 font-mono text-xs">{j.posicion || '—'}</td>
+              <td className="font-medium text-white">{formatNombre(j.nombre)}</td>
+              <EscudoCell escudo={j.escudo} />
+              <td className="text-chalk-600 hidden md:table-cell text-xs">{j.nombre_equipo}</td>
+              <td className="text-center font-bold text-white">{j.goles_enc}</td>
+              <td className="text-center text-chalk-600">{j.pj}</td>
+              <td className="text-center text-chalk-600 hidden md:table-cell">{j.p0}</td>
+              <td className="text-center text-chalk-600 hidden md:table-cell">{j.goles_pj?.toFixed(2)}</td>
+              <td className="text-center text-chalk-600 hidden md:table-cell">{j.p0_pct != null ? `${j.p0_pct}%` : ''}</td>
+              <td className="text-center text-chalk-600 hidden md:table-cell">{j.pts_fantasy}</td>
+              <td className="text-center text-chalk-600 hidden md:table-cell">{j.elo != null ? Math.round(j.elo) : ''}</td>
+            </tr>
+          ))}
+          {jugadores.length === 0 && (
+            <tr><td colSpan={12} className="text-chalk-600 text-sm text-center py-8">Sin datos disponibles</td></tr>
+          )}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
+function TarjetasTemporadaTab({ jugadores }: { jugadores: any[] }) {
+  return (
+    <div className="bg-pitch-800 rounded-xl border border-pitch-700 overflow-hidden">
+      <table className="w-full tabla-clasificacion">
+        <thead>
+          <tr className="border-b border-pitch-700">
+            <th className="text-left w-8">#</th>
+            <th className="text-left w-12">Pos</th>
+            <th className="text-left">Jugador</th>
+            <th className="text-left w-10"></th>
+            <th className="text-left hidden md:table-cell">Equipo</th>
+            <th>Amarillas</th>
+            <th>Dobles</th>
+            <th>Rojas</th>
+            <th className="hidden md:table-cell">Ciclos</th>
+          </tr>
+        </thead>
+        <tbody>
+          {jugadores.map(j => (
+            <tr key={`${j.codjugador}-${j.codequipo}`} className="border-b border-pitch-700/50 last:border-0">
+              <td className="text-chalk-600 font-mono text-xs">{j.rank}</td>
+              <td className="text-chalk-600 font-mono text-xs">{j.posicion || '—'}</td>
+              <td className="font-medium text-white">{formatNombre(j.nombre)}</td>
+              <EscudoCell escudo={j.escudo} />
+              <td className="text-chalk-600 hidden md:table-cell text-xs">{j.nombre_equipo}</td>
+              <td className="text-center text-chalk-600">{j.goles}</td>
+              <td className="text-center text-chalk-600">{j.goles_enc}</td>
+              <td className="text-center font-bold text-white">{j.racha_5p}</td>
+              <td className="text-center text-chalk-600 hidden md:table-cell">{j.power_ranking}</td>
+            </tr>
+          ))}
+          {jugadores.length === 0 && (
+            <tr><td colSpan={9} className="text-chalk-600 text-sm text-center py-8">Sin datos disponibles</td></tr>
+          )}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
+function XiOptimoTemporadaTab({ jugadores }: { jugadores: any[] }) {
+  return (
+    <div className="bg-pitch-800 rounded-xl border border-pitch-700 overflow-hidden">
+      <table className="w-full tabla-clasificacion">
+        <thead>
+          <tr className="border-b border-pitch-700">
+            <th className="text-left w-8">#</th>
+            <th className="text-left w-12">Pos</th>
+            <th className="text-left">Jugador</th>
+            <th className="text-left w-10"></th>
+            <th className="text-left hidden md:table-cell">Equipo</th>
+            <th className="text-grass-400">Pts totales</th>
+            <th>Goles</th>
+            <th className="hidden md:table-cell">Racha 5p</th>
+            <th className="hidden md:table-cell">Power Ranking</th>
+          </tr>
+        </thead>
+        <tbody>
+          {jugadores.map(j => (
+            <tr key={`${j.codjugador}-${j.codequipo}`} className="border-b border-pitch-700/50 last:border-0">
+              <td className="text-chalk-600 font-mono text-xs">{j.rank}</td>
+              <td className="text-chalk-600 font-mono text-xs">{j.posicion || '—'}</td>
+              <td className="font-medium text-white">{formatNombre(j.nombre)}</td>
+              <EscudoCell escudo={j.escudo} />
+              <td className="text-chalk-600 hidden md:table-cell text-xs">{j.nombre_equipo}</td>
+              <td className="text-center font-bold text-white">{j.pts_fantasy}</td>
+              <td className="text-center text-chalk-600">{j.goles}</td>
+              <td className="text-center text-chalk-600 hidden md:table-cell">{j.racha_5p}</td>
+              <td className="text-center text-chalk-600 hidden md:table-cell">{j.power_ranking}</td>
+            </tr>
+          ))}
+          {jugadores.length === 0 && (
+            <tr><td colSpan={9} className="text-chalk-600 text-sm text-center py-8">Sin datos disponibles</td></tr>
           )}
         </tbody>
       </table>
