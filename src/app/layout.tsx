@@ -37,8 +37,15 @@ export default function RootLayout({
           </div>
         </header>
         <main>{children}</main>
-        <footer className="border-t border-pitch-700 mt-16 py-8 text-center text-chalk-600 text-sm">
-          <p>Datos de la Real Federación de Fútbol de Madrid · futbol11stats.com</p>
+        <footer className="border-t border-pitch-700 mt-16 py-8 text-chalk-600 text-xs leading-relaxed">
+          <div className="max-w-4xl mx-auto px-4 space-y-3">
+            <p>
+              <strong className="text-chalk-500">Aviso Legal e Informativo:</strong> Futbol11Stats.com es un proyecto de comunicación y análisis estadístico totalmente independiente, gestionado con fines informativos, periodísticos y de entretenimiento en torno al fútbol regional y de base. No somos un canal oficial, ni representamos, ni tenemos vinculación jurídica, institucional o comercial con ninguna federación territorial, organismo deportivo ni con sus clubes afiliados.
+            </p>
+            <p>
+              Toda la información de nuestra web y sus canales en RRSS tiene carácter NO OFICIAL. Las clasificaciones, rankings y datos estadísticos son calculados de forma automática por nuestro sistema en función de los datos recopilados de cada partido, por lo que la información puede ser de carácter provisional, errónea o incompleta. El administrador de Futbol11Stats.com no se hace responsable de los perjuicios causados por una posible información incorrecta. Todas las marcas, nombres de clubes o elementos ilustrativos mencionados pertenecen a sus respectivos propietarios.
+            </p>
+          </div>
         </footer>
       </body>
     </html>
