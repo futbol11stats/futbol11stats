@@ -158,6 +158,14 @@ function CompeticionCard({
         <span className="text-xs text-chalk-600">{grupos.length} grupo{grupos.length !== 1 ? 's' : ''}</span>
       </div>
       <div className="px-4 py-2 flex flex-wrap gap-2">
+        {grupos.length > 1 && (
+          <Link
+            href={`/madrid/${categoria}/${grupos[0].slug_comp}/global/2025-26/jornada-${grupos[0].jornada_actual}/top5-jugadores-jornada`}
+            className="text-xs bg-grass-500/15 hover:bg-grass-500 text-grass-300 hover:text-white px-3 py-1.5 rounded-md transition-colors border border-grass-500/30 font-semibold"
+          >
+            Global
+          </Link>
+        )}
         {grupos.map(g => (
           <Link
             key={g.codgrupo}
