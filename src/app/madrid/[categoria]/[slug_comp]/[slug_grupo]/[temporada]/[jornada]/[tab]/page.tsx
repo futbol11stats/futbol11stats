@@ -333,7 +333,7 @@ export default async function GrupoPage({
         {TABS_TEMPORADA.map(t => (
           <Link
             key={t.id}
-            href={`${baseUrl}/jornada-1/${t.id}`}
+            href={`${baseUrl}/jornada-${jornadaNum}/${t.id}`}
             className={`px-4 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px ${
               tab === t.id
                 ? 'border-grass-400 text-white'
