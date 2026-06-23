@@ -161,8 +161,11 @@ export function JugadoresTab({ jugadores, tipo }: { jugadores: any[]; tipo: stri
               <>
                 <th className="text-grass-400">Goles</th>
                 <th>PJ</th>
+                <th className="hidden md:table-cell">Partidos con gol</th>
                 <th className="hidden md:table-cell">Goles/PJ</th>
+                <th className="hidden md:table-cell">Min/Gol</th>
                 <th className="hidden md:table-cell">Pts Fantasy</th>
+                <th className="hidden md:table-cell">ELO</th>
               </>
             ) : (
               <>
@@ -185,8 +188,11 @@ export function JugadoresTab({ jugadores, tipo }: { jugadores: any[]; tipo: stri
                 <>
                   <td className="text-center font-bold text-white">{j.goles}</td>
                   <td className="text-center text-chalk-600">{j.pj}</td>
+                  <td className="text-center text-chalk-600 hidden md:table-cell">{j.partidos_con_gol ?? '—'}</td>
                   <td className="text-center text-chalk-600 hidden md:table-cell">{j.goles_pj?.toFixed(2)}</td>
+                  <td className="text-center text-chalk-600 hidden md:table-cell">{j.min_gol != null ? j.min_gol : '—'}</td>
                   <td className="text-center text-chalk-600 hidden md:table-cell">{j.pts_fantasy}</td>
+                  <td className="text-center text-chalk-600 hidden md:table-cell">{j.elo != null ? j.elo : '—'}</td>
                 </>
               ) : (
                 <>
@@ -202,7 +208,7 @@ export function JugadoresTab({ jugadores, tipo }: { jugadores: any[]; tipo: stri
     </div>
     {tipo === 'goleadores' ? (
       <p className="mt-2 text-xs text-chalk-600 leading-relaxed">
-        <strong>Pos</strong> Demarcación del jugador (POR · DEF · MED · DEL) · <strong>PJ</strong> Partidos jugados · <strong>Goles</strong> Goles marcados · <strong>Goles/PJ</strong> Goles marcados por partido jugado · <strong>Pts Fantasy</strong> Puntos acumulados en el sistema fantasy
+        <strong>Pos</strong> Demarcación del jugador (POR · DEF · MED · DEL) · <strong>PJ</strong> Partidos jugados · <strong>Goles</strong> Goles marcados · <strong>Partidos con gol</strong> Partidos en los que marcó al menos un gol · <strong>Goles/PJ</strong> Goles marcados por partido jugado · <strong>Min/Gol</strong> Minutos jugados por gol marcado · <strong>Pts Fantasy</strong> Puntos acumulados en el sistema fantasy · <strong>ELO</strong> Rating de rendimiento del jugador
       </p>
     ) : (
       <p className="mt-2 text-xs text-chalk-600 leading-relaxed">
