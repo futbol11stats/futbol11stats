@@ -377,12 +377,12 @@ export function XiOptimoTemporadaTab({ jugadores }: { jugadores: any[] }) {
         <tbody>
           {jugadores.map(j => (
             <tr key={`${j.codjugador}-${j.codequipo}`} className="border-b border-pitch-700/50 last:border-0">
-              <td className="text-chalk-600 font-mono text-xs">{j.rank}</td>
+              <td className="text-chalk-600 font-mono text-xs">{j.pos_orden}</td>
               <td className="text-chalk-600 font-mono text-xs">{j.posicion || '—'}</td>
               <td className="font-medium text-white">{formatNombre(j.nombre)}</td>
               <EscudoCell escudo={j.escudo} />
               <td className="text-chalk-600 hidden md:table-cell text-xs">{j.nombre_equipo}</td>
-              <td className="text-center font-bold text-white">{j.pts_fantasy}</td>
+              <td className="text-center font-bold text-white">{j.pts_totales}</td>
               <td className="text-center text-chalk-600">{j.goles}</td>
               <td className="text-center text-chalk-600 hidden md:table-cell">{j.racha_5p}</td>
               <td className="text-center text-chalk-600 hidden md:table-cell">{j.power_ranking}</td>
@@ -395,7 +395,7 @@ export function XiOptimoTemporadaTab({ jugadores }: { jugadores: any[] }) {
       </table>
     </div>
     <p className="mt-2 text-xs text-chalk-600 leading-relaxed">
-      <strong>Pos</strong> Posición en el campo · <strong>Goles</strong> Goles marcados en la temporada · <strong>Racha 5p</strong> Suma de puntos en las últimas 5 jornadas del equipo · <strong>Pts Fantasy</strong> Puntos acumulados en el sistema fantasy · <strong>Power Ranking</strong> Índice combinado de rendimiento (pts, racha, momentum, consistencia)
+      <strong>Pos</strong> Posición en el campo · <strong>Pts Fantasy</strong> Puntos acumulados en el sistema fantasy · <strong>Goles</strong> Goles marcados en la temporada · <strong>Racha 5p</strong> Suma de puntos en las últimas 5 jornadas del equipo · <strong>Power Ranking</strong> Índice combinado de rendimiento (pts, racha, momentum, consistencia)
     </p>
     </>
   )
