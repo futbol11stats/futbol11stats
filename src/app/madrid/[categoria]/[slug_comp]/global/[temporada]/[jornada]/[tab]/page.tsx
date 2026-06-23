@@ -329,8 +329,6 @@ function ClasificacionGlobalTab({
 }) {
   const mostrarArrastre = jornadaNum >= totalJornadas
   const zonaEf = (z: string) => (!mostrarArrastre && ARRASTRE_TIPOS.has(z)) ? '' : z
-  const esAscenso = (z: string) => z.includes('ascenso')
-  const esDescenso = (z: string) => z.includes('descenso') || z === 'filial_bloqueado'
 
   // Zonas presentes (efectivas) en cualquier grupo, para la leyenda
   const zonasPresentes = new Set<string>()
@@ -358,9 +356,7 @@ function ClasificacionGlobalTab({
         const rows = (clasificaciones[g.codgrupo] || [])
           .map(r => ({ r, zona: zonaEf(r.zona) }))
           .filter(x => x.zona)
-        const ascenso = rows.filter(x => esAscenso(x.zona))
-        const descenso = rows.filter(x => esDescenso(x.zona))
-        if (ascenso.length === 0 && descenso.length === 0) return null
+        if (rows.length === 0) return null
         return (
           <div key={g.codgrupo}>
             <p className="text-grass-400 text-xs font-semibold mb-2">{g.nombre_grupo}</p>
@@ -376,11 +372,7 @@ function ClasificacionGlobalTab({
                   </tr>
                 </thead>
                 <tbody>
-                  {ascenso.map(x => <Fila key={x.r.codequipo} r={x.r} zona={x.zona} />)}
-                  {ascenso.length > 0 && descenso.length > 0 && (
-                    <tr><td colSpan={5} className="text-center text-chalk-700 py-1 select-none">···</td></tr>
-                  )}
-                  {descenso.map(x => <Fila key={x.r.codequipo} r={x.r} zona={x.zona} />)}
+                  {rows.map(x => <Fila key={x.r.codequipo} r={x.r} zona={x.zona} />)}
                 </tbody>
               </table>
             </div>
