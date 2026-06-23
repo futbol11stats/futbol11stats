@@ -133,8 +133,19 @@ async function getTopJugadores(codgrupo: string, codtemporada: number) {
     .select('*')
     .eq('codgrupo', codgrupo)
     .eq('codtemporada', codtemporada)
-    .in('tipo', ['goleadores_temp', 'fantasy_temp', 'elo_temp', 'porteros_temp', 'tarjetas_temp', 'xi_optimo_temp'])
+    .in('tipo', ['goleadores_temp', 'fantasy_temp', 'elo_temp', 'porteros_temp', 'xi_optimo_temp'])
     .order('rank')
+  return data || []
+}
+
+async function getAlertasTarjetas(codgrupo: string, codtemporada: number) {
+  const { data } = await supabase
+    .from('web_alertas_tarjetas')
+    .select('*')
+    .eq('codgrupo', codgrupo)
+    .eq('codtemporada', codtemporada)
+    .order('estado')
+    .order('amarillas_ciclo', { ascending: false })
   return data || []
 }
 
@@ -161,7 +172,7 @@ export default async function GrupoPage({
   const jornadaNum = parseInt(jornada.replace('jornada-', '')) || grupo.jornada_actual
 
   const [clasificacion, resultados, topJugadores, variantes, gruposComp,
-         golesJ, tarjetasJ, mvpJ, xiJ, equiposForma] = await Promise.all([
+         golesJ, tarjetasJ, mvpJ, xiJ, equiposForma, alertasTarjetas] = await Promise.all([
     getClasificacion(grupo.codgrupo, codtemporada, jornadaNum),
     getResultados(grupo.codgrupo, codtemporada, jornadaNum),
     getTopJugadores(grupo.codgrupo, codtemporada),
@@ -172,13 +183,13 @@ export default async function GrupoPage({
     getDestacadosJornada(grupo.codgrupo, codtemporada, jornadaNum, 'mvp_jornada'),
     getDestacadosJornada(grupo.codgrupo, codtemporada, jornadaNum, 'xi_jornada'),
     getEquiposForma(grupo.codgrupo, codtemporada, jornadaNum),
+    getAlertasTarjetas(grupo.codgrupo, codtemporada),
   ])
 
   const goleadores = topJugadores.filter(j => j.tipo === 'goleadores_temp')
   const fantasy = topJugadores.filter(j => j.tipo === 'fantasy_temp')
   const eloJugadores = topJugadores.filter(j => j.tipo === 'elo_temp')
   const porteros = topJugadores.filter(j => j.tipo === 'porteros_temp')
-  const tarjetasTemp = topJugadores.filter(j => j.tipo === 'tarjetas_temp')
   const xiTemp = topJugadores.filter(j => j.tipo === 'xi_optimo_temp')
 
   const TABS_JORNADA = [
@@ -389,7 +400,7 @@ export default async function GrupoPage({
         <PorterosTemporadaTab jugadores={porteros} />
       )}
       {tab === 'top10-tarjetas-temporada' && (
-        <TarjetasTemporadaTab jugadores={tarjetasTemp} />
+        <TarjetasTemporadaTab jugadores={alertasTarjetas} />
       )}
       {tab === 'once-optimo-temporada' && (
         <XiOptimoTemporadaTab jugadores={xiTemp} />

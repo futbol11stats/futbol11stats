@@ -147,6 +147,7 @@ export function ResultadosTab({ resultados, jornada }: { resultados: any[]; jorn
 
 export function JugadoresTab({ jugadores, tipo }: { jugadores: any[]; tipo: string }) {
   return (
+    <>
     <div className="bg-pitch-800 rounded-xl border border-pitch-700 overflow-hidden">
       <table className="w-full tabla-clasificacion">
         <thead>
@@ -161,12 +162,12 @@ export function JugadoresTab({ jugadores, tipo }: { jugadores: any[]; tipo: stri
                 <th className="text-grass-400">Goles</th>
                 <th>PJ</th>
                 <th className="hidden md:table-cell">Goles/PJ</th>
-                <th className="hidden md:table-cell">Pts totales</th>
+                <th className="hidden md:table-cell">Pts Fantasy</th>
               </>
             ) : (
               <>
                 <th>Partidos</th>
-                <th className="text-grass-400">Puntos</th>
+                <th className="text-grass-400">Pts Fantasy</th>
                 <th className="hidden md:table-cell">Media</th>
               </>
             )}
@@ -199,6 +200,16 @@ export function JugadoresTab({ jugadores, tipo }: { jugadores: any[]; tipo: stri
         </tbody>
       </table>
     </div>
+    {tipo === 'goleadores' ? (
+      <p className="mt-2 text-xs text-chalk-600 leading-relaxed">
+        <strong>PJ</strong> Partidos jugados · <strong>Goles</strong> Goles marcados · <strong>G/P</strong> Goles por partido · <strong>Pts Fantasy</strong> Puntos acumulados en el sistema fantasy
+      </p>
+    ) : (
+      <p className="mt-2 text-xs text-chalk-600 leading-relaxed">
+        <strong>PJ</strong> Partidos jugados · <strong>Pts Fantasy</strong> Puntos acumulados en el sistema fantasy · <strong>Media</strong> Puntos por partido · <strong>ELO</strong> Rating ELO del jugador
+      </p>
+    )}
+    </>
   )
 }
 
@@ -240,6 +251,7 @@ export function EloTemporadaTab({ jugadores }: { jugadores: any[] }) {
 
 export function PorterosTemporadaTab({ jugadores }: { jugadores: any[] }) {
   return (
+    <>
     <div className="bg-pitch-800 rounded-xl border border-pitch-700 overflow-hidden">
       <table className="w-full tabla-clasificacion">
         <thead>
@@ -254,7 +266,7 @@ export function PorterosTemporadaTab({ jugadores }: { jugadores: any[] }) {
             <th className="hidden md:table-cell">P0</th>
             <th className="hidden md:table-cell">Goles/P</th>
             <th className="hidden md:table-cell">P0%</th>
-            <th className="hidden md:table-cell">Pts totales</th>
+            <th className="hidden md:table-cell">Pts Fantasy</th>
             <th className="hidden md:table-cell">ELO</th>
           </tr>
         </thead>
@@ -268,7 +280,7 @@ export function PorterosTemporadaTab({ jugadores }: { jugadores: any[] }) {
               <td className="text-chalk-600 hidden md:table-cell text-xs">{j.nombre_equipo}</td>
               <td className="text-center font-bold text-white">{j.goles_enc}</td>
               <td className="text-center text-chalk-600">{j.pj}</td>
-              <td className="text-center text-chalk-600 hidden md:table-cell">{j.p0}</td>
+              <td className="text-center text-chalk-600 hidden md:table-cell">{j.goles}</td>
               <td className="text-center text-chalk-600 hidden md:table-cell">{j.goles_pj?.toFixed(2)}</td>
               <td className="text-center text-chalk-600 hidden md:table-cell">{j.p0_pct != null ? `${j.p0_pct}%` : ''}</td>
               <td className="text-center text-chalk-600 hidden md:table-cell">{j.pts_fantasy}</td>
@@ -281,38 +293,43 @@ export function PorterosTemporadaTab({ jugadores }: { jugadores: any[] }) {
         </tbody>
       </table>
     </div>
+    <p className="mt-2 text-xs text-chalk-600 leading-relaxed">
+      <strong>PJ</strong> Partidos jugados · <strong>P0</strong> Porterías a cero · <strong>P0%</strong> Porcentaje de porterías a cero · <strong>Goles enc.</strong> Goles encajados · <strong>G/P</strong> Goles encajados por partido · <strong>Pts Fantasy</strong> Puntos acumulados en el sistema fantasy · <strong>ELO</strong> Rating ELO del jugador
+    </p>
+    </>
   )
 }
 
 export function TarjetasTemporadaTab({ jugadores }: { jugadores: any[] }) {
   return (
+    <>
     <div className="bg-pitch-800 rounded-xl border border-pitch-700 overflow-hidden">
       <table className="w-full tabla-clasificacion">
         <thead>
           <tr className="border-b border-pitch-700">
             <th className="text-left w-8">#</th>
-            <th className="text-left w-12">Pos</th>
             <th className="text-left">Jugador</th>
             <th className="text-left w-10"></th>
             <th className="text-left hidden md:table-cell">Equipo</th>
-            <th>Amarillas</th>
+            <th>Estado</th>
+            <th>Amarillas (ciclo)</th>
+            <th className="hidden md:table-cell">Amarillas (total)</th>
             <th>Dobles</th>
             <th>Rojas</th>
-            <th className="hidden md:table-cell">Ciclos</th>
           </tr>
         </thead>
         <tbody>
-          {jugadores.map(j => (
+          {jugadores.map((j, i) => (
             <tr key={`${j.codjugador}-${j.codequipo}`} className="border-b border-pitch-700/50 last:border-0">
-              <td className="text-chalk-600 font-mono text-xs">{j.rank}</td>
-              <td className="text-chalk-600 font-mono text-xs">{j.posicion || '—'}</td>
+              <td className="text-chalk-600 font-mono text-xs">{i + 1}</td>
               <td className="font-medium text-white">{formatNombre(j.nombre)}</td>
               <EscudoCell escudo={j.escudo} />
               <td className="text-chalk-600 hidden md:table-cell text-xs">{j.nombre_equipo}</td>
-              <td className="text-center text-chalk-600">{j.goles}</td>
-              <td className="text-center text-chalk-600">{j.goles_enc}</td>
-              <td className="text-center font-bold text-white">{j.racha_5p}</td>
-              <td className="text-center text-chalk-600 hidden md:table-cell">{j.power_ranking}</td>
+              <td className="text-center whitespace-nowrap">{j.estado === 'SUSPENDIDO' ? '🔴 Suspendido' : '🟡 En ciclo'}</td>
+              <td className="text-center font-bold text-white">{j.amarillas_ciclo}</td>
+              <td className="text-center text-chalk-600 hidden md:table-cell">{j.amarillas_simples}</td>
+              <td className="text-center text-chalk-600">{j.dobles_amarillas}</td>
+              <td className="text-center text-chalk-600">{j.rojas_directas}</td>
             </tr>
           ))}
           {jugadores.length === 0 && (
@@ -321,11 +338,16 @@ export function TarjetasTemporadaTab({ jugadores }: { jugadores: any[] }) {
         </tbody>
       </table>
     </div>
+    <p className="mt-2 text-xs text-chalk-600 leading-relaxed">
+      <strong>Amarillas (ciclo)</strong> Amarillas acumuladas en el ciclo actual (se reinicia cada 5) · <strong>Amarillas (total)</strong> Total de amarillas simples en la temporada · <strong>Dobles</strong> Dobles amarillas (expulsión) · <strong>Rojas</strong> Rojas directas
+    </p>
+    </>
   )
 }
 
 export function XiOptimoTemporadaTab({ jugadores }: { jugadores: any[] }) {
   return (
+    <>
     <div className="bg-pitch-800 rounded-xl border border-pitch-700 overflow-hidden">
       <table className="w-full tabla-clasificacion">
         <thead>
@@ -335,7 +357,7 @@ export function XiOptimoTemporadaTab({ jugadores }: { jugadores: any[] }) {
             <th className="text-left">Jugador</th>
             <th className="text-left w-10"></th>
             <th className="text-left hidden md:table-cell">Equipo</th>
-            <th className="text-grass-400">Pts totales</th>
+            <th className="text-grass-400">Pts Fantasy</th>
             <th>Goles</th>
             <th className="hidden md:table-cell">Racha 5p</th>
             <th className="hidden md:table-cell">Power Ranking</th>
@@ -361,6 +383,10 @@ export function XiOptimoTemporadaTab({ jugadores }: { jugadores: any[] }) {
         </tbody>
       </table>
     </div>
+    <p className="mt-2 text-xs text-chalk-600 leading-relaxed">
+      <strong>Pos</strong> Posición en el campo · <strong>Goles</strong> Goles marcados en la temporada · <strong>Racha 5p</strong> Suma de puntos en las últimas 5 jornadas del equipo · <strong>Pts Fantasy</strong> Puntos acumulados en el sistema fantasy · <strong>PR</strong> Power Ranking — índice combinado de rendimiento
+    </p>
+    </>
   )
 }
 
@@ -449,6 +475,7 @@ export function TarjetasJornadaTab({ jugadores }: { jugadores: any[] }) {
 
 export function Top5JugadoresTab({ jugadores }: { jugadores: any[] }) {
   return (
+    <>
     <div className="bg-pitch-800 rounded-xl border border-pitch-700 overflow-hidden">
       <table className="w-full tabla-clasificacion">
         <thead>
@@ -478,11 +505,16 @@ export function Top5JugadoresTab({ jugadores }: { jugadores: any[] }) {
         </tbody>
       </table>
     </div>
+    <p className="mt-2 text-xs text-chalk-600 leading-relaxed">
+      <strong>Pts Fantasy</strong> Puntos acumulados en el sistema fantasy
+    </p>
+    </>
   )
 }
 
 export function Top5EquiposTab({ equipos }: { equipos: any[] }) {
   return (
+    <>
     <div className="bg-pitch-800 rounded-xl border border-pitch-700 overflow-hidden">
       <table className="w-full tabla-clasificacion">
         <thead>
@@ -508,11 +540,16 @@ export function Top5EquiposTab({ equipos }: { equipos: any[] }) {
         </tbody>
       </table>
     </div>
+    <p className="mt-2 text-xs text-chalk-600 leading-relaxed">
+      <strong>Pts Fantasy</strong> Puntos acumulados en el sistema fantasy
+    </p>
+    </>
   )
 }
 
 export function XiOptimoJornadaTab({ jugadores }: { jugadores: any[] }) {
   return (
+    <>
     <div className="bg-pitch-800 rounded-xl border border-pitch-700 overflow-hidden">
       <table className="w-full tabla-clasificacion">
         <thead>
@@ -521,7 +558,7 @@ export function XiOptimoJornadaTab({ jugadores }: { jugadores: any[] }) {
             <th className="text-left">Jugador</th>
             <th className="text-left w-10"></th>
             <th className="text-left hidden md:table-cell">Equipo</th>
-            <th className="text-grass-400">Pts</th>
+            <th className="text-grass-400">Pts Fantasy</th>
             <th>Goles</th>
           </tr>
         </thead>
@@ -542,5 +579,9 @@ export function XiOptimoJornadaTab({ jugadores }: { jugadores: any[] }) {
         </tbody>
       </table>
     </div>
+    <p className="mt-2 text-xs text-chalk-600 leading-relaxed">
+      <strong>Pos</strong> Posición en el campo · <strong>Pts Fantasy</strong> Puntos obtenidos en la jornada · <strong>Goles</strong> Goles marcados en la jornada
+    </p>
+    </>
   )
 }
