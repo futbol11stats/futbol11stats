@@ -101,7 +101,7 @@ export function ClasificacionTab({ rows, jornadaNum, totalJornadas }: { rows: an
       </div>
     )}
     <p className="mt-2 text-xs text-chalk-600 leading-relaxed">
-      <strong>PJ</strong> Partidos jugados · <strong>PG</strong> Ganados · <strong>PE</strong> Empatados · <strong>PP</strong> Perdidos · <strong>GF</strong> Goles a favor · <strong>GC</strong> Goles en contra · <strong>DG</strong> Diferencia de goles · <strong>Pts</strong> Puntos · <strong>Mov</strong> Movimiento · <strong>ELO</strong> Rating ELO · <strong>Pts Fantasy</strong> Puntos fantasy acumulados por el equipo · <strong>Forma</strong> Últimos 5 resultados · <strong>Racha</strong> Racha actual · <strong>P0</strong> Porterías a cero
+      <strong>PJ</strong> Partidos jugados · <strong>PG</strong> Ganados · <strong>PE</strong> Empatados · <strong>PP</strong> Perdidos · <strong>GF</strong> Goles a favor · <strong>GC</strong> Goles en contra · <strong>DG</strong> Diferencia de goles · <strong>Pts</strong> Puntos · <strong>Mov</strong> Movimiento en la clasificación · <strong>ELO</strong> Rating ELO · <strong>Pts Fantasy</strong> Puntos fantasy acumulados por el equipo · <strong>Forma</strong> Últimos 5 resultados · <strong>Racha</strong> Racha actual · <strong>P0</strong> Porterías a cero
     </p>
     </>
   )
@@ -395,7 +395,7 @@ export function XiOptimoTemporadaTab({ jugadores }: { jugadores: any[] }) {
       </table>
     </div>
     <p className="mt-2 text-xs text-chalk-600 leading-relaxed">
-      <strong>Pos</strong> Posición en el campo · <strong>Pts Fantasy</strong> Puntos acumulados en el sistema fantasy · <strong>Goles</strong> Goles marcados en la temporada · <strong>Racha 5p</strong> Suma de puntos en las últimas 5 jornadas del equipo · <strong>Power Ranking</strong> Índice combinado de rendimiento (pts, racha, momentum, consistencia)
+      <strong>Pos</strong> Posición en el campo · <strong>Pts Fantasy</strong> Puntos acumulados en el sistema fantasy · <strong>Goles</strong> Goles marcados en la temporada · <strong>Racha 5p</strong> Suma de puntos fantasy en las últimas 5 jornadas del equipo · <strong>Power Ranking</strong> Índice combinado de rendimiento (pts, racha, momentum, consistencia)
     </p>
     </>
   )
@@ -451,9 +451,60 @@ export function EscudoCell({ escudo }: { escudo: string | null }) {
   )
 }
 
+function motivoEmoji(motivo: string | null): string {
+  if (!motivo) return ''
+  if (motivo.includes('Roja')) return '🟥'
+  if (motivo.includes('Doble')) return '🟨🟨'
+  if (motivo.includes('Ciclo')) return '5×🟨'
+  return ''
+}
+
+export function SuspendidosTab({ jugadores }: { jugadores: any[] }) {
+  return (
+    <>
+    <h3 className="text-white font-semibold text-sm mb-3">Jugadores que se pierden la próxima jornada</h3>
+    <div className="bg-pitch-800 rounded-xl border border-pitch-700 overflow-hidden">
+      <table className="w-full tabla-clasificacion">
+        <thead>
+          <tr className="border-b border-pitch-700">
+            <th className="text-left w-8">#</th>
+            <th className="text-left w-12">Pos</th>
+            <th className="text-left">Jugador</th>
+            <th className="text-left w-10"></th>
+            <th className="text-left hidden md:table-cell">Equipo</th>
+            <th>Motivo</th>
+            <th className="w-16"></th>
+          </tr>
+        </thead>
+        <tbody>
+          {jugadores.map((j, i) => (
+            <tr key={`${j.codjugador}-${j.codequipo}`} className="border-b border-pitch-700/50 last:border-0">
+              <td className="text-chalk-600 font-mono text-xs">{i + 1}</td>
+              <td className="text-chalk-600 font-mono text-xs">{j.posicion || '—'}</td>
+              <td className="font-medium text-white">{formatNombre(j.nombre)}</td>
+              <EscudoCell escudo={j.escudo} />
+              <td className="text-chalk-600 hidden md:table-cell text-xs">{j.nombre_equipo}</td>
+              <td className="text-center text-chalk-600 text-xs">{j.motivo}</td>
+              <td className="text-center whitespace-nowrap">{motivoEmoji(j.motivo)}</td>
+            </tr>
+          ))}
+          {jugadores.length === 0 && (
+            <tr><td colSpan={7} className="text-chalk-600 text-sm text-center py-8">Ningún jugador suspendido para la próxima jornada</td></tr>
+          )}
+        </tbody>
+      </table>
+    </div>
+    <p className="mt-2 text-xs text-chalk-600 leading-relaxed">
+      <strong>Motivo</strong> Causa de la suspensión (ciclo de amarillas, doble amarilla o roja directa) · <strong>🟥</strong> Roja directa · <strong>🟨🟨</strong> Doble amarilla · <strong>5×🟨</strong> Ciclo de 5 amarillas
+    </p>
+    </>
+  )
+}
+
 export function TarjetasJornadaTab({ jugadores }: { jugadores: any[] }) {
   return (
     <>
+    <h3 className="text-white font-semibold text-sm mb-3">Tarjetas de la jornada</h3>
     <div className="bg-pitch-800 rounded-xl border border-pitch-700 overflow-hidden">
       <table className="w-full tabla-clasificacion">
         <thead>

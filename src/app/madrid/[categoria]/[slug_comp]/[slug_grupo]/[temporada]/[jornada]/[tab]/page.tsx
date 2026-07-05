@@ -6,7 +6,7 @@ import {
   ClasificacionTab, ResultadosTab, JugadoresTab, EloTemporadaTab,
   PorterosTemporadaTab, TarjetasTemporadaTab, XiOptimoTemporadaTab,
   GoleadoresJornadaTab, TarjetasJornadaTab, Top5JugadoresTab,
-  Top5EquiposTab, XiOptimoJornadaTab,
+  Top5EquiposTab, XiOptimoJornadaTab, SuspendidosTab,
 } from '@/components/tablas'
 
 const TEMPORADA_MAP: Record<string, number> = {
@@ -160,6 +160,17 @@ async function getXiOptimoTemporada(codgrupo: string, codtemporada: number) {
   return data || []
 }
 
+async function getSuspendidosJornada(codgrupo: string, codtemporada: number, jornada: number) {
+  const { data } = await supabase
+    .from('web_suspendidos')
+    .select('*')
+    .eq('codgrupo', codgrupo)
+    .eq('codtemporada', codtemporada)
+    .eq('jornada', jornada)
+    .order('nombre_equipo')
+  return data || []
+}
+
 export default async function GrupoPage({
   params,
 }: {
@@ -183,7 +194,7 @@ export default async function GrupoPage({
   const jornadaNum = parseInt(jornada.replace('jornada-', '')) || grupo.jornada_actual
 
   const [clasificacion, resultados, topJugadores, variantes, gruposComp,
-         golesJ, tarjetasJ, mvpJ, xiJ, equiposForma, alertasTarjetas, xiOptimo] = await Promise.all([
+         golesJ, tarjetasJ, mvpJ, xiJ, equiposForma, alertasTarjetas, xiOptimo, suspendidos] = await Promise.all([
     getClasificacion(grupo.codgrupo, codtemporada, jornadaNum),
     getResultados(grupo.codgrupo, codtemporada, jornadaNum),
     getTopJugadores(grupo.codgrupo, codtemporada),
@@ -196,6 +207,7 @@ export default async function GrupoPage({
     getEquiposForma(grupo.codgrupo, codtemporada, jornadaNum),
     getAlertasTarjetas(grupo.codgrupo, codtemporada),
     getXiOptimoTemporada(grupo.codgrupo, codtemporada),
+    getSuspendidosJornada(grupo.codgrupo, codtemporada, jornadaNum),
   ])
 
   const goleadores = topJugadores.filter(j => j.tipo === 'goleadores_temp')
@@ -396,7 +408,11 @@ export default async function GrupoPage({
         <GoleadoresJornadaTab jugadores={golesJ} />
       )}
       {tab === 'tarjetas-jornada' && (
-        <TarjetasJornadaTab jugadores={tarjetasJ} />
+        <>
+          <SuspendidosTab jugadores={suspendidos} />
+          <div className="mt-8" />
+          <TarjetasJornadaTab jugadores={tarjetasJ} />
+        </>
       )}
       {tab === 'top5-jugadores-jornada' && (
         <Top5JugadoresTab jugadores={mvpJ} />
