@@ -495,7 +495,7 @@ export function SuspendidosTab({ jugadores }: { jugadores: any[] }) {
       </table>
     </div>
     <p className="mt-2 text-xs text-chalk-600 leading-relaxed">
-      <strong>Motivo</strong> Causa de la suspensión (ciclo de amarillas, doble amarilla o roja directa) · <strong>🟥</strong> Roja directa · <strong>🟨🟨</strong> Doble amarilla · <strong>5×🟨</strong> Ciclo de 5 amarillas
+      <strong>Motivo</strong> Causa de la suspensión (ciclo de amarillas, doble amarilla o roja directa) · <strong>🟥</strong> Roja directa · <strong>🟨🟨</strong> Doble amarilla · <strong>5×🟨</strong> Ciclo de 5 amarillas · Incluye únicamente sanciones derivadas de tarjetas (ciclo, doble amarilla, roja directa); no contempla sanciones adicionales del Comité de Competición.
     </p>
     </>
   )
