@@ -1,3 +1,5 @@
+export const revalidate = 21600  // ISR 6h: los datos solo cambian al re-exportar desde el pipeline
+
 import { supabase } from '@/lib/supabase'
 import Link from 'next/link'
 

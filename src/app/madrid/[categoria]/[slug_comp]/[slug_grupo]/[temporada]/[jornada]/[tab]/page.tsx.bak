@@ -1,5 +1,3 @@
-export const revalidate = 21600  // ISR 6h: los datos solo cambian al re-exportar desde el pipeline
-
 import { supabase } from '@/lib/supabase'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
@@ -8,7 +6,7 @@ import {
   ClasificacionTab, ResultadosTab, JugadoresTab, EloTemporadaTab,
   PorterosTemporadaTab, TarjetasTemporadaTab, XiOptimoTemporadaTab,
   GoleadoresJornadaTab, TarjetasJornadaTab, Top5JugadoresTab,
-  Top5EquiposTab, XiOptimoJornadaTab, SuspendidosTab,
+  Top5EquiposTab, XiOptimoJornadaTab,
 } from '@/components/tablas'
 
 const TEMPORADA_MAP: Record<string, number> = {
@@ -135,7 +133,7 @@ async function getTopJugadores(codgrupo: string, codtemporada: number) {
     .select('*')
     .eq('codgrupo', codgrupo)
     .eq('codtemporada', codtemporada)
-    .in('tipo', ['goleadores_temp', 'fantasy_temp', 'elo_temp', 'porteros_temp'])
+    .in('tipo', ['goleadores_temp', 'fantasy_temp', 'elo_temp', 'porteros_temp', 'xi_optimo_temp'])
     .order('rank')
   return data || []
 }
@@ -148,28 +146,6 @@ async function getAlertasTarjetas(codgrupo: string, codtemporada: number) {
     .eq('codtemporada', codtemporada)
     .order('estado')
     .order('amarillas_ciclo', { ascending: false })
-  return data || []
-}
-
-async function getXiOptimoTemporada(codgrupo: string, codtemporada: number) {
-  const { data } = await supabase
-    .from('web_xi_optimo')
-    .select('*')
-    .eq('tipo', 'temporada')
-    .eq('codgrupo', codgrupo)
-    .eq('codtemporada', codtemporada)
-    .order('pos_orden')
-  return data || []
-}
-
-async function getSuspendidosJornada(codgrupo: string, codtemporada: number, jornada: number) {
-  const { data } = await supabase
-    .from('web_suspendidos')
-    .select('*')
-    .eq('codgrupo', codgrupo)
-    .eq('codtemporada', codtemporada)
-    .eq('jornada', jornada)
-    .order('nombre_equipo')
   return data || []
 }
 
@@ -196,7 +172,7 @@ export default async function GrupoPage({
   const jornadaNum = parseInt(jornada.replace('jornada-', '')) || grupo.jornada_actual
 
   const [clasificacion, resultados, topJugadores, variantes, gruposComp,
-         golesJ, tarjetasJ, mvpJ, xiJ, equiposForma, alertasTarjetas, xiOptimo, suspendidos] = await Promise.all([
+         golesJ, tarjetasJ, mvpJ, xiJ, equiposForma, alertasTarjetas] = await Promise.all([
     getClasificacion(grupo.codgrupo, codtemporada, jornadaNum),
     getResultados(grupo.codgrupo, codtemporada, jornadaNum),
     getTopJugadores(grupo.codgrupo, codtemporada),
@@ -208,14 +184,13 @@ export default async function GrupoPage({
     getDestacadosJornada(grupo.codgrupo, codtemporada, jornadaNum, 'xi_jornada'),
     getEquiposForma(grupo.codgrupo, codtemporada, jornadaNum),
     getAlertasTarjetas(grupo.codgrupo, codtemporada),
-    getXiOptimoTemporada(grupo.codgrupo, codtemporada),
-    getSuspendidosJornada(grupo.codgrupo, codtemporada, jornadaNum),
   ])
 
   const goleadores = topJugadores.filter(j => j.tipo === 'goleadores_temp')
   const fantasy = topJugadores.filter(j => j.tipo === 'fantasy_temp')
   const eloJugadores = topJugadores.filter(j => j.tipo === 'elo_temp')
   const porteros = topJugadores.filter(j => j.tipo === 'porteros_temp')
+  const xiTemp = topJugadores.filter(j => j.tipo === 'xi_optimo_temp')
 
   const TABS_JORNADA = [
     { id: 'clasificacion',           label: 'Clasificación' },
@@ -410,11 +385,7 @@ export default async function GrupoPage({
         <GoleadoresJornadaTab jugadores={golesJ} />
       )}
       {tab === 'tarjetas-jornada' && (
-        <>
-          <SuspendidosTab jugadores={suspendidos} />
-          <div className="mt-8" />
-          <TarjetasJornadaTab jugadores={tarjetasJ} />
-        </>
+        <TarjetasJornadaTab jugadores={tarjetasJ} />
       )}
       {tab === 'top5-jugadores-jornada' && (
         <Top5JugadoresTab jugadores={mvpJ} />
@@ -432,7 +403,7 @@ export default async function GrupoPage({
         <TarjetasTemporadaTab jugadores={alertasTarjetas} />
       )}
       {tab === 'once-optimo-temporada' && (
-        <XiOptimoTemporadaTab jugadores={xiOptimo} />
+        <XiOptimoTemporadaTab jugadores={xiTemp} />
       )}
     </div>
   )
