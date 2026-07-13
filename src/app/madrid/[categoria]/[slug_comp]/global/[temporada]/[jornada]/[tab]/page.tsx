@@ -4,7 +4,7 @@ import { supabase } from '@/lib/supabase'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import JornadaSelector from '@/components/JornadaSelector'
-import { ZONA_BG, ZONA_LEYENDA, ARRASTRE_TIPOS, EscudoCell } from '@/components/tablas'
+import { ZONA_BG, ZONA_LEYENDA, ARRASTRE_TIPOS, EscudoCell, TarjetasTemporadaTab } from '@/components/tablas'
 
 const TEMPORADA_MAP: Record<string, number> = {
   '2021-22': 17,
@@ -91,6 +91,27 @@ async function getTopJugadoresGlobal(slugComp: string, categoria: string, codtem
   return data || []
 }
 
+// Juego limpio / sancionados globales: unión de todos los grupos de la competición.
+async function getJuegoLimpioGlobal(codgrupos: string[], codtemporada: number) {
+  if (codgrupos.length === 0) return []
+  const { data } = await supabase
+    .from('web_juego_limpio')
+    .select('*')
+    .eq('codtemporada', codtemporada)
+    .in('codgrupo', codgrupos)
+  return data || []
+}
+
+async function getAlertasGlobal(codgrupos: string[], codtemporada: number) {
+  if (codgrupos.length === 0) return []
+  const { data } = await supabase
+    .from('web_alertas_tarjetas')
+    .select('*')
+    .eq('codtemporada', codtemporada)
+    .in('codgrupo', codgrupos)
+  return data || []
+}
+
 // Clasificación de un grupo en una jornada: solo las filas en zona (zona != '').
 async function getClasificacionGrupo(codgrupo: string, codtemporada: number, jornada: number) {
   const { data } = await supabase
@@ -136,6 +157,17 @@ export default async function GlobalPage({
       gruposComp.map(g => getClasificacionGrupo(String(g.codgrupo), codtemporada, jornadaNum))
     )
     gruposComp.forEach((g, i) => { clasificaciones[String(g.codgrupo)] = results[i] })
+  }
+
+  // Tarjetas global (juego limpio + sancionados): unión de todos los grupos de la competición
+  let juegoLimpio: any[] = []
+  let alertasTarjetas: any[] = []
+  if (tab === 'top10-tarjetas-temporada') {
+    const codgrupos = gruposComp.map(g => String(g.codgrupo))
+    ;[juegoLimpio, alertasTarjetas] = await Promise.all([
+      getJuegoLimpioGlobal(codgrupos, codtemporada),
+      getAlertasGlobal(codgrupos, codtemporada),
+    ])
   }
 
   const TABS_JORNADA = [
@@ -311,6 +343,8 @@ export default async function GlobalPage({
           jornadaNum={jornadaNum}
           totalJornadas={competicion.total_jornadas}
         />
+      ) : tab === 'top10-tarjetas-temporada' ? (
+        <TarjetasTemporadaTab equipos={juegoLimpio} jugadores={alertasTarjetas} />
       ) : (
         <p className="text-chalk-600 text-sm py-8 text-center">Próximamente</p>
       )}

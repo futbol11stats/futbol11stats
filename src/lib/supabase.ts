@@ -87,3 +87,34 @@ export type TopJugador = {
   media_fantasy: number | null
   elo: number | null
 }
+
+// Juego limpio: totales disciplinarios por equipo (web_juego_limpio)
+export type JuegoLimpioRow = {
+  codtemporada: number
+  codgrupo: string
+  codequipo: string
+  nombre_equipo: string
+  escudo: string | null
+  amarillas: number
+  dobles: number
+  rojas: number
+}
+
+// Sancionados de la temporada (web_alertas_tarjetas ampliada): jugadores con >=1 ciclo
+// completo de 5 amarillas, o >=1 doble amarilla, o >=1 roja directa
+export type SancionadoRow = {
+  codtemporada: number
+  codgrupo: string
+  codjugador: string
+  nombre: string
+  posicion: string | null
+  codequipo: string
+  nombre_equipo: string
+  escudo: string | null
+  estado: string
+  amarillas_ciclo: number
+  amarillas_simples: number
+  dobles_amarillas: number
+  rojas_directas: number
+  ciclos_completados: number
+}

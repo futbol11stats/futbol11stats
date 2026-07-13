@@ -146,8 +146,15 @@ async function getAlertasTarjetas(codgrupo: string, codtemporada: number) {
     .select('*')
     .eq('codgrupo', codgrupo)
     .eq('codtemporada', codtemporada)
-    .order('estado')
-    .order('amarillas_ciclo', { ascending: false })
+  return data || []
+}
+
+async function getJuegoLimpio(codgrupo: string, codtemporada: number) {
+  const { data } = await supabase
+    .from('web_juego_limpio')
+    .select('*')
+    .eq('codgrupo', codgrupo)
+    .eq('codtemporada', codtemporada)
   return data || []
 }
 
@@ -196,7 +203,7 @@ export default async function GrupoPage({
   const jornadaNum = parseInt(jornada.replace('jornada-', '')) || grupo.jornada_actual
 
   const [clasificacion, resultados, topJugadores, variantes, gruposComp,
-         golesJ, tarjetasJ, mvpJ, xiJ, equiposForma, alertasTarjetas, xiOptimo, suspendidos] = await Promise.all([
+         golesJ, tarjetasJ, mvpJ, xiJ, equiposForma, alertasTarjetas, xiOptimo, suspendidos, juegoLimpio] = await Promise.all([
     getClasificacion(grupo.codgrupo, codtemporada, jornadaNum),
     getResultados(grupo.codgrupo, codtemporada, jornadaNum),
     getTopJugadores(grupo.codgrupo, codtemporada),
@@ -210,6 +217,7 @@ export default async function GrupoPage({
     getAlertasTarjetas(grupo.codgrupo, codtemporada),
     getXiOptimoTemporada(grupo.codgrupo, codtemporada),
     getSuspendidosJornada(grupo.codgrupo, codtemporada, jornadaNum),
+    getJuegoLimpio(grupo.codgrupo, codtemporada),
   ])
 
   const goleadores = topJugadores.filter(j => j.tipo === 'goleadores_temp')
@@ -429,7 +437,7 @@ export default async function GrupoPage({
         <PorterosTemporadaTab jugadores={porteros} />
       )}
       {tab === 'top10-tarjetas-temporada' && (
-        <TarjetasTemporadaTab jugadores={alertasTarjetas} />
+        <TarjetasTemporadaTab equipos={juegoLimpio} jugadores={alertasTarjetas} />
       )}
       {tab === 'once-optimo-temporada' && (
         <XiOptimoTemporadaTab jugadores={xiOptimo} />

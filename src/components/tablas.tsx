@@ -1,5 +1,6 @@
 import type { CSSProperties } from 'react'
 import { escudoUrl, formatNombre } from '@/lib/supabase'
+import type { JuegoLimpioRow, SancionadoRow } from '@/lib/supabase'
 
 export const ZONA_BG: Record<string, CSSProperties> = {
   ascenso_directo:      { backgroundColor: 'rgb(20,83,45)',   borderLeft: '4px solid rgb(34,197,94)'  },
@@ -311,46 +312,106 @@ export function PorterosTemporadaTab({ jugadores }: { jugadores: any[] }) {
   )
 }
 
-export function TarjetasTemporadaTab({ jugadores }: { jugadores: any[] }) {
+export function TarjetasTemporadaTab(
+  { equipos = [], jugadores = [] }: { equipos?: JuegoLimpioRow[]; jugadores?: SancionadoRow[] }
+) {
+  // Bloque 1 — Juego limpio: ascendente por expulsiones (dobles+rojas), luego menos
+  // amarillas, luego alfabético.
+  const eq = [...equipos].sort((a, b) =>
+    (a.dobles + a.rojas) - (b.dobles + b.rojas) ||
+    a.amarillas - b.amarillas ||
+    a.nombre_equipo.localeCompare(b.nombre_equipo, 'es')
+  )
+  // Bloque 2 — Sancionados: descendente por (ciclos+dobles+rojas), luego más rojas,
+  // luego más dobles.
+  const jg = [...jugadores].sort((a, b) =>
+    (b.ciclos_completados + b.dobles_amarillas + b.rojas_directas) -
+      (a.ciclos_completados + a.dobles_amarillas + a.rojas_directas) ||
+    b.rojas_directas - a.rojas_directas ||
+    b.dobles_amarillas - a.dobles_amarillas
+  )
   return (
     <>
+    {/* BLOQUE 1 — Juego limpio (equipos) */}
+    <h3 className="text-white font-semibold text-sm mb-3">Juego limpio</h3>
     <div className="bg-pitch-800 rounded-xl border border-pitch-700 overflow-hidden">
       <table className="w-full tabla-clasificacion">
         <thead>
           <tr className="border-b border-pitch-700">
             <th className="text-left w-8">#</th>
-            <th className="text-left">Jugador</th>
-            <th className="text-left w-10"></th>
-            <th className="text-left hidden md:table-cell">Equipo</th>
-            <th>Estado</th>
-            <th>Amarillas (ciclo)</th>
-            <th className="hidden md:table-cell">Amarillas (total)</th>
-            <th>Dobles</th>
-            <th>Rojas</th>
+            <th className="text-left">Equipo</th>
+            <th>🟨</th>
+            <th>🟨🟨</th>
+            <th>🟥</th>
           </tr>
         </thead>
         <tbody>
-          {jugadores.map((j, i) => (
-            <tr key={`${j.codjugador}-${j.codequipo}`} className="border-b border-pitch-700/50 last:border-0">
+          {eq.map((t, i) => (
+            <tr key={t.codequipo} className="border-b border-pitch-700/50 last:border-0">
               <td className="text-chalk-600 font-mono text-xs">{i + 1}</td>
-              <td className="font-medium text-white">{formatNombre(j.nombre)}</td>
-              <EscudoCell escudo={j.escudo} />
-              <td className="text-chalk-600 hidden md:table-cell text-xs">{j.nombre_equipo}</td>
-              <td className="text-center whitespace-nowrap">{j.estado === 'SUSPENDIDO' ? '🔴 Suspendido' : '🟡 En ciclo'}</td>
-              <td className="text-center font-bold text-white">{j.amarillas_ciclo}</td>
-              <td className="text-center text-chalk-600 hidden md:table-cell">{j.amarillas_simples}</td>
-              <td className="text-center text-chalk-600">{j.dobles_amarillas}</td>
-              <td className="text-center text-chalk-600">{j.rojas_directas}</td>
+              <td className="font-medium text-white">
+                <span className="flex items-center gap-2">
+                  {escudoUrl(t.escudo) && (
+                    <span className="inline-flex items-center justify-center w-8 h-8 bg-white rounded-sm flex-shrink-0 p-0.5">
+                      <img src={escudoUrl(t.escudo)!} alt="" className="w-full h-full object-contain" />
+                    </span>
+                  )}
+                  {t.nombre_equipo}
+                </span>
+              </td>
+              <td className="text-center text-chalk-600">{t.amarillas}</td>
+              <td className="text-center text-chalk-600">{t.dobles}</td>
+              <td className="text-center text-chalk-600">{t.rojas}</td>
             </tr>
           ))}
-          {jugadores.length === 0 && (
-            <tr><td colSpan={9} className="text-chalk-600 text-sm text-center py-8">Sin datos disponibles</td></tr>
+          {eq.length === 0 && (
+            <tr><td colSpan={5} className="text-chalk-600 text-sm text-center py-8">Sin datos disponibles</td></tr>
           )}
         </tbody>
       </table>
     </div>
     <p className="mt-2 text-xs text-chalk-600 leading-relaxed">
-      <strong>Estado</strong> 🔴 Suspendido — expulsado, cumple sanción · 🟡 En ciclo — 4 amarillas acumuladas en el ciclo actual · <strong>Amarillas (ciclo)</strong> Amarillas acumuladas en el ciclo actual (se reinicia cada 5) · <strong>Amarillas (total)</strong> Total de amarillas simples en la temporada · <strong>Dobles</strong> Dobles amarillas (expulsión) · <strong>Rojas</strong> Rojas directas
+      Ordenado por deportividad (menos expulsiones primero). <strong>🟨</strong> Amarillas · <strong>🟨🟨</strong> Dobles amarillas (expulsión) · <strong>🟥</strong> Rojas directas
+    </p>
+
+    {/* BLOQUE 2 — Jugadores expulsados/sancionados */}
+    <h3 className="text-white font-semibold text-sm mb-3 mt-8">Jugadores expulsados/sancionados</h3>
+    <div className="bg-pitch-800 rounded-xl border border-pitch-700 overflow-hidden">
+      <table className="w-full tabla-clasificacion">
+        <thead>
+          <tr className="border-b border-pitch-700">
+            <th className="text-left w-8">#</th>
+            <th className="text-left w-12">Pos</th>
+            <th className="text-left">Jugador</th>
+            <th className="text-left w-10"></th>
+            <th className="text-left hidden md:table-cell">Equipo</th>
+            <th>5×🟨</th>
+            <th>🟨🟨</th>
+            <th>🟥</th>
+          </tr>
+        </thead>
+        <tbody>
+          {jg.map((j, i) => (
+            <tr key={`${j.codjugador}-${j.codequipo}`} className="border-b border-pitch-700/50 last:border-0">
+              <td className="text-chalk-600 font-mono text-xs">{i + 1}</td>
+              <td className="text-chalk-600 text-xs">{j.posicion || '—'}</td>
+              <td className="font-medium text-white">{formatNombre(j.nombre)}</td>
+              <EscudoCell escudo={j.escudo} />
+              <td className="text-chalk-600 hidden md:table-cell text-xs">{j.nombre_equipo}</td>
+              <td className="text-center font-bold text-white">{j.ciclos_completados}</td>
+              <td className="text-center text-chalk-600">{j.dobles_amarillas}</td>
+              <td className="text-center text-chalk-600">{j.rojas_directas}</td>
+            </tr>
+          ))}
+          {jg.length === 0 && (
+            <tr><td colSpan={8} className="text-chalk-600 text-sm text-center py-8">Ningún jugador sancionado</td></tr>
+          )}
+        </tbody>
+      </table>
+    </div>
+    <p className="mt-2 text-xs text-chalk-600 leading-relaxed">
+      Jugadores con al menos un ciclo completo de 5 amarillas, una doble amarilla o una roja directa.
+      <strong> 5×🟨</strong> Ciclos completos de 5 amarillas · <strong>🟨🟨</strong> Dobles amarillas (expulsión) · <strong>🟥</strong> Rojas directas · No contempla sanciones adicionales del Comité de Competición.
     </p>
     </>
   )
