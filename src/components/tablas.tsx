@@ -289,8 +289,6 @@ export function PorterosTemporadaTab({ jugadores }: { jugadores: any[] }) {
             <th className="hidden md:table-cell">P0</th>
             <th className="hidden md:table-cell">Goles enc./PJ</th>
             <th className="hidden md:table-cell">P0%</th>
-            <th className="hidden md:table-cell">Pts Fantasy</th>
-            <th className="hidden md:table-cell">ELO</th>
           </tr>
         </thead>
         <tbody>
@@ -306,18 +304,16 @@ export function PorterosTemporadaTab({ jugadores }: { jugadores: any[] }) {
               <td className="text-center text-chalk-600 hidden md:table-cell">{j.goles}</td>
               <td className="text-center text-chalk-600 hidden md:table-cell">{j.goles_pj?.toFixed(2)}</td>
               <td className="text-center text-chalk-600 hidden md:table-cell">{j.p0_pct != null ? `${j.p0_pct}%` : ''}</td>
-              <td className="text-center text-chalk-600 hidden md:table-cell">{j.pts_fantasy}</td>
-              <td className="text-center text-chalk-600 hidden md:table-cell">{j.elo != null ? Math.round(j.elo) : ''}</td>
             </tr>
           ))}
           {jugadores.length === 0 && (
-            <tr><td colSpan={12} className="text-chalk-600 text-sm text-center py-8">Sin datos disponibles</td></tr>
+            <tr><td colSpan={10} className="text-chalk-600 text-sm text-center py-8">Sin datos disponibles</td></tr>
           )}
         </tbody>
       </table>
     </div>
     <p className="mt-2 text-xs text-chalk-600 leading-relaxed">
-      <strong>Pos</strong> Demarcación del jugador (POR · DEF · MED · DEL) · <strong>PJ</strong> Partidos jugados · <strong>P0</strong> Porterías a cero · <strong>P0%</strong> Porcentaje de porterías a cero · <strong>Goles enc.</strong> Goles encajados · <strong>Goles enc./PJ</strong> Goles encajados por partido jugado · <strong>Pts Fantasy</strong> Puntos acumulados en el sistema fantasy · <strong>ELO</strong> Rating ELO del jugador
+      <strong>Pos</strong> Demarcación del jugador (POR · DEF · MED · DEL) · <strong>PJ</strong> Partidos jugados · <strong>P0</strong> Porterías a cero · <strong>P0%</strong> Porcentaje de porterías a cero · <strong>Goles enc.</strong> Goles encajados · <strong>Goles enc./PJ</strong> Goles encajados por partido jugado
     </p>
     </>
   )
