@@ -4,7 +4,7 @@ import { supabase } from '@/lib/supabase'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import JornadaSelector from '@/components/JornadaSelector'
-import { ZONA_BG, ZONA_LEYENDA, ARRASTRE_TIPOS, EscudoCell, TarjetasTemporadaTab, JugadoresTab, EloTemporadaTab, PorterosTemporadaTab, Top5JugadoresTab, Top5EquiposTab } from '@/components/tablas'
+import { ZONA_BG, ZONA_LEYENDA, ARRASTRE_TIPOS, EscudoCell, TarjetasTemporadaTab, JugadoresTab, EloTemporadaTab, PorterosTemporadaTab, Top5JugadoresTab, Top5EquiposTab, XiOptimoTemporadaTab, XiOptimoJornadaTab } from '@/components/tablas'
 
 const TEMPORADA_MAP: Record<string, number> = {
   '2021-22': 17,
@@ -150,6 +150,17 @@ async function getEquiposFormaGlobal(codgrupos: string[], codtemporada: number, 
   return data || []
 }
 
+// XI óptimo global de la competición (web_xi_optimo tipo='temporada_global'/'jornada_global',
+// calculado en el pipeline con normalización/selección sobre toda la competición).
+async function getXiGlobal(codgrupos: string[], codtemporada: number, tipo: string, jornada?: number) {
+  if (codgrupos.length === 0) return []
+  let q = supabase.from('web_xi_optimo').select('*')
+    .eq('codtemporada', codtemporada).in('codgrupo', codgrupos).eq('tipo', tipo)
+  if (jornada != null) q = q.eq('jornada', jornada)
+  const { data } = await q.order('pos_orden')
+  return data || []
+}
+
 // Clasificación de un grupo en una jornada: solo las filas en zona (zona != '').
 async function getClasificacionGrupo(codgrupo: string, codtemporada: number, jornada: number) {
   const { data } = await supabase
@@ -255,6 +266,19 @@ export default async function GlobalPage({
     const rows = await getEquiposFormaGlobal(codgrupos, codtemporada, jornadaNum)
     equiposForma = [...rows].sort((a, b) => (b.pts_fantasy ?? 0) - (a.pts_fantasy ?? 0)).slice(0, 5)
       .map((r, i) => ({ ...r, rank: i + 1, grupo: mkGrupo(r.codgrupo) }))
+  }
+
+  // XI óptimo globales (calculados en el pipeline; aquí solo se leen y se decoran con el badge).
+  let xiTemp: any[] = []
+  let xiJor: any[] = []
+  if (tab === 'once-optimo-temporada') {
+    const codgrupos = gruposComp.map(g => String(g.codgrupo))
+    const rows = await getXiGlobal(codgrupos, codtemporada, 'temporada_global')
+    xiTemp = rows.map(r => ({ ...r, grupo: mkGrupo(r.codgrupo) }))
+  } else if (tab === 'once-optimo-jornada') {
+    const codgrupos = gruposComp.map(g => String(g.codgrupo))
+    const rows = await getXiGlobal(codgrupos, codtemporada, 'jornada_global', jornadaNum)
+    xiJor = rows.map(r => ({ ...r, pts_fantasy: r.pts_jornada, grupo: mkGrupo(r.codgrupo) }))
   }
 
   const TABS_JORNADA = [
@@ -445,6 +469,10 @@ export default async function GlobalPage({
         <Top5JugadoresTab jugadores={mvpJ} />
       ) : tab === 'top5-equipos-jornada' ? (
         <Top5EquiposTab equipos={equiposForma} />
+      ) : tab === 'once-optimo-temporada' ? (
+        <XiOptimoTemporadaTab jugadores={xiTemp} />
+      ) : tab === 'once-optimo-jornada' ? (
+        <XiOptimoJornadaTab jugadores={xiJor} />
       ) : (
         <p className="text-chalk-600 text-sm py-8 text-center">Próximamente</p>
       )}
