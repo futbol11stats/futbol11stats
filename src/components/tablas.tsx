@@ -315,6 +315,9 @@ export function PorterosTemporadaTab({ jugadores }: { jugadores: any[] }) {
     <p className="mt-2 text-xs text-chalk-600 leading-relaxed">
       <strong>Pos</strong> Demarcación del jugador (POR · DEF · MED · DEL) · <strong>PJ</strong> Partidos jugados · <strong>P0</strong> Porterías a cero · <strong>P0%</strong> Porcentaje de porterías a cero · <strong>Goles enc.</strong> Goles encajados · <strong>Goles enc./PJ</strong> Goles encajados por partido jugado
     </p>
+    <p className="mt-1 text-[11px] text-chalk-600/80 leading-relaxed">
+      Desde la jornada 3, elegibles solo los porteros con al menos el 65% de las jornadas disputadas y una media de 60 minutos por partido (a 34 jornadas, ≥22 partidos).
+    </p>
     </>
   )
 }
