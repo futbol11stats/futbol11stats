@@ -330,6 +330,16 @@ export function TarjetasTemporadaTab(
     b.rojas_directas - a.rojas_directas ||
     b.dobles_amarillas - a.dobles_amarillas
   )
+  // Banquillos más calientes — TOP 5 con más tarjetas a técnicos/banquillo. Orden INVERTIDO
+  // (el más caliente primero): desc por expulsiones (dobles+rojas), luego más amarillas, luego alfabético.
+  const banq = [...equipos]
+    .filter(t => (t.amarillas_tec + t.dobles_tec + t.rojas_tec) > 0)
+    .sort((a, b) =>
+      (b.dobles_tec + b.rojas_tec) - (a.dobles_tec + a.rojas_tec) ||
+      b.amarillas_tec - a.amarillas_tec ||
+      a.nombre_equipo.localeCompare(b.nombre_equipo, 'es')
+    )
+    .slice(0, 5)
   return (
     <>
     {/* BLOQUE 1 — Juego limpio (equipos) */}
@@ -373,6 +383,50 @@ export function TarjetasTemporadaTab(
     <p className="mt-2 text-xs text-chalk-600 leading-relaxed">
       Ordenado por deportividad (menos expulsiones primero). <strong>🟨</strong> Amarillas · <strong>🟨🟨</strong> Dobles amarillas (expulsión) · <strong>🟥</strong> Rojas directas
     </p>
+
+    {/* BLOQUE 1b — Banquillos más calientes (técnicos/banquillo); se oculta si no hay */}
+    {banq.length > 0 && (
+      <>
+      <h3 className="text-white font-semibold text-sm mb-1 mt-8">Banquillos más calientes</h3>
+      <p className="text-xs text-chalk-600 mb-3">Amonestaciones al cuerpo técnico y banquillo</p>
+      <div className="bg-pitch-800 rounded-xl border border-pitch-700 overflow-hidden">
+        <table className="w-full tabla-clasificacion">
+          <thead>
+            <tr className="border-b border-pitch-700">
+              <th className="text-left w-8">#</th>
+              <th className="text-left">Equipo</th>
+              <th>🟨</th>
+              <th>🟨🟨</th>
+              <th>🟥</th>
+            </tr>
+          </thead>
+          <tbody>
+            {banq.map((t, i) => (
+              <tr key={t.codequipo} className="border-b border-pitch-700/50 last:border-0">
+                <td className="text-chalk-600 font-mono text-xs">{i + 1}</td>
+                <td className="font-medium text-white">
+                  <span className="flex items-center gap-2">
+                    {escudoUrl(t.escudo) && (
+                      <span className="inline-flex items-center justify-center w-8 h-8 bg-white rounded-sm flex-shrink-0 p-0.5">
+                        <img src={escudoUrl(t.escudo)!} alt="" className="w-full h-full object-contain" />
+                      </span>
+                    )}
+                    {t.nombre_equipo}
+                  </span>
+                </td>
+                <td className="text-center text-chalk-600">{t.amarillas_tec}</td>
+                <td className="text-center text-chalk-600">{t.dobles_tec}</td>
+                <td className="text-center text-chalk-600">{t.rojas_tec}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <p className="mt-2 text-xs text-chalk-600 leading-relaxed">
+        Top 5 por expulsiones del banquillo (dobles + rojas). <strong>🟨</strong> Amarillas · <strong>🟨🟨</strong> Dobles amarillas · <strong>🟥</strong> Rojas directas — al cuerpo técnico/banquillo.
+      </p>
+      </>
+    )}
 
     {/* BLOQUE 2 — Jugadores expulsados/ciclos de amarillas */}
     <h3 className="text-white font-semibold text-sm mb-3 mt-8">Jugadores expulsados/ciclos de amarillas</h3>

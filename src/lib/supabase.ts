@@ -98,6 +98,9 @@ export type JuegoLimpioRow = {
   amarillas: number
   dobles: number
   rojas: number
+  amarillas_tec: number
+  dobles_tec: number
+  rojas_tec: number
 }
 
 // Sancionados de la temporada (web_alertas_tarjetas ampliada): jugadores con >=1 ciclo
