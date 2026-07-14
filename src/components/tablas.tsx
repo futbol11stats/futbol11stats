@@ -728,7 +728,7 @@ export function Top5EquiposTab({ equipos }: { equipos: any[] }) {
             <tr key={e.codequipo} className="border-b border-pitch-700/50 last:border-0">
               <td className="text-chalk-600 font-mono text-xs">{e.rank}</td>
               <EscudoCell escudo={e.escudo} />
-              <td className="font-medium text-white">{e.nombre_equipo}</td>
+              <td className="font-medium text-white">{e.nombre_equipo}<GrupoBadge grupo={e.grupo} /></td>
               <td className="text-center font-bold text-white">{e.pts_fantasy ? Math.round(e.pts_fantasy) : ''}</td>
             </tr>
           ))}

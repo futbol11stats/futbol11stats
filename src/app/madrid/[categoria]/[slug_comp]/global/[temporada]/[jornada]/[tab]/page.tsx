@@ -4,7 +4,7 @@ import { supabase } from '@/lib/supabase'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import JornadaSelector from '@/components/JornadaSelector'
-import { ZONA_BG, ZONA_LEYENDA, ARRASTRE_TIPOS, EscudoCell, TarjetasTemporadaTab, JugadoresTab, EloTemporadaTab, PorterosTemporadaTab } from '@/components/tablas'
+import { ZONA_BG, ZONA_LEYENDA, ARRASTRE_TIPOS, EscudoCell, TarjetasTemporadaTab, JugadoresTab, EloTemporadaTab, PorterosTemporadaTab, Top5JugadoresTab, Top5EquiposTab } from '@/components/tablas'
 
 const TEMPORADA_MAP: Record<string, number> = {
   '2021-22': 17,
@@ -125,6 +125,31 @@ async function getTopGlobal(codgrupos: string[], codtemporada: number, tipo: str
   return data || []
 }
 
+// Destacado de jornada global (mvp_jornada): top-5 por grupo de la jornada -> merge -> top 5.
+async function getMvpGlobal(codgrupos: string[], codtemporada: number, jornada: number) {
+  if (codgrupos.length === 0) return []
+  const { data } = await supabase
+    .from('web_top_jugadores')
+    .select('*')
+    .eq('codtemporada', codtemporada)
+    .in('codgrupo', codgrupos)
+    .eq('tipo', 'mvp_jornada')
+    .eq('jornada', jornada)
+  return data || []
+}
+
+// Equipos en forma de la jornada global (web_equipos_forma).
+async function getEquiposFormaGlobal(codgrupos: string[], codtemporada: number, jornada: number) {
+  if (codgrupos.length === 0) return []
+  const { data } = await supabase
+    .from('web_equipos_forma')
+    .select('*')
+    .eq('codtemporada', codtemporada)
+    .in('codgrupo', codgrupos)
+    .eq('jornada', jornada)
+  return data || []
+}
+
 // Clasificación de un grupo en una jornada: solo las filas en zona (zona != '').
 async function getClasificacionGrupo(codgrupo: string, codtemporada: number, jornada: number) {
   const { data } = await supabase
@@ -214,6 +239,22 @@ export default async function GlobalPage({
     ranking = [...rows].sort(RANK_CMP[tab]).slice(0, 10).map((r, i) => ({
       ...r, rank: i + 1, grupo: mkGrupo(r.codgrupo),
     }))
+  }
+
+  // Destacados de jornada globales (top-5): mvp_jornada y equipos en forma. Orden = el del
+  // exporter de grupo (pts_fantasy DESC).
+  let mvpJ: any[] = []
+  let equiposForma: any[] = []
+  if (tab === 'top5-jugadores-jornada') {
+    const codgrupos = gruposComp.map(g => String(g.codgrupo))
+    const rows = await getMvpGlobal(codgrupos, codtemporada, jornadaNum)
+    mvpJ = [...rows].sort((a, b) => (b.pts_fantasy ?? 0) - (a.pts_fantasy ?? 0)).slice(0, 5)
+      .map((r, i) => ({ ...r, rank: i + 1, grupo: mkGrupo(r.codgrupo) }))
+  } else if (tab === 'top5-equipos-jornada') {
+    const codgrupos = gruposComp.map(g => String(g.codgrupo))
+    const rows = await getEquiposFormaGlobal(codgrupos, codtemporada, jornadaNum)
+    equiposForma = [...rows].sort((a, b) => (b.pts_fantasy ?? 0) - (a.pts_fantasy ?? 0)).slice(0, 5)
+      .map((r, i) => ({ ...r, rank: i + 1, grupo: mkGrupo(r.codgrupo) }))
   }
 
   const TABS_JORNADA = [
@@ -400,6 +441,10 @@ export default async function GlobalPage({
         <EloTemporadaTab jugadores={ranking} />
       ) : tab === 'top10-porteros-temporada' ? (
         <PorterosTemporadaTab jugadores={ranking} />
+      ) : tab === 'top5-jugadores-jornada' ? (
+        <Top5JugadoresTab jugadores={mvpJ} />
+      ) : tab === 'top5-equipos-jornada' ? (
+        <Top5EquiposTab equipos={equiposForma} />
       ) : (
         <p className="text-chalk-600 text-sm py-8 text-center">Próximamente</p>
       )}
