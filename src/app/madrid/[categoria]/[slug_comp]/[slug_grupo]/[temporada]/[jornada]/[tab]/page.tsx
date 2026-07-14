@@ -343,9 +343,16 @@ export default async function GrupoPage({
         </div>
       </div>
 
-      {/* Grupos de la misma competición */}
-      {gruposComp.length > 1 && (
+      {/* Navegación: Global + grupos de la misma competición (siempre visible; el activo
+          aquí es un grupo, así que "Global" va como enlace inactivo a la vista global) */}
+      {gruposComp.length > 0 && (
         <div className="mb-6 flex gap-1.5 flex-wrap">
+          <Link
+            href={`/madrid/${categoria}/${slug_comp}/global/${temporada}/jornada-${jornadaNum}/clasificacion`}
+            className="text-xs px-3 py-1.5 rounded-md transition-colors bg-pitch-700 text-chalk-200 hover:bg-grass-500 hover:text-white"
+          >
+            Global
+          </Link>
           {gruposComp.map(g => (
             <Link
               key={g.codgrupo}
