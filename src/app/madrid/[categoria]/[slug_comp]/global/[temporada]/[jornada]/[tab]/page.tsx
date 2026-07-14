@@ -4,7 +4,7 @@ import { supabase } from '@/lib/supabase'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import JornadaSelector from '@/components/JornadaSelector'
-import { ZONA_BG, ZONA_LEYENDA, ARRASTRE_TIPOS, EscudoCell, TarjetasTemporadaTab } from '@/components/tablas'
+import { ZONA_BG, ZONA_LEYENDA, ARRASTRE_TIPOS, EscudoCell, TarjetasTemporadaTab, JugadoresTab, EloTemporadaTab, PorterosTemporadaTab } from '@/components/tablas'
 
 const TEMPORADA_MAP: Record<string, number> = {
   '2021-22': 17,
@@ -112,6 +112,19 @@ async function getAlertasGlobal(codgrupos: string[], codtemporada: number) {
   return data || []
 }
 
+// Ranking de temporada global: une los top-10 por grupo de un tipo (goleadores/porteros/
+// fantasy/elo). Como el exporter guarda top-10 por grupo, el top-10 global está garantizado.
+async function getTopGlobal(codgrupos: string[], codtemporada: number, tipo: string) {
+  if (codgrupos.length === 0) return []
+  const { data } = await supabase
+    .from('web_top_jugadores')
+    .select('*')
+    .eq('codtemporada', codtemporada)
+    .in('codgrupo', codgrupos)
+    .eq('tipo', tipo)
+  return data || []
+}
+
 // Clasificación de un grupo en una jornada: solo las filas en zona (zona != '').
 async function getClasificacionGrupo(codgrupo: string, codtemporada: number, jornada: number) {
   const { data } = await supabase
@@ -168,6 +181,35 @@ export default async function GlobalPage({
       getJuegoLimpioGlobal(codgrupos, codtemporada),
       getAlertasGlobal(codgrupos, codtemporada),
     ])
+  }
+
+  // Rankings de temporada globales (top-10 de toda la competición). Orden y desempate =
+  // exactamente los de la vista de grupo del exporter.
+  const RANK_TIPO: Record<string, string> = {
+    'top10-goleadores-temporada': 'goleadores_temp',
+    'top10-porteros-temporada': 'porteros_temp',
+    'top10-fantasy-temporada': 'fantasy_temp',
+    'top10-elo-jugadores-temporada': 'elo_temp',
+  }
+  const RANK_CMP: Record<string, (a: any, b: any) => number> = {
+    'top10-goleadores-temporada': (a, b) => (b.goles - a.goles) || ((b.pts_fantasy ?? 0) - (a.pts_fantasy ?? 0)),
+    'top10-fantasy-temporada': (a, b) => (b.pts_fantasy ?? 0) - (a.pts_fantasy ?? 0),
+    'top10-elo-jugadores-temporada': (a, b) => (b.elo ?? -1e9) - (a.elo ?? -1e9),
+    'top10-porteros-temporada': (a, b) => (a.goles_pj ?? 1e9) - (b.goles_pj ?? 1e9),
+  }
+  let ranking: any[] = []
+  if (RANK_TIPO[tab]) {
+    const codgrupos = gruposComp.map(g => String(g.codgrupo))
+    const gmap: Record<string, { nombre_grupo: string; slug_grupo: string }> = {}
+    for (const g of gruposComp) gmap[String(g.codgrupo)] = { nombre_grupo: g.nombre_grupo, slug_grupo: g.slug_grupo }
+    const rows = await getTopGlobal(codgrupos, codtemporada, RANK_TIPO[tab])
+    ranking = [...rows].sort(RANK_CMP[tab]).slice(0, 10).map((r, i) => {
+      const g = gmap[String(r.codgrupo)]
+      return {
+        ...r, rank: i + 1,
+        grupo: g ? { label: g.nombre_grupo, href: `/madrid/${categoria}/${slug_comp}/${g.slug_grupo}/${temporada}/jornada-${jornadaNum}/${tab}` } : undefined,
+      }
+    })
   }
 
   const TABS_JORNADA = [
@@ -346,6 +388,14 @@ export default async function GlobalPage({
         />
       ) : tab === 'top10-tarjetas-temporada' ? (
         <TarjetasTemporadaTab equipos={juegoLimpio} jugadores={alertasTarjetas} />
+      ) : tab === 'top10-goleadores-temporada' ? (
+        <JugadoresTab jugadores={ranking} tipo="goleadores" />
+      ) : tab === 'top10-fantasy-temporada' ? (
+        <JugadoresTab jugadores={ranking} tipo="fantasy" />
+      ) : tab === 'top10-elo-jugadores-temporada' ? (
+        <EloTemporadaTab jugadores={ranking} />
+      ) : tab === 'top10-porteros-temporada' ? (
+        <PorterosTemporadaTab jugadores={ranking} />
       ) : (
         <p className="text-chalk-600 text-sm py-8 text-center">Próximamente</p>
       )}
