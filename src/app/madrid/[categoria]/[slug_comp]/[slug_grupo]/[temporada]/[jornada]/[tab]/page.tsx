@@ -249,6 +249,15 @@ export default async function GrupoPage({
   const baseUrl = `/madrid/${categoria}/${slug_comp}/${slug_grupo}/${temporada}`
   // Base de URL para los enlaces de tabs (misma temporada/jornada, cambia el tab)
   const baseTab = `${baseUrl}/jornada-${jornadaNum}`
+  // Tabs que existen en la vista GLOBAL (resultados/goleadores-jornada/tarjetas-jornada son
+  // exclusivos de grupo). Al pulsar "Global" se conserva el tab actual si existe allí; si no,
+  // fallback a clasificación.
+  const GLOBAL_TABS = new Set([
+    'clasificacion', 'top5-jugadores-jornada', 'top5-equipos-jornada', 'once-optimo-jornada',
+    'top10-goleadores-temporada', 'top10-porteros-temporada', 'top10-tarjetas-temporada',
+    'top10-fantasy-temporada', 'top10-elo-jugadores-temporada', 'once-optimo-temporada',
+  ])
+  const globalTab = GLOBAL_TABS.has(tab) ? tab : 'clasificacion'
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
@@ -348,7 +357,7 @@ export default async function GrupoPage({
       {gruposComp.length > 0 && (
         <div className="mb-6 flex gap-1.5 flex-wrap">
           <Link
-            href={`/madrid/${categoria}/${slug_comp}/global/${temporada}/jornada-${jornadaNum}/clasificacion`}
+            href={`/madrid/${categoria}/${slug_comp}/global/${temporada}/jornada-${jornadaNum}/${globalTab}`}
             className="text-xs px-3 py-1.5 rounded-md transition-colors bg-pitch-700 text-chalk-200 hover:bg-grass-500 hover:text-white"
           >
             Global

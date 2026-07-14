@@ -291,7 +291,8 @@ export default async function GlobalPage({
         {gruposComp.map(g => (
           <Link
             key={g.codgrupo}
-            href={`/madrid/${categoria}/${slug_comp}/${g.slug_grupo}/${temporada}/jornada-${jornadaNum}/clasificacion`}
+            /* la vista de grupo incluye todos los tabs de la global, así que se conserva el tab actual */
+            href={`/madrid/${categoria}/${slug_comp}/${g.slug_grupo}/${temporada}/jornada-${jornadaNum}/${tab}`}
             className="text-xs px-3 py-1.5 rounded-md transition-colors bg-pitch-700 text-chalk-200 hover:bg-grass-500 hover:text-white"
           >
             {g.nombre_grupo}
