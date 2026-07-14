@@ -101,6 +101,7 @@ export type JuegoLimpioRow = {
   amarillas_tec: number
   dobles_tec: number
   rojas_tec: number
+  grupo?: { label: string; href: string }   // badge de grupo (solo en vista global)
 }
 
 // Sancionados de la temporada (web_alertas_tarjetas ampliada): jugadores con >=1 ciclo
@@ -120,4 +121,5 @@ export type SancionadoRow = {
   dobles_amarillas: number
   rojas_directas: number
   ciclos_completados: number
+  grupo?: { label: string; href: string }   // badge de grupo (solo en vista global)
 }

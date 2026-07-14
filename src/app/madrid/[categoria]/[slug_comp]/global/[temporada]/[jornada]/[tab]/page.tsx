@@ -172,15 +172,25 @@ export default async function GlobalPage({
     gruposComp.forEach((g, i) => { clasificaciones[String(g.codgrupo)] = results[i] })
   }
 
+  // Badge de grupo por codgrupo (etiqueta + enlace a la vista del grupo conservando pestaña).
+  const _gmap: Record<string, { nombre_grupo: string; slug_grupo: string }> = {}
+  for (const g of gruposComp) _gmap[String(g.codgrupo)] = { nombre_grupo: g.nombre_grupo, slug_grupo: g.slug_grupo }
+  const mkGrupo = (codgrupo: string) => {
+    const g = _gmap[String(codgrupo)]
+    return g ? { label: g.nombre_grupo, href: `/madrid/${categoria}/${slug_comp}/${g.slug_grupo}/${temporada}/jornada-${jornadaNum}/${tab}` } : undefined
+  }
+
   // Tarjetas global (juego limpio + sancionados): unión de todos los grupos de la competición
   let juegoLimpio: any[] = []
   let alertasTarjetas: any[] = []
   if (tab === 'top10-tarjetas-temporada') {
     const codgrupos = gruposComp.map(g => String(g.codgrupo))
-    ;[juegoLimpio, alertasTarjetas] = await Promise.all([
+    const [jl, al] = await Promise.all([
       getJuegoLimpioGlobal(codgrupos, codtemporada),
       getAlertasGlobal(codgrupos, codtemporada),
     ])
+    juegoLimpio = jl.map(r => ({ ...r, grupo: mkGrupo(r.codgrupo) }))
+    alertasTarjetas = al.map(r => ({ ...r, grupo: mkGrupo(r.codgrupo) }))
   }
 
   // Rankings de temporada globales (top-10 de toda la competición). Orden y desempate =
@@ -200,16 +210,10 @@ export default async function GlobalPage({
   let ranking: any[] = []
   if (RANK_TIPO[tab]) {
     const codgrupos = gruposComp.map(g => String(g.codgrupo))
-    const gmap: Record<string, { nombre_grupo: string; slug_grupo: string }> = {}
-    for (const g of gruposComp) gmap[String(g.codgrupo)] = { nombre_grupo: g.nombre_grupo, slug_grupo: g.slug_grupo }
     const rows = await getTopGlobal(codgrupos, codtemporada, RANK_TIPO[tab])
-    ranking = [...rows].sort(RANK_CMP[tab]).slice(0, 10).map((r, i) => {
-      const g = gmap[String(r.codgrupo)]
-      return {
-        ...r, rank: i + 1,
-        grupo: g ? { label: g.nombre_grupo, href: `/madrid/${categoria}/${slug_comp}/${g.slug_grupo}/${temporada}/jornada-${jornadaNum}/${tab}` } : undefined,
-      }
-    })
+    ranking = [...rows].sort(RANK_CMP[tab]).slice(0, 10).map((r, i) => ({
+      ...r, rank: i + 1, grupo: mkGrupo(r.codgrupo),
+    }))
   }
 
   const TABS_JORNADA = [

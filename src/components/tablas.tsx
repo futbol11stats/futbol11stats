@@ -180,8 +180,6 @@ export function JugadoresTab({ jugadores, tipo }: { jugadores: any[]; tipo: stri
                 <th className="hidden md:table-cell">Partidos con gol</th>
                 <th className="hidden md:table-cell">Goles/PJ</th>
                 <th className="hidden md:table-cell">Min/Gol</th>
-                <th className="hidden md:table-cell">Pts Fantasy</th>
-                <th className="hidden md:table-cell">ELO</th>
               </>
             ) : (
               <>
@@ -207,8 +205,6 @@ export function JugadoresTab({ jugadores, tipo }: { jugadores: any[]; tipo: stri
                   <td className="text-center text-chalk-600 hidden md:table-cell">{j.partidos_con_gol ?? '—'}</td>
                   <td className="text-center text-chalk-600 hidden md:table-cell">{j.goles_pj?.toFixed(2)}</td>
                   <td className="text-center text-chalk-600 hidden md:table-cell">{j.min_gol != null ? j.min_gol : '—'}</td>
-                  <td className="text-center text-chalk-600 hidden md:table-cell">{j.pts_fantasy}</td>
-                  <td className="text-center text-chalk-600 hidden md:table-cell">{j.elo != null ? j.elo : '—'}</td>
                 </>
               ) : (
                 <>
@@ -224,7 +220,7 @@ export function JugadoresTab({ jugadores, tipo }: { jugadores: any[]; tipo: stri
     </div>
     {tipo === 'goleadores' ? (
       <p className="mt-2 text-xs text-chalk-600 leading-relaxed">
-        <strong>Pos</strong> Demarcación del jugador (POR · DEF · MED · DEL) · <strong>PJ</strong> Partidos jugados · <strong>Goles</strong> Goles marcados · <strong>Partidos con gol</strong> Partidos en los que marcó al menos un gol · <strong>Goles/PJ</strong> Goles marcados por partido jugado · <strong>Min/Gol</strong> Minutos jugados por gol marcado · <strong>Pts Fantasy</strong> Puntos acumulados en el sistema fantasy · <strong>ELO</strong> Rating de rendimiento del jugador
+        <strong>Pos</strong> Demarcación del jugador (POR · DEF · MED · DEL) · <strong>PJ</strong> Partidos jugados · <strong>Goles</strong> Goles marcados · <strong>Partidos con gol</strong> Partidos en los que marcó al menos un gol · <strong>Goles/PJ</strong> Goles marcados por partido jugado · <strong>Min/Gol</strong> Minutos jugados por gol marcado
       </p>
     ) : (
       <p className="mt-2 text-xs text-chalk-600 leading-relaxed">
@@ -381,7 +377,7 @@ export function TarjetasTemporadaTab(
                       <img src={escudoUrl(t.escudo)!} alt="" className="w-full h-full object-contain" />
                     </span>
                   )}
-                  {t.nombre_equipo}
+                  {t.nombre_equipo}<GrupoBadge grupo={t.grupo} />
                 </span>
               </td>
               <td className="text-center text-chalk-600">{t.amarillas}</td>
@@ -464,7 +460,7 @@ export function TarjetasTemporadaTab(
             <tr key={`${j.codjugador}-${j.codequipo}`} className="border-b border-pitch-700/50 last:border-0">
               <td className="text-chalk-600 font-mono text-xs">{i + 1}</td>
               <td className="text-chalk-600 text-xs">{j.posicion || '—'}</td>
-              <td className="font-medium text-white">{formatNombre(j.nombre)}</td>
+              <td className="font-medium text-white">{formatNombre(j.nombre)}<GrupoBadge grupo={j.grupo} /></td>
               <EscudoCell escudo={j.escudo} />
               <td className="text-chalk-600 hidden md:table-cell text-xs">{j.nombre_equipo}</td>
               <td className="text-center text-chalk-600">{j.ciclos_completados}</td>
