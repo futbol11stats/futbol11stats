@@ -374,8 +374,8 @@ export function TarjetasTemporadaTab(
       Ordenado por deportividad (menos expulsiones primero). <strong>🟨</strong> Amarillas · <strong>🟨🟨</strong> Dobles amarillas (expulsión) · <strong>🟥</strong> Rojas directas
     </p>
 
-    {/* BLOQUE 2 — Jugadores expulsados/sancionados */}
-    <h3 className="text-white font-semibold text-sm mb-3 mt-8">Jugadores expulsados/sancionados</h3>
+    {/* BLOQUE 2 — Jugadores expulsados/ciclos de amarillas */}
+    <h3 className="text-white font-semibold text-sm mb-3 mt-8">Jugadores expulsados/ciclos de amarillas</h3>
     <div className="bg-pitch-800 rounded-xl border border-pitch-700 overflow-hidden">
       <table className="w-full tabla-clasificacion">
         <thead>
@@ -398,7 +398,7 @@ export function TarjetasTemporadaTab(
               <td className="font-medium text-white">{formatNombre(j.nombre)}</td>
               <EscudoCell escudo={j.escudo} />
               <td className="text-chalk-600 hidden md:table-cell text-xs">{j.nombre_equipo}</td>
-              <td className="text-center font-bold text-white">{j.ciclos_completados}</td>
+              <td className="text-center text-chalk-600">{j.ciclos_completados}</td>
               <td className="text-center text-chalk-600">{j.dobles_amarillas}</td>
               <td className="text-center text-chalk-600">{j.rojas_directas}</td>
             </tr>
