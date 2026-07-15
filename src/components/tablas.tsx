@@ -280,7 +280,6 @@ export function PorterosTemporadaTab({ jugadores }: { jugadores: any[] }) {
         <thead>
           <tr className="border-b border-pitch-700">
             <th className="text-left w-8">#</th>
-            <th className="text-left w-12">Pos</th>
             <th className="text-left">Jugador</th>
             <th className="text-left w-10"></th>
             <th className="text-left hidden md:table-cell">Equipo</th>
@@ -295,7 +294,6 @@ export function PorterosTemporadaTab({ jugadores }: { jugadores: any[] }) {
           {jugadores.map(j => (
             <tr key={`${j.codjugador}-${j.codequipo}`} className="border-b border-pitch-700/50 last:border-0">
               <td className="text-chalk-600 font-mono text-xs">{j.rank}</td>
-              <td className="text-chalk-600 font-mono text-xs">{j.posicion || '—'}</td>
               <td className="font-medium text-white">{formatNombre(j.nombre)}<GrupoBadge grupo={j.grupo} /></td>
               <EscudoCell escudo={j.escudo} />
               <td className="text-chalk-600 hidden md:table-cell text-xs">{j.nombre_equipo}</td>
@@ -307,13 +305,13 @@ export function PorterosTemporadaTab({ jugadores }: { jugadores: any[] }) {
             </tr>
           ))}
           {jugadores.length === 0 && (
-            <tr><td colSpan={10} className="text-chalk-600 text-sm text-center py-8">Sin datos disponibles</td></tr>
+            <tr><td colSpan={9} className="text-chalk-600 text-sm text-center py-8">Sin datos disponibles</td></tr>
           )}
         </tbody>
       </table>
     </div>
     <p className="mt-2 text-xs text-chalk-600 leading-relaxed">
-      <strong>Pos</strong> Demarcación del jugador (POR · DEF · MED · DEL) · <strong>PJ</strong> Partidos jugados · <strong>P0</strong> Porterías a cero · <strong>P0%</strong> Porcentaje de porterías a cero · <strong>Goles enc.</strong> Goles encajados · <strong>Goles enc./PJ</strong> Goles encajados por partido jugado
+      <strong>PJ</strong> Partidos jugados · <strong>P0</strong> Porterías a cero · <strong>P0%</strong> Porcentaje de porterías a cero · <strong>Goles enc.</strong> Goles encajados · <strong>Goles enc./PJ</strong> Goles encajados por partido jugado
     </p>
     <p className="mt-1 text-[11px] text-chalk-600/80 leading-relaxed">
       Desde la jornada 3, elegibles solo los porteros con al menos el 65% de las jornadas disputadas y una media de 60 minutos por partido (a 34 jornadas, ≥22 partidos).
