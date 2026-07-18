@@ -338,6 +338,8 @@ export function TarjetasTemporadaTab(
     b.rojas_directas - a.rojas_directas ||
     b.dobles_amarillas - a.dobles_amarillas
   )
+  // Umbral de ciclo de amarillas: 5 en liga, 3 en copa/playoff (viene en las filas de alertas).
+  const umbral = jg[0]?.ciclo_umbral ?? 5
   // Banquillos más calientes — TOP 5 con más tarjetas a técnicos/banquillo. Orden INVERTIDO
   // (el más caliente primero): desc por expulsiones (dobles+rojas), luego más amarillas, luego alfabético.
   const banq = [...equipos]
@@ -447,7 +449,7 @@ export function TarjetasTemporadaTab(
             <th className="text-left">Jugador</th>
             <th className="text-left w-10"></th>
             <th className="text-left hidden md:table-cell">Equipo</th>
-            <th>5×🟨</th>
+            <th>{umbral}×🟨</th>
             <th>🟨🟨</th>
             <th>🟥</th>
           </tr>
@@ -472,8 +474,8 @@ export function TarjetasTemporadaTab(
       </table>
     </div>
     <p className="mt-2 text-xs text-chalk-600 leading-relaxed">
-      Jugadores con al menos un ciclo completo de 5 amarillas, una doble amarilla o una roja directa.
-      <strong> 5×🟨</strong> Ciclos completos de 5 amarillas · <strong>🟨🟨</strong> Dobles amarillas (expulsión) · <strong>🟥</strong> Rojas directas · No contempla sanciones adicionales del Comité de Competición.
+      Jugadores con al menos un ciclo completo de {umbral} amarillas, una doble amarilla o una roja directa.
+      <strong> {umbral}×🟨</strong> Ciclos completos de {umbral} amarillas · <strong>🟨🟨</strong> Dobles amarillas (expulsión) · <strong>🟥</strong> Rojas directas · No contempla sanciones adicionales del Comité de Competición{umbral === 3 ? ' (las sanciones pueden extenderse a otras competiciones según su gravedad; aquí solo la derivada de tarjetas en esta competición)' : ''}.
     </p>
     </>
   )
@@ -578,7 +580,11 @@ function motivoEmoji(motivo: string | null): string {
   if (!motivo) return ''
   if (motivo.includes('Roja')) return '🟥'
   if (motivo.includes('Doble')) return '🟨🟨'
-  if (motivo.includes('Ciclo')) return '5×🟨'
+  // Ciclo de amarillas: liga "…(Ciclo)" = 5; copa/playoff "…(ciclo 3)" = 3 (nº del texto).
+  if (/ciclo/i.test(motivo)) {
+    const m = motivo.match(/ciclo\s*(\d+)/i)
+    return `${m ? m[1] : 5}×🟨`
+  }
   return ''
 }
 

@@ -200,6 +200,9 @@ export default async function GrupoPage({
   const grupo = await getGrupoBySlug(categoria, slug_comp, slug_grupo, codtemporada)
   if (!grupo) notFound()
 
+  // Copa/playoff: sin clasificación (eliminatoria); scope de competición fusionando rondas.
+  const isCopa = !!grupo.tipo && grupo.tipo !== 'LIGA'
+
   const jornadaNum = parseInt(jornada.replace('jornada-', '')) || grupo.jornada_actual
 
   const [clasificacion, resultados, topJugadores, variantes, gruposComp,
@@ -220,28 +223,49 @@ export default async function GrupoPage({
     getJuegoLimpio(grupo.codgrupo, codtemporada),
   ])
 
+  // En copa, los suspendidos se muestran fusionados (todas las rondas), no por jornada.
+  const suspendidosCopa = isCopa
+    ? (await supabase.from('web_suspendidos').select('*')
+        .eq('codgrupo', grupo.codgrupo).eq('codtemporada', codtemporada)
+        .order('jornada')).data || []
+    : []
+
   const goleadores = topJugadores.filter(j => j.tipo === 'goleadores_temp')
   const fantasy = topJugadores.filter(j => j.tipo === 'fantasy_temp')
   const eloJugadores = topJugadores.filter(j => j.tipo === 'elo_temp')
   const porteros = topJugadores.filter(j => j.tipo === 'porteros_temp')
 
-  const TABS_JORNADA = [
-    { id: 'clasificacion',           label: 'Clasificación' },
-    { id: 'resultados',              label: 'Resultados' },
-    { id: 'goleadores-jornada',      label: 'Goleadores' },
-    { id: 'tarjetas-jornada',        label: 'Tarjetas' },
-    { id: 'top5-jugadores-jornada',  label: 'Top 5 Jugadores' },
-    { id: 'top5-equipos-jornada',    label: 'Top 5 Equipos' },
-    { id: 'once-optimo-jornada',     label: 'XI Óptimo' },
-  ]
-  const TABS_TEMPORADA = [
-    { id: 'top10-goleadores-temporada',    label: 'Goleadores' },
-    { id: 'top10-porteros-temporada',      label: 'Porteros' },
-    { id: 'top10-tarjetas-temporada',      label: 'Tarjetas' },
-    { id: 'top10-fantasy-temporada',       label: 'Fantasy' },
-    { id: 'top10-elo-jugadores-temporada', label: 'ELO' },
-    { id: 'once-optimo-temporada',         label: 'XI Óptimo' },
-  ]
+  // Copa/playoff: eliminatoria (sin clasificación ni tabs por-jornada; el ranking va fusionado
+  // por competición). Solo Resultados por ronda + rankings de temporada con datos.
+  const TABS_JORNADA = isCopa
+    ? [{ id: 'resultados', label: 'Resultados' }]
+    : [
+        { id: 'clasificacion',           label: 'Clasificación' },
+        { id: 'resultados',              label: 'Resultados' },
+        { id: 'goleadores-jornada',      label: 'Goleadores' },
+        { id: 'tarjetas-jornada',        label: 'Tarjetas' },
+        { id: 'top5-jugadores-jornada',  label: 'Top 5 Jugadores' },
+        { id: 'top5-equipos-jornada',    label: 'Top 5 Equipos' },
+        { id: 'once-optimo-jornada',     label: 'XI Óptimo' },
+      ]
+  const TABS_TEMPORADA = isCopa
+    ? [
+        { id: 'top10-goleadores-temporada', label: 'Goleadores' },
+        { id: 'top10-porteros-temporada',   label: 'Porteros' },
+        { id: 'top10-tarjetas-temporada',   label: 'Tarjetas' },
+        { id: 'top10-fantasy-temporada',    label: 'Fantasy' },
+      ]
+    : [
+        { id: 'top10-goleadores-temporada',    label: 'Goleadores' },
+        { id: 'top10-porteros-temporada',      label: 'Porteros' },
+        { id: 'top10-tarjetas-temporada',      label: 'Tarjetas' },
+        { id: 'top10-fantasy-temporada',       label: 'Fantasy' },
+        { id: 'top10-elo-jugadores-temporada', label: 'ELO' },
+        { id: 'once-optimo-temporada',         label: 'XI Óptimo' },
+      ]
+  // Tab efectivo: en copa, cualquier tab inexistente (p.ej. 'clasificacion') cae a 'resultados'.
+  const _tabIds = new Set([...TABS_JORNADA, ...TABS_TEMPORADA].map(t => t.id))
+  const tab2 = isCopa && !_tabIds.has(tab) ? 'resultados' : tab
 
   const TEMPORADAS = [21, 20, 19, 18, 17]
 
@@ -273,7 +297,7 @@ export default async function GrupoPage({
       {/* Header */}
       <div className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
-          <h1 className="font-display text-4xl font-bold text-white">{grupo.nombre_historico || grupo.nombre_comp} · {grupo.nombre_grupo}</h1>
+          <h1 className="font-display text-4xl font-bold text-white">{grupo.nombre_historico || grupo.nombre_comp}{grupo.nombre_grupo ? ` · ${grupo.nombre_grupo}` : ''}</h1>
           <p className="text-grass-400 text-sm mt-1">Jornada {jornadaNum} · Temporada {temporada}</p>
           {grupo.nombre_historico && (
             <p className="text-chalk-600 text-xs mt-1.5 flex items-center gap-1.5">
@@ -352,9 +376,9 @@ export default async function GrupoPage({
         </div>
       </div>
 
-      {/* Navegación: Global + grupos de la misma competición (siempre visible; el activo
-          aquí es un grupo, así que "Global" va como enlace inactivo a la vista global) */}
-      {gruposComp.length > 0 && (
+      {/* Navegación: Global + grupos de la misma competición. En copa/playoff no aplica
+          (scope único de competición, sin vista global ni grupos hermanos). */}
+      {!isCopa && gruposComp.length > 0 && (
         <div className="mb-6 flex gap-1.5 flex-wrap">
           <Link
             href={`/madrid/${categoria}/${slug_comp}/global/${temporada}/jornada-${jornadaNum}/${globalTab}`}
@@ -386,7 +410,7 @@ export default async function GrupoPage({
             key={t.id}
             href={`${baseTab}/${t.id}`}
             className={`px-4 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px ${
-              tab === t.id
+              tab2 ===t.id
                 ? 'border-grass-400 text-white'
                 : 'border-transparent text-chalk-600 hover:text-white'
             }`}
@@ -404,7 +428,7 @@ export default async function GrupoPage({
             key={t.id}
             href={`${baseUrl}/jornada-${jornadaNum}/${t.id}`}
             className={`px-4 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px ${
-              tab === t.id
+              tab2 ===t.id
                 ? 'border-grass-400 text-white'
                 : 'border-transparent text-chalk-600 hover:text-white'
             }`}
@@ -415,47 +439,52 @@ export default async function GrupoPage({
       </div>
 
       {/* Contenido por tab */}
-      {tab === 'clasificacion' && (
+      {tab2 ==='clasificacion' && (
         <ClasificacionTab rows={clasificacion} jornadaNum={jornadaNum} totalJornadas={grupo.total_jornadas} />
       )}
-      {tab === 'resultados' && (
+      {tab2 ==='resultados' && (
         <ResultadosTab resultados={resultados} jornada={jornadaNum} />
       )}
-      {tab === 'top10-goleadores-temporada' && (
+      {tab2 ==='top10-goleadores-temporada' && (
         <JugadoresTab jugadores={goleadores} tipo="goleadores" />
       )}
-      {tab === 'top10-fantasy-temporada' && (
+      {tab2 ==='top10-fantasy-temporada' && (
         <JugadoresTab jugadores={fantasy} tipo="fantasy" />
       )}
-      {tab === 'top10-elo-jugadores-temporada' && (
+      {tab2 ==='top10-elo-jugadores-temporada' && (
         <EloTemporadaTab jugadores={eloJugadores} />
       )}
-      {tab === 'goleadores-jornada' && (
+      {tab2 ==='goleadores-jornada' && (
         <GoleadoresJornadaTab jugadores={golesJ} />
       )}
-      {tab === 'tarjetas-jornada' && (
+      {tab2 ==='tarjetas-jornada' && (
         <>
           <SuspendidosTab jugadores={suspendidos} />
           <div className="mt-8" />
           <TarjetasJornadaTab jugadores={tarjetasJ} />
         </>
       )}
-      {tab === 'top5-jugadores-jornada' && (
+      {tab2 ==='top5-jugadores-jornada' && (
         <Top5JugadoresTab jugadores={mvpJ} />
       )}
-      {tab === 'top5-equipos-jornada' && (
+      {tab2 ==='top5-equipos-jornada' && (
         <Top5EquiposTab equipos={equiposForma} />
       )}
-      {tab === 'once-optimo-jornada' && (
+      {tab2 ==='once-optimo-jornada' && (
         <XiOptimoJornadaTab jugadores={xiJ} />
       )}
-      {tab === 'top10-porteros-temporada' && (
+      {tab2 ==='top10-porteros-temporada' && (
         <PorterosTemporadaTab jugadores={porteros} />
       )}
-      {tab === 'top10-tarjetas-temporada' && (
-        <TarjetasTemporadaTab equipos={juegoLimpio} jugadores={alertasTarjetas} />
+      {tab2 ==='top10-tarjetas-temporada' && (
+        <>
+          <TarjetasTemporadaTab equipos={juegoLimpio} jugadores={alertasTarjetas} />
+          {isCopa && suspendidosCopa.length > 0 && (
+            <div className="mt-8"><SuspendidosTab jugadores={suspendidosCopa} /></div>
+          )}
+        </>
       )}
-      {tab === 'once-optimo-temporada' && (
+      {tab2 ==='once-optimo-temporada' && (
         <XiOptimoTemporadaTab jugadores={xiOptimo} />
       )}
     </div>

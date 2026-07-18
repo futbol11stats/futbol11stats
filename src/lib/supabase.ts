@@ -121,5 +121,6 @@ export type SancionadoRow = {
   dobles_amarillas: number
   rojas_directas: number
   ciclos_completados: number
+  ciclo_umbral?: number   // 5 liga / 3 copa-playoff (para pintar N×🟨)
   grupo?: { label: string; href: string }   // badge de grupo (solo en vista global)
 }

@@ -6,7 +6,7 @@ import Link from 'next/link'
 async function getGrupos() {
   const { data } = await supabase
     .from('web_grupos')
-    .select('codtemporada, nombre_comp, nombre_grupo, codgrupo, categoria, jornada_actual, slug_comp, slug_grupo')
+    .select('codtemporada, nombre_comp, nombre_grupo, codgrupo, categoria, jornada_actual, slug_comp, slug_grupo, tipo')
     .eq('categoria', 'AFICIONADO')
     .eq('codtemporada', 21)
     .order('nombre_comp')
@@ -100,7 +100,7 @@ function CompeticionCard({
   nombreHistorico,
 }: {
   nombre: string
-  grupos: { codgrupo: string; nombre_grupo: string; jornada_actual: number; slug_comp: string; slug_grupo: string }[]
+  grupos: { codgrupo: string; nombre_grupo: string; jornada_actual: number; slug_comp: string; slug_grupo: string; tipo?: string }[]
   nombreHistorico?: string
 }) {
   const nombreCorto: Record<string, string> = {
@@ -136,15 +136,18 @@ function CompeticionCard({
             Global
           </Link>
         )}
-        {grupos.map(g => (
+        {grupos.map(g => {
+          const esCopa = !!g.tipo && g.tipo !== 'LIGA'
+          const entrada = esCopa ? 'resultados' : 'clasificacion'
+          return (
           <Link
             key={g.codgrupo}
-            href={`/madrid/aficionados/${g.slug_comp}/${g.slug_grupo}/2025-26/jornada-${g.jornada_actual}/clasificacion`}
+            href={`/madrid/aficionados/${g.slug_comp}/${g.slug_grupo}/2025-26/jornada-${g.jornada_actual}/${entrada}`}
             className="text-xs bg-pitch-700 hover:bg-grass-500 text-chalk-200 hover:text-white px-3 py-1.5 rounded-md transition-colors"
           >
-            {g.nombre_grupo} · J{g.jornada_actual}
+            {esCopa ? `Ver competición · ${g.jornada_actual} rondas` : `${g.nombre_grupo} · J${g.jornada_actual}`}
           </Link>
-        ))}
+        )})}
       </div>
     </div>
   )
