@@ -6,7 +6,7 @@ import Link from 'next/link'
 async function getCompeticiones() {
   const { data } = await supabase
     .from('web_grupos')
-    .select('codtemporada, nombre_comp, nombre_grupo, codgrupo, categoria, jornada_actual, slug_comp, slug_grupo')
+    .select('codtemporada, nombre_comp, nombre_grupo, codgrupo, categoria, jornada_actual, slug_comp, slug_grupo, tipo')
     .eq('codtemporada', 21)
     .order('nombre_comp')
   return data || []
@@ -97,7 +97,7 @@ export default async function Home() {
               Aficionados
             </h2>
             <div className="space-y-3">
-              {COMPETICION_ORDER.filter(c => aficionadosMap[c]).map(comp => (
+              {[...COMPETICION_ORDER.filter(c => aficionadosMap[c]), ...Object.keys(aficionadosMap).filter(c => !COMPETICION_ORDER.includes(c)).sort()].map(comp => (
                 <CompeticionCard
                   key={comp}
                   nombre={comp}
@@ -115,7 +115,7 @@ export default async function Home() {
               Juvenil
             </h2>
             <div className="space-y-3">
-              {COMPETICION_ORDER.filter(c => juvenilMap[c]).map(comp => (
+              {[...COMPETICION_ORDER.filter(c => juvenilMap[c]), ...Object.keys(juvenilMap).filter(c => !COMPETICION_ORDER.includes(c)).sort()].map(comp => (
                 <CompeticionCard
                   key={comp}
                   nombre={comp}
@@ -137,7 +137,7 @@ function CompeticionCard({
   categoria,
 }: {
   nombre: string
-  grupos: { codgrupo: string; nombre_grupo: string; jornada_actual: number; slug_comp: string; slug_grupo: string }[]
+  grupos: { codgrupo: string; nombre_grupo: string; jornada_actual: number; slug_comp: string; slug_grupo: string; tipo?: string }[]
   categoria: string
 }) {
   const nombreCorto: Record<string, string> = {
@@ -168,15 +168,18 @@ function CompeticionCard({
             Global
           </Link>
         )}
-        {grupos.map(g => (
+        {grupos.map(g => {
+          const esCopa = !!g.tipo && g.tipo !== 'LIGA'
+          const entrada = esCopa ? 'resultados' : 'clasificacion'
+          return (
           <Link
             key={g.codgrupo}
-            href={`/madrid/${categoria}/${g.slug_comp}/${g.slug_grupo}/2025-26/jornada-${g.jornada_actual}/clasificacion`}
+            href={`/madrid/${categoria}/${g.slug_comp}/${g.slug_grupo}/2025-26/jornada-${g.jornada_actual}/${entrada}`}
             className="text-xs bg-pitch-700 hover:bg-grass-500 text-chalk-200 hover:text-white px-3 py-1.5 rounded-md transition-colors"
           >
-            {g.nombre_grupo} · J{g.jornada_actual}
+            {esCopa ? `Ver competición · ${g.jornada_actual} rondas` : `${g.nombre_grupo} · J${g.jornada_actual}`}
           </Link>
-        ))}
+        )})}
       </div>
     </div>
   )

@@ -588,7 +588,7 @@ function motivoEmoji(motivo: string | null): string {
   return ''
 }
 
-export function SuspendidosTab({ jugadores }: { jugadores: any[] }) {
+export function SuspendidosTab({ jugadores, umbral = 5 }: { jugadores: any[]; umbral?: number }) {
   return (
     <>
     <h3 className="text-white font-semibold text-sm mb-3">Jugadores que se pierden la próxima jornada</h3>
@@ -624,7 +624,7 @@ export function SuspendidosTab({ jugadores }: { jugadores: any[] }) {
       </table>
     </div>
     <p className="mt-2 text-xs text-chalk-600 leading-relaxed">
-      <strong>Motivo</strong> Causa de la suspensión (ciclo de amarillas, doble amarilla o roja directa) · <strong>🟥</strong> Roja directa · <strong>🟨🟨</strong> Doble amarilla · <strong>5×🟨</strong> Ciclo de 5 amarillas · Incluye únicamente sanciones derivadas de tarjetas (ciclo, doble amarilla, roja directa); no contempla sanciones adicionales del Comité de Competición.
+      <strong>Motivo</strong> Causa de la suspensión (ciclo de amarillas, doble amarilla o roja directa) · <strong>🟥</strong> Roja directa · <strong>🟨🟨</strong> Doble amarilla · <strong>{umbral}×🟨</strong> Ciclo de {umbral} amarillas · Incluye únicamente sanciones derivadas de tarjetas (ciclo, doble amarilla, roja directa); no contempla sanciones adicionales del Comité de Competición{umbral === 3 ? ' (en copa/playoff la sanción puede extenderse a otras competiciones según su gravedad; aquí solo la de esta competición)' : ''}.
     </p>
     </>
   )

@@ -480,7 +480,7 @@ export default async function GrupoPage({
         <>
           <TarjetasTemporadaTab equipos={juegoLimpio} jugadores={alertasTarjetas} />
           {isCopa && suspendidosCopa.length > 0 && (
-            <div className="mt-8"><SuspendidosTab jugadores={suspendidosCopa} /></div>
+            <div className="mt-8"><SuspendidosTab jugadores={suspendidosCopa} umbral={3} /></div>
           )}
         </>
       )}
