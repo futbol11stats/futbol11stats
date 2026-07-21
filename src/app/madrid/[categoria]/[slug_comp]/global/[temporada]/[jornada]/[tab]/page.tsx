@@ -91,15 +91,20 @@ async function getTopJugadoresGlobal(slugComp: string, categoria: string, codtem
   return data || []
 }
 
-// Juego limpio / sancionados globales: unión de todos los grupos de la competición.
-async function getJuegoLimpioGlobal(codgrupos: string[], codtemporada: number) {
+// Snapshot GLOBAL con fallback (time-machine): fetch por-grupo a jornada=N; si vacío (temporada
+// congelada) -> foto-final jornada IS NULL. La N gobierna el merge global (top-N por grupo por jornada).
+async function fetchGlobalSnap(build: (q: any) => any, jornada: number) {
+  const exact = await build(supabase).eq('jornada', jornada)
+  if (exact.data && exact.data.length > 0) return exact.data
+  const foto = await build(supabase).is('jornada', null)
+  return foto.data || []
+}
+
+// Juego limpio global (rebobina por jornada). Sancionados globales -> foto-final (getAlertasGlobal).
+async function getJuegoLimpioGlobal(codgrupos: string[], codtemporada: number, jornada: number) {
   if (codgrupos.length === 0) return []
-  const { data } = await supabase
-    .from('web_juego_limpio')
-    .select('*')
-    .eq('codtemporada', codtemporada)
-    .in('codgrupo', codgrupos)
-  return data || []
+  return fetchGlobalSnap((q) => q.from('web_juego_limpio').select('*')
+    .eq('codtemporada', codtemporada).in('codgrupo', codgrupos), jornada)
 }
 
 async function getAlertasGlobal(codgrupos: string[], codtemporada: number) {
@@ -114,15 +119,16 @@ async function getAlertasGlobal(codgrupos: string[], codtemporada: number) {
 
 // Ranking de temporada global: une los top-10 por grupo de un tipo (goleadores/porteros/
 // fantasy/elo). Como el exporter guarda top-10 por grupo, el top-10 global está garantizado.
-async function getTopGlobal(codgrupos: string[], codtemporada: number, tipo: string) {
+async function getTopGlobal(codgrupos: string[], codtemporada: number, tipo: string, jornada: number) {
   if (codgrupos.length === 0) return []
-  const { data } = await supabase
-    .from('web_top_jugadores')
-    .select('*')
-    .eq('codtemporada', codtemporada)
-    .in('codgrupo', codgrupos)
-    .eq('tipo', tipo)
-  return data || []
+  // elo_temp no tiene snapshots por jornada -> siempre foto-final (jornada NULL).
+  if (tipo === 'elo_temp') {
+    const { data } = await supabase.from('web_top_jugadores').select('*')
+      .eq('codtemporada', codtemporada).in('codgrupo', codgrupos).eq('tipo', tipo).is('jornada', null)
+    return data || []
+  }
+  return fetchGlobalSnap((q) => q.from('web_top_jugadores').select('*')
+    .eq('codtemporada', codtemporada).in('codgrupo', codgrupos).eq('tipo', tipo), jornada)
 }
 
 // Destacado de jornada global (mvp_jornada): top-5 por grupo de la jornada -> merge -> top 5.
@@ -222,11 +228,11 @@ export default async function GlobalPage({
   if (tab === 'top10-tarjetas-temporada') {
     const codgrupos = gruposComp.map(g => String(g.codgrupo))
     const [jl, al] = await Promise.all([
-      getJuegoLimpioGlobal(codgrupos, codtemporada),
-      getAlertasGlobal(codgrupos, codtemporada),
+      getJuegoLimpioGlobal(codgrupos, codtemporada, jornadaNum),
+      getAlertasGlobal(codgrupos, codtemporada),   // sancionados: foto-final (fuera del time-machine)
     ])
-    juegoLimpio = jl.map(r => ({ ...r, grupo: mkGrupo(r.codgrupo) }))
-    alertasTarjetas = al.map(r => ({ ...r, grupo: mkGrupo(r.codgrupo) }))
+    juegoLimpio = jl.map((r: any) => ({ ...r, grupo: mkGrupo(r.codgrupo) }))
+    alertasTarjetas = al.map((r: any) => ({ ...r, grupo: mkGrupo(r.codgrupo) }))
   }
 
   // Rankings de temporada globales (top-10 de toda la competición). Orden y desempate =
@@ -246,7 +252,7 @@ export default async function GlobalPage({
   let ranking: any[] = []
   if (RANK_TIPO[tab]) {
     const codgrupos = gruposComp.map(g => String(g.codgrupo))
-    const rows = await getTopGlobal(codgrupos, codtemporada, RANK_TIPO[tab])
+    const rows = await getTopGlobal(codgrupos, codtemporada, RANK_TIPO[tab], jornadaNum)
     ranking = [...rows].sort(RANK_CMP[tab]).slice(0, 10).map((r, i) => ({
       ...r, rank: i + 1, grupo: mkGrupo(r.codgrupo),
     }))
@@ -273,7 +279,9 @@ export default async function GlobalPage({
   let xiJor: any[] = []
   if (tab === 'once-optimo-temporada') {
     const codgrupos = gruposComp.map(g => String(g.codgrupo))
-    const rows = await getXiGlobal(codgrupos, codtemporada, 'temporada_global')
+    // XI global de temporada: rebobina por jornada con fallback a foto-final (jornada IS NULL).
+    let rows = (await getXiGlobal(codgrupos, codtemporada, 'temporada_global', jornadaNum))
+    if (rows.length === 0) rows = await getXiGlobal(codgrupos, codtemporada, 'temporada_global')
     xiTemp = rows.map(r => ({ ...r, grupo: mkGrupo(r.codgrupo) }))
   } else if (tab === 'once-optimo-jornada') {
     const codgrupos = gruposComp.map(g => String(g.codgrupo))

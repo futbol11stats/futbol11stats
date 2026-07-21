@@ -438,8 +438,8 @@ export function TarjetasTemporadaTab(
       </>
     )}
 
-    {/* BLOQUE 2 — Jugadores expulsados/ciclos de amarillas */}
-    <h3 className="text-white font-semibold text-sm mb-3 mt-8">Jugadores expulsados/ciclos de amarillas</h3>
+    {/* BLOQUE 2 — Jugadores expulsados/ciclos de amarillas (foto-final, a fecha actual) */}
+    <h3 className="text-white font-semibold text-sm mb-3 mt-8">Jugadores expulsados/ciclos de amarillas <span className="text-chalk-600 font-normal text-xs">· a fecha actual</span></h3>
     <div className="bg-pitch-800 rounded-xl border border-pitch-700 overflow-hidden">
       <table className="w-full tabla-clasificacion">
         <thead>

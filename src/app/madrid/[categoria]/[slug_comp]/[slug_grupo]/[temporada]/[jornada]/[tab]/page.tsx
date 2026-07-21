@@ -148,10 +148,13 @@ async function getTopJugadores(codgrupo: string, codtemporada: number, jornada: 
     .order('rank'), jornada)
 }
 
-async function getAlertasTarjetas(codgrupo: string, codtemporada: number, jornada: number) {
-  return fetchSnapshot((q) => q
+// Sancionados (alertas): FOTO-FINAL siempre — fuera del time-machine (se acumula demasiado).
+// No filtra por jornada; lee el estado a fecha actual (foto-final, jornada=MAX por grupo).
+async function getAlertasTarjetas(codgrupo: string, codtemporada: number) {
+  const { data } = await supabase
     .from('web_alertas_tarjetas').select('*')
-    .eq('codgrupo', codgrupo).eq('codtemporada', codtemporada), jornada)
+    .eq('codgrupo', codgrupo).eq('codtemporada', codtemporada)
+  return data || []
 }
 
 async function getJuegoLimpio(codgrupo: string, codtemporada: number, jornada: number) {
@@ -215,7 +218,7 @@ export default async function GrupoPage({
     getDestacadosJornada(grupo.codgrupo, codtemporada, jornadaNum, 'mvp_jornada'),
     getDestacadosJornada(grupo.codgrupo, codtemporada, jornadaNum, 'xi_jornada'),
     getEquiposForma(grupo.codgrupo, codtemporada, jornadaNum),
-    getAlertasTarjetas(grupo.codgrupo, codtemporada, jornadaNum),
+    getAlertasTarjetas(grupo.codgrupo, codtemporada),
     getXiOptimoTemporada(grupo.codgrupo, codtemporada, jornadaNum),
     getSuspendidosJornada(grupo.codgrupo, codtemporada, jornadaNum),
     getJuegoLimpio(grupo.codgrupo, codtemporada, jornadaNum),
