@@ -3,6 +3,9 @@ export const revalidate = 21600  // ISR 6h: los datos solo cambian al re-exporta
 import type { Metadata } from 'next'
 import { supabase } from '@/lib/supabase'
 import Link from 'next/link'
+import JsonLd from '@/components/JsonLd'
+import { SITE_URL } from '@/lib/seo'
+import { graphLd, websiteLd, organizationLd, breadcrumbLd } from '@/lib/jsonld'
 
 export const metadata: Metadata = {
   title: 'Fútbol Aficionados Madrid — categorías y grupos | Fútbol11Stats',
@@ -73,6 +76,10 @@ export default async function AficionadosPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
+      <JsonLd data={graphLd(websiteLd(), organizationLd(), breadcrumbLd([
+        { name: 'Inicio', url: `${SITE_URL}/` },
+        { name: 'Aficionados', url: `${SITE_URL}/madrid/aficionados` },
+      ]))} />
       {/* Breadcrumb */}
       <nav className="text-sm text-chalk-600 mb-6 flex items-center gap-2">
         <Link href="/" className="hover:text-white transition-colors">Inicio</Link>

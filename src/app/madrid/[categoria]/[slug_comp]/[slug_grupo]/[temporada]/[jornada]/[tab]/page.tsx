@@ -2,11 +2,13 @@ export const revalidate = 21600  // ISR 6h: los datos solo cambian al re-exporta
 
 import type { Metadata } from 'next'
 import { supabase } from '@/lib/supabase'
-import { ensureMadrid, tabLabel } from '@/lib/seo'
+import { SITE_URL, ensureMadrid, tabLabel } from '@/lib/seo'
 import {
   COLS_CLASIFICACION, COLS_RESULTADOS, COLS_TOP_JUGADORES, COLS_ALERTAS,
   COLS_JUEGO_LIMPIO, COLS_XI_OPTIMO, COLS_EQUIPOS_FORMA, COLS_SUSPENDIDOS,
 } from '@/lib/columns'
+import JsonLd from '@/components/JsonLd'
+import { graphLd, breadcrumbLd } from '@/lib/jsonld'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import JornadaSelector from '@/components/JornadaSelector'
@@ -377,8 +379,25 @@ export default async function GrupoPage({
   ])
   const globalTab = GLOBAL_TABS.has(tab) ? tab : 'clasificacion'
 
+  // BreadcrumbList (JSON-LD) con URLs canónicas (www). Copa: sin nivel de grupo ni global.
+  const catLabel = categoria === 'juveniles' ? 'Juveniles' : 'Aficionados'
+  const jact = grupo.jornada_actual
+  const gBase = `${SITE_URL}/madrid/${categoria}/${slug_comp}/${slug_grupo}/${temporada}`
+  const crumbs: { name: string; url: string }[] = [
+    { name: 'Inicio', url: `${SITE_URL}/` },
+    { name: catLabel, url: `${SITE_URL}/madrid/${categoria}` },
+  ]
+  if (isCopa) {
+    crumbs.push({ name: ensureMadrid(grupo.nombre_comp), url: `${gBase}/jornada-${jact}/resultados` })
+  } else {
+    crumbs.push({ name: ensureMadrid(grupo.nombre_comp), url: `${SITE_URL}/madrid/${categoria}/${slug_comp}/global/${temporada}/jornada-${jact}/clasificacion` })
+    if (grupo.nombre_grupo) crumbs.push({ name: grupo.nombre_grupo, url: `${gBase}/jornada-${jact}/clasificacion` })
+  }
+  crumbs.push({ name: tabLabel(tab2), url: `${gBase}/jornada-${jact}/${tab}` })
+
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
+      <JsonLd data={graphLd(breadcrumbLd(crumbs))} />
       {/* Breadcrumb */}
       <nav className="text-sm text-chalk-600 mb-6 flex items-center gap-2">
         <Link href="/" className="hover:text-white transition-colors">Inicio</Link>

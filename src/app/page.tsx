@@ -3,6 +3,8 @@ export const revalidate = 21600  // ISR 6h: los datos solo cambian al re-exporta
 import type { Metadata } from 'next'
 import { supabase } from '@/lib/supabase'
 import Link from 'next/link'
+import JsonLd from '@/components/JsonLd'
+import { graphLd, websiteLd, organizationLd } from '@/lib/jsonld'
 
 // Marca neutral con Madrid como ámbito ACTUAL (preparada para ampliar a otras federaciones).
 export const metadata: Metadata = {
@@ -71,6 +73,7 @@ export default async function Home() {
 
   return (
     <div>
+      <JsonLd data={graphLd(websiteLd(), organizationLd())} />
       {/* Hero */}
       <section className="relative overflow-hidden bg-pitch-800 border-b border-pitch-700">
         <div className="absolute inset-0 opacity-5">

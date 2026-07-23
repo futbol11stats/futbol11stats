@@ -2,11 +2,13 @@ export const revalidate = 21600  // ISR 6h: los datos solo cambian al re-exporta
 
 import type { Metadata } from 'next'
 import { supabase } from '@/lib/supabase'
-import { ensureMadrid, tabLabel } from '@/lib/seo'
+import { SITE_URL, ensureMadrid, tabLabel } from '@/lib/seo'
 import {
   COLS_CLASIFICACION, COLS_TOP_JUGADORES, COLS_ALERTAS,
   COLS_JUEGO_LIMPIO, COLS_XI_OPTIMO, COLS_EQUIPOS_FORMA,
 } from '@/lib/columns'
+import JsonLd from '@/components/JsonLd'
+import { graphLd, breadcrumbLd } from '@/lib/jsonld'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import JornadaSelector from '@/components/JornadaSelector'
@@ -347,8 +349,20 @@ export default async function GlobalPage({
   const baseUrl = `/madrid/${categoria}/${slug_comp}/global/${temporada}`
   const baseTab = `${baseUrl}/jornada-${jornadaNum}`
 
+  // BreadcrumbList (JSON-LD) con URLs canónicas (www).
+  const catLabel = categoria === 'juveniles' ? 'Juveniles' : 'Aficionados'
+  const jact = competicion.jornada_actual
+  const gBase = `${SITE_URL}/madrid/${categoria}/${slug_comp}/global/${temporada}`
+  const crumbs = [
+    { name: 'Inicio', url: `${SITE_URL}/` },
+    { name: catLabel, url: `${SITE_URL}/madrid/${categoria}` },
+    { name: `${ensureMadrid(competicion.nombre_comp)} · Global`, url: `${gBase}/jornada-${jact}/clasificacion` },
+    { name: tabLabel(tab), url: `${gBase}/jornada-${jact}/${tab}` },
+  ]
+
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
+      <JsonLd data={graphLd(breadcrumbLd(crumbs))} />
       {/* Breadcrumb */}
       <nav className="text-sm text-chalk-600 mb-6 flex items-center gap-2">
         <Link href="/" className="hover:text-white transition-colors">Inicio</Link>
