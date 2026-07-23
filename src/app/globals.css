@@ -33,6 +33,32 @@ body {
   @apply bg-pitch-700/50;
 }
 
+/* Densidad tipo BeSoccer en MÓVIL (<768px). En md+ no cambia nada. */
+@media (max-width: 767px) {
+  .tabla-clasificacion th,
+  .tabla-clasificacion td {
+    padding: 0.22rem 0.18rem;     /* denso */
+    font-size: 12px;
+    line-height: 1.15;
+    /* números y cabeceras: Barlow Condensed + cifras tabulares (encaja mejor) */
+    font-family: var(--font-display);
+    font-variant-numeric: tabular-nums;
+  }
+  /* nombres de equipo/jugador: fuente body + truncar a UNA línea (la fila nunca se parte) */
+  .tabla-clasificacion td.col-nombre {
+    font-family: var(--font-body);
+    max-width: 8.5rem;            /* ~149px (~15 chars); la tabla cabe exacta en 390px */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  /* escudos más pequeños en móvil (~22px) */
+  .tabla-clasificacion .escudo-box {
+    width: 22px !important;
+    height: 22px !important;
+  }
+}
+
 /* Scrollbar */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: #0a1628; }

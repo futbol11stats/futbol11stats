@@ -570,7 +570,7 @@ function ClasificacionGlobalTab({
     <tr className="border-b border-pitch-700/50 last:border-0" style={ZONA_BG[zona]}>
       <td className="text-chalk-600 font-mono text-xs">{r.pos}</td>
       <EscudoCell escudo={r.escudo} nombre={r.nombre_equipo} />
-      <td className="font-medium text-white">{r.nombre_equipo}</td>
+      <td className="col-nombre font-medium text-white">{r.nombre_equipo}</td>
       <td className="text-center text-chalk-600">{r.pj}</td>
       <td className="text-center font-bold text-white">{r.pts}</td>
     </tr>
