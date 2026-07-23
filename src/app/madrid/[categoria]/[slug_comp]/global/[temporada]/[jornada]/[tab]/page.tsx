@@ -12,6 +12,7 @@ import { graphLd, breadcrumbLd } from '@/lib/jsonld'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import JornadaSelector from '@/components/JornadaSelector'
+import TabScroller from '@/components/TabScroller'
 import { ZONA_BG, ZONA_LEYENDA, ARRASTRE_TIPOS, EscudoCell, TarjetasTemporadaTab, JugadoresTab, EloTemporadaTab, PorterosTemporadaTab, Top5JugadoresTab, Top5EquiposTab, XiOptimoTemporadaTab, XiOptimoJornadaTab } from '@/components/tablas'
 
 const TEMPORADA_MAP: Record<string, number> = {
@@ -364,7 +365,7 @@ export default async function GlobalPage({
     <div className="max-w-7xl mx-auto px-4 py-8">
       <JsonLd data={graphLd(breadcrumbLd(crumbs))} />
       {/* Breadcrumb */}
-      <nav className="text-sm text-chalk-600 mb-6 flex items-center gap-2">
+      <nav className="text-sm text-chalk-600 mb-3 md:mb-6 flex items-center gap-2">
         <Link href="/" className="hover:text-white transition-colors">Inicio</Link>
         <span>·</span>
         <Link href={`/madrid/${categoria}`} className="hover:text-white transition-colors capitalize">{categoria}</Link>
@@ -375,7 +376,7 @@ export default async function GlobalPage({
       </nav>
 
       {/* Header */}
-      <div className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
+      <div className="mb-4 md:mb-8 flex flex-col md:flex-row md:items-end justify-between gap-3 md:gap-4">
         <div>
           <h1 className="font-display text-4xl font-bold text-white">{competicion.nombre_historico || competicion.nombre_comp} · Global</h1>
           <p className="text-grass-400 text-sm mt-1">Todos los grupos · Jornada {jornadaNum} · Temporada {temporada}</p>
@@ -389,7 +390,7 @@ export default async function GlobalPage({
           )}
 
           {/* Selector de jornada */}
-          <div className="flex items-center gap-2 mt-3">
+          <div className="flex items-center gap-2 mt-2 md:mt-3">
             {jornadaNum > 1 ? (
               <Link
                 href={`${baseUrl}/jornada-${jornadaNum - 1}/${tab}`}
@@ -423,7 +424,7 @@ export default async function GlobalPage({
           </div>
         </div>
         {/* Selector de temporada — enlaza a la variante (slug propio) de cada temporada */}
-        <div className="flex gap-1.5 flex-wrap">
+        <div className="scroll-row gap-1.5">
           {TEMPORADAS.map(cod => {
             const v = variantes[cod]
             const label = COD_TO_LABEL[cod]
@@ -456,7 +457,7 @@ export default async function GlobalPage({
       </div>
 
       {/* Navegación: Global + grupos de la competición */}
-      <div className="mb-6 flex gap-1.5 flex-wrap">
+      <div className="scroll-row gap-1.5 mb-3 md:mb-6">
         <span className="text-xs px-3 py-1.5 rounded-md bg-grass-500 text-white font-semibold">Global</span>
         {gruposComp.map(g => (
           <Link
@@ -472,10 +473,11 @@ export default async function GlobalPage({
 
       {/* Tabs — JORNADA */}
       <p className="text-[11px] font-semibold uppercase tracking-widest text-chalk-600 mb-1">Jornada</p>
-      <div className="border-b border-pitch-700 mb-4 flex gap-1 flex-wrap">
+      <TabScroller className="scroll-row border-b border-pitch-700 gap-1 mb-3 md:mb-4">
         {TABS_JORNADA.map(t => (
           <Link
             key={t.id}
+            data-active={tab === t.id ? 'true' : undefined}
             href={`${baseTab}/${t.id}`}
             className={`px-4 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px ${
               tab === t.id
@@ -486,14 +488,15 @@ export default async function GlobalPage({
             {t.label}
           </Link>
         ))}
-      </div>
+      </TabScroller>
 
       {/* Tabs — TEMPORADA */}
       <p className="text-[11px] font-semibold uppercase tracking-widest text-chalk-600 mb-1">Temporada</p>
-      <div className="border-b border-pitch-700 mb-6 flex gap-1 flex-wrap">
+      <TabScroller className="scroll-row border-b border-pitch-700 gap-1 mb-4 md:mb-6">
         {TABS_TEMPORADA.map(t => (
           <Link
             key={t.id}
+            data-active={tab === t.id ? 'true' : undefined}
             href={`${baseUrl}/jornada-${jornadaNum}/${t.id}`}
             className={`px-4 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px ${
               tab === t.id
@@ -504,7 +507,7 @@ export default async function GlobalPage({
             {t.label}
           </Link>
         ))}
-      </div>
+      </TabScroller>
 
       {/* Contenido por tab */}
       {tab === 'clasificacion' ? (

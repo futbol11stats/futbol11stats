@@ -11,6 +11,11 @@ body {
   font-family: var(--font-display);
 }
 
+/* Fila de chips/tabs deslizable en móvil (una sola línea); en desktop (md+) vuelve a envolver. */
+.scroll-row { display: flex; overflow-x: auto; }
+.scroll-row > * { flex-shrink: 0; white-space: nowrap; }
+@media (min-width: 768px) { .scroll-row { flex-wrap: wrap; overflow-x: visible; } }
+
 /* Zona colors */
 .zona-ascenso_directo { @apply bg-grass-500/20 border-l-2 border-grass-400; }
 .zona-playoff_ascenso { @apply bg-amber-500/20 border-l-2 border-amber-400; }

@@ -12,6 +12,7 @@ import { graphLd, breadcrumbLd } from '@/lib/jsonld'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import JornadaSelector from '@/components/JornadaSelector'
+import TabScroller from '@/components/TabScroller'
 import {
   ClasificacionTab, ResultadosTab, JugadoresTab, EloTemporadaTab,
   PorterosTemporadaTab, TarjetasTemporadaTab, XiOptimoTemporadaTab,
@@ -399,7 +400,7 @@ export default async function GrupoPage({
     <div className="max-w-7xl mx-auto px-4 py-8">
       <JsonLd data={graphLd(breadcrumbLd(crumbs))} />
       {/* Breadcrumb */}
-      <nav className="text-sm text-chalk-600 mb-6 flex items-center gap-2">
+      <nav className="text-sm text-chalk-600 mb-3 md:mb-6 flex items-center gap-2">
         <Link href="/" className="hover:text-white transition-colors">Inicio</Link>
         <span>·</span>
         <Link href={`/madrid/${categoria}`} className="hover:text-white transition-colors capitalize">{categoria}</Link>
@@ -408,7 +409,7 @@ export default async function GrupoPage({
       </nav>
 
       {/* Header */}
-      <div className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
+      <div className="mb-4 md:mb-8 flex flex-col md:flex-row md:items-end justify-between gap-3 md:gap-4">
         <div>
           <h1 className="font-display text-4xl font-bold text-white">{grupo.nombre_historico || grupo.nombre_comp}{grupo.nombre_grupo ? ` · ${grupo.nombre_grupo}` : ''}</h1>
           <p className="text-grass-400 text-sm mt-1">{isCopa ? 'Ronda' : 'Jornada'} {jornadaNum} · Temporada {temporada}</p>
@@ -422,7 +423,7 @@ export default async function GrupoPage({
           )}
 
           {/* Selector de jornada */}
-          <div className="flex items-center gap-2 mt-3">
+          <div className="flex items-center gap-2 mt-2 md:mt-3">
             {jornadaNum > 1 ? (
               <Link
                 href={`${baseUrl}/jornada-${jornadaNum - 1}/${tab}`}
@@ -456,7 +457,7 @@ export default async function GrupoPage({
           </div>
         </div>
         {/* Selector de temporada — enlaza a la variante (slug propio) de cada temporada */}
-        <div className="flex gap-1.5 flex-wrap">
+        <div className="scroll-row gap-1.5">
           {TEMPORADAS.map(cod => {
             const v = variantes[cod]
             const label = COD_TO_LABEL[cod]
@@ -492,7 +493,7 @@ export default async function GrupoPage({
       {/* Navegación: Global + grupos de la misma competición. En copa/playoff no aplica
           (scope único de competición, sin vista global ni grupos hermanos). */}
       {!isCopa && gruposComp.length > 0 && (
-        <div className="mb-6 flex gap-1.5 flex-wrap">
+        <div className="scroll-row gap-1.5 mb-3 md:mb-6">
           <Link
             href={`/madrid/${categoria}/${slug_comp}/global/${temporada}/jornada-${jornadaNum}/${globalTab}`}
             className="text-xs px-3 py-1.5 rounded-md transition-colors bg-pitch-700 text-chalk-200 hover:bg-grass-500 hover:text-white"
@@ -517,10 +518,11 @@ export default async function GrupoPage({
 
       {/* Tabs — JORNADA */}
       <p className="text-[11px] font-semibold uppercase tracking-widest text-chalk-600 mb-1">Jornada</p>
-      <div className="border-b border-pitch-700 mb-4 flex gap-1 flex-wrap">
+      <TabScroller className="scroll-row border-b border-pitch-700 gap-1 mb-3 md:mb-4">
         {TABS_JORNADA.map(t => (
           <Link
             key={t.id}
+            data-active={tab2 === t.id ? 'true' : undefined}
             href={`${baseTab}/${t.id}`}
             className={`px-4 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px ${
               tab2 ===t.id
@@ -531,16 +533,17 @@ export default async function GrupoPage({
             {t.label}
           </Link>
         ))}
-      </div>
+      </TabScroller>
 
       {/* Tabs — TEMPORADA (en copa: acumulado hasta la ronda seleccionada) */}
       <p className="text-[11px] font-semibold uppercase tracking-widest text-chalk-600 mb-1">
         {isCopa ? `Acumulado · hasta Ronda ${jornadaNum}` : 'Temporada'}
       </p>
-      <div className="border-b border-pitch-700 mb-6 flex gap-1 flex-wrap">
+      <TabScroller className="scroll-row border-b border-pitch-700 gap-1 mb-4 md:mb-6">
         {TABS_TEMPORADA.map(t => (
           <Link
             key={t.id}
+            data-active={tab2 === t.id ? 'true' : undefined}
             href={`${baseUrl}/jornada-${jornadaNum}/${t.id}`}
             className={`px-4 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px ${
               tab2 ===t.id
@@ -551,7 +554,7 @@ export default async function GrupoPage({
             {t.label}
           </Link>
         ))}
-      </div>
+      </TabScroller>
 
       {/* Contenido por tab */}
       {tab2 ==='clasificacion' && (
