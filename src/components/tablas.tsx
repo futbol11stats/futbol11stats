@@ -370,14 +370,14 @@ export function TarjetasTemporadaTab(
           {eq.map((t, i) => (
             <tr key={t.codequipo} className="border-b border-pitch-700/50 last:border-0">
               <td className="text-chalk-600 font-mono text-xs">{i + 1}</td>
-              <td className="font-medium text-white">
-                <span className="flex items-center gap-2">
+              <td className="col-nombre font-medium text-white">
+                <span className="flex items-center gap-2 min-w-0">
                   {escudoUrl(t.escudo) && (
                     <span className="escudo-box inline-flex items-center justify-center w-8 h-8 bg-white rounded-sm flex-shrink-0 p-0.5">
                       <EscudoImg escudo={t.escudo} nombre={t.nombre_equipo} />
                     </span>
                   )}
-                  {t.nombre_equipo}<GrupoBadge grupo={t.grupo} />
+                  <span className="truncate">{t.nombre_equipo}<GrupoBadge grupo={t.grupo} /></span>
                 </span>
               </td>
               <td className="text-center text-chalk-600">{t.amarillas}</td>
@@ -415,14 +415,14 @@ export function TarjetasTemporadaTab(
             {banq.map((t, i) => (
               <tr key={t.codequipo} className="border-b border-pitch-700/50 last:border-0">
                 <td className="text-chalk-600 font-mono text-xs">{i + 1}</td>
-                <td className="font-medium text-white">
-                  <span className="flex items-center gap-2">
+                <td className="col-nombre font-medium text-white">
+                  <span className="flex items-center gap-2 min-w-0">
                     {escudoUrl(t.escudo) && (
                       <span className="escudo-box inline-flex items-center justify-center w-8 h-8 bg-white rounded-sm flex-shrink-0 p-0.5">
                         <EscudoImg escudo={t.escudo} nombre={t.nombre_equipo} />
                       </span>
                     )}
-                    {t.nombre_equipo}
+                    <span className="truncate">{t.nombre_equipo}</span>
                   </span>
                 </td>
                 <td className="text-center text-chalk-600">{t.amarillas_tec}</td>

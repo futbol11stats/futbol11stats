@@ -44,10 +44,10 @@ body {
     font-family: var(--font-display);
     font-variant-numeric: tabular-nums;
   }
-  /* nombres de equipo/jugador: fuente body + truncar a UNA línea (la fila nunca se parte) */
+  /* nombres de equipo/jugador: MISMA fuente que el resto (Barlow Condensed, heredada);
+     truncar a UNA línea (la fila nunca se parte). La condensada rinde más chars por px. */
   .tabla-clasificacion td.col-nombre {
-    font-family: var(--font-body);
-    max-width: 8.5rem;            /* ~149px (~15 chars); la tabla cabe exacta en 390px */
+    max-width: 9.5rem;            /* ~167px; con Barlow Condensed ~18-19 chars, tabla cabe en 390px */
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
