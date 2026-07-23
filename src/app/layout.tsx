@@ -2,6 +2,8 @@ import type { Metadata } from 'next'
 import { Inter, Barlow_Condensed } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import { SITE_URL } from '@/lib/seo'
+import CookieConsent from '@/components/CookieConsent'
+import CookieSettingsButton from '@/components/CookieSettingsButton'
 import './globals.css'
 
 // Fuentes self-hosted por next/font (elimina la cadena externa a fonts.googleapis/gstatic).
@@ -57,9 +59,14 @@ export default function RootLayout({
             <p>
               Toda la información de nuestra web y sus canales en RRSS tiene carácter NO OFICIAL. Las clasificaciones, rankings y datos estadísticos son calculados de forma automática por nuestro sistema en función de los datos recopilados de cada partido, por lo que la información puede ser de carácter provisional, errónea o incompleta. El administrador de Futbol11Stats.com no se hace responsable de los perjuicios causados por una posible información incorrecta. Todas las marcas, nombres de clubes o elementos ilustrativos mencionados pertenecen a sus respectivos propietarios.
             </p>
+            <p className="flex flex-wrap gap-x-4 gap-y-1 pt-1">
+              <a href="/cookies" className="underline hover:text-white transition-colors">Cookies</a>
+              <CookieSettingsButton />
+            </p>
           </div>
         </footer>
         <Analytics />
+        <CookieConsent />
       </body>
     </html>
   )
