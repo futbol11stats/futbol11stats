@@ -147,11 +147,21 @@ async function fetchSnapshot(build: (q: any) => any, jornada: number) {
 }
 
 async function getTopJugadores(codgrupo: string, codtemporada: number, jornada: number) {
-  return fetchSnapshot((q) => q
-    .from('web_top_jugadores').select(COLS_TOP_JUGADORES)
-    .eq('codgrupo', codgrupo).eq('codtemporada', codtemporada)
-    .in('tipo', ['goleadores_temp', 'fantasy_temp', 'elo_temp', 'porteros_temp'])
-    .order('rank'), jornada)
+  // goleadores/fantasy/porteros rebobinan por jornada (snapshot). elo_temp NO tiene histórico por
+  // jornada (es el ELO vigente, foto-final; coherente con el fix de ELO del pipeline y con la vista
+  // global): se pide siempre jornada IS NULL, así la tab ELO no rebobina y nunca sale vacía en las
+  // jornadas con snapshot (donde fetchSnapshot no caería al foto-final).
+  const [snap, elo] = await Promise.all([
+    fetchSnapshot((q) => q
+      .from('web_top_jugadores').select(COLS_TOP_JUGADORES)
+      .eq('codgrupo', codgrupo).eq('codtemporada', codtemporada)
+      .in('tipo', ['goleadores_temp', 'fantasy_temp', 'porteros_temp'])
+      .order('rank'), jornada),
+    supabase.from('web_top_jugadores').select(COLS_TOP_JUGADORES)
+      .eq('codgrupo', codgrupo).eq('codtemporada', codtemporada)
+      .eq('tipo', 'elo_temp').is('jornada', null).order('rank'),
+  ])
+  return [...snap, ...(elo.data || [])]
 }
 
 // Sancionados (alertas): FOTO-FINAL siempre — fuera del time-machine (se acumula demasiado).
