@@ -1,6 +1,13 @@
 import type { Metadata } from 'next'
+import { Inter, Barlow_Condensed } from 'next/font/google'
 import { SITE_URL } from '@/lib/seo'
 import './globals.css'
+
+// Fuentes self-hosted por next/font (elimina la cadena externa a fonts.googleapis/gstatic).
+// Inter (body): variable -> un woff2 cubre los pesos usados (400/500/600/700) sin ficheros de sobra.
+// Barlow Condensed (display): estática, solo 700/800 (el 600 no se usaba en ninguna parte).
+const inter = Inter({ subsets: ['latin'], display: 'swap', variable: '--font-body' })
+const barlow = Barlow_Condensed({ subsets: ['latin'], weight: ['700', '800'], display: 'swap', variable: '--font-display' })
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -21,7 +28,7 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="es">
+    <html lang="es" className={`${inter.variable} ${barlow.variable}`}>
       <body className="bg-pitch-900 text-chalk-100 min-h-screen font-body antialiased">
         <header className="border-b border-pitch-700 bg-pitch-800/80 backdrop-blur-sm sticky top-0 z-50">
           <div className="max-w-7xl mx-auto px-4 h-14 flex items-center justify-between">

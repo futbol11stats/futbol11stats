@@ -5,8 +5,7 @@ import { SITE_URL } from './seo'
 //   - BreadcrumbList: navegación (grupo, global, landings). Universal y seguro.
 // NO se emite SportsTeam/SportsOrganization: una página de GRUPO es una clasificación/rankings de
 // una competición (muchos equipos), no un equipo ni un organismo — forzarlo sería markup engañoso.
-// Organization SIN logo: no existe asset de logo en el repo; una URL de logo que da 404 es markup
-// engañoso. Añadir un logo real y volver a incluirlo (logo) cuando exista.
+// Organization CON logo self-hosted (public/logo.png, 512x512, URL absoluta www — imagen real, no 404).
 
 export function organizationLd() {
   return {
@@ -14,6 +13,7 @@ export function organizationLd() {
     '@id': `${SITE_URL}/#organization`,
     name: 'Fútbol11Stats',
     url: `${SITE_URL}/`,
+    logo: `${SITE_URL}/logo.png`,
   }
 }
 
