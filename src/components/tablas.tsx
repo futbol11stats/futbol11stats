@@ -124,11 +124,43 @@ export function ClasificacionTab({ rows, jornadaNum, totalJornadas }: { rows: an
   )
 }
 
+// Una línea equipo (móvil): [escudo 20px] [nombre condensada, 1 línea, truncate] [goles].
+// El ganador va en blanco/semibold; perdedor y empates en chalk (estilo BeSoccer). Los goles
+// quedan en una columna fija a la derecha (tabular-nums) para que ambas filas se alineen.
+function FilaEquipoMovil({ escudo, nombre, goles, gana }: { escudo: string; nombre: string; goles: number; gana: boolean }) {
+  const c = gana ? 'text-white font-semibold' : 'text-chalk-400'
+  return (
+    <div className="flex items-center gap-2">
+      {escudoUrl(escudo) ? (
+        <span className="inline-flex items-center justify-center w-5 h-5 bg-white rounded-sm flex-shrink-0 p-px">
+          <EscudoImg escudo={escudo} nombre={nombre} />
+        </span>
+      ) : (
+        <span className="w-5 h-5 flex-shrink-0" />
+      )}
+      <span className={`flex-1 min-w-0 truncate font-display text-[13px] leading-tight ${c}`}>{nombre}</span>
+      <span className={`w-6 text-right font-display text-[13px] tabular-nums ${c}`}>{goles}</span>
+    </div>
+  )
+}
+
 export function ResultadosTab({ resultados, jornada }: { resultados: any[]; jornada: number }) {
   return (
     <div>
       <h3 className="text-chalk-600 text-sm mb-4">Jornada {jornada}</h3>
-      <div className="space-y-2">
+
+      {/* MÓVIL (<768px): lista continua y densa, dos filas apiladas por partido */}
+      <div className="md:hidden bg-pitch-800 rounded-xl border border-pitch-700 px-3">
+        {resultados.map(r => (
+          <div key={r.codacta} className="flex flex-col gap-0.5 py-1.5 border-b border-pitch-700/50 last:border-0">
+            <FilaEquipoMovil escudo={r.escudo_local}     nombre={r.nombre_local}     goles={r.goles_local}     gana={r.goles_local > r.goles_visitante} />
+            <FilaEquipoMovil escudo={r.escudo_visitante} nombre={r.nombre_visitante} goles={r.goles_visitante} gana={r.goles_visitante > r.goles_local} />
+          </div>
+        ))}
+      </div>
+
+      {/* DESKTOP (md+): tarjetas horizontales (sin cambios) */}
+      <div className="hidden md:block space-y-2">
         {resultados.map(r => (
           <div key={r.codacta} className="bg-pitch-800 rounded-xl border border-pitch-700 px-4 py-3 flex items-center gap-4">
             <div className="flex-1 flex items-center justify-end gap-2 text-sm">
@@ -154,10 +186,11 @@ export function ResultadosTab({ resultados, jornada }: { resultados: any[]; jorn
             </div>
           </div>
         ))}
-        {resultados.length === 0 && (
-          <p className="text-chalk-600 text-sm text-center py-8">No hay resultados para esta jornada</p>
-        )}
       </div>
+
+      {resultados.length === 0 && (
+        <p className="text-chalk-600 text-sm text-center py-8">No hay resultados para esta jornada</p>
+      )}
     </div>
   )
 }
