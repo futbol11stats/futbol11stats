@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { Inter, Barlow_Condensed } from 'next/font/google'
+import { Analytics } from '@vercel/analytics/next'
 import { SITE_URL } from '@/lib/seo'
 import './globals.css'
 
@@ -58,6 +59,7 @@ export default function RootLayout({
             </p>
           </div>
         </footer>
+        <Analytics />
       </body>
     </html>
   )
