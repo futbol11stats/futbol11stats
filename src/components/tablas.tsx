@@ -2,6 +2,7 @@ import type { CSSProperties } from 'react'
 import Link from 'next/link'
 import { escudoUrl, formatNombre } from '@/lib/supabase'
 import type { JuegoLimpioRow, SancionadoRow } from '@/lib/supabase'
+import EscudoImg from '@/components/EscudoImg'
 
 // Badge discreto de grupo (solo en rankings globales; en la vista de grupo la fila no trae
 // `grupo` y no se pinta). Enlaza a la vista de ese grupo conservando la pestaña.
@@ -77,7 +78,7 @@ export function ClasificacionTab({ rows, jornadaNum, totalJornadas }: { rows: an
                 <span className="flex items-center gap-2">
                   {escudoUrl(row.escudo) && (
                     <span className="inline-flex items-center justify-center w-8 h-8 bg-white rounded-sm flex-shrink-0 p-0.5">
-                      <img src={escudoUrl(row.escudo)!} alt={`Escudo ${row.nombre_equipo}`} className="w-full h-full object-contain" />
+                      <EscudoImg escudo={row.escudo} nombre={row.nombre_equipo} />
                     </span>
                   )}
                   {row.nombre_equipo}
@@ -134,7 +135,7 @@ export function ResultadosTab({ resultados, jornada }: { resultados: any[]; jorn
               <span className="text-white font-medium text-right">{r.nombre_local}</span>
               {escudoUrl(r.escudo_local) && (
                 <span className="inline-flex items-center justify-center w-9 h-9 bg-white rounded-sm flex-shrink-0 p-0.5">
-                  <img src={escudoUrl(r.escudo_local)!} alt={`Escudo ${r.nombre_local}`} className="w-full h-full object-contain" />
+                  <EscudoImg escudo={r.escudo_local} nombre={r.nombre_local} />
                 </span>
               )}
             </div>
@@ -146,7 +147,7 @@ export function ResultadosTab({ resultados, jornada }: { resultados: any[]; jorn
             <div className="flex-1 flex items-center gap-2 text-sm">
               {escudoUrl(r.escudo_visitante) && (
                 <span className="inline-flex items-center justify-center w-9 h-9 bg-white rounded-sm flex-shrink-0 p-0.5">
-                  <img src={escudoUrl(r.escudo_visitante)!} alt={`Escudo ${r.nombre_visitante}`} className="w-full h-full object-contain" />
+                  <EscudoImg escudo={r.escudo_visitante} nombre={r.nombre_visitante} />
                 </span>
               )}
               <span className="text-white font-medium">{r.nombre_visitante}</span>
@@ -373,7 +374,7 @@ export function TarjetasTemporadaTab(
                 <span className="flex items-center gap-2">
                   {escudoUrl(t.escudo) && (
                     <span className="inline-flex items-center justify-center w-8 h-8 bg-white rounded-sm flex-shrink-0 p-0.5">
-                      <img src={escudoUrl(t.escudo)!} alt={`Escudo ${t.nombre_equipo}`} className="w-full h-full object-contain" />
+                      <EscudoImg escudo={t.escudo} nombre={t.nombre_equipo} />
                     </span>
                   )}
                   {t.nombre_equipo}<GrupoBadge grupo={t.grupo} />
@@ -418,7 +419,7 @@ export function TarjetasTemporadaTab(
                   <span className="flex items-center gap-2">
                     {escudoUrl(t.escudo) && (
                       <span className="inline-flex items-center justify-center w-8 h-8 bg-white rounded-sm flex-shrink-0 p-0.5">
-                        <img src={escudoUrl(t.escudo)!} alt={`Escudo ${t.nombre_equipo}`} className="w-full h-full object-contain" />
+                        <EscudoImg escudo={t.escudo} nombre={t.nombre_equipo} />
                       </span>
                     )}
                     {t.nombre_equipo}
@@ -570,7 +571,7 @@ export function EscudoCell({ escudo, nombre }: { escudo: string | null; nombre?:
   return (
     <td className="w-10">
       <span className="inline-flex items-center justify-center w-7 h-7 bg-white rounded-sm flex-shrink-0 p-0.5">
-        <img src={escudoUrl(escudo)!} alt={nombre ? `Escudo ${nombre}` : 'Escudo del equipo'} className="w-full h-full object-contain" />
+        <EscudoImg escudo={escudo} nombre={nombre} />
       </span>
     </td>
   )

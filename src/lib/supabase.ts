@@ -11,6 +11,15 @@ export function escudoUrl(filename: string | null): string | null {
   return `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/escudos/${filename}`
 }
 
+// Miniatura WebP (128px, prefijo escudos_thumb/) generada por el pipeline (escudos_storage.py).
+// La web la sirve por defecto; si un escudo no tuviera thumb todavía, EscudoImg hace fallback
+// al original (onError). Devuelve null si no hay filename.
+export function escudoThumbUrl(filename: string | null): string | null {
+  if (!filename) return null
+  const webp = filename.replace(/\.png$/i, '.webp')
+  return `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/escudos/escudos_thumb/${webp}`
+}
+
 // "APELLIDO1 APELLIDO2, NOMBRE" -> "Nombre Apellido1 Apellido2" (Title Case)
 export function formatNombre(nombre: string | null): string {
   if (!nombre) return ''
