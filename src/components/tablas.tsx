@@ -126,11 +126,11 @@ export function ClasificacionTab({ rows, jornadaNum, totalJornadas }: { rows: an
 
 // Una línea equipo (móvil): [goles] [escudo 20px] [nombre condensada, 1 línea, truncate].
 // Marcador a la IZQUIERDA en columna de ancho fijo (w-7, aguanta doble dígito sin descuadrar los
-// escudos). Ganador: nombre blanco/semibold + goles en verde de la casa/bold. Perdedor: todo
-// chalk-600 (apagado). Empate: neutro chalk-300 (no destaca a nadie, distinto de ganar y perder).
-function FilaEquipoMovil({ escudo, nombre, goles, estado }: { escudo: string; nombre: string; goles: number; estado: 'gana' | 'pierde' | 'empata' }) {
-  const nombreC = estado === 'gana' ? 'text-white font-semibold' : estado === 'empata' ? 'text-chalk-300' : 'text-chalk-600'
-  const golesC  = estado === 'gana' ? 'text-grass-400 font-bold'  : estado === 'empata' ? 'text-chalk-300' : 'text-chalk-600'
+// escudos). Dos niveles: GANÓ = blanco (goles bold, nombre semibold); NO GANÓ (perdió o empató) =
+// todo chalk-600 apagado. El empate se lee igual que la derrota: solo el ganador destaca.
+function FilaEquipoMovil({ escudo, nombre, goles, gana }: { escudo: string; nombre: string; goles: number; gana: boolean }) {
+  const nombreC = gana ? 'text-white font-semibold' : 'text-chalk-600'
+  const golesC  = gana ? 'text-white font-bold'     : 'text-chalk-600'
   return (
     <div className="flex items-center gap-2">
       <span className={`w-7 text-center font-display text-[13px] tabular-nums flex-shrink-0 ${golesC}`}>{goles}</span>
@@ -146,11 +146,6 @@ function FilaEquipoMovil({ escudo, nombre, goles, estado }: { escudo: string; no
   )
 }
 
-// Estado del equipo local/visitante a partir del marcador (para el color de la fila móvil).
-function estadoEquipo(propios: number, rival: number): 'gana' | 'pierde' | 'empata' {
-  return propios > rival ? 'gana' : propios < rival ? 'pierde' : 'empata'
-}
-
 export function ResultadosTab({ resultados, jornada }: { resultados: any[]; jornada: number }) {
   return (
     <div>
@@ -160,8 +155,8 @@ export function ResultadosTab({ resultados, jornada }: { resultados: any[]; jorn
       <div className="md:hidden bg-pitch-800 rounded-xl border border-pitch-700 px-3">
         {resultados.map(r => (
           <div key={r.codacta} className="flex flex-col gap-0.5 py-1.5 border-b border-pitch-700/50 last:border-0">
-            <FilaEquipoMovil escudo={r.escudo_local}     nombre={r.nombre_local}     goles={r.goles_local}     estado={estadoEquipo(r.goles_local, r.goles_visitante)} />
-            <FilaEquipoMovil escudo={r.escudo_visitante} nombre={r.nombre_visitante} goles={r.goles_visitante} estado={estadoEquipo(r.goles_visitante, r.goles_local)} />
+            <FilaEquipoMovil escudo={r.escudo_local}     nombre={r.nombre_local}     goles={r.goles_local}     gana={r.goles_local > r.goles_visitante} />
+            <FilaEquipoMovil escudo={r.escudo_visitante} nombre={r.nombre_visitante} goles={r.goles_visitante} gana={r.goles_visitante > r.goles_local} />
           </div>
         ))}
       </div>
