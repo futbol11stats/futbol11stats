@@ -1,4 +1,4 @@
-export const revalidate = 21600  // ISR 6h: los datos solo cambian al re-exportar desde el pipeline
+export const revalidate = 2592000  // ISR 30d (Fluid CPU free tier): contenido congelado en pretemporada; cada deploy/re-export invalida TODA la caché, así que los datos nuevos llegan igual. De ~4 regeneraciones/día/URL a 1 por deploy.
 
 import type { Metadata } from 'next'
 import { supabase } from '@/lib/supabase'

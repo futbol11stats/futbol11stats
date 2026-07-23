@@ -10,7 +10,7 @@ import {
   GLOBAL_TABS,
 } from '@/lib/seo'
 
-export const revalidate = 21600 // ISR 6h
+export const revalidate = 2592000 // ISR 30d (Fluid CPU): se regenera con cada deploy/re-export; el sitemap solo cambia al añadir grupos/temporadas nuevas
 
 // Estrategia:
 //  - Temporada viva (T21): todas las combinaciones grupo×tab + globales×tab, SOLO en su jornada
