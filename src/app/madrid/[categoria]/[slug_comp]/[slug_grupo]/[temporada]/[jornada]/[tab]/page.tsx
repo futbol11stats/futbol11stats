@@ -3,6 +3,10 @@ export const revalidate = 21600  // ISR 6h: los datos solo cambian al re-exporta
 import type { Metadata } from 'next'
 import { supabase } from '@/lib/supabase'
 import { ensureMadrid, tabLabel } from '@/lib/seo'
+import {
+  COLS_CLASIFICACION, COLS_RESULTADOS, COLS_TOP_JUGADORES, COLS_ALERTAS,
+  COLS_JUEGO_LIMPIO, COLS_XI_OPTIMO, COLS_EQUIPOS_FORMA, COLS_SUSPENDIDOS,
+} from '@/lib/columns'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import JornadaSelector from '@/components/JornadaSelector'
@@ -88,7 +92,7 @@ async function getGruposCompeticion(nombreComp: string, codtemporada: number) {
 async function getDestacadosJornada(codgrupo: string, codtemporada: number, jornada: number, tipo: string) {
   const { data } = await supabase
     .from('web_top_jugadores')
-    .select('*')
+    .select(COLS_TOP_JUGADORES)
     .eq('codgrupo', codgrupo)
     .eq('codtemporada', codtemporada)
     .eq('jornada', jornada)
@@ -101,7 +105,7 @@ async function getDestacadosJornada(codgrupo: string, codtemporada: number, jorn
 async function getEquiposForma(codgrupo: string, codtemporada: number, jornada: number) {
   const { data } = await supabase
     .from('web_equipos_forma')
-    .select('*')
+    .select(COLS_EQUIPOS_FORMA)
     .eq('codgrupo', codgrupo)
     .eq('codtemporada', codtemporada)
     .eq('jornada', jornada)
@@ -112,7 +116,7 @@ async function getEquiposForma(codgrupo: string, codtemporada: number, jornada: 
 async function getClasificacion(codgrupo: string, codtemporada: number, jornada: number) {
   const { data } = await supabase
     .from('web_clasificacion')
-    .select('*')
+    .select(COLS_CLASIFICACION)
     .eq('codgrupo', codgrupo)
     .eq('codtemporada', codtemporada)
     .eq('jornada', jornada)
@@ -123,7 +127,7 @@ async function getClasificacion(codgrupo: string, codtemporada: number, jornada:
 async function getResultados(codgrupo: string, codtemporada: number, jornada: number) {
   const { data } = await supabase
     .from('web_resultados')
-    .select('*')
+    .select(COLS_RESULTADOS)
     .eq('codgrupo', codgrupo)
     .eq('codtemporada', codtemporada)
     .eq('jornada', jornada)
@@ -144,7 +148,7 @@ async function fetchSnapshot(build: (q: any) => any, jornada: number) {
 
 async function getTopJugadores(codgrupo: string, codtemporada: number, jornada: number) {
   return fetchSnapshot((q) => q
-    .from('web_top_jugadores').select('*')
+    .from('web_top_jugadores').select(COLS_TOP_JUGADORES)
     .eq('codgrupo', codgrupo).eq('codtemporada', codtemporada)
     .in('tipo', ['goleadores_temp', 'fantasy_temp', 'elo_temp', 'porteros_temp'])
     .order('rank'), jornada)
@@ -154,20 +158,20 @@ async function getTopJugadores(codgrupo: string, codtemporada: number, jornada: 
 // No filtra por jornada; lee el estado a fecha actual (foto-final, jornada=MAX por grupo).
 async function getAlertasTarjetas(codgrupo: string, codtemporada: number) {
   const { data } = await supabase
-    .from('web_alertas_tarjetas').select('*')
+    .from('web_alertas_tarjetas').select(COLS_ALERTAS)
     .eq('codgrupo', codgrupo).eq('codtemporada', codtemporada)
   return data || []
 }
 
 async function getJuegoLimpio(codgrupo: string, codtemporada: number, jornada: number) {
   return fetchSnapshot((q) => q
-    .from('web_juego_limpio').select('*')
+    .from('web_juego_limpio').select(COLS_JUEGO_LIMPIO)
     .eq('codgrupo', codgrupo).eq('codtemporada', codtemporada), jornada)
 }
 
 async function getXiOptimoTemporada(codgrupo: string, codtemporada: number, jornada: number) {
   return fetchSnapshot((q) => q
-    .from('web_xi_optimo').select('*').eq('tipo', 'temporada')
+    .from('web_xi_optimo').select(COLS_XI_OPTIMO).eq('tipo', 'temporada')
     .eq('codgrupo', codgrupo).eq('codtemporada', codtemporada)
     .order('pos_orden'), jornada)
 }
@@ -175,7 +179,7 @@ async function getXiOptimoTemporada(codgrupo: string, codtemporada: number, jorn
 async function getSuspendidosJornada(codgrupo: string, codtemporada: number, jornada: number) {
   const { data } = await supabase
     .from('web_suspendidos')
-    .select('*')
+    .select(COLS_SUSPENDIDOS)
     .eq('codgrupo', codgrupo)
     .eq('codtemporada', codtemporada)
     .eq('jornada', jornada)
@@ -242,35 +246,75 @@ export default async function GrupoPage({
 
   const jornadaNum = parseInt(jornada.replace('jornada-', '')) || grupo.jornada_actual
 
-  const [clasificacion, resultados, topJugadores, variantes, gruposComp,
-         golesJ, tarjetasJ, mvpJ, xiJ, equiposForma, alertasTarjetas, xiOptimo, suspendidos, juegoLimpio, xiRondaCopa] = await Promise.all([
-    getClasificacion(grupo.codgrupo, codtemporada, jornadaNum),
-    getResultados(grupo.codgrupo, codtemporada, jornadaNum),
-    getTopJugadores(grupo.codgrupo, codtemporada, jornadaNum),
+  const cg = grupo.codgrupo
+  // Tab efectivo (para gatear los fetch): en copa, cualquier tab que no exista cae a 'resultados'.
+  const COPA_TABS = new Set([
+    'resultados', 'goleadores-jornada', 'tarjetas-jornada', 'top5-jugadores-jornada', 'once-optimo-jornada',
+    'top10-goleadores-temporada', 'top10-porteros-temporada', 'top10-tarjetas-temporada',
+    'top10-fantasy-temporada', 'once-optimo-temporada',
+  ])
+  const tab2 = isCopa && !COPA_TABS.has(tab) ? 'resultados' : tab
+
+  // Comunes del layout: selector de temporada (siempre) + nav de grupos hermanos (solo liga).
+  const [variantes, gruposComp] = await Promise.all([
     getVariantesPorTemporada(grupo.nombre_comp, grupo.nombre_grupo),
-    getGruposCompeticion(grupo.nombre_comp, codtemporada),
-    getDestacadosJornada(grupo.codgrupo, codtemporada, jornadaNum, 'goleadores_jornada'),
-    getDestacadosJornada(grupo.codgrupo, codtemporada, jornadaNum, 'tarjetas_jornada'),
-    getDestacadosJornada(grupo.codgrupo, codtemporada, jornadaNum, 'mvp_jornada'),
-    getDestacadosJornada(grupo.codgrupo, codtemporada, jornadaNum, 'xi_jornada'),
-    getEquiposForma(grupo.codgrupo, codtemporada, jornadaNum),
-    getAlertasTarjetas(grupo.codgrupo, codtemporada),
-    getXiOptimoTemporada(grupo.codgrupo, codtemporada, jornadaNum),
-    getSuspendidosJornada(grupo.codgrupo, codtemporada, jornadaNum),
-    getJuegoLimpio(grupo.codgrupo, codtemporada, jornadaNum),
-    // XI de la ronda (copa): web_xi_optimo tipo='jornada' de la ronda seleccionada
-    isCopa ? (async () => {
-      const { data } = await supabase.from('web_xi_optimo').select('*')
-        .eq('codgrupo', grupo.codgrupo).eq('codtemporada', codtemporada)
-        .eq('tipo', 'jornada').eq('jornada', jornadaNum).order('pos_orden')
-      return data || []
-    })() : Promise.resolve([]),
+    isCopa ? Promise.resolve([] as any[]) : getGruposCompeticion(grupo.nombre_comp, codtemporada),
   ])
 
-  const goleadores = topJugadores.filter((j: any) => j.tipo === 'goleadores_temp')
-  const fantasy = topJugadores.filter((j: any) => j.tipo === 'fantasy_temp')
-  const eloJugadores = topJugadores.filter((j: any) => j.tipo === 'elo_temp')
-  const porteros = topJugadores.filter((j: any) => j.tipo === 'porteros_temp')
+  // TAB-GATING: cada render solo pide los datos de SU tab (+ los comunes de arriba), como ya hace
+  // la vista global. Antes se disparaban las 15 queries en todos los renders.
+  let clasificacion: any[] = []
+  let resultados: any[] = []
+  let goleadores: any[] = [], fantasy: any[] = [], eloJugadores: any[] = [], porteros: any[] = []
+  let golesJ: any[] = [], tarjetasJ: any[] = [], mvpJ: any[] = [], xiJ: any[] = []
+  let equiposForma: any[] = [], alertasTarjetas: any[] = [], xiOptimo: any[] = []
+  let suspendidos: any[] = [], juegoLimpio: any[] = [], xiRondaCopa: any[] = []
+
+  if (tab2 === 'clasificacion') {
+    clasificacion = await getClasificacion(cg, codtemporada, jornadaNum)
+  } else if (tab2 === 'resultados') {
+    resultados = await getResultados(cg, codtemporada, jornadaNum)
+  } else if (
+    tab2 === 'top10-goleadores-temporada' || tab2 === 'top10-fantasy-temporada' ||
+    tab2 === 'top10-elo-jugadores-temporada' || tab2 === 'top10-porteros-temporada'
+  ) {
+    const top = await getTopJugadores(cg, codtemporada, jornadaNum)
+    goleadores = top.filter((j: any) => j.tipo === 'goleadores_temp')
+    fantasy = top.filter((j: any) => j.tipo === 'fantasy_temp')
+    eloJugadores = top.filter((j: any) => j.tipo === 'elo_temp')
+    porteros = top.filter((j: any) => j.tipo === 'porteros_temp')
+  } else if (tab2 === 'goleadores-jornada') {
+    golesJ = await getDestacadosJornada(cg, codtemporada, jornadaNum, 'goleadores_jornada')
+  } else if (tab2 === 'tarjetas-jornada') {
+    const [s, t] = await Promise.all([
+      getSuspendidosJornada(cg, codtemporada, jornadaNum),
+      isCopa ? Promise.resolve([] as any[]) : getDestacadosJornada(cg, codtemporada, jornadaNum, 'tarjetas_jornada'),
+    ])
+    suspendidos = s
+    tarjetasJ = t
+  } else if (tab2 === 'top5-jugadores-jornada') {
+    mvpJ = await getDestacadosJornada(cg, codtemporada, jornadaNum, 'mvp_jornada')
+  } else if (tab2 === 'top5-equipos-jornada') {
+    equiposForma = await getEquiposForma(cg, codtemporada, jornadaNum)
+  } else if (tab2 === 'once-optimo-jornada') {
+    if (isCopa) {
+      const { data } = await supabase.from('web_xi_optimo').select(COLS_XI_OPTIMO)
+        .eq('codgrupo', cg).eq('codtemporada', codtemporada)
+        .eq('tipo', 'jornada').eq('jornada', jornadaNum).order('pos_orden')
+      xiRondaCopa = data || []
+    } else {
+      xiJ = await getDestacadosJornada(cg, codtemporada, jornadaNum, 'xi_jornada')
+    }
+  } else if (tab2 === 'top10-tarjetas-temporada') {
+    const [al, jl] = await Promise.all([
+      getAlertasTarjetas(cg, codtemporada),
+      getJuegoLimpio(cg, codtemporada, jornadaNum),
+    ])
+    alertasTarjetas = al
+    juegoLimpio = jl
+  } else if (tab2 === 'once-optimo-temporada') {
+    xiOptimo = await getXiOptimoTemporada(cg, codtemporada, jornadaNum)
+  }
 
   // Copa/playoff: eliminatoria (sin clasificación ni Top-5 Equipos/forma — no aplica en knockout).
   // La ronda seleccionada gobierna AMBOS bloques (jornada = esa ronda; temporada = acumulado J1->ronda).
@@ -307,10 +351,6 @@ export default async function GrupoPage({
         { id: 'top10-elo-jugadores-temporada', label: 'ELO' },
         { id: 'once-optimo-temporada',         label: 'XI Óptimo' },
       ]
-  // Tab efectivo: en copa, cualquier tab inexistente (p.ej. 'clasificacion') cae a 'resultados'.
-  const _tabIds = new Set([...TABS_JORNADA, ...TABS_TEMPORADA].map(t => t.id))
-  const tab2 = isCopa && !_tabIds.has(tab) ? 'resultados' : tab
-
   const TEMPORADAS = [21, 20, 19, 18, 17]
 
   // Base de URL sin jornada ni tab (para el selector de jornada)
