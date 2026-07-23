@@ -586,7 +586,7 @@ function ClasificacionGlobalTab({
         return (
           <div key={g.codgrupo}>
             <p className="text-grass-400 text-xs font-semibold mb-2">{g.nombre_grupo}</p>
-            <div className="bg-pitch-800 rounded-xl border border-pitch-700 overflow-hidden">
+            <div className="bg-pitch-800 rounded-xl border border-pitch-700 overflow-x-auto">
               <table className="w-full tabla-clasificacion">
                 <thead>
                   <tr className="border-b border-pitch-700">

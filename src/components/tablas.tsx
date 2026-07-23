@@ -48,7 +48,7 @@ export function ClasificacionTab({ rows, jornadaNum, totalJornadas }: { rows: an
   const leyenda = ZONA_LEYENDA.filter(z => zonasPresentes.has(z.tipo))
   return (
     <>
-    <div className="bg-pitch-800 rounded-xl border border-pitch-700 overflow-hidden">
+    <div className="bg-pitch-800 rounded-xl border border-pitch-700 overflow-x-auto">
       <table className="w-full tabla-clasificacion">
         <thead>
           <tr className="border-b border-pitch-700">
@@ -165,7 +165,7 @@ export function ResultadosTab({ resultados, jornada }: { resultados: any[]; jorn
 export function JugadoresTab({ jugadores, tipo }: { jugadores: any[]; tipo: string }) {
   return (
     <>
-    <div className="bg-pitch-800 rounded-xl border border-pitch-700 overflow-hidden">
+    <div className="bg-pitch-800 rounded-xl border border-pitch-700 overflow-x-auto">
       <table className="w-full tabla-clasificacion">
         <thead>
           <tr className="border-b border-pitch-700">
@@ -235,7 +235,7 @@ export function JugadoresTab({ jugadores, tipo }: { jugadores: any[]; tipo: stri
 export function EloTemporadaTab({ jugadores }: { jugadores: any[] }) {
   return (
     <>
-    <div className="bg-pitch-800 rounded-xl border border-pitch-700 overflow-hidden">
+    <div className="bg-pitch-800 rounded-xl border border-pitch-700 overflow-x-auto">
       <table className="w-full tabla-clasificacion">
         <thead>
           <tr className="border-b border-pitch-700">
@@ -276,7 +276,7 @@ export function EloTemporadaTab({ jugadores }: { jugadores: any[] }) {
 export function PorterosTemporadaTab({ jugadores }: { jugadores: any[] }) {
   return (
     <>
-    <div className="bg-pitch-800 rounded-xl border border-pitch-700 overflow-hidden">
+    <div className="bg-pitch-800 rounded-xl border border-pitch-700 overflow-x-auto">
       <table className="w-full tabla-clasificacion">
         <thead>
           <tr className="border-b border-pitch-700">
@@ -355,7 +355,7 @@ export function TarjetasTemporadaTab(
     <>
     {/* BLOQUE 1 — Juego limpio (equipos) */}
     <h3 className="text-white font-semibold text-sm mb-3">Juego limpio</h3>
-    <div className="bg-pitch-800 rounded-xl border border-pitch-700 overflow-hidden">
+    <div className="bg-pitch-800 rounded-xl border border-pitch-700 overflow-x-auto">
       <table className="w-full tabla-clasificacion">
         <thead>
           <tr className="border-b border-pitch-700">
@@ -400,7 +400,7 @@ export function TarjetasTemporadaTab(
       <>
       <h3 className="text-white font-semibold text-sm mb-1 mt-8">Banquillos más calientes</h3>
       <p className="text-xs text-chalk-600 mb-3">Amonestaciones al cuerpo técnico y banquillo</p>
-      <div className="bg-pitch-800 rounded-xl border border-pitch-700 overflow-hidden">
+      <div className="bg-pitch-800 rounded-xl border border-pitch-700 overflow-x-auto">
         <table className="w-full tabla-clasificacion">
           <thead>
             <tr className="border-b border-pitch-700">
@@ -441,7 +441,7 @@ export function TarjetasTemporadaTab(
 
     {/* BLOQUE 2 — Jugadores expulsados/ciclos de amarillas (foto-final, a fecha actual) */}
     <h3 className="text-white font-semibold text-sm mb-3 mt-8">Jugadores expulsados/ciclos de amarillas <span className="text-chalk-600 font-normal text-xs">· a fecha actual</span></h3>
-    <div className="bg-pitch-800 rounded-xl border border-pitch-700 overflow-hidden">
+    <div className="bg-pitch-800 rounded-xl border border-pitch-700 overflow-x-auto">
       <table className="w-full tabla-clasificacion">
         <thead>
           <tr className="border-b border-pitch-700">
@@ -485,7 +485,7 @@ export function TarjetasTemporadaTab(
 export function XiOptimoTemporadaTab({ jugadores }: { jugadores: any[] }) {
   return (
     <>
-    <div className="bg-pitch-800 rounded-xl border border-pitch-700 overflow-hidden">
+    <div className="bg-pitch-800 rounded-xl border border-pitch-700 overflow-x-auto">
       <table className="w-full tabla-clasificacion">
         <thead>
           <tr className="border-b border-pitch-700">
@@ -530,7 +530,7 @@ export function XiOptimoTemporadaTab({ jugadores }: { jugadores: any[] }) {
 export function GoleadoresJornadaTab({ jugadores }: { jugadores: any[] }) {
   return (
     <>
-    <div className="bg-pitch-800 rounded-xl border border-pitch-700 overflow-hidden">
+    <div className="bg-pitch-800 rounded-xl border border-pitch-700 overflow-x-auto">
       <table className="w-full tabla-clasificacion">
         <thead>
           <tr className="border-b border-pitch-700">
@@ -593,7 +593,7 @@ export function SuspendidosTab({ jugadores, umbral = 5 }: { jugadores: any[]; um
   return (
     <>
     <h3 className="text-white font-semibold text-sm mb-3">Jugadores que se pierden la próxima jornada</h3>
-    <div className="bg-pitch-800 rounded-xl border border-pitch-700 overflow-hidden">
+    <div className="bg-pitch-800 rounded-xl border border-pitch-700 overflow-x-auto">
       <table className="w-full tabla-clasificacion">
         <thead>
           <tr className="border-b border-pitch-700">
@@ -635,7 +635,7 @@ export function TarjetasJornadaTab({ jugadores }: { jugadores: any[] }) {
   return (
     <>
     <h3 className="text-white font-semibold text-sm mb-3">Tarjetas de la jornada</h3>
-    <div className="bg-pitch-800 rounded-xl border border-pitch-700 overflow-hidden">
+    <div className="bg-pitch-800 rounded-xl border border-pitch-700 overflow-x-auto">
       <table className="w-full tabla-clasificacion">
         <thead>
           <tr className="border-b border-pitch-700">
@@ -678,7 +678,7 @@ export function TarjetasJornadaTab({ jugadores }: { jugadores: any[] }) {
 export function Top5JugadoresTab({ jugadores }: { jugadores: any[] }) {
   return (
     <>
-    <div className="bg-pitch-800 rounded-xl border border-pitch-700 overflow-hidden">
+    <div className="bg-pitch-800 rounded-xl border border-pitch-700 overflow-x-auto">
       <table className="w-full tabla-clasificacion">
         <thead>
           <tr className="border-b border-pitch-700">
@@ -717,7 +717,7 @@ export function Top5JugadoresTab({ jugadores }: { jugadores: any[] }) {
 export function Top5EquiposTab({ equipos }: { equipos: any[] }) {
   return (
     <>
-    <div className="bg-pitch-800 rounded-xl border border-pitch-700 overflow-hidden">
+    <div className="bg-pitch-800 rounded-xl border border-pitch-700 overflow-x-auto">
       <table className="w-full tabla-clasificacion">
         <thead>
           <tr className="border-b border-pitch-700">
@@ -752,7 +752,7 @@ export function Top5EquiposTab({ equipos }: { equipos: any[] }) {
 export function XiOptimoJornadaTab({ jugadores }: { jugadores: any[] }) {
   return (
     <>
-    <div className="bg-pitch-800 rounded-xl border border-pitch-700 overflow-hidden">
+    <div className="bg-pitch-800 rounded-xl border border-pitch-700 overflow-x-auto">
       <table className="w-full tabla-clasificacion">
         <thead>
           <tr className="border-b border-pitch-700">
