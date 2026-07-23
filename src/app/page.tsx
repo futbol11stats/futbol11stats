@@ -1,7 +1,23 @@
 export const revalidate = 21600  // ISR 6h: los datos solo cambian al re-exportar desde el pipeline
 
+import type { Metadata } from 'next'
 import { supabase } from '@/lib/supabase'
 import Link from 'next/link'
+
+// Marca neutral con Madrid como ámbito ACTUAL (preparada para ampliar a otras federaciones).
+export const metadata: Metadata = {
+  title: 'Fútbol11Stats — Estadísticas del fútbol amateur · Madrid',
+  description: 'Clasificaciones, goleadores, fantasy y ELO del fútbol amateur y juvenil. Todas las competiciones de la RFFM (Madrid): 5 temporadas, más de 110.000 partidos y 38.000 jugadores.',
+  alternates: { canonical: '/' },
+  openGraph: {
+    title: 'Fútbol11Stats — Estadísticas del fútbol amateur · Madrid',
+    description: 'Clasificaciones, goleadores, fantasy y ELO del fútbol amateur y juvenil de Madrid.',
+    url: '/',
+    siteName: 'Fútbol11Stats',
+    locale: 'es_ES',
+    type: 'website',
+  },
+}
 
 async function getCompeticiones() {
   const { data } = await supabase

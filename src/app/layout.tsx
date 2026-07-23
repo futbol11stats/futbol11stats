@@ -1,13 +1,17 @@
 import type { Metadata } from 'next'
+import { SITE_URL } from '@/lib/seo'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'Fútbol11Stats Madrid',
-  description: 'Estadísticas completas del fútbol madrileño — RFFM',
+  metadataBase: new URL(SITE_URL),
+  title: 'Fútbol11Stats — Estadísticas del fútbol amateur · Madrid',
+  description: 'Clasificaciones, goleadores, fantasy y ELO del fútbol amateur y juvenil de Madrid (RFFM).',
   openGraph: {
-    title: 'Fútbol11Stats Madrid',
-    description: 'Estadísticas del fútbol madrileño',
-    siteName: 'futbol11stats.com',
+    title: 'Fútbol11Stats',
+    description: 'Estadísticas del fútbol amateur · Madrid',
+    siteName: 'Fútbol11Stats',
+    locale: 'es_ES',
+    type: 'website',
   },
 }
 

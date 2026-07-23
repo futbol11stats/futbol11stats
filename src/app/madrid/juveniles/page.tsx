@@ -1,7 +1,22 @@
 export const revalidate = 21600  // ISR 6h: los datos solo cambian al re-exportar desde el pipeline
 
+import type { Metadata } from 'next'
 import { supabase } from '@/lib/supabase'
 import Link from 'next/link'
+
+export const metadata: Metadata = {
+  title: 'Fútbol Juvenil Madrid — categorías y grupos | Fútbol11Stats',
+  description: 'Clasificaciones, goleadores y estadísticas del fútbol juvenil de Madrid (RFFM): Nacional, 1ª Autonómica, Preferente, 1ª y 2ª Juvenil. Temporada 2025-26.',
+  alternates: { canonical: '/madrid/juveniles' },
+  openGraph: {
+    title: 'Fútbol Juvenil Madrid | Fútbol11Stats',
+    description: 'Categorías y grupos del fútbol juvenil de Madrid.',
+    url: '/madrid/juveniles',
+    siteName: 'Fútbol11Stats',
+    locale: 'es_ES',
+    type: 'website',
+  },
+}
 
 async function getGrupos() {
   const { data } = await supabase

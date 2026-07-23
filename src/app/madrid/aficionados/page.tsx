@@ -1,7 +1,22 @@
 export const revalidate = 21600  // ISR 6h: los datos solo cambian al re-exportar desde el pipeline
 
+import type { Metadata } from 'next'
 import { supabase } from '@/lib/supabase'
 import Link from 'next/link'
+
+export const metadata: Metadata = {
+  title: 'Fútbol Aficionados Madrid — categorías y grupos | Fútbol11Stats',
+  description: 'Clasificaciones, goleadores y estadísticas del fútbol aficionado de Madrid (RFFM): 3ª RFEF, 1ª Autonómica, Preferente, 1ª y 2ª Aficionados. Temporada 2025-26.',
+  alternates: { canonical: '/madrid/aficionados' },
+  openGraph: {
+    title: 'Fútbol Aficionados Madrid | Fútbol11Stats',
+    description: 'Categorías y grupos del fútbol aficionado de Madrid.',
+    url: '/madrid/aficionados',
+    siteName: 'Fútbol11Stats',
+    locale: 'es_ES',
+    type: 'website',
+  },
+}
 
 async function getGrupos() {
   const { data } = await supabase

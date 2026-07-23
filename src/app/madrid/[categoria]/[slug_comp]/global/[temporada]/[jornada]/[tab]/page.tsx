@@ -1,6 +1,8 @@
 export const revalidate = 21600  // ISR 6h: los datos solo cambian al re-exportar desde el pipeline
 
+import type { Metadata } from 'next'
 import { supabase } from '@/lib/supabase'
+import { ensureMadrid, tabLabel } from '@/lib/seo'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import JornadaSelector from '@/components/JornadaSelector'
@@ -177,6 +179,37 @@ async function getClasificacionGrupo(codgrupo: string, codtemporada: number, jor
     .eq('jornada', jornada)
     .order('pos')
   return (data || []).filter(r => r.zona && r.zona !== '')
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{
+    categoria: string
+    slug_comp: string
+    temporada: string
+    jornada: string
+    tab: string
+  }>
+}): Promise<Metadata> {
+  const { categoria, slug_comp, temporada, tab } = await params
+  const codtemporada = TEMPORADA_MAP[temporada]
+  if (!codtemporada) return { title: 'Fútbol11Stats' }
+  const competicion = await getCompeticion(slug_comp, categoria, codtemporada)
+  if (!competicion) return { title: 'Fútbol11Stats' }
+
+  const comp = ensureMadrid(competicion.nombre_comp)
+  const tl = tabLabel(tab)
+  const title = `${tl} · ${comp} Global ${temporada} | Fútbol11Stats`
+  const description = `${tl} global de ${comp} (todos los grupos), temporada ${temporada}. Clasificación, goleadores y estadísticas del fútbol amateur de Madrid en Fútbol11Stats.`
+  const canonical = `/madrid/${categoria}/${slug_comp}/global/${temporada}/jornada-${competicion.jornada_actual}/${tab}`
+
+  return {
+    title,
+    description,
+    alternates: { canonical },
+    openGraph: { title, description, url: canonical, siteName: 'Fútbol11Stats', locale: 'es_ES', type: 'website' },
+  }
 }
 
 export default async function GlobalPage({
@@ -515,7 +548,7 @@ function ClasificacionGlobalTab({
   const Fila = ({ r, zona }: { r: any; zona: string }) => (
     <tr className="border-b border-pitch-700/50 last:border-0" style={ZONA_BG[zona]}>
       <td className="text-chalk-600 font-mono text-xs">{r.pos}</td>
-      <EscudoCell escudo={r.escudo} />
+      <EscudoCell escudo={r.escudo} nombre={r.nombre_equipo} />
       <td className="font-medium text-white">{r.nombre_equipo}</td>
       <td className="text-center text-chalk-600">{r.pj}</td>
       <td className="text-center font-bold text-white">{r.pts}</td>

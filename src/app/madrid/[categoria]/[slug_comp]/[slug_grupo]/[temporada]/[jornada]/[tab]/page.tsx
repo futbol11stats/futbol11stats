@@ -1,6 +1,8 @@
 export const revalidate = 21600  // ISR 6h: los datos solo cambian al re-exportar desde el pipeline
 
+import type { Metadata } from 'next'
 import { supabase } from '@/lib/supabase'
+import { ensureMadrid, tabLabel } from '@/lib/seo'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import JornadaSelector from '@/components/JornadaSelector'
@@ -179,6 +181,40 @@ async function getSuspendidosJornada(codgrupo: string, codtemporada: number, jor
     .eq('jornada', jornada)
     .order('nombre_equipo')
   return data || []
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{
+    categoria: string
+    slug_comp: string
+    slug_grupo: string
+    temporada: string
+    jornada: string
+    tab: string
+  }>
+}): Promise<Metadata> {
+  const { categoria, slug_comp, slug_grupo, temporada, tab } = await params
+  const codtemporada = TEMPORADA_MAP[temporada]
+  if (!codtemporada) return { title: 'Fútbol11Stats' }
+  const grupo = await getGrupoBySlug(categoria, slug_comp, slug_grupo, codtemporada)
+  if (!grupo) return { title: 'Fútbol11Stats' }
+
+  const comp = ensureMadrid(grupo.nombre_comp)          // no duplica "Madrid" (ligas ya lo llevan)
+  const grp = grupo.nombre_grupo ? ` ${grupo.nombre_grupo}` : ''
+  const tl = tabLabel(tab)
+  const title = `${tl} · ${comp}${grp} ${temporada} | Fútbol11Stats`
+  const description = `${tl} de ${comp}${grp}, temporada ${temporada}. Clasificación, resultados, goleadores, tarjetas y estadísticas del fútbol amateur de Madrid en Fútbol11Stats.`
+  // Canonical: toda jornada apunta a la jornada actual (máxima) -> mata la duplicación del time-machine.
+  const canonical = `/madrid/${categoria}/${slug_comp}/${slug_grupo}/${temporada}/jornada-${grupo.jornada_actual}/${tab}`
+
+  return {
+    title,
+    description,
+    alternates: { canonical },
+    openGraph: { title, description, url: canonical, siteName: 'Fútbol11Stats', locale: 'es_ES', type: 'website' },
+  }
 }
 
 export default async function GrupoPage({
