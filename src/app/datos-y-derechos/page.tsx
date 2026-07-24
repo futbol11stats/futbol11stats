@@ -8,7 +8,7 @@ export const metadata: Metadata = {
   alternates: { canonical: '/datos-y-derechos' },
 }
 
-const CONTACTO = 'datos@futbol11stats.com'
+const CONTACTO = 'futbol11stats@gmail.com'
 
 export default function DatosYDerechosPage() {
   return (
