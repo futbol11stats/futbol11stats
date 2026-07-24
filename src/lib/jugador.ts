@@ -205,24 +205,3 @@ export function curarHitos(hitos: HitoRow[]): { curados: HitoRow[]; todos: HitoR
   // Reciente-arriba: invertimos para la presentación (el visible de cada serie sigue siendo el último).
   return { curados: [...curadosAsc].reverse(), todos: [...asc].reverse() }
 }
-
-// Resuelve codequipo -> escudo (nombre de fichero de Storage, el mismo que usa el resto del sitio).
-// Las tablas web_jugador* traen el escudo como RUTA FEDERATIVA cruda (/pnfg/pimg/Clubes/...), que NO
-// es un fichero del bucket 'escudos'; hay que resolverlo por codequipo. web_clasificacion tiene el
-// nombre correcto pero solo está indexada por codgrupo (no por codequipo), así que consultamos la
-// jornada 1 de los grupos del jugador (todos sus equipos y rivales aparecen ahí). ~100 filas, rápido.
-export async function escudosPorGrupo(codgrupos: (string | number | null | undefined)[]): Promise<Map<string, string>> {
-  const grupos = Array.from(new Set(codgrupos.filter(Boolean).map(String)))
-  const map = new Map<string, string>()
-  if (grupos.length === 0) return map
-  const { data } = await supabase
-    .from('web_clasificacion')
-    .select('codequipo, escudo')
-    .in('codgrupo', grupos)
-    .eq('jornada', 1)
-  for (const r of (data || []) as any[]) {
-    const k = String(r.codequipo)
-    if (r.escudo && !map.has(k)) map.set(k, r.escudo as string)
-  }
-  return map
-}
