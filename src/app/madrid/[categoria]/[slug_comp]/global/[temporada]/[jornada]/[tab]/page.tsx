@@ -9,6 +9,7 @@ import {
 } from '@/lib/columns'
 import JsonLd from '@/components/JsonLd'
 import { graphLd, breadcrumbLd } from '@/lib/jsonld'
+import { fichasExistentes } from '@/lib/jugador'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import JornadaSelector from '@/components/JornadaSelector'
@@ -329,6 +330,10 @@ export default async function GlobalPage({
     xiJor = rows.map(r => ({ ...r, pts_fantasy: r.pts_jornada, grupo: mkGrupo(r.codgrupo) }))
   }
 
+  // ENLAZADO A FICHAS (solo aficionados; juveniles no consulta): qué codjugadores tienen ficha.
+  const codjugsPagina = [...ranking, ...mvpJ, ...xiTemp, ...xiJor, ...alertasTarjetas].map((j: any) => j.codjugador)
+  const fichas = categoria === 'juveniles' ? null : await fichasExistentes(codjugsPagina)
+
   const TABS_JORNADA = [
     { id: 'clasificacion',           label: 'Clasificación' },
     { id: 'top5-jugadores-jornada',  label: 'Top 5 Jugadores' },
@@ -518,23 +523,23 @@ export default async function GlobalPage({
           totalJornadas={competicion.total_jornadas}
         />
       ) : tab === 'top10-tarjetas-temporada' ? (
-        <TarjetasTemporadaTab equipos={juegoLimpio} jugadores={alertasTarjetas} />
+        <TarjetasTemporadaTab equipos={juegoLimpio} jugadores={alertasTarjetas} fichas={fichas} />
       ) : tab === 'top10-goleadores-temporada' ? (
-        <JugadoresTab jugadores={ranking} tipo="goleadores" />
+        <JugadoresTab jugadores={ranking} tipo="goleadores" fichas={fichas} />
       ) : tab === 'top10-fantasy-temporada' ? (
-        <JugadoresTab jugadores={ranking} tipo="fantasy" />
+        <JugadoresTab jugadores={ranking} tipo="fantasy" fichas={fichas} />
       ) : tab === 'top10-elo-jugadores-temporada' ? (
-        <EloTemporadaTab jugadores={ranking} />
+        <EloTemporadaTab jugadores={ranking} fichas={fichas} />
       ) : tab === 'top10-porteros-temporada' ? (
-        <PorterosTemporadaTab jugadores={ranking} />
+        <PorterosTemporadaTab jugadores={ranking} fichas={fichas} />
       ) : tab === 'top5-jugadores-jornada' ? (
-        <Top5JugadoresTab jugadores={mvpJ} />
+        <Top5JugadoresTab jugadores={mvpJ} fichas={fichas} />
       ) : tab === 'top5-equipos-jornada' ? (
         <Top5EquiposTab equipos={equiposForma} />
       ) : tab === 'once-optimo-temporada' ? (
-        <XiOptimoTemporadaTab jugadores={xiTemp} />
+        <XiOptimoTemporadaTab jugadores={xiTemp} fichas={fichas} />
       ) : tab === 'once-optimo-jornada' ? (
-        <XiOptimoJornadaTab jugadores={xiJor} />
+        <XiOptimoJornadaTab jugadores={xiJor} fichas={fichas} />
       ) : (
         <p className="text-chalk-600 text-sm py-8 text-center">Próximamente</p>
       )}

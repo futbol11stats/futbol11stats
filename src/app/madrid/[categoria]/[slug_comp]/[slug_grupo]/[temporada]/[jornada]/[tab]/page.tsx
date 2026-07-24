@@ -9,6 +9,7 @@ import {
 } from '@/lib/columns'
 import JsonLd from '@/components/JsonLd'
 import { graphLd, breadcrumbLd } from '@/lib/jsonld'
+import { fichasExistentes } from '@/lib/jugador'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import JornadaSelector from '@/components/JornadaSelector'
@@ -329,6 +330,14 @@ export default async function GrupoPage({
     xiOptimo = await getXiOptimoTemporada(cg, codtemporada, jornadaNum)
   }
 
+  // ENLAZADO A FICHAS: qué codjugadores de esta página tienen ficha (query barata, una sola vez).
+  // Solo en aficionados; en juveniles ni se consulta (esos jugadores no están en web_jugador).
+  const codjugsPagina = [
+    ...goleadores, ...fantasy, ...eloJugadores, ...porteros, ...golesJ, ...tarjetasJ,
+    ...mvpJ, ...xiJ, ...alertasTarjetas, ...xiOptimo, ...suspendidos, ...xiRondaCopa,
+  ].map((j: any) => j.codjugador)
+  const fichas = categoria === 'juveniles' ? null : await fichasExistentes(codjugsPagina)
+
   // Copa/playoff: eliminatoria (sin clasificación ni Top-5 Equipos/forma — no aplica en knockout).
   // La ronda seleccionada gobierna AMBOS bloques (jornada = esa ronda; temporada = acumulado J1->ronda).
   const TABS_JORNADA = isCopa
@@ -564,41 +573,41 @@ export default async function GrupoPage({
         <ResultadosTab resultados={resultados} jornada={jornadaNum} />
       )}
       {tab2 ==='top10-goleadores-temporada' && (
-        <JugadoresTab jugadores={goleadores} tipo="goleadores" />
+        <JugadoresTab jugadores={goleadores} tipo="goleadores" fichas={fichas} />
       )}
       {tab2 ==='top10-fantasy-temporada' && (
-        <JugadoresTab jugadores={fantasy} tipo="fantasy" />
+        <JugadoresTab jugadores={fantasy} tipo="fantasy" fichas={fichas} />
       )}
       {tab2 ==='top10-elo-jugadores-temporada' && (
-        <EloTemporadaTab jugadores={eloJugadores} />
+        <EloTemporadaTab jugadores={eloJugadores} fichas={fichas} />
       )}
       {tab2 ==='goleadores-jornada' && (
-        <GoleadoresJornadaTab jugadores={golesJ} />
+        <GoleadoresJornadaTab jugadores={golesJ} fichas={fichas} />
       )}
       {tab2 ==='tarjetas-jornada' && (
         <>
-          <SuspendidosTab jugadores={suspendidos} umbral={isCopa ? 3 : 5} />
+          <SuspendidosTab jugadores={suspendidos} umbral={isCopa ? 3 : 5} fichas={fichas} />
           <div className="mt-8" />
-          {!isCopa && <TarjetasJornadaTab jugadores={tarjetasJ} />}
+          {!isCopa && <TarjetasJornadaTab jugadores={tarjetasJ} fichas={fichas} />}
         </>
       )}
       {tab2 ==='top5-jugadores-jornada' && (
-        <Top5JugadoresTab jugadores={mvpJ} />
+        <Top5JugadoresTab jugadores={mvpJ} fichas={fichas} />
       )}
       {tab2 ==='top5-equipos-jornada' && (
         <Top5EquiposTab equipos={equiposForma} />
       )}
       {tab2 ==='once-optimo-jornada' && (
-        isCopa ? <XiOptimoTemporadaTab jugadores={xiRondaCopa} /> : <XiOptimoJornadaTab jugadores={xiJ} />
+        isCopa ? <XiOptimoTemporadaTab jugadores={xiRondaCopa} fichas={fichas} /> : <XiOptimoJornadaTab jugadores={xiJ} fichas={fichas} />
       )}
       {tab2 ==='top10-porteros-temporada' && (
-        <PorterosTemporadaTab jugadores={porteros} />
+        <PorterosTemporadaTab jugadores={porteros} fichas={fichas} />
       )}
       {tab2 ==='top10-tarjetas-temporada' && (
-        <TarjetasTemporadaTab equipos={juegoLimpio} jugadores={alertasTarjetas} />
+        <TarjetasTemporadaTab equipos={juegoLimpio} jugadores={alertasTarjetas} fichas={fichas} />
       )}
       {tab2 ==='once-optimo-temporada' && (
-        <XiOptimoTemporadaTab jugadores={xiOptimo} />
+        <XiOptimoTemporadaTab jugadores={xiOptimo} fichas={fichas} />
       )}
     </div>
   )

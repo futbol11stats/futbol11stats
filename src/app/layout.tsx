@@ -62,6 +62,7 @@ export default function RootLayout({
             </p>
             <p className="flex flex-wrap gap-x-4 gap-y-1 pt-1">
               <a href="/cookies" className="underline hover:text-white transition-colors">Cookies</a>
+              <a href="/datos-y-derechos" className="underline hover:text-white transition-colors">Datos y derechos</a>
               <CookieSettingsButton />
             </p>
           </div>
