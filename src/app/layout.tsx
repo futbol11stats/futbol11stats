@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { Inter, Barlow_Condensed } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
+import { SpeedInsights } from '@vercel/speed-insights/next'
 import { SITE_URL } from '@/lib/seo'
 import CookieConsent from '@/components/CookieConsent'
 import CookieSettingsButton from '@/components/CookieSettingsButton'
@@ -65,7 +66,9 @@ export default function RootLayout({
             </p>
           </div>
         </footer>
+        {/* Analytics y Speed Insights: anónimos, sin cookies -> fuera del gate de consentimiento. */}
         <Analytics />
+        <SpeedInsights />
         <CookieConsent />
       </body>
     </html>
