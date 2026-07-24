@@ -4,6 +4,9 @@ module.exports = {
     './src/pages/**/*.{js,ts,jsx,tsx,mdx}',
     './src/components/**/*.{js,ts,jsx,tsx,mdx}',
     './src/app/**/*.{js,ts,jsx,tsx,mdx}',
+    // src/lib también: mapas de clases estáticas (p.ej. POS_COLOR en jugador.ts) viven aquí; sin
+    // este glob el JIT purga esas clases por no verlas en ningún fichero escaneado.
+    './src/lib/**/*.{js,ts,jsx,tsx,mdx}',
   ],
   theme: {
     extend: {

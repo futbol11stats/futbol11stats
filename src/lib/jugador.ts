@@ -189,18 +189,40 @@ export function fechaCorta(fecha: string | null): string {
   return `${dia} ${mes} ${m[3]}`
 }
 
-// Selecciona los hitos "curados" (los de serie colapsan al último cronológico de cada serie;
-// el resto se muestran todos). Devuelve { curados, total } — ambos ya ordenados cronológicamente.
+// Selecciona los hitos "curados" (los de serie colapsan al ÚLTIMO alcanzado de cada serie; el resto
+// se muestran todos). Ambas listas se devuelven en orden CRONOLÓGICO INVERSO (lo más reciente arriba).
 export function curarHitos(hitos: HitoRow[]): { curados: HitoRow[]; todos: HitoRow[] } {
-  const orden = [...hitos].sort((a, b) => fechaISO(a.fecha).localeCompare(fechaISO(b.fecha)))
-  // Para cada serie (tipo_hito de serie) me quedo con el más reciente (último cronológico).
+  // Ascendente para elegir el último de cada serie (el hito más avanzado = el más reciente).
+  const asc = [...hitos].sort((a, b) => fechaISO(a.fecha).localeCompare(fechaISO(b.fecha)))
   const ultimoSerie = new Map<string, HitoRow>()
-  for (const h of orden) {
+  for (const h of asc) {
     if (SERIE_TIPOS.has(h.tipo_hito)) ultimoSerie.set(h.tipo_hito, h)  // el último gana (orden asc)
   }
-  const curados = orden.filter((h) => {
+  const curadosAsc = asc.filter((h) => {
     if (!SERIE_TIPOS.has(h.tipo_hito)) return true
     return ultimoSerie.get(h.tipo_hito) === h
   })
-  return { curados, todos: orden }
+  // Reciente-arriba: invertimos para la presentación (el visible de cada serie sigue siendo el último).
+  return { curados: [...curadosAsc].reverse(), todos: [...asc].reverse() }
+}
+
+// Resuelve codequipo -> escudo (nombre de fichero de Storage, el mismo que usa el resto del sitio).
+// Las tablas web_jugador* traen el escudo como RUTA FEDERATIVA cruda (/pnfg/pimg/Clubes/...), que NO
+// es un fichero del bucket 'escudos'; hay que resolverlo por codequipo. web_clasificacion tiene el
+// nombre correcto pero solo está indexada por codgrupo (no por codequipo), así que consultamos la
+// jornada 1 de los grupos del jugador (todos sus equipos y rivales aparecen ahí). ~100 filas, rápido.
+export async function escudosPorGrupo(codgrupos: (string | number | null | undefined)[]): Promise<Map<string, string>> {
+  const grupos = Array.from(new Set(codgrupos.filter(Boolean).map(String)))
+  const map = new Map<string, string>()
+  if (grupos.length === 0) return map
+  const { data } = await supabase
+    .from('web_clasificacion')
+    .select('codequipo, escudo')
+    .in('codgrupo', grupos)
+    .eq('jornada', 1)
+  for (const r of (data || []) as any[]) {
+    const k = String(r.codequipo)
+    if (r.escudo && !map.has(k)) map.set(k, r.escudo as string)
+  }
+  return map
 }

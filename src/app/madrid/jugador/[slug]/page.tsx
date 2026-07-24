@@ -13,7 +13,7 @@ import Medidores from '@/components/ficha/Medidores'
 import Hitos from '@/components/ficha/Hitos'
 import {
   COLS_JUGADOR, COLS_CARRERA, COLS_HITOS, COLS_ACTUACIONES,
-  codFromSlug, jugadorSlug, formatNombre, tempLabel, fechaCorta, curarHitos,
+  codFromSlug, jugadorSlug, formatNombre, tempLabel, fechaCorta, curarHitos, escudosPorGrupo,
   LIVE_COD, POS_COLOR, POS_LABEL,
   type JugadorFicha, type HitoRow,
 } from '@/lib/jugador'
@@ -134,7 +134,19 @@ export default async function FichaJugador({ params }: { params: Promise<{ slug:
   const portero = !!j.es_portero
   const inactivo = Number(j.codtemporada_ultima) < Number(LIVE_COD)
   const compActual = carrera[0]?.nombre_comp || null
-  const { curados, todos } = curarHitos(hitosRaw)
+
+  // Escudos: web_jugador* trae rutas federativas crudas (no son ficheros del bucket). Resolvemos
+  // por codequipo desde web_clasificacion (mismos nombres que el resto del sitio) y los aplicamos a
+  // TODAS las secciones vía EscudoImg (thumb + fallback original).
+  const escudoMap = await escudosPorGrupo(carrera.map((c: any) => c.codgrupo))
+  const esc = (cod: string | number | null | undefined): string | null =>
+    (cod != null ? escudoMap.get(String(cod)) ?? null : null)
+
+  // Hitos: resolvemos el escudo del contexto (equipo) antes de curar/ordenar.
+  const hitosResueltos: HitoRow[] = hitosRaw.map((h) => ({
+    ...h, escudo: h.ambito === 'equipo' ? esc(h.contexto_cod) : null,
+  }))
+  const { curados, todos } = curarHitos(hitosResueltos)
   const dorsalesOtros = (j.dorsales_otros || []).filter((d) => d !== j.dorsal_ultimo && d !== j.dorsal_comun)
 
   // Breadcrumb JSON-LD (Inicio › Jugadores › Nombre). NO se emite schema Person (datos personales).
@@ -180,9 +192,9 @@ export default async function FichaJugador({ params }: { params: Promise<{ slug:
             <h1 className="font-display text-3xl md:text-4xl font-bold text-white mt-1.5 leading-tight">{nombre}</h1>
             {/* Chip de equipo */}
             <div className="mt-2 flex items-center gap-2 min-w-0">
-              {escudoUrl(j.escudo_actual) && (
+              {escudoUrl(esc(j.codequipo_actual)) && (
                 <span className={`inline-flex items-center justify-center w-6 h-6 bg-white rounded-sm flex-shrink-0 p-0.5 ${inactivo ? 'opacity-60' : ''}`}>
-                  <EscudoImg escudo={j.escudo_actual} nombre={j.equipo_actual_nombre ?? undefined} />
+                  <EscudoImg escudo={esc(j.codequipo_actual)} nombre={j.equipo_actual_nombre ?? undefined} />
                 </span>
               )}
               {inactivo ? (
@@ -301,7 +313,7 @@ export default async function FichaJugador({ params }: { params: Promise<{ slug:
                 {actuaciones.map((a: any) => (
                   <div key={a.rank} className="flex items-center gap-3 px-3 py-2.5">
                     <span className="inline-flex items-center justify-center w-8 h-8 bg-white rounded-sm flex-shrink-0 p-0.5">
-                      <EscudoImg escudo={a.rival_escudo} nombre={a.rival_nombre} />
+                      <EscudoImg escudo={esc(a.rival_cod)} nombre={a.rival_nombre} />
                     </span>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
@@ -358,9 +370,9 @@ export default async function FichaJugador({ params }: { params: Promise<{ slug:
                       <td className="text-chalk-400 font-medium tabular-nums whitespace-nowrap">{tempLabel(c.codtemporada)}</td>
                       <td className="col-nombre text-white">
                         <span className="flex items-center gap-2 min-w-0">
-                          {escudoUrl(c.escudo) && (
+                          {escudoUrl(esc(c.codequipo)) && (
                             <span className="escudo-box inline-flex items-center justify-center w-6 h-6 bg-white rounded-sm flex-shrink-0 p-0.5">
-                              <EscudoImg escudo={c.escudo} nombre={c.equipo_nombre} />
+                              <EscudoImg escudo={esc(c.codequipo)} nombre={c.equipo_nombre} />
                             </span>
                           )}
                           <span className="truncate">{c.equipo_nombre}</span>

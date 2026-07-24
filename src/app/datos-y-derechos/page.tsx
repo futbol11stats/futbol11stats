@@ -47,6 +47,19 @@ export default function DatosYDerechosPage() {
           o incompleta.
         </p>
 
+        <h2 className="font-display text-xl font-bold text-white pt-2">Corrección de datos</h2>
+        <p>
+          Como los datos se calculan de forma automática, algún detalle puede figurar incompleto o
+          equivocado. Si detectas un error —muy en especial la <strong>posición</strong> de un jugador,
+          tanto si <strong>falta</strong>, es <strong>errónea</strong> o aparece marcada como{' '}
+          <strong>estimada</strong> (con asterisco)— escríbenos a{' '}
+          <a href={`mailto:${CONTACTO}?subject=Correcci%C3%B3n%20de%20posici%C3%B3n%20%E2%80%94%20%5Bnombre%5D`}
+            className="text-grass-400 underline hover:text-grass-300 transition-colors">{CONTACTO}</a>{' '}
+          indicando el <strong>nombre</strong>, el <strong>equipo</strong> y la <strong>posición
+          correcta</strong>, y la corregiremos. Sirve tanto para rectificar un dato equivocado como
+          para completar uno que falte.
+        </p>
+
         <h2 className="font-display text-xl font-bold text-white pt-2">Derechos de oposición y supresión</h2>
         <p>
           Si eres el jugador y no deseas que tu ficha figure en el sitio, puedes ejercer tu derecho de{' '}
