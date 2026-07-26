@@ -14,6 +14,10 @@ export function organizationLd() {
     name: 'Fútbol11Stats',
     url: `${SITE_URL}/`,
     logo: `${SITE_URL}/logo.png`,
+    sameAs: [
+      'https://www.instagram.com/futbol11stats',
+      'https://www.tiktok.com/@futbol11stats',
+    ],
   }
 }
 

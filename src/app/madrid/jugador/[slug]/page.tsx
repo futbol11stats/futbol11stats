@@ -12,6 +12,7 @@ import EscudoImg from '@/components/EscudoImg'
 import NombreEquipo from '@/components/NombreEquipo'
 import Medidores from '@/components/ficha/Medidores'
 import Hitos from '@/components/ficha/Hitos'
+import Trayectoria from '@/components/ficha/Trayectoria'
 import {
   COLS_JUGADOR, COLS_CARRERA, COLS_HITOS, COLS_ACTUACIONES,
   codFromSlug, jugadorSlug, formatNombre, tempLabel, fechaCorta, curarHitos,
@@ -210,7 +211,7 @@ export default async function FichaJugador({ params }: { params: Promise<{ slug:
         <div className="mt-5 lg:mt-0 lg:w-[380px] lg:flex-shrink-0">
           <Medidores
             elo={j.elo_actual} eloMax={j.elo_max} tempMax={j.temporada_elo_max}
-            percentil={j.elo_percentil} serie={j.elo_serie || []}
+            percentil={j.elo_percentil} categoria={compActual} serie={j.elo_serie || []}
             rating={j.rating_f11s} portero={portero}
           />
         </div>
@@ -341,54 +342,7 @@ export default async function FichaJugador({ params }: { params: Promise<{ slug:
             <h2 className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-widest text-chalk-600 mb-2">
               <MapPin className="w-3.5 h-3.5 text-grass-400" strokeWidth={2.5} /> Trayectoria
             </h2>
-            <div className="bg-pitch-800 rounded-xl border border-pitch-700 overflow-x-auto">
-              <table className="w-full tabla-clasificacion">
-                <thead>
-                  <tr className="border-b border-pitch-700">
-                    <th className="text-left">Temp.</th>
-                    <th className="text-left">Equipo</th>
-                    <th className="text-left hidden sm:table-cell">Comp.</th>
-                    <th>PJ</th>
-                    <th className="hidden sm:table-cell">Min</th>
-                    <th>{portero ? 'P0' : 'G'}</th>
-                    {portero && <th>GC</th>}
-                    <th>TA</th>
-                    <th>TR</th>
-                    <th className="hidden sm:table-cell">Pts</th>
-                    <th className="text-grass-400">ELO</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {carrera.map((c: any, i: number) => (
-                    <tr key={`${c.codtemporada}-${c.codequipo}-${i}`} className="border-b border-pitch-700/50 last:border-0">
-                      <td className="text-chalk-400 font-medium tabular-nums whitespace-nowrap">{tempLabel(c.codtemporada)}</td>
-                      <td className="col-nombre text-white">
-                        <span className="flex items-center gap-2 min-w-0">
-                          {escudoUrl(c.escudo) && (
-                            <span className="escudo-box inline-flex items-center justify-center w-6 h-6 bg-white rounded-sm flex-shrink-0 p-0.5">
-                              <EscudoImg escudo={c.escudo} nombre={c.equipo_nombre} />
-                            </span>
-                          )}
-                          <span className="truncate"><NombreEquipo codequipo={c.codequipo} nombre={c.equipo_nombre} /></span>
-                        </span>
-                      </td>
-                      <td className="text-chalk-600 hidden sm:table-cell whitespace-nowrap text-xs">{c.nombre_comp}{c.grupo_nombre ? ` · ${c.grupo_nombre}` : ''}</td>
-                      <td className="text-center text-chalk-400 tabular-nums">{c.pj}</td>
-                      <td className="text-center text-chalk-600 tabular-nums hidden sm:table-cell">{num(c.minutos)}</td>
-                      <td className="text-center font-bold text-white tabular-nums">{portero ? (c.porterias_cero ?? 0) : c.goles}</td>
-                      {portero && <td className="text-center text-chalk-400 tabular-nums">{c.goles_encajados ?? 0}</td>}
-                      <td className="text-center text-chalk-600 tabular-nums">{c.tarjetas_amarillas ?? 0}</td>
-                      <td className="text-center text-chalk-600 tabular-nums">{c.tarjetas_rojas ?? 0}</td>
-                      <td className="text-center text-chalk-600 tabular-nums hidden sm:table-cell">{c.pts_fantasy != null ? Math.round(c.pts_fantasy) : ''}</td>
-                      <td className="text-center text-grass-400 font-medium tabular-nums">{c.elo_final != null ? Math.round(c.elo_final) : ''}</td>
-                    </tr>
-                  ))}
-                  {carrera.length === 0 && (
-                    <tr><td colSpan={portero ? 11 : 10} className="text-center text-chalk-600 py-6 text-sm">Sin trayectoria registrada</td></tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
+            <Trayectoria carrera={carrera} portero={portero} codjugador={j.codjugador} />
             <p className="mt-2 text-xs text-chalk-600">
               <span className="text-chalk-400 font-medium tabular-nums">{num(j.titular_total)}</span> como titular ·{' '}
               <span className="text-chalk-400 font-medium tabular-nums">{num(j.suplente_total)}</span> como suplente

@@ -37,24 +37,37 @@ function Sparkline({ serie }: { serie: Serie[] }) {
   )
 }
 
+// Percentil ELO como BATERÍA de 10 celdas (spec maqueta): llena hasta el percentil (última celda
+// parcial), color grass, con etiqueta "Percentil N · categoría". Accesible (role img + aria-label).
+function PercentilBateria({ percentil, categoria }: { percentil: number; categoria?: string | null }) {
+  const cells = Array.from({ length: 10 }, (_, i) => Math.max(0, Math.min(1, (percentil - i * 10) / 10)))
+  return (
+    <div className="mt-2.5">
+      <div className="flex items-center gap-1" role="img"
+        aria-label={`Percentil ${percentil} de ELO${categoria ? ` en ${categoria}` : ' en su categoría'} (mayor es mejor)`}>
+        {cells.map((f, i) => (
+          <div key={i} className="relative h-2.5 flex-1 rounded-sm bg-pitch-700 overflow-hidden">
+            {f > 0 && <div className="absolute inset-y-0 left-0 bg-grass-400" style={{ width: `${f * 100}%` }} />}
+          </div>
+        ))}
+      </div>
+      <p className="mt-1.5 text-[11px] text-chalk-600">
+        <span className="text-grass-300 font-medium">Percentil {percentil}</span>{categoria ? ` · ${categoria}` : ''}
+      </p>
+    </div>
+  )
+}
+
 function TarjetaElo({
-  elo, eloMax, tempMax, percentil, serie,
+  elo, eloMax, tempMax, percentil, categoria, serie,
 }: {
-  elo: number; eloMax: number | null; tempMax: string | null; percentil: number | null; serie: Serie[]
+  elo: number; eloMax: number | null; tempMax: string | null; percentil: number | null; categoria?: string | null; serie: Serie[]
 }) {
   return (
     <div className="bg-pitch-800 rounded-xl border border-pitch-700 p-4">
-      <div className="flex items-center justify-between">
-        <span className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-chalk-600">
-          <TrendingUp className="w-3.5 h-3.5 text-grass-400" strokeWidth={2.5} /> ELO
-        </span>
-        {percentil != null && (
-          <span className="text-[11px] font-medium text-grass-300 bg-grass-500/15 rounded px-1.5 py-0.5"
-            title="Percentil de ELO dentro de su categoría actual (mayor es mejor)">
-            Percentil {percentil}
-          </span>
-        )}
-      </div>
+      <span className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-chalk-600">
+        <TrendingUp className="w-3.5 h-3.5 text-grass-400" strokeWidth={2.5} /> ELO
+      </span>
       <div className="mt-1.5 flex items-baseline gap-2">
         <span className="font-display text-3xl font-bold text-white tabular-nums">{Math.round(elo)}</span>
         {eloMax != null && (
@@ -64,6 +77,7 @@ function TarjetaElo({
           </span>
         )}
       </div>
+      {percentil != null && <PercentilBateria percentil={percentil} categoria={categoria} />}
       <Sparkline serie={serie} />
     </div>
   )
@@ -99,12 +113,13 @@ function AnilloRating({ rating, portero }: { rating: number; portero: boolean })
 }
 
 export default function Medidores({
-  elo, eloMax, tempMax, percentil, serie, rating, portero,
+  elo, eloMax, tempMax, percentil, categoria, serie, rating, portero,
 }: {
   elo: number | null
   eloMax: number | null
   tempMax: string | null
   percentil: number | null
+  categoria?: string | null
   serie: Serie[]
   rating: number | null
   portero: boolean
@@ -116,7 +131,7 @@ export default function Medidores({
   const cols = hayElo && hayRating ? 'sm:grid-cols-2' : 'sm:grid-cols-1'
   return (
     <div className={`grid grid-cols-1 ${cols} gap-3`}>
-      {hayElo && <TarjetaElo elo={elo!} eloMax={eloMax} tempMax={tempMax} percentil={percentil} serie={serie} />}
+      {hayElo && <TarjetaElo elo={elo!} eloMax={eloMax} tempMax={tempMax} percentil={percentil} categoria={categoria} serie={serie} />}
       {hayRating && <AnilloRating rating={rating!} portero={portero} />}
     </div>
   )

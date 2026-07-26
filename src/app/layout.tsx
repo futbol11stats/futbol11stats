@@ -6,6 +6,8 @@ import { SITE_URL } from '@/lib/seo'
 import CookieConsent from '@/components/CookieConsent'
 import CookieSettingsButton from '@/components/CookieSettingsButton'
 import Buscador from '@/components/buscador/Buscador'
+import Instagram from '@/components/icons/Instagram'
+import TikTok from '@/components/icons/TikTok'
 import './globals.css'
 
 // Fuentes self-hosted por next/font (elimina la cadena externa a fonts.googleapis/gstatic).
@@ -67,6 +69,17 @@ export default function RootLayout({
               <a href="/cookies" className="underline hover:text-white transition-colors">Cookies</a>
               <a href="/datos-y-derechos" className="underline hover:text-white transition-colors">Datos y derechos</a>
               <CookieSettingsButton />
+            </p>
+            <p className="flex flex-wrap items-center gap-x-3 gap-y-1 pt-1">
+              <span className="text-chalk-500">Síguenos — datos reseñables cada jornada</span>
+              <a href="https://www.instagram.com/futbol11stats" target="_blank" rel="noopener noreferrer"
+                aria-label="Fútbol11Stats en Instagram" className="text-chalk-500 hover:text-white transition-colors">
+                <Instagram className="w-5 h-5" strokeWidth={1.75} />
+              </a>
+              <a href="https://www.tiktok.com/@futbol11stats" target="_blank" rel="noopener noreferrer"
+                aria-label="Fútbol11Stats en TikTok" className="text-chalk-500 hover:text-white transition-colors">
+                <TikTok className="w-[18px] h-[18px]" />
+              </a>
             </p>
           </div>
         </footer>
