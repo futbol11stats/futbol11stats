@@ -7,6 +7,7 @@ import Link from 'next/link'
 // aficionados llevan href a la ficha del jugador; juvenil NO (menores) y muestra `nota` al pie.
 export type PlantillaRow = {
   key: string
+  codtemporada?: string | null   // para el filtro por temporada (pastillas)
   dorsal: number | null
   pos: string | null
   nombre: string

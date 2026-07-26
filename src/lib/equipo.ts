@@ -38,7 +38,7 @@ export const COLS_EQUIPO_MOV =
 export const COLS_EQUIPO_HITOS = 'tipo_hito, fecha, codtemporada, detalle, valor'
 
 export const COLS_PLANTILLA_JUVENIL =
-  'codjugador, nombre, dorsal_comun, posicion_pastilla, pj, goles, minutos, ta, tr'
+  'codjugador, codtemporada, nombre, dorsal_comun, posicion_pastilla, pj, goles, minutos, ta, tr'
 
 // --- Tipos (parciales) ---
 export type EquipoFicha = {

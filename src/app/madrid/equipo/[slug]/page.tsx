@@ -12,14 +12,14 @@ import { graphLd, breadcrumbLd, sportsTeamLd } from '@/lib/jsonld'
 import EscudoImg from '@/components/EscudoImg'
 import NombreEquipo from '@/components/NombreEquipo'
 import MedidoresEquipo from '@/components/equipo/MedidoresEquipo'
-import Plantilla, { type PlantillaRow } from '@/components/equipo/Plantilla'
-import Movimientos from '@/components/equipo/Movimientos'
+import { type PlantillaRow } from '@/components/equipo/Plantilla'
+import EquipoTemporadas from '@/components/equipo/EquipoTemporadas'
 import {
   COLS_EQUIPO, COLS_EQUIPO_TEMPORADAS, COLS_EQUIPO_MOV, COLS_EQUIPO_HITOS, COLS_PLANTILLA_JUVENIL,
   codFromSlug, equipoSlug, tempLabel, fechaCortaDMY, LIVE_COD, RAMA_SLUG, BADGE, HITO_EQUIPO,
   type EquipoFicha, type MovimientoRow,
 } from '@/lib/equipo'
-import { Trophy, Flame, Swords, CalendarCheck, ListOrdered, Users, ArrowRightLeft, ChevronRight, ArrowUpRight } from 'lucide-react'
+import { Trophy, Flame, Swords, CalendarCheck, ListOrdered, ChevronRight, ArrowUpRight } from 'lucide-react'
 
 // --- Fetchers ---
 async function getEquipo(cod: string): Promise<EquipoFicha | null> {
@@ -52,12 +52,13 @@ async function getMiniClasif(codgrupo: string, jornada: number) {
     .eq('codgrupo', codgrupo).eq('jornada', jornada).order('pos')
   return (data || []) as any[]
 }
-// Plantilla aficionados: stats de web_jugador_carrera + nombre/dorsal/pos (y existencia de ficha)
-// de web_jugador. Todos los codjugador de carrera están en web_jugador (enlazables).
-async function getPlantillaAfic(cod: string, codtemp: string): Promise<PlantillaRow[]> {
+// Plantilla aficionados de TODAS las temporadas del equipo: stats por (jugador, temporada) de
+// web_jugador_carrera + nombre/dorsal/pos (y existencia de ficha) de web_jugador. Cada fila lleva su
+// codtemporada; las pastillas filtran client-side. Todos los codjugador de carrera están en web_jugador.
+async function getPlantillaAfic(cod: string): Promise<PlantillaRow[]> {
   const { data: car } = await supabase.from('web_jugador_carrera')
-    .select('codjugador, pj, goles, minutos, tarjetas_amarillas, tarjetas_rojas')
-    .eq('codequipo', cod).eq('codtemporada', codtemp)
+    .select('codjugador, codtemporada, pj, goles, minutos, tarjetas_amarillas, tarjetas_rojas')
+    .eq('codequipo', cod)
   const rows = (car || []) as any[]
   const ids = Array.from(new Set(rows.map((r) => String(r.codjugador))))
   if (ids.length === 0) return []
@@ -69,7 +70,8 @@ async function getPlantillaAfic(cod: string, codtemp: string): Promise<Plantilla
       const j = info.get(String(r.codjugador))
       if (!j) return null   // sin ficha (no debería ocurrir): no se enlaza a un 404
       return {
-        key: String(r.codjugador),
+        key: `${r.codjugador}-${r.codtemporada}`,
+        codtemporada: String(r.codtemporada),
         dorsal: j.dorsal_comun ?? null,
         pos: j.posicion_pastilla ?? null,
         nombre: formatNombre(j.nombre),
@@ -80,12 +82,13 @@ async function getPlantillaAfic(cod: string, codtemp: string): Promise<Plantilla
     .filter(Boolean)
     .sort((a: any, b: any) => (b.minutos || 0) - (a.minutos || 0)) as PlantillaRow[]
 }
-async function getPlantillaJuv(cod: string, codtemp: string): Promise<PlantillaRow[]> {
+async function getPlantillaJuv(cod: string): Promise<PlantillaRow[]> {
   const { data } = await supabase.from('web_equipo_plantilla_juvenil')
-    .select(COLS_PLANTILLA_JUVENIL).eq('codequipo', cod).eq('codtemporada', codtemp)
+    .select(COLS_PLANTILLA_JUVENIL).eq('codequipo', cod)
   return ((data || []) as any[])
     .map((r) => ({
-      key: String(r.codjugador),
+      key: `${r.codjugador}-${r.codtemporada}`,
+      codtemporada: String(r.codtemporada),
       dorsal: r.dorsal_comun ?? null,
       pos: r.posicion_pastilla ?? null,
       nombre: formatNombre(r.nombre),
@@ -93,6 +96,25 @@ async function getPlantillaJuv(cod: string, codtemp: string): Promise<PlantillaR
       pj: r.pj, goles: r.goles, minutos: r.minutos, ta: r.ta, tr: r.tr,
     }))
     .sort((a, b) => (b.minutos || 0) - (a.minutos || 0))
+}
+// Existencia + nombre canónico de los jugadores de los movimientos (para enlazar/formatear).
+async function getFichasMovimientos(movs: MovimientoRow[]): Promise<Record<string, string>> {
+  const ids = Array.from(new Set(movs.map((m) => m.codjugador).filter(Boolean).map(String)))
+  if (ids.length === 0) return {}
+  const { data } = await supabase.from('web_jugador').select('codjugador, nombre').in('codjugador', ids)
+  const out: Record<string, string> = {}
+  for (const j of (data || []) as any[]) out[String(j.codjugador)] = j.nombre
+  return out
+}
+// Slugs de grupo por temporada (para enlazar cada fila del bloque Temporadas a su vista de grupo).
+async function getGruposTemporadas(codgrupos: (string | null)[]): Promise<Map<string, any>> {
+  const ids = Array.from(new Set(codgrupos.filter(Boolean).map(String)))
+  const m = new Map<string, any>()
+  if (ids.length === 0) return m
+  const { data } = await supabase.from('web_grupos')
+    .select('codgrupo, slug_comp, slug_grupo, jornada_actual').in('codgrupo', ids)
+  for (const g of (data || []) as any[]) m.set(String(g.codgrupo), g)
+  return m
 }
 
 const num = (n: number | null | undefined) => (n ?? 0).toLocaleString('es-ES')
@@ -150,10 +172,12 @@ export default async function FichaEquipo({ params }: { params: Promise<{ slug: 
   const esJuvenil = e.rama === 'juvenil'
   const ramaSlug = RAMA_SLUG[e.rama || 'aficionados'] || 'aficionados'
 
-  // Wave 2: depende de la fila base (grupo, mini-clasif, plantilla) — en paralelo.
-  const [grupo, plantilla] = await Promise.all([
+  // Wave 2: depende de la fila base (grupo, plantilla, fichas de movimientos, slugs de temporadas) — en paralelo.
+  const [grupo, plantilla, fichasMov, gruposTemp] = await Promise.all([
     e.codgrupo ? getGrupoSlug(e.codgrupo) : Promise.resolve(null),
-    esJuvenil ? getPlantillaJuv(cod, e.codtemporada || '') : getPlantillaAfic(cod, e.codtemporada || ''),
+    esJuvenil ? getPlantillaJuv(cod) : getPlantillaAfic(cod),
+    getFichasMovimientos(movimientos),
+    getGruposTemporadas(temporadas.map((t: any) => t.codgrupo)),
   ])
   const jornadaGrupo = grupo?.jornada_actual || 1
   const miniClasif = e.codgrupo ? await getMiniClasif(e.codgrupo, jornadaGrupo) : []
@@ -172,6 +196,18 @@ export default async function FichaEquipo({ params }: { params: Promise<{ slug: 
   // Movimientos: fichajes vs promociones internas (categorías separadas).
   const fichajes = movimientos.filter((m) => m.clase === 'FICHAJE')
   const promociones = movimientos.filter((m) => m.clase === 'PROMOCION_INTERNA')
+
+  // Temporadas para las pastillas (dedup por codtemporada; ya vienen descendentes).
+  const temporadaCods = Array.from(new Set(temporadas.map((t: any) => String(t.codtemporada))))
+
+  // URL de la vista de grupo de una fila de temporada (slug histórico propio de esa temporada);
+  // si el codgrupo no resuelve slug, se deja texto plano (sin romper).
+  const grupoTempUrl = (t: any): string | null => {
+    const g = gruposTemp.get(String(t.codgrupo))
+    if (!g) return null
+    const rs = RAMA_SLUG[t.rama] || ramaSlug
+    return `/madrid/${rs}/${g.slug_comp}/${g.slug_grupo}/${tempLabel(t.codtemporada)}/jornada-${g.jornada_actual || 1}/clasificacion`
+  }
 
   // Hitos: colapso la serie de partidos_acumulados a su máximo; el resto se muestran.
   const maxPartidos = Math.max(0, ...hitos.filter((h) => h.tipo_hito === 'partidos_acumulados').map((h) => h.valor || 0))
@@ -293,7 +329,13 @@ export default async function FichaEquipo({ params }: { params: Promise<{ slug: 
                   <div key={`${t.codtemporada}-${t.codgrupo}`} className="flex items-center gap-2 px-3 py-2 border-b border-pitch-700/50 last:border-0">
                     <span className="font-display text-sm font-bold text-chalk-300 tabular-nums w-14 flex-shrink-0">{tempLabel(t.codtemporada)}</span>
                     <div className="min-w-0 flex-1">
-                      <div className="text-xs text-chalk-400 truncate">{t.nombre_comp}{t.grupo_nombre ? ` · ${t.grupo_nombre}` : ''}</div>
+                      {(() => {
+                        const compGrupo = `${t.nombre_comp}${t.grupo_nombre ? ` · ${t.grupo_nombre}` : ''}`
+                        const url = grupoTempUrl(t)
+                        return url
+                          ? <Link href={url} className="block text-xs text-chalk-400 hover:text-grass-300 truncate transition-colors">{compGrupo}</Link>
+                          : <div className="text-xs text-chalk-400 truncate">{compGrupo}</div>
+                      })()}
                       <div className="text-[11px] text-chalk-600 tabular-nums">{t.posicion_final}º · {t.pts} pts</div>
                     </div>
                     {t.badge && BADGE[t.badge] && (
@@ -306,32 +348,23 @@ export default async function FichaEquipo({ params }: { params: Promise<{ slug: 
           )}
         </aside>
 
-        {/* MAIN: plantilla + altas/bajas + hitos */}
+        {/* MAIN: pastillas de temporada -> plantilla + altas/bajas (client) + hitos */}
         <main className="min-w-0 space-y-8 lg:col-start-1 lg:row-start-1">
-          {/* Plantilla */}
-          <section>
-            <h2 className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-widest text-chalk-600 mb-2">
-              <Users className="w-3.5 h-3.5 text-grass-400" strokeWidth={2.5} /> Plantilla
-              {e.codtemporada && <span className="text-chalk-600 font-normal normal-case tracking-normal">· {tempLabel(e.codtemporada)}</span>}
-            </h2>
-            <Plantilla filas={plantilla} nota={esJuvenil ? notaJuvenil : undefined} />
-          </section>
+          <EquipoTemporadas
+            temporadas={temporadaCods}
+            plantilla={plantilla}
+            fichajes={fichajes}
+            promociones={promociones}
+            fichas={fichasMov}
+            nota={esJuvenil ? notaJuvenil : undefined}
+          />
 
-          {/* Altas y bajas */}
-          {(fichajes.length > 0 || promociones.length > 0) && (
-            <section>
-              <h2 className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-widest text-chalk-600 mb-2">
-                <ArrowRightLeft className="w-3.5 h-3.5 text-grass-400" strokeWidth={2.5} /> Altas y bajas
-              </h2>
-              <Movimientos fichajes={fichajes} promociones={promociones} />
-            </section>
-          )}
-
-          {/* Hitos */}
+          {/* Hitos (no se filtran por temporada: son del registro de 5 temporadas) */}
           {hitosVis.length > 0 && (
             <section>
               <h2 className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-widest text-chalk-600 mb-3">
                 <Trophy className="w-3.5 h-3.5 text-grass-400" strokeWidth={2.5} /> Hitos del club
+                <span className="text-chalk-600 font-normal normal-case tracking-normal">· Registro F11S desde 2021-22</span>
               </h2>
               <ol className="space-y-2">
                 {hitosVis.map((h: any, i: number) => {
