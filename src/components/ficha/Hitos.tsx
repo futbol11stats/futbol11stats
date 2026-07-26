@@ -2,49 +2,88 @@
 
 import { useState } from 'react'
 import {
-  Flag, Goal, Flame, CalendarCheck, Target, ShieldCheck, Shield, CircleCheckBig, Milestone,
+  Flag, Goal, Flame, CalendarCheck, Target, ShieldCheck, Shield, CircleCheckBig, Milestone, Sparkles,
 } from 'lucide-react'
 import EscudoImg from '@/components/EscudoImg'
 import { HITO_CONFIG, fechaCorta, tempLabel, type HitoRow } from '@/lib/jugador'
 
-// Timeline vertical de hitos (spec v3): iconos Lucide, cero emojis. Las series (partidos/goles/
-// porterías acumulados) llegan ya colapsadas al último de cada serie en `curados`; el botón
-// "Ver todos los hitos (N)" revela la lista completa `todos`. Portero -> acento naranja.
+// Timeline vertical de hitos (spec v3): iconos Lucide, cero emojis. Los hitos del MISMO día (debut
+// equipo + debut categoría + primer gol de la misma acta, etc.) se agrupan en UN bloque: títulos
+// apilados (icono pequeño + texto por línea, escala mejor a 390px) y el momento cronológico una sola
+// vez debajo (fecha · rival · resultado, o categoría/temporada si no hay rival). El nodo del timeline
+// usa el icono del hito si el día tiene uno solo, o Sparkles si tiene varios ("gran día"). Las series
+// siguen colapsando en `curados`; "Ver todos los hitos (N)" revela `todos`. Portero -> acento naranja.
 
 const ICONS: Record<string, React.ComponentType<{ className?: string; strokeWidth?: number }>> = {
   Flag, Goal, Flame, CalendarCheck, Target, ShieldCheck, Shield, CircleCheckBig,
 }
+const iconOf = (h: HitoRow) => (HITO_CONFIG[h.tipo_hito] && ICONS[HITO_CONFIG[h.tipo_hito].icon]) || Milestone
+const labelOf = (h: HitoRow) => (HITO_CONFIG[h.tipo_hito] ? HITO_CONFIG[h.tipo_hito].label(h) : h.tipo_hito)
 
-function HitoItem({ h, portero, last }: { h: HitoRow; portero: boolean; last: boolean }) {
-  const cfg = HITO_CONFIG[h.tipo_hito]
-  const Icon = (cfg && ICONS[cfg.icon]) || Milestone
-  const label = cfg ? cfg.label(h) : h.tipo_hito
+type Grupo = { fecha: string; hitos: HitoRow[] }
+
+// Agrupa hitos consecutivos con la MISMA fecha (la lista llega ya ordenada cronológicamente).
+function agrupar(lista: HitoRow[]): Grupo[] {
+  const grupos: Grupo[] = []
+  for (const h of lista) {
+    const ult = grupos[grupos.length - 1]
+    if (ult && ult.fecha === h.fecha) ult.hitos.push(h)
+    else grupos.push({ fecha: h.fecha, hitos: [h] })
+  }
+  return grupos
+}
+
+function GrupoDia({ grupo, portero, last }: { grupo: Grupo; portero: boolean; last: boolean }) {
+  // Títulos únicos del día (dedup por etiqueta: colapsa el par equipo/categoría en una línea).
+  const vistos = new Set<string>()
+  const titulos: { label: string; Icon: React.ComponentType<{ className?: string; strokeWidth?: number }> }[] = []
+  for (const h of grupo.hitos) {
+    const l = labelOf(h)
+    if (!vistos.has(l)) { vistos.add(l); titulos.push({ label: l, Icon: iconOf(h) }) }
+  }
+  const Nodo = titulos.length > 1 ? Sparkles : titulos[0].Icon
   const acento = portero ? 'text-orange-300 bg-orange-500/15 ring-orange-500/25' : 'text-grass-300 bg-grass-500/15 ring-grass-400/25'
-  const esEquipo = h.ambito === 'equipo'
+  const iconoLinea = portero ? 'text-orange-300' : 'text-grass-300'
+
+  // Contexto del momento: escudo+equipo si algún hito es de ámbito equipo; si no, la categoría.
+  const teamHito = grupo.hitos.find((h) => h.ambito === 'equipo' && h.escudo)
+  const catHito = grupo.hitos.find((h) => h.ambito === 'categoria')
+  const ctxNombre = teamHito?.contexto_nombre ?? catHito?.contexto_nombre
+  const detalle = grupo.hitos.find((h) => h.detalle)?.detalle
+  const codtemp = grupo.hitos[0]?.codtemporada
+
   return (
     <li className="relative flex gap-3 pb-4 last:pb-0">
-      {/* línea vertical */}
       {!last && <span className="absolute left-[15px] top-8 bottom-0 w-px bg-pitch-700" aria-hidden="true" />}
       <span className={`relative z-10 flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ring-1 ring-inset ${acento}`}>
-        <Icon className="w-4 h-4" strokeWidth={2.25} />
+        <Nodo className="w-4 h-4" strokeWidth={2.25} />
       </span>
       <div className="min-w-0 flex-1 pt-0.5">
-        <div className="flex items-baseline justify-between gap-2">
-          <span className="text-sm font-semibold text-white leading-tight">{label}</span>
-          <span className="text-[11px] text-chalk-600 flex-shrink-0 tabular-nums">{fechaCorta(h.fecha)}</span>
+        {/* Títulos apilados: icono pequeño + texto por línea */}
+        <div className="space-y-0.5">
+          {titulos.map((t, i) => {
+            const TIcon = t.Icon
+            return (
+              <div key={i} className="flex items-center gap-1.5 min-w-0">
+                <TIcon className={`w-3.5 h-3.5 flex-shrink-0 ${iconoLinea}`} strokeWidth={2.25} />
+                <span className="text-sm font-semibold text-white leading-tight truncate">{t.label}</span>
+              </div>
+            )
+          })}
         </div>
-        <div className="mt-0.5 flex items-center gap-1.5 min-w-0">
-          {esEquipo && h.escudo && (
+        {/* Momento cronológico, una sola vez */}
+        <div className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 min-w-0 text-[11px] text-chalk-600">
+          {teamHito ? (
             <span className="inline-flex items-center justify-center w-4 h-4 bg-white rounded-sm flex-shrink-0 p-px">
-              <EscudoImg escudo={h.escudo} nombre={h.contexto_nombre ?? undefined} />
+              <EscudoImg escudo={teamHito.escudo} nombre={teamHito.contexto_nombre ?? undefined} />
             </span>
-          )}
-          <span className="text-xs text-chalk-500 truncate">{h.contexto_nombre}</span>
-          {!esEquipo && (
+          ) : catHito ? (
             <span className="text-[10px] text-chalk-600 bg-pitch-700 rounded px-1 py-px flex-shrink-0">categoría</span>
-          )}
+          ) : null}
+          {ctxNombre && <span className="text-chalk-500 truncate max-w-[55%]">{ctxNombre}</span>}
+          <span className="tabular-nums flex-shrink-0">{fechaCorta(grupo.fecha)}</span>
+          {detalle ? <span className="truncate">· {detalle}</span> : (codtemp ? <span>· {tempLabel(codtemp)}</span> : null)}
         </div>
-        {h.detalle && <p className="text-[11px] text-chalk-600 mt-0.5 truncate">{h.detalle}</p>}
       </div>
     </li>
   )
@@ -56,14 +95,14 @@ export default function Hitos({
   curados: HitoRow[]; todos: HitoRow[]; portero: boolean
 }) {
   const [abierto, setAbierto] = useState(false)
-  const lista = abierto ? todos : curados
+  const grupos = agrupar(abierto ? todos : curados)
   const hayMas = todos.length > curados.length
   if (todos.length === 0) return <p className="text-sm text-chalk-600">Sin hitos registrados.</p>
   return (
     <div>
       <ol className="relative">
-        {lista.map((h, i) => (
-          <HitoItem key={`${h.tipo_hito}-${h.ambito}-${h.fecha}-${h.valor}-${i}`} h={h} portero={portero} last={i === lista.length - 1} />
+        {grupos.map((g, i) => (
+          <GrupoDia key={`${g.fecha}-${i}`} grupo={g} portero={portero} last={i === grupos.length - 1} />
         ))}
       </ol>
       {hayMas && (
