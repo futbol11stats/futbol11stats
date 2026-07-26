@@ -5,6 +5,7 @@ import { SpeedInsights } from '@vercel/speed-insights/next'
 import { SITE_URL } from '@/lib/seo'
 import CookieConsent from '@/components/CookieConsent'
 import CookieSettingsButton from '@/components/CookieSettingsButton'
+import Buscador from '@/components/buscador/Buscador'
 import './globals.css'
 
 // Fuentes self-hosted por next/font (elimina la cadena externa a fonts.googleapis/gstatic).
@@ -44,11 +45,13 @@ export default function RootLayout({
                 Fútbol<span className="text-grass-400">11</span>Stats
               </span>
             </a>
-            <nav className="hidden md:flex items-center gap-6 text-sm text-chalk-600">
-              <a href="/madrid/aficionados" className="hover:text-white transition-colors">Aficionados</a>
-              <a href="/madrid/juveniles" className="hover:text-white transition-colors">Juveniles</a>
-              <a href="/buscar" className="hover:text-white transition-colors">Buscar</a>
-            </nav>
+            <div className="flex items-center gap-4">
+              <nav className="hidden md:flex items-center gap-6 text-sm text-chalk-600">
+                <a href="/madrid/aficionados" className="hover:text-white transition-colors">Aficionados</a>
+                <a href="/madrid/juveniles" className="hover:text-white transition-colors">Juveniles</a>
+              </nav>
+              <Buscador />
+            </div>
           </div>
         </header>
         <main>{children}</main>
