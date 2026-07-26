@@ -40,6 +40,20 @@ export function breadcrumbLd(items: { name: string; url: string }[]) {
   }
 }
 
+// SportsTeam: la ficha de EQUIPO sí es una organización (no una persona), así que el markup es
+// honesto. name + sport + memberOf (la competición). Opcionalmente logo (escudo self-hosted) y url.
+export function sportsTeamLd(team: { name: string; url: string; sport?: string; competicion?: string | null; logo?: string | null }) {
+  const node: Record<string, unknown> = {
+    '@type': 'SportsTeam',
+    name: team.name,
+    sport: team.sport || 'Soccer',
+    url: team.url,
+  }
+  if (team.competicion) node.memberOf = { '@type': 'SportsOrganization', name: team.competicion }
+  if (team.logo) node.logo = team.logo
+  return node
+}
+
 // Envuelve uno o varios nodos en un documento @graph con @context.
 export function graphLd(...nodes: object[]) {
   return { '@context': 'https://schema.org', '@graph': nodes }

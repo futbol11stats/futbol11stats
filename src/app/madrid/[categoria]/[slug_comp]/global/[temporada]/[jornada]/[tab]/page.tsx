@@ -15,6 +15,7 @@ import Link from 'next/link'
 import JornadaSelector from '@/components/JornadaSelector'
 import TabScroller from '@/components/TabScroller'
 import { ZONA_BG, ZONA_LEYENDA, ARRASTRE_TIPOS, EscudoCell, TarjetasTemporadaTab, JugadoresTab, EloTemporadaTab, PorterosTemporadaTab, Top5JugadoresTab, Top5EquiposTab, XiOptimoTemporadaTab, XiOptimoJornadaTab } from '@/components/tablas'
+import NombreEquipo from '@/components/NombreEquipo'
 
 const TEMPORADA_MAP: Record<string, number> = {
   '2021-22': 17,
@@ -575,7 +576,7 @@ function ClasificacionGlobalTab({
     <tr className="border-b border-pitch-700/50 last:border-0" style={ZONA_BG[zona]}>
       <td className="text-chalk-600 font-mono text-xs">{r.pos}</td>
       <EscudoCell escudo={r.escudo} nombre={r.nombre_equipo} />
-      <td className="col-nombre font-medium text-white">{r.nombre_equipo}</td>
+      <td className="col-nombre font-medium text-white"><NombreEquipo codequipo={r.codequipo} nombre={r.nombre_equipo} /></td>
       <td className="text-center text-chalk-600">{r.pj}</td>
       <td className="text-center font-bold text-white">{r.pts}</td>
     </tr>

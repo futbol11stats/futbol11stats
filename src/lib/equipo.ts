@@ -1,0 +1,119 @@
+// Utilidades de la FICHA DE EQUIPO. Reutiliza helpers genéricos de la ficha de jugador
+// (slugify, codFromSlug, tempLabel, fechaISO) y la etiqueta de temporada. El escudo se lee directo
+// de las filas (nombre de fichero del bucket, como el resto del sitio) — igual que en la ficha de jugador.
+
+import { supabase } from '@/lib/supabase'
+import { slugify, codFromSlug, tempLabel, LIVE_COD } from '@/lib/jugador'
+
+export { slugify, codFromSlug, tempLabel, LIVE_COD }
+
+// rama de web_equipo -> segmento de URL de la vista de grupo.
+export const RAMA_SLUG: Record<string, string> = { aficionados: 'aficionados', juvenil: 'juveniles' }
+
+// Slug canónico de una ficha de equipo: {codequipo}-{nombre-slug}. El nombre de equipo es plano
+// (no "APELLIDOS, NOMBRE"), así que se slugifica tal cual.
+export function equipoSlug(codequipo: string | number, nombre: string | null): string {
+  const suf = slugify(nombre || '')
+  return suf ? `${codequipo}-${suf}` : String(codequipo)
+}
+export function equipoHref(codequipo: string | number | null | undefined, nombre: string | null): string | null {
+  if (codequipo == null) return null
+  return `/madrid/equipo/${equipoSlug(codequipo, nombre)}`
+}
+
+// Columnas explícitas de los fetchers (cotejadas con el DDL de _equipos_export.py).
+export const COLS_EQUIPO =
+  'codequipo, nombre, escudo, club_root, rama, categoria_nivel, nombre_comp, codgrupo, grupo_nombre, ' +
+  'codtemporada, activo, posicion_actual, elo_actual, elo_max, temporada_elo_max, elo_serie, ' +
+  'posicion_juego_limpio, ta_total, tr_total, n_campeonatos, n_ascensos, n_descensos, n_playoffs, ' +
+  'pj_total, gf_total, gc_total, temporadas'
+
+export const COLS_EQUIPO_TEMPORADAS =
+  'codtemporada, nombre_comp, categoria_nivel, rama, codgrupo, grupo_nombre, pj, pts, posicion_final, gf, gc, badge'
+
+export const COLS_EQUIPO_MOV =
+  'codtemporada, fecha, clase, direccion, intra_temporada, codjugador, nombre, ' +
+  'equipo_rel_cod, equipo_rel_nombre, equipo_rel_escudo, convocatorias, frontera'
+
+export const COLS_EQUIPO_HITOS = 'tipo_hito, fecha, codtemporada, detalle, valor'
+
+export const COLS_PLANTILLA_JUVENIL =
+  'codjugador, nombre, dorsal_comun, posicion_pastilla, pj, goles, minutos, ta, tr'
+
+// --- Tipos (parciales) ---
+export type EquipoFicha = {
+  codequipo: string
+  nombre: string
+  escudo: string | null
+  club_root: string | null
+  rama: string | null
+  categoria_nivel: number | null
+  nombre_comp: string | null
+  codgrupo: string | null
+  grupo_nombre: string | null
+  codtemporada: string | null
+  activo: boolean | null
+  posicion_actual: number | null
+  elo_actual: number | null
+  elo_max: number | null
+  temporada_elo_max: string | null
+  elo_serie: { t: string; elo: number }[] | null
+  posicion_juego_limpio: number | null
+  ta_total: number | null
+  tr_total: number | null
+  n_campeonatos: number | null
+  n_ascensos: number | null
+  n_descensos: number | null
+  n_playoffs: number | null
+  pj_total: number | null
+  gf_total: number | null
+  gc_total: number | null
+  temporadas: number | null
+}
+
+export type MovimientoRow = {
+  codtemporada: string | null
+  fecha: string | null
+  clase: string | null           // FICHAJE | PROMOCION_INTERNA
+  direccion: string | null       // entra | sale
+  intra_temporada: boolean | null
+  codjugador: string | null
+  nombre: string | null
+  equipo_rel_cod: string | null
+  equipo_rel_nombre: string | null
+  equipo_rel_escudo: string | null
+  convocatorias: number | null
+  frontera: boolean | null
+}
+
+// Badge de temporada -> pastilla de color. Mapa ESTÁTICO con clases literales (src/lib está en el
+// content de Tailwind, así que no se purgan).
+export const BADGE: Record<string, { label: string; cls: string }> = {
+  CAMPEON:  { label: 'Campeón',  cls: 'bg-amber-500/15 text-amber-300 ring-1 ring-inset ring-amber-500/40' },
+  ASCENSO:  { label: 'Ascenso',  cls: 'bg-grass-500/15 text-grass-300 ring-1 ring-inset ring-grass-400/40' },
+  DESCENSO: { label: 'Descenso', cls: 'bg-red-500/15 text-red-300 ring-1 ring-inset ring-red-500/40' },
+  PLAYOFF:  { label: 'Playoff',  cls: 'bg-blue-500/15 text-blue-300 ring-1 ring-inset ring-blue-500/40' },
+}
+
+// Config de presentación de hitos de club: icono Lucide + etiqueta.
+export const HITO_EQUIPO: Record<string, { icon: string; label: (h: { valor: number | null; detalle: string | null }) => string }> = {
+  mejor_temporada:     { icon: 'Trophy',        label: (h) => `Mejor temporada${h.detalle ? ` · ${h.detalle}` : ''}` },
+  mejor_racha:         { icon: 'Flame',         label: (h) => h.detalle || 'Mejor racha' },
+  mayor_goleada:       { icon: 'Swords',        label: (h) => `Mayor goleada${h.detalle ? ` · ${h.detalle}` : ''}` },
+  partidos_acumulados: { icon: 'CalendarCheck', label: (h) => `${h.valor} partidos en la categoría` },
+}
+
+// Fechas: los hitos usan DD/MM/YYYY (o null); los movimientos usan YYYYMMDD.
+const MESES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic']
+export function fechaCortaDMY(fecha: string | null): string {
+  if (!fecha) return ''
+  const m = fecha.match(/^(\d{2})\/(\d{2})\/(\d{4})$/)
+  if (!m) return fecha
+  return `${parseInt(m[1], 10)} ${MESES[parseInt(m[2], 10) - 1] ?? m[2]} ${m[3]}`
+}
+export function fechaCortaYMD(fecha: string | null): string {
+  if (!fecha) return ''
+  const m = fecha.match(/^(\d{4})(\d{2})(\d{2})$/)
+  if (!m) return fecha
+  return `${parseInt(m[3], 10)} ${MESES[parseInt(m[2], 10) - 1] ?? m[2]} ${m[1]}`
+}

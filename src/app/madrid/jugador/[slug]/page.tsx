@@ -9,6 +9,7 @@ import { SITE_URL } from '@/lib/seo'
 import JsonLd from '@/components/JsonLd'
 import { graphLd, breadcrumbLd } from '@/lib/jsonld'
 import EscudoImg from '@/components/EscudoImg'
+import NombreEquipo from '@/components/NombreEquipo'
 import Medidores from '@/components/ficha/Medidores'
 import Hitos from '@/components/ficha/Hitos'
 import {
@@ -190,11 +191,11 @@ export default async function FichaJugador({ params }: { params: Promise<{ slug:
               )}
               {inactivo ? (
                 <span className="text-sm text-chalk-600 truncate">
-                  Último equipo · <span className="text-chalk-500">{j.equipo_actual_nombre}</span>
+                  Último equipo · <span className="text-chalk-500"><NombreEquipo codequipo={j.codequipo_actual} nombre={j.equipo_actual_nombre} /></span>
                   {j.codtemporada_ultima ? ` (${tempLabel(j.codtemporada_ultima)})` : ''}
                 </span>
               ) : (
-                <span className="text-sm text-chalk-300 font-medium truncate">{j.equipo_actual_nombre}</span>
+                <span className="text-sm text-chalk-300 font-medium truncate"><NombreEquipo codequipo={j.codequipo_actual} nombre={j.equipo_actual_nombre} /></span>
               )}
             </div>
             {compActual && (
@@ -308,7 +309,7 @@ export default async function FichaJugador({ params }: { params: Promise<{ slug:
                     </span>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium text-white truncate">{a.rival_nombre}</span>
+                        <span className="text-sm font-medium text-white truncate"><NombreEquipo codequipo={a.rival_cod} nombre={a.rival_nombre} /></span>
                         <span className="text-xs text-chalk-500 tabular-nums flex-shrink-0">{a.resultado}</span>
                       </div>
                       <div className="text-[11px] text-chalk-600 truncate">
@@ -366,7 +367,7 @@ export default async function FichaJugador({ params }: { params: Promise<{ slug:
                               <EscudoImg escudo={c.escudo} nombre={c.equipo_nombre} />
                             </span>
                           )}
-                          <span className="truncate">{c.equipo_nombre}</span>
+                          <span className="truncate"><NombreEquipo codequipo={c.codequipo} nombre={c.equipo_nombre} /></span>
                         </span>
                       </td>
                       <td className="text-chalk-600 hidden sm:table-cell whitespace-nowrap text-xs">{c.nombre_comp}{c.grupo_nombre ? ` · ${c.grupo_nombre}` : ''}</td>

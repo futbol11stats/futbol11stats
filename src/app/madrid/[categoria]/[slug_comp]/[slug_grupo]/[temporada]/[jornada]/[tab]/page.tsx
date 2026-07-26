@@ -139,6 +139,18 @@ async function getResultados(codgrupo: string, codtemporada: number, jornada: nu
   return data || []
 }
 
+// nombre_equipo -> codequipo del grupo (para enlazar equipos en Resultados, que no trae codequipo).
+// Desde la clasificación jornada 1 (~18 filas). En copa (sin clasificación) el mapa queda vacío.
+async function getEquiposMap(codgrupo: string, codtemporada: number): Promise<Map<string, string>> {
+  const { data } = await supabase
+    .from('web_clasificacion')
+    .select('codequipo, nombre_equipo')
+    .eq('codgrupo', codgrupo).eq('codtemporada', codtemporada).eq('jornada', 1)
+  const m = new Map<string, string>()
+  for (const r of (data || []) as any[]) m.set(r.nombre_equipo, String(r.codequipo))
+  return m
+}
+
 // Snapshot de TEMPORADA con fallback de 2 eslabones (la "máquina del tiempo"):
 //   1) jornada = N seleccionada (acumulado J1->N; copa T21/T22 con snapshots)
 //   2) si vacío -> jornada IS NULL (foto final; temporadas congeladas T17-T20 o sin snapshot)
@@ -279,6 +291,7 @@ export default async function GrupoPage({
   // la vista global. Antes se disparaban las 15 queries en todos los renders.
   let clasificacion: any[] = []
   let resultados: any[] = []
+  let equiposMap: Map<string, string> = new Map()
   let goleadores: any[] = [], fantasy: any[] = [], eloJugadores: any[] = [], porteros: any[] = []
   let golesJ: any[] = [], tarjetasJ: any[] = [], mvpJ: any[] = [], xiJ: any[] = []
   let equiposForma: any[] = [], alertasTarjetas: any[] = [], xiOptimo: any[] = []
@@ -287,7 +300,10 @@ export default async function GrupoPage({
   if (tab2 === 'clasificacion') {
     clasificacion = await getClasificacion(cg, codtemporada, jornadaNum)
   } else if (tab2 === 'resultados') {
-    resultados = await getResultados(cg, codtemporada, jornadaNum)
+    [resultados, equiposMap] = await Promise.all([
+      getResultados(cg, codtemporada, jornadaNum),
+      getEquiposMap(cg, codtemporada),
+    ])
   } else if (
     tab2 === 'top10-goleadores-temporada' || tab2 === 'top10-fantasy-temporada' ||
     tab2 === 'top10-elo-jugadores-temporada' || tab2 === 'top10-porteros-temporada'
@@ -570,7 +586,7 @@ export default async function GrupoPage({
         <ClasificacionTab rows={clasificacion} jornadaNum={jornadaNum} totalJornadas={grupo.total_jornadas} />
       )}
       {tab2 ==='resultados' && (
-        <ResultadosTab resultados={resultados} jornada={jornadaNum} />
+        <ResultadosTab resultados={resultados} jornada={jornadaNum} equipos={equiposMap} />
       )}
       {tab2 ==='top10-goleadores-temporada' && (
         <JugadoresTab jugadores={goleadores} tipo="goleadores" fichas={fichas} />

@@ -4,6 +4,7 @@ import { escudoUrl } from '@/lib/supabase'
 import type { JuegoLimpioRow, SancionadoRow } from '@/lib/supabase'
 import EscudoImg from '@/components/EscudoImg'
 import NombreJugador from '@/components/NombreJugador'
+import NombreEquipo from '@/components/NombreEquipo'
 
 // Conjunto de codjugadores con ficha en web_jugador; los rankings lo resuelven (rama aficionados)
 // y lo pasan a cada tabla para enlazar SOLO esos nombres. En juveniles llega undefined -> sin enlaces.
@@ -86,7 +87,7 @@ export function ClasificacionTab({ rows, jornadaNum, totalJornadas }: { rows: an
                       <EscudoImg escudo={row.escudo} nombre={row.nombre_equipo} />
                     </span>
                   )}
-                  <span className="truncate">{row.nombre_equipo}</span>
+                  <span className="truncate"><NombreEquipo codequipo={row.codequipo} nombre={row.nombre_equipo} /></span>
                 </span>
               </td>
               <td className="text-center text-chalk-600">{row.pj}</td>
@@ -133,7 +134,7 @@ export function ClasificacionTab({ rows, jornadaNum, totalJornadas }: { rows: an
 // Marcador a la IZQUIERDA en columna de ancho fijo (w-7, aguanta doble dígito sin descuadrar los
 // escudos). Dos niveles: GANÓ = blanco (goles bold, nombre semibold); NO GANÓ (perdió o empató) =
 // todo chalk-600 apagado. El empate se lee igual que la derrota: solo el ganador destaca.
-function FilaEquipoMovil({ escudo, nombre, goles, gana }: { escudo: string; nombre: string; goles: number; gana: boolean }) {
+function FilaEquipoMovil({ escudo, nombre, goles, gana, codequipo }: { escudo: string; nombre: string; goles: number; gana: boolean; codequipo?: string }) {
   const nombreC = gana ? 'text-white font-semibold' : 'text-chalk-600'
   const golesC  = gana ? 'text-white font-bold'     : 'text-chalk-600'
   return (
@@ -146,12 +147,15 @@ function FilaEquipoMovil({ escudo, nombre, goles, gana }: { escudo: string; nomb
       ) : (
         <span className="w-5 h-5 flex-shrink-0" />
       )}
-      <span className={`flex-1 min-w-0 truncate font-display text-[13px] leading-tight ${nombreC}`}>{nombre}</span>
+      <span className={`flex-1 min-w-0 truncate font-display text-[13px] leading-tight ${nombreC}`}><NombreEquipo codequipo={codequipo} nombre={nombre} /></span>
     </div>
   )
 }
 
-export function ResultadosTab({ resultados, jornada }: { resultados: any[]; jornada: number }) {
+// `equipos`: mapa nombre_equipo -> codequipo (web_resultados no trae codequipo). La página de grupo lo
+// resuelve desde la clasificación del grupo; sin él (p.ej. copa) los nombres quedan sin enlace.
+export function ResultadosTab({ resultados, jornada, equipos }: { resultados: any[]; jornada: number; equipos?: Map<string, string> }) {
+  const cod = (nombre: string): string | undefined => equipos?.get(nombre)
   return (
     <div>
       <h3 className="text-chalk-600 text-sm mb-4">Jornada {jornada}</h3>
@@ -160,8 +164,8 @@ export function ResultadosTab({ resultados, jornada }: { resultados: any[]; jorn
       <div className="md:hidden bg-pitch-800 rounded-xl border border-pitch-700 px-3">
         {resultados.map(r => (
           <div key={r.codacta} className="flex flex-col gap-0.5 py-1.5 border-b border-pitch-700/50 last:border-0">
-            <FilaEquipoMovil escudo={r.escudo_local}     nombre={r.nombre_local}     goles={r.goles_local}     gana={r.goles_local > r.goles_visitante} />
-            <FilaEquipoMovil escudo={r.escudo_visitante} nombre={r.nombre_visitante} goles={r.goles_visitante} gana={r.goles_visitante > r.goles_local} />
+            <FilaEquipoMovil escudo={r.escudo_local}     nombre={r.nombre_local}     goles={r.goles_local}     gana={r.goles_local > r.goles_visitante} codequipo={cod(r.nombre_local)} />
+            <FilaEquipoMovil escudo={r.escudo_visitante} nombre={r.nombre_visitante} goles={r.goles_visitante} gana={r.goles_visitante > r.goles_local} codequipo={cod(r.nombre_visitante)} />
           </div>
         ))}
       </div>
@@ -171,7 +175,7 @@ export function ResultadosTab({ resultados, jornada }: { resultados: any[]; jorn
         {resultados.map(r => (
           <div key={r.codacta} className="bg-pitch-800 rounded-xl border border-pitch-700 px-4 py-3 flex items-center gap-4">
             <div className="flex-1 flex items-center justify-end gap-2 text-sm">
-              <span className="text-white font-medium text-right">{r.nombre_local}</span>
+              <span className="text-white font-medium text-right"><NombreEquipo codequipo={cod(r.nombre_local)} nombre={r.nombre_local} /></span>
               {escudoUrl(r.escudo_local) && (
                 <span className="escudo-box inline-flex items-center justify-center w-9 h-9 bg-white rounded-sm flex-shrink-0 p-0.5">
                   <EscudoImg escudo={r.escudo_local} nombre={r.nombre_local} />
@@ -189,7 +193,7 @@ export function ResultadosTab({ resultados, jornada }: { resultados: any[]; jorn
                   <EscudoImg escudo={r.escudo_visitante} nombre={r.nombre_visitante} />
                 </span>
               )}
-              <span className="text-white font-medium">{r.nombre_visitante}</span>
+              <span className="text-white font-medium"><NombreEquipo codequipo={cod(r.nombre_visitante)} nombre={r.nombre_visitante} /></span>
             </div>
           </div>
         ))}
@@ -238,7 +242,7 @@ export function JugadoresTab({ jugadores, tipo, fichas }: { jugadores: any[]; ti
               <td className="text-chalk-600 font-mono text-xs">{j.posicion || '—'}</td>
               <td className="col-nombre font-medium text-white"><span className="flex items-center gap-2 min-w-0"><span className="truncate min-w-0 flex-1"><NombreJugador codjugador={j.codjugador} nombre={j.nombre} fichas={fichas} /></span><GrupoBadge grupo={j.grupo} /></span></td>
               <EscudoCell escudo={j.escudo} nombre={j.nombre_equipo} />
-              <td className="text-chalk-600 hidden md:table-cell text-xs">{j.nombre_equipo}</td>
+              <td className="text-chalk-600 hidden md:table-cell text-xs"><NombreEquipo codequipo={j.codequipo} nombre={j.nombre_equipo} /></td>
               {tipo === 'goleadores' ? (
                 <>
                   <td className="text-center font-bold text-white">{j.goles}</td>
@@ -295,7 +299,7 @@ export function EloTemporadaTab({ jugadores, fichas }: { jugadores: any[]; ficha
               <td className="text-chalk-600 font-mono text-xs">{j.posicion || '—'}</td>
               <td className="col-nombre font-medium text-white"><span className="flex items-center gap-2 min-w-0"><span className="truncate min-w-0 flex-1"><NombreJugador codjugador={j.codjugador} nombre={j.nombre} fichas={fichas} /></span><GrupoBadge grupo={j.grupo} /></span></td>
               <EscudoCell escudo={j.escudo} nombre={j.nombre_equipo} />
-              <td className="text-chalk-600 hidden md:table-cell text-xs">{j.nombre_equipo}</td>
+              <td className="text-chalk-600 hidden md:table-cell text-xs"><NombreEquipo codequipo={j.codequipo} nombre={j.nombre_equipo} /></td>
               <td className="text-center font-bold text-white">{j.elo != null ? Math.round(j.elo) : ''}</td>
               <td className="text-center text-chalk-600">{j.pj}</td>
             </tr>
@@ -337,7 +341,7 @@ export function PorterosTemporadaTab({ jugadores, fichas }: { jugadores: any[]; 
               <td className="text-chalk-600 font-mono text-xs">{j.rank}</td>
               <td className="col-nombre font-medium text-white"><span className="flex items-center gap-2 min-w-0"><span className="truncate min-w-0 flex-1"><NombreJugador codjugador={j.codjugador} nombre={j.nombre} fichas={fichas} /></span><GrupoBadge grupo={j.grupo} /></span></td>
               <EscudoCell escudo={j.escudo} nombre={j.nombre_equipo} />
-              <td className="text-chalk-600 hidden md:table-cell text-xs">{j.nombre_equipo}</td>
+              <td className="text-chalk-600 hidden md:table-cell text-xs"><NombreEquipo codequipo={j.codequipo} nombre={j.nombre_equipo} /></td>
               <td className="text-center font-bold text-white">{j.goles_enc}</td>
               <td className="text-center text-chalk-600">{j.pj}</td>
               <td className="text-center text-chalk-600">{j.goles}</td>
@@ -417,7 +421,7 @@ export function TarjetasTemporadaTab(
                       <EscudoImg escudo={t.escudo} nombre={t.nombre_equipo} />
                     </span>
                   )}
-                  <span className="truncate min-w-0 flex-1">{t.nombre_equipo}</span>
+                  <span className="truncate min-w-0 flex-1"><NombreEquipo codequipo={t.codequipo} nombre={t.nombre_equipo} /></span>
                   <GrupoBadge grupo={t.grupo} />
                 </span>
               </td>
@@ -463,7 +467,7 @@ export function TarjetasTemporadaTab(
                         <EscudoImg escudo={t.escudo} nombre={t.nombre_equipo} />
                       </span>
                     )}
-                    <span className="truncate">{t.nombre_equipo}</span>
+                    <span className="truncate"><NombreEquipo codequipo={t.codequipo} nombre={t.nombre_equipo} /></span>
                   </span>
                 </td>
                 <td className="text-center text-chalk-600">{t.amarillas_tec}</td>
@@ -503,7 +507,7 @@ export function TarjetasTemporadaTab(
               <td className="text-chalk-600 text-xs">{j.posicion || '—'}</td>
               <td className="col-nombre font-medium text-white"><span className="flex items-center gap-2 min-w-0"><span className="truncate min-w-0 flex-1"><NombreJugador codjugador={j.codjugador} nombre={j.nombre} fichas={fichas} /></span><GrupoBadge grupo={j.grupo} /></span></td>
               <EscudoCell escudo={j.escudo} nombre={j.nombre_equipo} />
-              <td className="text-chalk-600 hidden md:table-cell text-xs">{j.nombre_equipo}</td>
+              <td className="text-chalk-600 hidden md:table-cell text-xs"><NombreEquipo codequipo={j.codequipo} nombre={j.nombre_equipo} /></td>
               <td className="text-center text-chalk-600">{j.ciclos_completados}</td>
               <td className="text-center text-chalk-600">{j.dobles_amarillas}</td>
               <td className="text-center text-chalk-600">{j.rojas_directas}</td>
@@ -548,7 +552,7 @@ export function XiOptimoTemporadaTab({ jugadores, fichas }: { jugadores: any[]; 
               <td className="text-chalk-600 font-mono text-xs">{j.posicion || '—'}</td>
               <td className="col-nombre font-medium text-white"><span className="flex items-center gap-2 min-w-0"><span className="truncate min-w-0 flex-1"><NombreJugador codjugador={j.codjugador} nombre={j.nombre} fichas={fichas} /></span><GrupoBadge grupo={j.grupo} /></span></td>
               <EscudoCell escudo={j.escudo} nombre={j.nombre_equipo} />
-              <td className="text-chalk-600 hidden md:table-cell text-xs">{j.nombre_equipo}</td>
+              <td className="text-chalk-600 hidden md:table-cell text-xs"><NombreEquipo codequipo={j.codequipo} nombre={j.nombre_equipo} /></td>
               <td className="text-center font-bold text-white">{j.pts_totales}</td>
               <td className="text-center text-chalk-600">{j.goles}</td>
               <td className="text-center text-chalk-600 hidden md:table-cell">{j.racha_5p}</td>
@@ -590,7 +594,7 @@ export function GoleadoresJornadaTab({ jugadores, fichas }: { jugadores: any[]; 
               <td className="text-chalk-600 font-mono text-xs">{j.posicion || '—'}</td>
               <td className="col-nombre font-medium text-white"><span className="flex items-center gap-2 min-w-0"><span className="truncate min-w-0 flex-1"><NombreJugador codjugador={j.codjugador} nombre={j.nombre} fichas={fichas} /></span><GrupoBadge grupo={j.grupo} /></span></td>
               <EscudoCell escudo={j.escudo} nombre={j.nombre_equipo} />
-              <td className="text-chalk-600 hidden md:table-cell text-xs">{j.nombre_equipo}</td>
+              <td className="text-chalk-600 hidden md:table-cell text-xs"><NombreEquipo codequipo={j.codequipo} nombre={j.nombre_equipo} /></td>
               <td className="text-center font-bold text-white">{j.goles}</td>
             </tr>
           ))}
@@ -654,7 +658,7 @@ export function SuspendidosTab({ jugadores, umbral = 5, fichas }: { jugadores: a
               <td className="text-chalk-600 font-mono text-xs">{j.posicion || '—'}</td>
               <td className="col-nombre font-medium text-white"><span className="flex items-center gap-2 min-w-0"><span className="truncate min-w-0 flex-1"><NombreJugador codjugador={j.codjugador} nombre={j.nombre} fichas={fichas} /></span><GrupoBadge grupo={j.grupo} /></span></td>
               <EscudoCell escudo={j.escudo} nombre={j.nombre_equipo} />
-              <td className="text-chalk-600 hidden md:table-cell text-xs">{j.nombre_equipo}</td>
+              <td className="text-chalk-600 hidden md:table-cell text-xs"><NombreEquipo codequipo={j.codequipo} nombre={j.nombre_equipo} /></td>
               <td className="text-center text-chalk-600 text-xs">{j.motivo}</td>
               <td className="text-center whitespace-nowrap">{motivoEmoji(j.motivo)}</td>
             </tr>
@@ -697,7 +701,7 @@ export function TarjetasJornadaTab({ jugadores, fichas }: { jugadores: any[]; fi
               <td className="text-chalk-600 font-mono text-xs">{j.posicion || '—'}</td>
               <td className="col-nombre font-medium text-white"><span className="flex items-center gap-2 min-w-0"><span className="truncate min-w-0 flex-1"><NombreJugador codjugador={j.codjugador} nombre={j.nombre} fichas={fichas} /></span><GrupoBadge grupo={j.grupo} /></span></td>
               <EscudoCell escudo={j.escudo} nombre={j.nombre_equipo} />
-              <td className="text-chalk-600 hidden md:table-cell text-xs">{j.nombre_equipo}</td>
+              <td className="text-chalk-600 hidden md:table-cell text-xs"><NombreEquipo codequipo={j.codequipo} nombre={j.nombre_equipo} /></td>
               <td className="text-center text-chalk-600">{j.goles}</td>
               <td className="text-center text-chalk-600">{j.goles_enc}</td>
               <td className="text-center text-chalk-600">{j.racha_5p}</td>
@@ -738,7 +742,7 @@ export function Top5JugadoresTab({ jugadores, fichas }: { jugadores: any[]; fich
               <td className="text-chalk-600 font-mono text-xs">{j.posicion || '—'}</td>
               <td className="col-nombre font-medium text-white"><span className="flex items-center gap-2 min-w-0"><span className="truncate min-w-0 flex-1"><NombreJugador codjugador={j.codjugador} nombre={j.nombre} fichas={fichas} /></span><GrupoBadge grupo={j.grupo} /></span></td>
               <EscudoCell escudo={j.escudo} nombre={j.nombre_equipo} />
-              <td className="text-chalk-600 hidden md:table-cell text-xs">{j.nombre_equipo}</td>
+              <td className="text-chalk-600 hidden md:table-cell text-xs"><NombreEquipo codequipo={j.codequipo} nombre={j.nombre_equipo} /></td>
               <td className="text-center font-bold text-white">{j.pts_fantasy}</td>
             </tr>
           ))}
@@ -773,7 +777,7 @@ export function Top5EquiposTab({ equipos }: { equipos: any[] }) {
             <tr key={e.codequipo} className="border-b border-pitch-700/50 last:border-0">
               <td className="text-chalk-600 font-mono text-xs">{e.rank}</td>
               <EscudoCell escudo={e.escudo} nombre={e.nombre_equipo} />
-              <td className="col-nombre font-medium text-white"><span className="flex items-center gap-2 min-w-0"><span className="truncate min-w-0 flex-1">{e.nombre_equipo}</span><GrupoBadge grupo={e.grupo} /></span></td>
+              <td className="col-nombre font-medium text-white"><span className="flex items-center gap-2 min-w-0"><span className="truncate min-w-0 flex-1"><NombreEquipo codequipo={e.codequipo} nombre={e.nombre_equipo} /></span><GrupoBadge grupo={e.grupo} /></span></td>
               <td className="text-center font-bold text-white">{e.pts_fantasy ? Math.round(e.pts_fantasy) : ''}</td>
             </tr>
           ))}
@@ -811,7 +815,7 @@ export function XiOptimoJornadaTab({ jugadores, fichas }: { jugadores: any[]; fi
               <td className="text-chalk-600 font-mono text-xs">{j.posicion || '—'}</td>
               <td className="col-nombre font-medium text-white"><span className="flex items-center gap-2 min-w-0"><span className="truncate min-w-0 flex-1"><NombreJugador codjugador={j.codjugador} nombre={j.nombre} fichas={fichas} /></span><GrupoBadge grupo={j.grupo} /></span></td>
               <EscudoCell escudo={j.escudo} nombre={j.nombre_equipo} />
-              <td className="text-chalk-600 hidden md:table-cell text-xs">{j.nombre_equipo}</td>
+              <td className="text-chalk-600 hidden md:table-cell text-xs"><NombreEquipo codequipo={j.codequipo} nombre={j.nombre_equipo} /></td>
               <td className="text-center font-bold text-white">{j.pts_fantasy}</td>
               <td className="text-center text-chalk-600">{j.goles}</td>
             </tr>
