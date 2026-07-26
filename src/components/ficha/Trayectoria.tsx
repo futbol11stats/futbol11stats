@@ -4,77 +4,80 @@ import { useState, Fragment } from 'react'
 import { ChevronDown, Loader2, CircleDot } from 'lucide-react'
 import { supabase, escudoUrl } from '@/lib/supabase'
 import EscudoImg from '@/components/EscudoImg'
-import NombreEquipo from '@/components/NombreEquipo'
-import { tempLabel, fechaCorta, fechaISO } from '@/lib/jugador'
+import { tempLabel, fechaCorta } from '@/lib/jugador'
 
 // FLAG: la tabla web_jugador_partidos la está creando el pipeline. Con el flag en false la Trayectoria
 // se comporta como antes (sin chevron ni acordeón). Poner en true SOLO tras verificar que la tabla
 // responde (y ajustar los nombres de columna si difieren de los usados en PartidosLista).
-export const PARTIDOS_HABILITADO = false
+export const PARTIDOS_HABILITADO = true
 
 type Carrera = any
+
+// Columnas reales de web_jugador_partidos (2M+ filas, RLS pública).
+const COLS_P = 'codacta, jornada, fecha, rival_nombre, rival_escudo, resultado, titular, minutos, goles, amarillas, dobles_amarilla, rojas, puntos, elo_delta, goles_encajados'
 
 async function fetchPartidos(codjugador: string, codtemporada: string, codequipo: string) {
   const { data, error } = await supabase
     .from('web_jugador_partidos')
-    .select('*')
+    .select(COLS_P)
     .eq('codjugador', codjugador)
     .eq('codtemporada', codtemporada)
     .eq('codequipo', codequipo)
+    .order('jornada', { ascending: false })   // por jornada (entero), no por el string de fecha
   if (error) return { error: error.message, rows: [] as any[] }
-  // Orden cronológico descendente (fecha DD/MM/YYYY -> clave ISO; fallback jornada).
-  const rows = (data || []).sort((a: any, b: any) =>
-    fechaISO(b.fecha).localeCompare(fechaISO(a.fecha)) || (b.jornada || 0) - (a.jornada || 0))
-  return { error: null, rows }
+  return { error: null, rows: (data || []) as any[] }
 }
 
-// Lee campos de forma tolerante (los nombres exactos se fijan al verificar la tabla real).
-function resultadoColor(p: any): string {
-  const r = (p.resultado_local_visitante ?? p.signo ?? p.resultado_signo ?? '').toString().toUpperCase()
-  if (r === 'V' || r === 'W' || r === 'G') return 'text-grass-300'
-  if (r === 'D' || r === 'L' || r === 'P') return 'text-red-300'
-  if (r === 'E' || r === 'X') return 'text-chalk-400'
-  // Sin señal explícita: por goles a favor/en contra si están disponibles.
-  const gf = p.goles_favor, gc = p.goles_contra
-  if (gf != null && gc != null) return gf > gc ? 'text-grass-300' : gf < gc ? 'text-red-300' : 'text-chalk-400'
-  return 'text-chalk-300'
+// resultado = "X-Y G/E/P" (ya en perspectiva del jugador): el color sale del sufijo.
+function parseResultado(resultado: string | null): { marcador: string; signo: string } {
+  const m = (resultado || '').trim().match(/^(.*?)\s*([GEP])$/i)
+  return m ? { marcador: m[1].trim(), signo: m[2].toUpperCase() } : { marcador: resultado || '', signo: '' }
 }
+const colorSigno = (s: string) => (s === 'G' ? 'text-grass-300' : s === 'P' ? 'text-red-300' : 'text-chalk-400')
 
 function PartidosLista({ rows, portero }: { rows: any[]; portero: boolean }) {
   if (rows.length === 0) return <p className="px-3 py-3 text-xs text-chalk-600">Sin partidos registrados.</p>
   return (
     <div className="text-xs">
       {rows.map((p, i) => {
-        const goles = p.goles ?? 0
-        const min = p.minutos ?? p.minutos_jugados ?? 0
-        const ta = p.tarjetas_amarillas ?? p.ta ?? 0
-        const tr = p.tarjetas_rojas ?? p.tr ?? 0
-        const pts = p.pts_fantasy ?? p.pts ?? p.puntos
-        const titular = p.titular
+        const { marcador, signo } = parseResultado(p.resultado)
+        const goles = p.goles ?? 0, min = p.minutos ?? 0, pts = p.puntos, gc = p.goles_encajados ?? 0
+        const ta = p.amarillas ?? 0, da = p.dobles_amarilla ?? 0, tr = p.rojas ?? 0
+        const delta = p.elo_delta
         return (
           <div key={p.codacta ?? i} className="flex items-center gap-2 px-3 py-1.5 border-b border-pitch-700/40 last:border-0">
-            <span className="w-7 flex-shrink-0 text-chalk-600 tabular-nums">J{p.jornada ?? '·'}</span>
-            <span className="hidden sm:block w-20 flex-shrink-0 text-chalk-600 tabular-nums">{fechaCorta(p.fecha)}</span>
+            <span className="w-6 flex-shrink-0 text-chalk-600 tabular-nums">J{p.jornada}</span>
+            <span className="hidden sm:block w-16 flex-shrink-0 text-chalk-600 tabular-nums">{fechaCorta(p.fecha)}</span>
             {escudoUrl(p.rival_escudo) ? (
               <span className="inline-flex items-center justify-center w-4 h-4 bg-white rounded-sm flex-shrink-0 p-px">
                 <EscudoImg escudo={p.rival_escudo} nombre={p.rival_nombre ?? undefined} />
               </span>
             ) : <span className="w-4 h-4 flex-shrink-0" />}
             <span className="flex-1 min-w-0 truncate text-chalk-300 uppercase font-display">{p.rival_nombre}</span>
-            <span className={`flex-shrink-0 tabular-nums font-semibold font-display ${resultadoColor(p)}`}>{p.resultado ?? ''}</span>
-            <span className="hidden sm:block w-8 flex-shrink-0 text-center text-chalk-600">{titular != null ? (titular ? 'Tit' : 'Sup') : ''}</span>
-            {portero
-              ? <span className="w-10 flex-shrink-0 text-right text-chalk-500 tabular-nums">{(p.goles_encajados ?? 0)} GC</span>
-              : (goles > 0
-                  ? <span className="flex items-center gap-0.5 flex-shrink-0 text-white font-semibold"><CircleDot className="w-3 h-3 text-grass-400" strokeWidth={2.5} />{goles}</span>
-                  : <span className="w-4 flex-shrink-0" />)}
-            <span className="w-9 flex-shrink-0 text-right text-chalk-600 tabular-nums">{min}′</span>
-            {(ta > 0 || tr > 0) && (
-              <span className="flex-shrink-0 flex items-center gap-1">
-                {ta > 0 && <span className="inline-block w-2 h-3 rounded-[1px] bg-amber-400" title={`${ta} amarilla(s)`} />}
-                {tr > 0 && <span className="inline-block w-2 h-3 rounded-[1px] bg-red-500" title={`${tr} roja(s)`} />}
+            <span className="hidden sm:block w-6 flex-shrink-0 text-center text-chalk-600" title={p.titular ? 'Titular' : 'Suplente'}>{p.titular ? 'T' : 'S'}</span>
+            <span className={`w-11 flex-shrink-0 text-right tabular-nums font-semibold font-display ${colorSigno(signo)}`}>{marcador}</span>
+            {portero ? (
+              <span className="w-11 flex-shrink-0 text-right tabular-nums text-chalk-400">{gc}<span className="hidden sm:inline text-chalk-600"> GC</span></span>
+            ) : (
+              <span className="w-9 flex-shrink-0 flex items-center justify-end gap-0.5 tabular-nums">
+                {goles > 0 ? <><CircleDot className="w-3 h-3 text-grass-400" strokeWidth={2.5} /><span className="text-white font-semibold">{goles}</span></> : <span className="hidden sm:inline text-chalk-700">0</span>}
               </span>
             )}
+            {/* Tarjetas: puntos de color en móvil */}
+            <span className="flex sm:hidden items-center gap-0.5 flex-shrink-0 w-5 justify-end">
+              {(ta > 0 || da > 0) && <span className="inline-block w-1.5 h-2.5 rounded-[1px] bg-amber-400" />}
+              {tr > 0 && <span className="inline-block w-1.5 h-2.5 rounded-[1px] bg-red-500" />}
+            </span>
+            {/* Tarjetas: recuentos en desktop */}
+            <span className="hidden sm:flex items-center gap-1.5 flex-shrink-0 w-20 justify-end text-[11px] tabular-nums">
+              {ta > 0 && <span className="text-amber-300">{ta}TA</span>}
+              {da > 0 && <span className="text-amber-300">{da}·2ªA</span>}
+              {tr > 0 && <span className="text-red-300">{tr}TR</span>}
+            </span>
+            <span className="w-8 flex-shrink-0 text-right text-chalk-600 tabular-nums">{min}′</span>
+            <span className={`hidden sm:block w-11 flex-shrink-0 text-right tabular-nums ${delta > 0 ? 'text-grass-400' : delta < 0 ? 'text-red-400' : 'text-chalk-600'}`}>
+              {delta != null ? `${delta > 0 ? '+' : ''}${Math.round(delta)}` : ''}
+            </span>
             <span className="w-8 flex-shrink-0 text-right text-grass-400 font-medium tabular-nums font-display">{pts != null ? Math.round(pts) : ''}</span>
           </div>
         )
@@ -141,7 +144,7 @@ export default function Trayectoria({ carrera, portero, codjugador }: { carrera:
                           <EscudoImg escudo={c.escudo} nombre={c.equipo_nombre} />
                         </span>
                       )}
-                      <span className="truncate"><NombreEquipo codequipo={c.codequipo} nombre={c.equipo_nombre} /></span>
+                      <span className="truncate">{c.equipo_nombre}</span>
                     </span>
                   </td>
                   <td className="text-chalk-600 hidden sm:table-cell whitespace-nowrap text-xs">{c.nombre_comp}{c.grupo_nombre ? ` · ${c.grupo_nombre}` : ''}</td>
