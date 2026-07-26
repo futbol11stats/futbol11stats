@@ -29,8 +29,10 @@ async function getJugador(cod: string): Promise<JugadorFicha | null> {
 }
 async function getCarrera(cod: string) {
   const { data } = await supabase.from('web_jugador_carrera').select(COLS_CARRERA).eq('codjugador', cod)
-  // Orden: temporada desc, y dentro de una temporada por PJ desc (equipo principal primero).
-  return ((data || []) as any[]).sort((a, b) => String(b.codtemporada).localeCompare(String(a.codtemporada)) || (b.pj || 0) - (a.pj || 0))
+  // Orden: temporada DESC, y dentro de la temporada por orden_temporada ASC (lo decide el pipeline:
+  // equipo instalado primero, resto por última aparición). Sin criterio propio de desempate.
+  return ((data || []) as any[]).sort((a, b) =>
+    String(b.codtemporada).localeCompare(String(a.codtemporada)) || (a.orden_temporada ?? 0) - (b.orden_temporada ?? 0))
 }
 async function getHitos(cod: string): Promise<HitoRow[]> {
   const { data } = await supabase.from('web_jugador_hitos').select(COLS_HITOS).eq('codjugador', cod)
@@ -86,8 +88,8 @@ function Pastilla({ pos, estimada }: { pos: string | null; estimada: boolean }) 
   return (
     <span
       title={estimada ? 'Posición estimada por dorsal' : (POS_LABEL[pos] || pos)}
-      className={`inline-flex items-center gap-0.5 px-2.5 py-1 rounded-md text-sm font-bold ${cls}`}>
-      {pos}{estimada && <span className="text-[10px] leading-none align-super">*</span>}
+      className={`inline-flex items-center px-2.5 py-1 rounded-md text-sm font-bold ${cls}`}>
+      {pos}{estimada && <span className="ml-0.5 font-bold" aria-label="posición estimada">*</span>}
     </span>
   )
 }
@@ -158,7 +160,7 @@ export default async function FichaJugador({ params }: { params: Promise<{ slug:
         <span>·</span>
         <Link href="/madrid/aficionados" className="hover:text-white transition-colors">Jugadores</Link>
         <span>·</span>
-        <span className="text-white truncate">{nombre}</span>
+        <span className="text-white truncate uppercase">{nombre}</span>
       </nav>
 
       {/* HERO + MEDIDORES (banda en desktop) */}
@@ -181,7 +183,7 @@ export default async function FichaJugador({ params }: { params: Promise<{ slug:
               <Pastilla pos={j.posicion_pastilla} estimada={!!j.posicion_es_estimada} />
               {j.edad != null && <span className="text-xs text-chalk-600">{j.edad} años</span>}
             </div>
-            <h1 className="font-display text-3xl md:text-4xl font-bold text-white mt-1.5 leading-tight">{nombre}</h1>
+            <h1 className="font-display text-3xl md:text-4xl font-bold text-white mt-1.5 leading-tight uppercase">{nombre}</h1>
             {/* Chip de equipo */}
             <div className="mt-2 flex items-center gap-2 min-w-0">
               {escudoUrl(j.escudo_actual) && (
@@ -305,7 +307,7 @@ export default async function FichaJugador({ params }: { params: Promise<{ slug:
                 {actuaciones.map((a: any) => (
                   <div key={a.rank} className="flex items-center gap-3 px-3 py-2.5">
                     <span className="inline-flex items-center justify-center w-8 h-8 bg-white rounded-sm flex-shrink-0 p-0.5">
-                      <EscudoImg escudo={a.rival_escudo} nombre={a.rival_nombre} />
+                      <EscudoImg escudo={a.escudo} nombre={a.equipo_nombre} />
                     </span>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">

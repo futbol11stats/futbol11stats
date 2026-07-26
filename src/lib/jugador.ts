@@ -72,7 +72,7 @@ export const COLS_JUGADOR =
   'porterias_cero_total, gc_pj'
 
 export const COLS_CARRERA =
-  'codtemporada, codequipo, equipo_nombre, escudo, nombre_comp, categoria_rama, categoria_nivel, codgrupo, ' +
+  'codtemporada, orden_temporada, codequipo, equipo_nombre, escudo, nombre_comp, categoria_rama, categoria_nivel, codgrupo, ' +
   'grupo_nombre, pj, goles, minutos, pts_fantasy, media_fantasy, elo_final, titular, suplente, ' +
   'tarjetas_amarillas, tarjetas_rojas, goles_encajados, porterias_cero'
 

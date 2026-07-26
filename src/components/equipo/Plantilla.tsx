@@ -53,7 +53,7 @@ export default function Plantilla({
               <tr key={r.key} className="border-b border-pitch-700/50 last:border-0">
                 <td className="text-chalk-600 font-mono text-xs tabular-nums">{r.dorsal ?? ''}</td>
                 <td className={`font-mono text-xs font-semibold ${r.pos ? (POS_COLOR[r.pos] || 'text-chalk-500') : 'text-chalk-600'}`}>{r.pos || '—'}</td>
-                <td className="col-nombre font-medium text-white">
+                <td className="col-nombre font-medium text-white uppercase">
                   {r.href ? (
                     <Link href={r.href} className="hover:text-grass-300 hover:underline decoration-grass-500/60 underline-offset-2 transition-colors">{r.nombre}</Link>
                   ) : r.nombre}

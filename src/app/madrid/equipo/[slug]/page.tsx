@@ -85,16 +85,28 @@ async function getPlantillaAfic(cod: string): Promise<PlantillaRow[]> {
 async function getPlantillaJuv(cod: string): Promise<PlantillaRow[]> {
   const { data } = await supabase.from('web_equipo_plantilla_juvenil')
     .select(COLS_PLANTILLA_JUVENIL).eq('codequipo', cod)
-  return ((data || []) as any[])
-    .map((r) => ({
-      key: `${r.codjugador}-${r.codtemporada}`,
-      codtemporada: String(r.codtemporada),
-      dorsal: r.dorsal_comun ?? null,
-      pos: r.posicion_pastilla ?? null,
-      nombre: formatNombre(r.nombre),
-      href: null,          // menores: sin ficha individual
-      pj: r.pj, goles: r.goles, minutos: r.minutos, ta: r.ta, tr: r.tr,
-    }))
+  const rows = (data || []) as any[]
+  // Enlace por EXISTENCIA (misma regla batch que aficionados/movimientos): la protección es por quién
+  // es HOY el jugador (mayoría de edad garantizada = tiene ficha), no por qué ficha se está mirando.
+  // Un jugador que en 2021-22 estaba en una plantilla juvenil pero hoy es mayor SÍ enlaza.
+  const ids = Array.from(new Set(rows.map((r) => String(r.codjugador)).filter(Boolean)))
+  const { data: jug } = ids.length
+    ? await supabase.from('web_jugador').select('codjugador, nombre').in('codjugador', ids)
+    : { data: [] as any[] }
+  const canon = new Map<string, string>((jug || []).map((j: any) => [String(j.codjugador), j.nombre]))
+  return rows
+    .map((r) => {
+      const c = canon.get(String(r.codjugador))
+      return {
+        key: `${r.codjugador}-${r.codtemporada}`,
+        codtemporada: String(r.codtemporada),
+        dorsal: r.dorsal_comun ?? null,
+        pos: r.posicion_pastilla ?? null,
+        nombre: formatNombre(r.nombre),
+        href: c ? jugadorHref(r.codjugador, c) : null,   // con ficha -> enlace; menores -> texto plano
+        pj: r.pj, goles: r.goles, minutos: r.minutos, ta: r.ta, tr: r.tr,
+      } as PlantillaRow
+    })
     .sort((a, b) => (b.minutos || 0) - (a.minutos || 0))
 }
 // Existencia + nombre canónico de los jugadores de los movimientos (para enlazar/formatear).
@@ -215,7 +227,7 @@ export default async function FichaEquipo({ params }: { params: Promise<{ slug: 
   const ordenHito: Record<string, number> = { mejor_temporada: 0, mejor_racha: 1, mayor_goleada: 2, partidos_acumulados: 3 }
   hitosVis.sort((a, b) => (ordenHito[a.tipo_hito] ?? 9) - (ordenHito[b.tipo_hito] ?? 9))
 
-  const notaJuvenil = 'En categorías juveniles no se muestra la edad ni hay fichas individuales de jugador.'
+  const notaJuvenil = 'La edad no se muestra en categorías juveniles; los enlaces llevan solo a fichas de jugadores con mayoría de edad garantizada.'
 
   // Breadcrumb + SportsTeam JSON-LD.
   const ramaLabel = esJuvenil ? 'Juveniles' : 'Aficionados'

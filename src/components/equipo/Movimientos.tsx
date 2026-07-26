@@ -30,7 +30,7 @@ function Fila({ m, fichas }: { m: MovimientoRow; fichas: Record<string, string> 
         <Icon className="w-3.5 h-3.5" strokeWidth={2.5} />
       </span>
       <div className="min-w-0 flex-1">
-        <div className="text-sm font-medium text-white truncate">
+        <div className="text-sm font-medium text-white truncate uppercase">
           {href ? <Link href={href} className="hover:text-grass-300 hover:underline decoration-grass-500/60 underline-offset-2 transition-colors">{nombre}</Link> : nombre}
         </div>
         <div className="flex items-center gap-1.5 text-[11px] text-chalk-600 min-w-0">
