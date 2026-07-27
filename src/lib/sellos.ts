@@ -41,9 +41,30 @@ export function nombreOficial(nombreComp: string | null): string | null {
   return null
 }
 
-// Nombre corto de una copa para pastillas/chips ("Copa RFEF" / "Copa RFFM").
+// Nombre corto + ACENTO de color de cada pastilla de competición, por NOMBRE EXACTO normalizado (como
+// la excepción de sellos — nada de "contiene copa"). Liga y lo no mapeado -> verde.
+export type AcentoPastilla = 'verde' | 'azul' | 'rojo'
+const COMP_MAP: Record<string, { corto: string; color: AcentoPastilla }> = {
+  [norm('Copa RFEF Fase Autonómica')]:                    { corto: 'Copa RFEF',           color: 'azul' },
+  [norm('Final Copa RFEF Fase Autonómica')]:              { corto: 'Final Copa RFEF',     color: 'azul' },
+  [norm('Final Copa 1ª División Autonómica Aficionado')]: { corto: 'Final 1ª Autonómica', color: 'verde' },
+  [norm('Final Copa 1ª División Autonómica Juvenil')]:    { corto: 'Final 1ª Autonómica', color: 'verde' },
+}
+
+// Nombre corto de una copa para pastillas/chips.
 export function nombreCortoCopa(nombreComp: string | null): string {
-  return norm(nombreComp).includes('rfef') ? 'Copa RFEF' : 'Copa RFFM'
+  const n = norm(nombreComp)
+  if (COMP_MAP[n]) return COMP_MAP[n].corto
+  if (n.includes('copa de aficionados rffm')) return 'Copa RFFM'
+  return n.includes('rfef') ? 'Copa RFEF' : 'Copa RFFM'
+}
+
+// Acento de color de la pastilla de competición (liga -> verde; copas por tipo).
+export function colorPastilla(nombreComp: string | null): AcentoPastilla {
+  const n = norm(nombreComp)
+  if (COMP_MAP[n]) return COMP_MAP[n].color
+  if (n.includes('copa de aficionados rffm')) return 'rojo'
+  return 'verde'
 }
 
 // Los botones-sello nuevos (Tercera/RFEF/RFFM) y las pastillas de copa son insignias

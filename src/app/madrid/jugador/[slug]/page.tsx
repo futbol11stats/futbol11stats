@@ -340,8 +340,8 @@ export default async function FichaJugador({ params }: { params: Promise<{ slug:
               <div className="bg-pitch-800 rounded-xl border border-pitch-700 px-3 py-1.5">
                 <RankRow rank={j.rank_general} total={j.rank_general_total} label={
                   <span className="flex items-center gap-1.5 min-w-0">
-                    <span className="w-5 h-5 rounded-full bg-grass-500 flex items-center justify-center text-[10px] font-bold text-white flex-shrink-0 leading-none">11</span>
-                    <span className="font-display font-bold text-sm tracking-tight text-chalk-200 truncate">Fútbol<span className="text-grass-400">11</span>Stats</span>
+                    <span className="w-6 h-6 rounded-full bg-grass-500 flex items-center justify-center text-xs font-bold text-white flex-shrink-0 leading-none">11</span>
+                    <span className="font-display font-bold text-base tracking-tight text-chalk-200 truncate">Fútbol<span className="text-grass-400">11</span>Stats</span>
                   </span>
                 } />
                 <RankRow rank={j.rank_categoria} total={j.rank_categoria_total} label={

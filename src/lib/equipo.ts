@@ -32,9 +32,9 @@ export type FichaMov = { nombre: string | null; pos: string | null; estimada: bo
 export async function getGrupoInfo(codgrupo: string | null | undefined) {
   if (!codgrupo) return null
   const { data } = await supabase.from('web_grupos')
-    .select('slug_comp, slug_grupo, jornada_actual, categoria, tipo, nombre_comp, grupo_nombre, codtemporada')
-    .eq('codgrupo', codgrupo).limit(1).maybeSingle()
-  return data as Record<string, any> | null
+    .select('slug_comp, slug_grupo, jornada_actual, categoria, tipo, codtemporada')
+    .eq('codgrupo', String(codgrupo)).limit(1)
+  return (data && data[0]) as Record<string, any> | null
 }
 
 // URL de la vista de un grupo a partir de su fila de web_grupos (liga -> clasificación; copa -> resultados).
