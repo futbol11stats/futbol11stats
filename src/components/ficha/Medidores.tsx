@@ -1,4 +1,5 @@
 import { tempLabel } from '@/lib/jugador'
+import Sello from '@/components/Sello'
 import { TrendingUp, Gauge } from 'lucide-react'
 
 // Medidores de la ficha (spec v3): ELO con sparkline de cierre por temporada + máx histórico +
@@ -52,7 +53,8 @@ function PercentilBateria({ percentil, categoria }: { percentil: number; categor
         ))}
       </div>
       <p className="mt-1.5 text-[11px] text-chalk-600">
-        <span className="text-grass-300 font-medium">Percentil</span> <span className="text-white font-semibold">{percentil}</span>{categoria ? ` · ${categoria}` : ''}
+        <span className="text-grass-300 font-medium">Percentil</span> <span className="text-white font-semibold">{percentil}</span>
+        {categoria ? <> · <Sello nombreComp={categoria} size={14} className="mx-0.5" />{categoria}</> : ''}
       </p>
     </div>
   )

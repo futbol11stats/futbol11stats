@@ -7,6 +7,7 @@ import JsonLd from '@/components/JsonLd'
 import Sello from '@/components/Sello'
 import { SITE_URL } from '@/lib/seo'
 import { graphLd, websiteLd, organizationLd, breadcrumbLd } from '@/lib/jsonld'
+import { ORDEN_JUVENILES as COMPETICION_ORDER } from '@/lib/competiciones'
 
 export const metadata: Metadata = {
   title: 'Fútbol Juvenil Madrid — categorías y grupos | Fútbol11Stats',
@@ -45,13 +46,6 @@ async function getHistoricoMap() {
   return map
 }
 
-const COMPETICION_ORDER = [
-  'Nacional Juvenil Madrid',
-  '1ª Autonómica Juvenil Madrid',
-  'Preferente Juvenil Madrid',
-  '1ª Juvenil Madrid',
-  '2ª Juvenil Madrid',
-]
 
 export default async function JuvenilPage() {
   const [grupos, historicoMap] = await Promise.all([getGrupos(), getHistoricoMap()])

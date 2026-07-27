@@ -12,11 +12,20 @@ function norm(s: string | null): string {
   return (s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[ªº]/g, '').toLowerCase()
 }
 
-// Clasifica una competición a su sello. 3ª RFEF/Play Off Tercera -> Tercera; Nacional Juvenil -> RFEF;
-// el resto (Preferente, 1ª/2ª Aficionados, autonómicas, copas regionales...) -> RFFM.
+// EXCEPCIÓN: las "Final Copa 1ª División Autonómica" (Aficionado/Juvenil) NO son la Copa RFFM: son la
+// final por el título de Autonómica entre los campeones de los dos grupos -> llevan el botón RFFM.
+// Matching por NOMBRE EXACTO (normalizado), no por contener "Copa".
+const FINALES_AUTONOMICA = new Set([
+  norm('Final Copa 1ª División Autonómica Aficionado'),
+  norm('Final Copa 1ª División Autonómica Juvenil'),
+])
+
+// Clasifica una competición a su sello. Final Autonómica -> RFFM (excepción); 3ª RFEF/Play Off Tercera
+// -> Tercera; Nacional Juvenil -> RFEF; copas -> Copa RFEF/RFFM; el resto de regionales -> RFFM.
 export function selloDe(nombreComp: string | null): string {
   const n = norm(nombreComp)
-  // Copas primero: "Copa ... RFEF/Federación" -> sello Copa RFEF; cualquier otra copa -> Copa RFFM.
+  if (FINALES_AUTONOMICA.has(n)) return SELLO_RFFM
+  // Copas: "Copa ... RFEF/Federación" -> sello Copa RFEF; cualquier otra copa -> Copa RFFM.
   if (n.includes('copa')) return n.includes('rfef') ? SELLO_COPA_RFEF : SELLO_COPA_RFFM
   if (n.includes('tercera') || /\b3\s*rfef\b/.test(n)) return SELLO_TERCERA
   if (n.includes('nacional juvenil')) return SELLO_RFEF

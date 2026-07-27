@@ -175,7 +175,7 @@ export const POS_COLOR: Record<string, string> = {
   DEL: 'bg-red-500/15 text-red-300 ring-1 ring-inset ring-red-500/30',
 }
 export const POS_LABEL: Record<string, string> = {
-  POR: 'Portero', DEF: 'Defensa', MED: 'Centrocampista', DEL: 'Delantero',
+  POR: 'Portero', DEF: 'Defensa', MED: 'Medio', DEL: 'Delantero',
 }
 
 // Series de hitos (acumulados): en la vista curada solo se muestra el último de cada serie.

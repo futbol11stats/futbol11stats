@@ -22,8 +22,10 @@ export function equipoHref(codequipo: string | number | null | undefined, nombre
   return temporada ? `${base}?temporada=${temporada}` : base
 }
 
-// Ficha mínima de un jugador para los movimientos (existencia + nombre canónico + posición).
-export type FichaMov = { nombre: string; pos: string | null; estimada: boolean }
+// Ficha mínima de un jugador para los movimientos: `enlazable` = tiene ficha en web_jugador (adulto,
+// se enlaza + nombre canónico); los menores llegan sin ficha pero CON posición (de la plantilla
+// juvenil) -> pastilla sí, enlace no.
+export type FichaMov = { nombre: string | null; pos: string | null; estimada: boolean; enlazable: boolean }
 
 // Info de un grupo (por codgrupo) para construir el enlace a su vista. Reutilizable por la ficha de
 // jugador (pastilla de competición del hero) y donde haga falta resolver un grupo desde su código.
@@ -64,16 +66,11 @@ export type CopaEquipo = {
   href: string | null
 }
 
-export async function getCopasEquipo(codequipo: string | number | null | undefined): Promise<CopaEquipo[]> {
-  if (!COPAS_HABILITADO || codequipo == null) return []
-  const { data, error } = await supabase.from('web_equipo').select('copas').eq('codequipo', String(codequipo)).limit(1).maybeSingle()
-  if (error || !data) return []
-  const raw = (data as { copas?: unknown }).copas
-  if (!Array.isArray(raw)) return []
-  // Solo temporada en curso.
+// Resuelve el JSONB crudo de copas a CopaEquipo[] (filtra temporada en curso + construye href de copa).
+async function resolveCopas(raw: unknown): Promise<CopaEquipo[]> {
+  if (!COPAS_HABILITADO || !Array.isArray(raw)) return []
   const copasT = (raw as CopaRaw[]).filter((c) => String(c.codtemporada) === LIVE_COD)
   if (copasT.length === 0) return []
-  // Resolver slug_grupo/jornada/categoria por codgrupo para el href de la vista de copa (entrada 'resultados').
   const cods = Array.from(new Set(copasT.map((c) => String(c.codgrupo))))
   const { data: grupos } = await supabase.from('web_grupos')
     .select('codgrupo, slug_grupo, jornada_actual, categoria').in('codgrupo', cods)
@@ -86,6 +83,22 @@ export async function getCopasEquipo(codequipo: string | number | null | undefin
       : null
     return { nombre_comp: c.competicion, estado: c.estado_label, href }
   })
+}
+
+export async function getCopasEquipo(codequipo: string | number | null | undefined): Promise<CopaEquipo[]> {
+  if (!COPAS_HABILITADO || codequipo == null) return []
+  const { data, error } = await supabase.from('web_equipo').select('copas').eq('codequipo', String(codequipo)).limit(1).maybeSingle()
+  if (error || !data) return []
+  return resolveCopas((data as { copas?: unknown }).copas)
+}
+
+// Copas + posición en liga del equipo (una sola query a web_equipo). Para el hero de la ficha de
+// jugador: la pastilla de competición incluye la posición del equipo actual y la línea de copas.
+export async function getEquipoActualInfo(codequipo: string | number | null | undefined): Promise<{ copas: CopaEquipo[]; posicionActual: number | null }> {
+  if (codequipo == null) return { copas: [], posicionActual: null }
+  const { data } = await supabase.from('web_equipo').select('copas, posicion_actual').eq('codequipo', String(codequipo)).limit(1).maybeSingle()
+  if (!data) return { copas: [], posicionActual: null }
+  return { copas: await resolveCopas((data as { copas?: unknown }).copas), posicionActual: (data as { posicion_actual?: number | null }).posicion_actual ?? null }
 }
 
 // Columnas explícitas de los fetchers (cotejadas con el DDL de _equipos_export.py).

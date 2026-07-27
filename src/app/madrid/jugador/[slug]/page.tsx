@@ -20,11 +20,12 @@ import {
   parseResultado, colorSigno, golesRival, LIVE_COD, POS_LABEL,
   type JugadorFicha, type HitoRow, type CompaneroTop,
 } from '@/lib/jugador'
-import { getCopasEquipo, getGrupoInfo, grupoHref } from '@/lib/equipo'
+import { getEquipoActualInfo, getGrupoInfo, grupoHref } from '@/lib/equipo'
 import CopasLinea from '@/components/CopasLinea'
 import Pastilla from '@/components/Pastilla'
+import LigaPastilla from '@/components/LigaPastilla'
 import {
-  Trophy, MapPin, Star, Hash, ArrowUpRight, Users, ListChecks, Hand, ChevronRight,
+  Trophy, MapPin, Star, Hash, ArrowUpRight, Users, ListChecks, Hand,
   Goal, Timer, Calendar, CircleDot,
 } from 'lucide-react'
 
@@ -201,12 +202,13 @@ export default async function FichaJugador({ params }: { params: Promise<{ slug:
   const inactivo = Number(j.codtemporada_ultima) < Number(LIVE_COD)
   const compActual = carrera[0]?.nombre_comp || null
   const grupoActualNombre = carrera[0]?.grupo_nombre || null
-  // Copas del equipo actual (temporada en curso). Inactivos: sin línea. Gated por COPAS_HABILITADO.
-  // Info del grupo actual (para la pastilla de competición enlazada del hero).
-  const [copas, grupoInfo] = await Promise.all([
-    inactivo ? Promise.resolve([]) : getCopasEquipo(j.codequipo_actual),
+  // Copas + posición en liga del equipo actual (una query). Info del grupo actual (para el enlace de la
+  // pastilla). Inactivos: sin copas y sin posición (comportamiento apagado).
+  const [equipoActual, grupoInfo] = await Promise.all([
+    inactivo ? Promise.resolve({ copas: [], posicionActual: null }) : getEquipoActualInfo(j.codequipo_actual),
     getGrupoInfo(carrera[0]?.codgrupo),
   ])
+  const { copas, posicionActual } = equipoActual
   const grupoUrl = grupoHref(grupoInfo)
 
   // Escudos: las tablas web_jugador* ya traen el nombre de fichero del bucket (NULL si el equipo no
@@ -271,21 +273,14 @@ export default async function FichaJugador({ params }: { params: Promise<{ slug:
                 <span className="text-base text-chalk-300 font-medium truncate"><NombreEquipo codequipo={j.codequipo_actual} nombre={j.equipo_actual_nombre} /></span>
               )}
             </div>
-            {/* Pastilla de competición enlazada (estilo hero de equipo): sello + comp · grupo -> vista del grupo.
-                Inactivo: pastilla apagada (enlazada a la vista histórica si el grupo resuelve). */}
-            {compActual && (() => {
-              const cls = inactivo
-                ? 'bg-pitch-800 text-chalk-600 ring-1 ring-inset ring-pitch-700'
-                : 'bg-grass-500/15 text-grass-300 ring-1 ring-inset ring-grass-400/25'
-              const inner = (
-                <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium ${cls}`}>
-                  <Sello nombreComp={compActual} size={22} />
-                  {compActual}{grupoActualNombre ? ` · ${grupoActualNombre}` : ''}
-                  {grupoUrl && <ChevronRight className="w-3 h-3" />}
-                </span>
-              )
-              return <div className="mt-2">{grupoUrl ? <Link href={grupoUrl} className="hover:brightness-125 transition inline-block">{inner}</Link> : inner}</div>
-            })()}
+            {/* Pastilla de competición (MISMO componente que el hero de equipo): sello + comp · grupo · posición
+                -> vista del grupo. Inactivo: apagada, sin posición. */}
+            {compActual && (
+              <div className="mt-2">
+                <LigaPastilla nombreComp={compActual} grupoNombre={grupoActualNombre}
+                  posicion={inactivo ? null : posicionActual} href={grupoUrl} muted={inactivo} />
+              </div>
+            )}
             {/* Copas del equipo ACTUAL en la temporada en curso (inactivos: sin línea) */}
             <CopasLinea copas={copas} className="mt-1.5" />
           </div>
@@ -341,7 +336,12 @@ export default async function FichaJugador({ params }: { params: Promise<{ slug:
                 <Star className="w-3.5 h-3.5 text-grass-400" strokeWidth={2.5} /> Rankings F11S
               </h2>
               <div className="bg-pitch-800 rounded-xl border border-pitch-700 px-3 py-1.5">
-                <RankRow label="General" rank={j.rank_general} total={j.rank_general_total} />
+                <RankRow rank={j.rank_general} total={j.rank_general_total} label={
+                  <span className="flex items-center gap-1.5 min-w-0">
+                    <span className="w-4 h-4 rounded-full bg-grass-500 flex items-center justify-center text-[9px] font-bold text-white flex-shrink-0 leading-none">11</span>
+                    <span className="font-display font-bold tracking-tight text-chalk-300 truncate">Fútbol<span className="text-grass-400">11</span>Stats</span>
+                  </span>
+                } />
                 <RankRow rank={j.rank_categoria} total={j.rank_categoria_total} label={
                   <span className="flex items-center gap-1.5 min-w-0">
                     <span className="flex-shrink-0">Competición{(compActual || j.categoria_rama) ? ' ·' : ''}</span>

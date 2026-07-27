@@ -6,6 +6,7 @@ import Link from 'next/link'
 import JsonLd from '@/components/JsonLd'
 import Sello from '@/components/Sello'
 import { graphLd, websiteLd, organizationLd } from '@/lib/jsonld'
+import { ORDEN_AFICIONADOS, ORDEN_JUVENILES } from '@/lib/competiciones'
 
 // Marca neutral con Madrid como ámbito ACTUAL (preparada para ampliar a otras federaciones).
 export const metadata: Metadata = {
@@ -31,20 +32,8 @@ async function getCompeticiones() {
   return data || []
 }
 
-const COMPETICION_ORDER = [
-  // Aficionados
-  '3ª RFEF Madrid',
-  '1ª Autonómica Madrid',
-  'Preferente Madrid',
-  '1ª Aficionados Madrid',
-  '2ª Aficionados Madrid',
-  // Juveniles
-  'Nacional Juvenil Madrid',
-  '1ª Autonómica Juvenil Madrid',
-  'Preferente Juvenil Madrid',
-  '1ª Juvenil Madrid',
-  '2ª Juvenil Madrid',
-]
+// Orden desde la fuente única (aficionados + juveniles); cada rama filtra el que le toca.
+const COMPETICION_ORDER = [...ORDEN_AFICIONADOS, ...ORDEN_JUVENILES]
 
 export default async function Home() {
   const grupos = await getCompeticiones()

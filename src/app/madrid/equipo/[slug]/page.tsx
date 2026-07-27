@@ -19,6 +19,7 @@ import EquipoTemporadas from '@/components/equipo/EquipoTemporadas'
 import { TemporadaProvider } from '@/components/equipo/TemporadaContext'
 import Top5Plantilla from '@/components/equipo/Top5Plantilla'
 import CopasLinea from '@/components/CopasLinea'
+import LigaPastilla from '@/components/LigaPastilla'
 import {
   COLS_EQUIPO, COLS_EQUIPO_TEMPORADAS, COLS_EQUIPO_MOV, COLS_EQUIPO_HITOS, COLS_PLANTILLA_JUVENIL,
   codFromSlug, equipoSlug, tempLabel, fechaCortaDMY, LIVE_COD, RAMA_SLUG, BADGE, HITO_EQUIPO,
@@ -117,14 +118,26 @@ async function getPlantillaJuv(cod: string): Promise<PlantillaRow[]> {
     })
     .sort((a, b) => (b.minutos || 0) - (a.minutos || 0))
 }
-// Existencia + nombre canónico + posición de los jugadores de los movimientos (enlazar/formatear/pastilla).
-async function getFichasMovimientos(movs: MovimientoRow[]): Promise<Record<string, FichaMov>> {
+// Fichas de los jugadores de los movimientos (enlazar/formatear/pastilla). Adultos: de web_jugador
+// (enlazable, nombre canónico, estimada). En juveniles, los menores no están en web_jugador pero su
+// posición sí en web_equipo_plantilla_juvenil (batch por codequipo) -> pastilla sí, enlace no.
+async function getFichasMovimientos(movs: MovimientoRow[], codequipo: string, esJuvenil: boolean): Promise<Record<string, FichaMov>> {
   const ids = Array.from(new Set(movs.map((m) => m.codjugador).filter(Boolean).map(String)))
   if (ids.length === 0) return {}
+  const out: Record<string, FichaMov> = {}
   const { data } = await supabase.from('web_jugador')
     .select('codjugador, nombre, posicion_pastilla, posicion_es_estimada').in('codjugador', ids)
-  const out: Record<string, FichaMov> = {}
-  for (const j of (data || []) as any[]) out[String(j.codjugador)] = { nombre: j.nombre, pos: j.posicion_pastilla ?? null, estimada: !!j.posicion_es_estimada }
+  for (const j of (data || []) as any[]) out[String(j.codjugador)] = { nombre: j.nombre, pos: j.posicion_pastilla ?? null, estimada: !!j.posicion_es_estimada, enlazable: true }
+  if (esJuvenil) {
+    // Posición de los menores desde la plantilla juvenil de ESTE equipo (todas sus temporadas).
+    const { data: juv } = await supabase.from('web_equipo_plantilla_juvenil')
+      .select('codjugador, posicion_pastilla').eq('codequipo', codequipo).in('codjugador', ids)
+    for (const j of (juv || []) as any[]) {
+      const cod = String(j.codjugador)
+      if (out[cod] || !j.posicion_pastilla) continue   // adultos (web_jugador) tienen prioridad
+      out[cod] = { nombre: null, pos: j.posicion_pastilla, estimada: false, enlazable: false }
+    }
+  }
   return out
 }
 // Slugs de grupo por temporada (para enlazar cada fila del bloque Temporadas a su vista de grupo).
@@ -197,7 +210,7 @@ export default async function FichaEquipo({ params }: { params: Promise<{ slug: 
   const [grupo, plantilla, fichasMov, gruposTemp] = await Promise.all([
     e.codgrupo ? getGrupoSlug(e.codgrupo) : Promise.resolve(null),
     esJuvenil ? getPlantillaJuv(cod) : getPlantillaAfic(cod),
-    getFichasMovimientos(movimientos),
+    getFichasMovimientos(movimientos, cod, esJuvenil),
     getGruposTemporadas(temporadas.map((t: any) => t.codgrupo)),
   ])
   const jornadaGrupo = grupo?.jornada_actual || 1
@@ -285,12 +298,8 @@ export default async function FichaEquipo({ params }: { params: Promise<{ slug: 
                   Último grupo · {e.grupo_nombre || e.nombre_comp}{e.codtemporada ? ` (${tempLabel(e.codtemporada)})` : ''}
                 </Chip>
               ) : (
-                /* Pastilla de LIGA: sello + competición · grupo · posición, todo en un enlace al grupo. */
-                <Chip href={grupoUrl}>
-                  <Sello nombreComp={e.nombre_comp} size={22} />
-                  {e.nombre_comp}{e.grupo_nombre ? ` · ${e.grupo_nombre}` : ''}{e.posicion_actual != null ? ` · ${e.posicion_actual}º` : ''}
-                  {grupoUrl && <ChevronRight className="w-3 h-3" />}
-                </Chip>
+                /* Pastilla de LIGA (componente compartido con la ficha de jugador). */
+                <LigaPastilla nombreComp={e.nombre_comp} grupoNombre={e.grupo_nombre} posicion={e.posicion_actual} href={grupoUrl} />
               )}
             </div>
             {/* Copas de la temporada en curso (enlazadas). Sin copas -> no renderiza. */}

@@ -24,7 +24,7 @@ function Fila({ m, fichas }: { m: MovimientoRow; fichas: Record<string, FichaMov
   const preposicion = entra ? 'desde' : 'a'
   const ficha = m.codjugador ? fichas[m.codjugador] : undefined
   const nombre = formatNombre(ficha?.nombre ?? m.nombre)
-  const href = ficha && m.codjugador ? jugadorHref(m.codjugador, ficha.nombre) : null
+  const href = ficha?.enlazable && m.codjugador ? jugadorHref(m.codjugador, ficha.nombre) : null
   return (
     <li className="flex items-center gap-3 px-3 py-2 border-b border-pitch-700/50 last:border-0">
       <span className={`flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center ring-1 ring-inset ${color}`}>
@@ -32,8 +32,9 @@ function Fila({ m, fichas }: { m: MovimientoRow; fichas: Record<string, FichaMov
       </span>
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-1.5 min-w-0">
-          {/* Pastilla mini solo si tiene ficha (menores: sin pastilla, texto plano) */}
-          {ficha && <Pastilla pos={ficha.pos} estimada={ficha.estimada} size="mini" />}
+          {/* Pastilla mini para quien tenga posición (adultos de web_jugador o menores de la plantilla
+              juvenil); el enlace solo para quien tiene ficha (enlazable). */}
+          {ficha?.pos && <Pastilla pos={ficha.pos} estimada={ficha.estimada} size="mini" />}
           <span className="text-sm font-display font-medium text-white truncate uppercase min-w-0">
             {href ? <Link href={href} className="hover:text-grass-300 hover:underline decoration-grass-500/60 underline-offset-2 transition-colors">{nombre}</Link> : nombre}
           </span>
