@@ -98,7 +98,7 @@ export default function Buscador() {
               onChange={(e) => setQ(e.target.value)}
               onKeyDown={onKeyDown}
               placeholder="Buscar jugador o equipo…"
-              className="flex-1 min-w-0 bg-transparent text-sm text-white placeholder:text-chalk-600 focus:outline-none font-display"
+              className="flex-1 min-w-0 bg-transparent text-base text-white placeholder:text-chalk-600 focus:outline-none font-display"
               autoComplete="off"
               spellCheck={false}
             />

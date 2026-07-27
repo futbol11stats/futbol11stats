@@ -4,12 +4,14 @@ import { useState } from 'react'
 import Link from 'next/link'
 
 // Plantilla del equipo (colapsada a ~6 + "ver completa"). Filas ya normalizadas por la página:
-// aficionados llevan href a la ficha del jugador; juvenil NO (menores) y muestra `nota` al pie.
+// aficionados llevan href a la ficha del jugador + pts/elo; juvenil NO (menores, sin pts/elo).
 export type PlantillaRow = {
   key: string
   codtemporada?: string | null   // para el filtro por temporada (pastillas)
+  codjugador?: string | null
   dorsal: number | null
   pos: string | null
+  estimada?: boolean | null
   nombre: string
   href: string | null
   pj: number | null
@@ -17,16 +19,20 @@ export type PlantillaRow = {
   minutos: number | null
   ta: number | null
   tr: number | null
+  pts?: number | null
+  elo?: number | null
 }
 
-const POS_COLOR: Record<string, string> = {
+export const POS_COLOR_TXT: Record<string, string> = {
   POR: 'text-orange-300', DEF: 'text-blue-300', MED: 'text-grass-300', DEL: 'text-red-300',
 }
 
+// `completa` (aficionados): set completo PJ·MIN·G·TA·TR·PTS·ELO como la ficha de jugador. En móvil, el
+// subconjunto medido que cabe a 390px con la condensada: #·Pos·Jugador·PJ·G·PTS·ELO (MIN/TA/TR ocultas).
 export default function Plantilla({
-  filas, nota, inicial = 6,
+  filas, nota, inicial = 6, completa = false,
 }: {
-  filas: PlantillaRow[]; nota?: string; inicial?: number
+  filas: PlantillaRow[]; nota?: string; inicial?: number; completa?: boolean
 }) {
   const [abierto, setAbierto] = useState(false)
   const visibles = abierto ? filas : filas.slice(0, inicial)
@@ -35,34 +41,40 @@ export default function Plantilla({
   return (
     <div>
       <div className="bg-pitch-800 rounded-xl border border-pitch-700 overflow-x-auto">
-        <table className="w-full tabla-clasificacion">
+        <table className="w-full tabla-clasificacion tabla-partidos">
           <thead>
             <tr className="border-b border-pitch-700">
               <th className="text-left w-8">#</th>
               <th className="text-left w-10">Pos</th>
               <th className="text-left">Jugador</th>
               <th>PJ</th>
-              <th>G</th>
               <th className="hidden sm:table-cell">Min</th>
+              <th>G</th>
               <th className="hidden sm:table-cell">TA</th>
               <th className="hidden sm:table-cell">TR</th>
+              {completa && <th className="text-grass-400">PTS</th>}
+              {completa && <th className="text-grass-400">ELO</th>}
             </tr>
           </thead>
           <tbody>
             {visibles.map((r) => (
               <tr key={r.key} className="border-b border-pitch-700/50 last:border-0">
                 <td className="text-chalk-600 font-mono text-xs tabular-nums">{r.dorsal ?? ''}</td>
-                <td className={`font-mono text-xs font-semibold ${r.pos ? (POS_COLOR[r.pos] || 'text-chalk-500') : 'text-chalk-600'}`}>{r.pos || '—'}</td>
+                <td className={`font-mono text-xs font-semibold ${r.pos ? (POS_COLOR_TXT[r.pos] || 'text-chalk-500') : 'text-chalk-600'}`}>
+                  {r.pos || '—'}{r.pos && r.estimada ? <span className="text-chalk-500">*</span> : null}
+                </td>
                 <td className="col-nombre font-medium text-white uppercase">
                   {r.href ? (
                     <Link href={r.href} className="hover:text-grass-300 hover:underline decoration-grass-500/60 underline-offset-2 transition-colors">{r.nombre}</Link>
                   ) : r.nombre}
                 </td>
                 <td className="text-center text-chalk-400 tabular-nums">{r.pj ?? 0}</td>
-                <td className="text-center text-white font-medium tabular-nums">{r.goles ?? 0}</td>
                 <td className="text-center text-chalk-600 tabular-nums hidden sm:table-cell">{r.minutos != null ? r.minutos.toLocaleString('es-ES') : ''}</td>
+                <td className="text-center text-white font-medium tabular-nums">{r.goles ?? 0}</td>
                 <td className="text-center text-chalk-600 tabular-nums hidden sm:table-cell">{r.ta ?? 0}</td>
                 <td className="text-center text-chalk-600 tabular-nums hidden sm:table-cell">{r.tr ?? 0}</td>
+                {completa && <td className="text-center text-grass-400 font-medium tabular-nums">{r.pts != null ? Math.round(r.pts) : ''}</td>}
+                {completa && <td className="text-center text-grass-400 tabular-nums">{r.elo != null ? Math.round(r.elo) : ''}</td>}
               </tr>
             ))}
           </tbody>

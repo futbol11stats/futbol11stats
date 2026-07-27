@@ -16,9 +16,10 @@ export function equipoSlug(codequipo: string | number, nombre: string | null): s
   const suf = slugify(nombre || '')
   return suf ? `${codequipo}-${suf}` : String(codequipo)
 }
-export function equipoHref(codequipo: string | number | null | undefined, nombre: string | null): string | null {
+export function equipoHref(codequipo: string | number | null | undefined, nombre: string | null, temporada?: string | null): string | null {
   if (codequipo == null) return null
-  return `/madrid/equipo/${equipoSlug(codequipo, nombre)}`
+  const base = `/madrid/equipo/${equipoSlug(codequipo, nombre)}`
+  return temporada ? `${base}?temporada=${temporada}` : base
 }
 
 // Columnas explícitas de los fetchers (cotejadas con el DDL de _equipos_export.py).

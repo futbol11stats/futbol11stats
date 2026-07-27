@@ -10,17 +10,18 @@ import JsonLd from '@/components/JsonLd'
 import { graphLd, breadcrumbLd } from '@/lib/jsonld'
 import EscudoImg from '@/components/EscudoImg'
 import NombreEquipo from '@/components/NombreEquipo'
+import Sello from '@/components/Sello'
 import Medidores from '@/components/ficha/Medidores'
 import Hitos from '@/components/ficha/Hitos'
 import Trayectoria from '@/components/ficha/Trayectoria'
 import {
   COLS_JUGADOR, COLS_CARRERA, COLS_HITOS, COLS_ACTUACIONES,
-  codFromSlug, jugadorSlug, formatNombre, tempLabel, fechaCorta, curarHitos,
-  LIVE_COD, POS_COLOR, POS_LABEL,
-  type JugadorFicha, type HitoRow,
+  codFromSlug, jugadorSlug, jugadorHref, formatNombre, tempLabel, fechaCorta, curarHitos, signoCls, conSigno,
+  parseResultado, colorSigno, LIVE_COD, POS_COLOR, POS_LABEL,
+  type JugadorFicha, type HitoRow, type CompaneroTop,
 } from '@/lib/jugador'
 import {
-  Trophy, MapPin, Star, Hash, ArrowUpRight,
+  Trophy, MapPin, Star, Hash, ArrowUpRight, Users, ListChecks, Hand,
 } from 'lucide-react'
 
 // --- Fetchers (columnas explícitas) ---
@@ -41,6 +42,16 @@ async function getHitos(cod: string): Promise<HitoRow[]> {
 }
 async function getActuaciones(cod: string) {
   const { data } = await supabase.from('web_jugador_actuaciones').select(COLS_ACTUACIONES).eq('codjugador', cod).order('rank')
+  return (data || []) as any[]
+}
+// Los 3 ÚLTIMOS partidos jugados (por temporada+jornada, no por el string de fecha DD/MM/YYYY).
+async function getUltimosPartidos(cod: string) {
+  const { data } = await supabase.from('web_jugador_partidos')
+    .select('codacta, codtemporada, jornada, fecha, equipo_nombre, escudo, rival_cod, rival_nombre, resultado, goles, puntos, goles_encajados')
+    .eq('codjugador', cod)
+    .order('codtemporada', { ascending: false })
+    .order('jornada', { ascending: false })
+    .limit(3)
   return (data || []) as any[]
 }
 
@@ -117,15 +128,26 @@ function RankRow({ label, rank, total }: { label: string; rank: number | null; t
   )
 }
 
+// Fondo del avatar + aro del dorsal por posición (intensidad media, paleta de las pastillas).
+const AVATAR_POS: Record<string, string> = {
+  POR: 'from-orange-500/45 ring-orange-500/60',
+  DEF: 'from-blue-500/45 ring-blue-500/60',
+  MED: 'from-grass-500/45 ring-grass-400/60',
+  DEL: 'from-red-500/45 ring-red-500/60',
+}
+const DORSAL_POS: Record<string, string> = {
+  POR: 'ring-orange-500/60', DEF: 'ring-blue-500/60', MED: 'ring-grass-400/60', DEL: 'ring-red-500/60',
+}
+
 // ---- Página ----
 export default async function FichaJugador({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params
   const cod = codFromSlug(slug)
   if (!cod) notFound()
 
-  // 4 fetchers en paralelo.
-  const [j, carrera, hitosRaw, actuaciones] = await Promise.all([
-    getJugador(cod), getCarrera(cod), getHitos(cod), getActuaciones(cod),
+  // Fetchers en paralelo.
+  const [j, carrera, hitosRaw, actuaciones, ultimos] = await Promise.all([
+    getJugador(cod), getCarrera(cod), getHitos(cod), getActuaciones(cod), getUltimosPartidos(cod),
   ])
   // Fuera de perímetro = no existe (sin explicar por qué).
   if (!j) notFound()
@@ -168,13 +190,13 @@ export default async function FichaJugador({ params }: { params: Promise<{ slug:
       <section className="lg:flex lg:items-start lg:justify-between lg:gap-8 mb-6 md:mb-8">
         {/* Identidad */}
         <div className="flex items-start gap-4 min-w-0">
-          {/* Avatar de iniciales + dorsal en esquina */}
+          {/* Avatar de iniciales (fondo del color de la posición) + dorsal en esquina */}
           <div className="relative flex-shrink-0">
-            <div className={`w-20 h-20 md:w-24 md:h-24 rounded-2xl flex items-center justify-center font-display text-3xl md:text-4xl font-bold text-white ring-1 ring-inset ${portero ? 'bg-gradient-to-br from-orange-600/40 to-pitch-800 ring-orange-500/30' : 'bg-gradient-to-br from-grass-600/40 to-pitch-800 ring-grass-500/30'}`}>
+            <div className={`w-20 h-20 md:w-24 md:h-24 rounded-2xl flex items-center justify-center font-display text-4xl md:text-5xl font-bold text-white ring-2 ring-inset bg-gradient-to-br to-pitch-800 ${AVATAR_POS[j.posicion_pastilla || ''] || 'from-pitch-600/70 ring-pitch-600'}`}>
               {iniciales(nombre)}
             </div>
             {j.dorsal_ultimo != null && (
-              <span className="absolute -bottom-2 -right-2 w-8 h-8 rounded-full bg-pitch-900 ring-2 ring-pitch-700 flex items-center justify-center font-display text-sm font-bold text-chalk-200 tabular-nums">
+              <span className={`absolute -bottom-2 -right-2 w-9 h-9 rounded-full bg-pitch-900 ring-2 flex items-center justify-center font-display text-base font-bold text-white tabular-nums ${DORSAL_POS[j.posicion_pastilla || ''] || 'ring-pitch-600'}`}>
                 {j.dorsal_ultimo}
               </span>
             )}
@@ -182,7 +204,7 @@ export default async function FichaJugador({ params }: { params: Promise<{ slug:
           <div className="min-w-0 pt-0.5">
             <div className="flex items-center gap-2 flex-wrap">
               <Pastilla pos={j.posicion_pastilla} estimada={!!j.posicion_es_estimada} />
-              {j.edad != null && <span className="text-xs text-chalk-600">{j.edad} años</span>}
+              {j.edad != null && <span className="text-sm text-chalk-500 font-medium">{j.edad} años</span>}
             </div>
             <h1 className="font-display text-3xl md:text-4xl font-bold text-white mt-1.5 leading-tight uppercase">{nombre}</h1>
             {/* Chip de equipo */}
@@ -193,16 +215,16 @@ export default async function FichaJugador({ params }: { params: Promise<{ slug:
                 </span>
               )}
               {inactivo ? (
-                <span className="text-sm text-chalk-600 truncate">
+                <span className="text-base text-chalk-600 truncate">
                   Último equipo · <span className="text-chalk-500"><NombreEquipo codequipo={j.codequipo_actual} nombre={j.equipo_actual_nombre} /></span>
                   {j.codtemporada_ultima ? ` (${tempLabel(j.codtemporada_ultima)})` : ''}
                 </span>
               ) : (
-                <span className="text-sm text-chalk-300 font-medium truncate"><NombreEquipo codequipo={j.codequipo_actual} nombre={j.equipo_actual_nombre} /></span>
+                <span className="text-base text-chalk-300 font-medium truncate"><NombreEquipo codequipo={j.codequipo_actual} nombre={j.equipo_actual_nombre} /></span>
               )}
             </div>
             {compActual && (
-              <p className="mt-1 text-xs text-chalk-600">{compActual}{j.categoria_rama ? ` · ${j.categoria_rama}` : ''}</p>
+              <p className="mt-1.5 text-sm text-chalk-500 flex items-center gap-1.5"><Sello nombreComp={compActual} size={16} />{compActual}{j.categoria_rama ? ` · ${j.categoria_rama}` : ''}</p>
             )}
           </div>
         </div>
@@ -293,6 +315,31 @@ export default async function FichaJugador({ params }: { params: Promise<{ slug:
               </div>
             </div>
           )}
+
+          {/* Ha jugado con (companeros_top) */}
+          {j.companeros_top && j.companeros_top.length > 0 && (
+            <div>
+              <h2 className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-widest text-chalk-600 mb-2">
+                <Users className="w-3.5 h-3.5 text-grass-400" strokeWidth={2.5} /> Ha jugado con
+              </h2>
+              <div className="bg-pitch-800 rounded-xl border border-pitch-700">
+                {j.companeros_top.map((c: CompaneroTop) => (
+                  <div key={c.codjugador} className="flex items-center gap-2 px-3 py-2 border-b border-pitch-700/50 last:border-0">
+                    <span className="inline-flex items-center justify-center w-6 h-6 bg-white rounded-sm flex-shrink-0 p-px">
+                      <EscudoImg escudo={c.escudo_actual} nombre={c.equipo_actual ?? undefined} />
+                    </span>
+                    <Link href={jugadorHref(c.codjugador, c.nombre)} className="flex-1 min-w-0 truncate text-sm font-display uppercase text-white hover:text-grass-300 transition-colors">{formatNombre(c.nombre)}</Link>
+                    {c.posicion_pastilla && (
+                      <span className={`flex-shrink-0 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold ${POS_COLOR[c.posicion_pastilla] || 'bg-pitch-700 text-chalk-400'}`}>
+                        {c.posicion_pastilla}{c.posicion_es_estimada ? '*' : ''}
+                      </span>
+                    )}
+                    <span className="flex-shrink-0 w-9 text-right text-xs text-chalk-500 tabular-nums">{c.elo != null ? Math.round(c.elo) : ''}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </aside>
 
         {/* MAIN — actuaciones, trayectoria, hitos */}
@@ -333,6 +380,55 @@ export default async function FichaJugador({ params }: { params: Promise<{ slug:
                     </div>
                   </div>
                 ))}
+              </div>
+            </section>
+          )}
+
+          {/* Últimos partidos (3 más recientes jugados) */}
+          {ultimos.length > 0 && (
+            <section>
+              <h2 className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-widest text-chalk-600 mb-2">
+                <ListChecks className="w-3.5 h-3.5 text-grass-400" strokeWidth={2.5} /> Últimos partidos
+              </h2>
+              <div className="bg-pitch-800 rounded-xl border border-pitch-700 divide-y divide-pitch-700/60">
+                {ultimos.map((p: any) => {
+                  const { marcador, signo } = parseResultado(p.resultado)
+                  const gc = p.goles_encajados ?? 0
+                  return (
+                    <div key={p.codacta} className="flex items-center gap-3 px-3 py-2.5">
+                      <span className="inline-flex items-center justify-center w-8 h-8 bg-white rounded-sm flex-shrink-0 p-0.5">
+                        <EscudoImg escudo={p.escudo} nombre={p.equipo_nombre} />
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-medium text-white truncate">vs <NombreEquipo codequipo={p.rival_cod} nombre={p.rival_nombre} /></span>
+                          <span className={`text-xs font-semibold tabular-nums flex-shrink-0 ${colorSigno(signo)}`}>{marcador}</span>
+                        </div>
+                        <div className="text-[11px] text-chalk-600 truncate">{fechaCorta(p.fecha)} · con {p.equipo_nombre}</div>
+                      </div>
+                      <div className="flex items-center gap-3 flex-shrink-0 text-center">
+                        {portero ? (
+                          <div>
+                            <div className="font-display text-base font-bold tabular-nums flex items-center justify-center gap-1">
+                              {gc === 0 ? <Hand className="w-4 h-4" style={{ color: '#38bdf8' }} strokeWidth={2.25} /> : null}
+                              <span className={gc === 0 ? 'text-chalk-400' : 'text-white'}>{gc}</span>
+                            </div>
+                            <div className="text-[9px] uppercase tracking-wide text-chalk-600">GC</div>
+                          </div>
+                        ) : (p.goles > 0 && (
+                          <div>
+                            <div className="font-display text-base font-bold text-white tabular-nums">{p.goles}</div>
+                            <div className="text-[9px] uppercase tracking-wide text-chalk-600">{p.goles === 1 ? 'gol' : 'goles'}</div>
+                          </div>
+                        ))}
+                        <div>
+                          <div className={`font-display text-base font-bold tabular-nums ${signoCls(p.puntos)}`}>{conSigno(p.puntos)}</div>
+                          <div className="text-[9px] uppercase tracking-wide text-chalk-600">pts</div>
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
               </div>
             </section>
           )}

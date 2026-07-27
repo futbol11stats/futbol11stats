@@ -5,13 +5,14 @@ import { equipoHref } from '@/lib/equipo'
 // cubre el 100% de los codequipo que aparecen en el sitio (verificado), así que el enlace es
 // incondicional: si falta el codequipo, cae a texto plano (sin romper el render).
 export default function NombreEquipo({
-  codequipo, nombre, className,
+  codequipo, nombre, className, temporada,
 }: {
   codequipo: string | number | null | undefined
   nombre: string | null
   className?: string
+  temporada?: string | null   // añade ?temporada=YYYY-YY para que la ficha de equipo abra en esa temporada
 }) {
-  const href = equipoHref(codequipo, nombre)
+  const href = equipoHref(codequipo, nombre, temporada)
   if (!href || !nombre) return <>{nombre}</>
   return (
     <Link

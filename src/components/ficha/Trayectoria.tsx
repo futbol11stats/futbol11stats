@@ -5,7 +5,8 @@ import { ChevronDown, Loader2, CircleDot, Hand } from 'lucide-react'
 import { supabase, escudoUrl } from '@/lib/supabase'
 import EscudoImg from '@/components/EscudoImg'
 import NombreEquipo from '@/components/NombreEquipo'
-import { tempLabel, fechaCorta } from '@/lib/jugador'
+import Sello from '@/components/Sello'
+import { tempLabel, fechaCorta, signoCls, conSigno, parseResultado, colorSigno } from '@/lib/jugador'
 
 export const PARTIDOS_HABILITADO = true
 
@@ -26,13 +27,6 @@ async function fetchPartidos(codjugador: string, codtemporada: string, codequipo
   return { error: null, rows: (data || []) as any[] }
 }
 
-// resultado = "X-Y G/E/P" (ya en perspectiva del jugador): el color sale del sufijo.
-function parseResultado(resultado: string | null): { marcador: string; signo: string } {
-  const m = (resultado || '').trim().match(/^(.*?)\s*([GEP])$/i)
-  return m ? { marcador: m[1].trim(), signo: m[2].toUpperCase() } : { marcador: resultado || '', signo: '' }
-}
-const colorSigno = (s: string) => (s === 'G' ? 'text-grass-300' : s === 'P' ? 'text-red-300' : 'text-chalk-400')
-
 // Un partido = una FILA de la misma tabla (hereda el grid de la madre; cada dato bajo su columna).
 // Móvil: el set madre es PJ·G·TA·TR·ELO, así que MIN/PTS/resultado viven compactos en la celda EQUIPO.
 const ACENTO = 'border-l-2 border-grass-500/70'
@@ -41,7 +35,6 @@ function PartidoFila({ p, portero }: { p: any; portero: boolean }) {
   const goles = p.goles ?? 0, min = p.minutos ?? 0, pts = p.puntos, gc = p.goles_encajados ?? 0
   const ta = p.amarillas ?? 0, da = p.dobles_amarilla ?? 0, tr = p.rojas ?? 0
   const delta = p.elo_delta
-  const eloCls = delta > 0 ? 'text-grass-400' : delta < 0 ? 'text-red-400' : 'text-chalk-600'
   return (
     <tr className="border-b border-pitch-700/40 bg-pitch-900/30">
       {/* TEMP -> Jnn (· fecha en desktop) */}
@@ -49,7 +42,7 @@ function PartidoFila({ p, portero }: { p: any; portero: boolean }) {
         J{p.jornada}<span className="hidden sm:inline"> · {fechaCorta(p.fecha)}</span>
       </td>
       {/* EQUIPO -> escudo rival + nombre (+ resultado·min·pts SOLO en móvil) */}
-      <td className="text-chalk-300 max-w-[9.5rem] sm:max-w-[13rem]">
+      <td className="text-chalk-300 max-w-[7rem] sm:max-w-[13rem]">
         <div className="flex items-center gap-2 min-w-0">
           {escudoUrl(p.rival_escudo)
             ? <span className="inline-flex items-center justify-center w-5 h-5 bg-white rounded-sm flex-shrink-0 p-px"><EscudoImg escudo={p.rival_escudo} nombre={p.rival_nombre ?? undefined} /></span>
@@ -58,16 +51,15 @@ function PartidoFila({ p, portero }: { p: any; portero: boolean }) {
         </div>
         <div className="sm:hidden flex items-center gap-1.5 pl-7 mt-0.5 text-[10px] whitespace-nowrap">
           <span className={`font-semibold ${colorSigno(signo)}`}>{marcador}</span>
-          <span className="text-chalk-600">{min}′</span>
-          {pts != null && <span className="text-grass-400">{Math.round(pts)}p</span>}
+          {pts != null && <span className={signoCls(pts)}>{conSigno(pts)}p</span>}
         </div>
       </td>
       {/* COMP -> resultado coloreado (desktop) */}
       <td className={`hidden sm:table-cell text-center font-semibold tabular-nums ${colorSigno(signo)}`}>{marcador}</td>
       {/* PJ -> T / S */}
       <td className="text-center text-chalk-500" title={p.titular ? 'Titular' : 'Suplente'}>{p.titular ? 'T' : 'S'}</td>
-      {/* MIN (desktop) */}
-      <td className="hidden sm:table-cell text-center text-chalk-600 tabular-nums">{min}′</td>
+      {/* MIN (columna madre también en móvil) */}
+      <td className="text-center text-chalk-600 tabular-nums">{min}′</td>
       {/* G (campo) / P0 (portero: guante si portería a cero) */}
       {portero ? (
         <td className="text-center">{gc === 0 ? <Hand className="inline w-3.5 h-3.5" style={{ color: '#38bdf8' }} strokeWidth={2.25} /> : null}</td>
@@ -90,10 +82,10 @@ function PartidoFila({ p, portero }: { p: any; portero: boolean }) {
         <span className="hidden sm:inline text-red-300/90">{tr > 0 ? tr : ''}</span>
         <span className="sm:hidden inline-flex justify-center">{tr > 0 && <span className="inline-block w-1.5 h-2.5 rounded-[1px] bg-red-500" />}</span>
       </td>
-      {/* PTS (desktop) */}
-      <td className="hidden sm:table-cell text-center text-grass-400 font-medium tabular-nums">{pts != null ? Math.round(pts) : ''}</td>
+      {/* PTS (desktop) -> con signo y color */}
+      <td className={`hidden sm:table-cell text-center font-medium tabular-nums ${signoCls(pts)}`}>{pts != null ? conSigno(pts) : ''}</td>
       {/* ELO -> Δ con signo y color */}
-      <td className={`text-center tabular-nums ${eloCls}`}>{delta != null ? `${delta > 0 ? '+' : ''}${Math.round(delta)}` : ''}</td>
+      <td className={`text-center tabular-nums ${signoCls(delta)}`}>{conSigno(delta)}</td>
     </tr>
   )
 }
@@ -124,7 +116,7 @@ export default function Trayectoria({ carrera, portero, codjugador }: { carrera:
             <th className="text-left">Equipo</th>
             <th className="text-left hidden sm:table-cell">Comp.</th>
             <th>PJ</th>
-            <th className="hidden sm:table-cell">Min</th>
+            <th>Min</th>
             <th>{portero ? 'P0' : 'G'}</th>
             {portero && <th>GC</th>}
             <th>TA</th>
@@ -150,22 +142,24 @@ export default function Trayectoria({ carrera, portero, codjugador }: { carrera:
                       {tempLabel(c.codtemporada)}
                     </span>
                   </td>
-                  <td className="col-nombre text-white">
+                  <td className="col-nombre text-white max-w-[8rem] sm:max-w-none">
                     <span className="flex items-center gap-2 min-w-0">
                       {escudoUrl(c.escudo) && (
                         <span className="escudo-box inline-flex items-center justify-center w-6 h-6 bg-white rounded-sm flex-shrink-0 p-0.5">
                           <EscudoImg escudo={c.escudo} nombre={c.equipo_nombre} />
                         </span>
                       )}
-                      {/* El nombre navega a la ficha de equipo; stopPropagation evita desplegar el acordeón. */}
+                      {/* El nombre navega a la ficha de equipo (en ESA temporada); stopPropagation evita desplegar. */}
                       <span className="truncate" onClick={(e) => e.stopPropagation()}>
-                        <NombreEquipo codequipo={c.codequipo} nombre={c.equipo_nombre} />
+                        <NombreEquipo codequipo={c.codequipo} nombre={c.equipo_nombre} temporada={tempLabel(c.codtemporada)} />
                       </span>
                     </span>
                   </td>
-                  <td className="text-chalk-600 hidden sm:table-cell whitespace-nowrap text-xs">{c.nombre_comp}{c.grupo_nombre ? ` · ${c.grupo_nombre}` : ''}</td>
+                  <td className="text-chalk-600 hidden sm:table-cell whitespace-nowrap text-xs">
+                    <span className="inline-flex items-center gap-1"><Sello nombreComp={c.nombre_comp} size={15} />{c.nombre_comp}{c.grupo_nombre ? ` · ${c.grupo_nombre}` : ''}</span>
+                  </td>
                   <td className="text-center text-chalk-400 tabular-nums">{c.pj}</td>
-                  <td className="text-center text-chalk-600 tabular-nums hidden sm:table-cell">{(c.minutos ?? 0).toLocaleString('es-ES')}</td>
+                  <td className="text-center text-chalk-600 tabular-nums">{(c.minutos ?? 0).toLocaleString('es-ES')}</td>
                   <td className="text-center font-bold text-white tabular-nums">{portero ? (c.porterias_cero ?? 0) : c.goles}</td>
                   {portero && <td className="text-center text-chalk-400 tabular-nums">{c.goles_encajados ?? 0}</td>}
                   <td className="text-center text-chalk-600 tabular-nums">{c.tarjetas_amarillas ?? 0}</td>

@@ -69,7 +69,7 @@ export const COLS_JUGADOR =
   'trayectoria_completa, pj_total, goles_total, minutos_total, temporadas, titular_total, suplente_total, ' +
   'dorsal_ultimo, dorsal_comun, dorsales_otros, rank_general, rank_general_total, rank_categoria, ' +
   'rank_categoria_total, rank_posicion, rank_posicion_total, es_portero, goles_encajados_total, ' +
-  'porterias_cero_total, gc_pj'
+  'porterias_cero_total, gc_pj, companeros_top'
 
 export const COLS_CARRERA =
   'codtemporada, orden_temporada, codequipo, equipo_nombre, escudo, nombre_comp, categoria_rama, categoria_nivel, codgrupo, ' +
@@ -126,6 +126,17 @@ export type JugadorFicha = {
   goles_encajados_total: number | null
   porterias_cero_total: number | null
   gc_pj: number | null
+  companeros_top: CompaneroTop[] | null
+}
+
+export type CompaneroTop = {
+  codjugador: string
+  nombre: string
+  posicion_pastilla: string | null
+  posicion_es_estimada: boolean | null
+  escudo_actual: string | null
+  equipo_actual: string | null
+  elo: number | null
 }
 
 export type HitoRow = {
@@ -177,6 +188,18 @@ export function fechaISO(fecha: string | null): string {
   const m = fecha.match(/^(\d{2})\/(\d{2})\/(\d{4})$/)
   return m ? `${m[3]}${m[2]}${m[1]}` : '00000000'
 }
+
+// resultado = "X-Y G/E/P" (ya en perspectiva del jugador): color por el sufijo.
+export function parseResultado(resultado: string | null): { marcador: string; signo: string } {
+  const m = (resultado || '').trim().match(/^(.*?)\s*([GEP])$/i)
+  return m ? { marcador: m[1].trim(), signo: m[2].toUpperCase() } : { marcador: resultado || '', signo: '' }
+}
+export const colorSigno = (s: string) => (s === 'G' ? 'text-grass-300' : s === 'P' ? 'text-red-300' : 'text-chalk-400')
+
+// Valor con signo y color (para PTS de partido y Δ ELO): +N verde / −N rojo / 0 neutro.
+export const signoCls = (n: number | null | undefined) =>
+  (n == null ? 'text-chalk-600' : n > 0 ? 'text-grass-400' : n < 0 ? 'text-red-400' : 'text-chalk-600')
+export const conSigno = (n: number | null | undefined) => (n == null ? '' : `${n > 0 ? '+' : ''}${Math.round(n)}`)
 
 const MESES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic']
 // DD/MM/YYYY -> "17 nov 2021"

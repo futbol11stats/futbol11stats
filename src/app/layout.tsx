@@ -38,12 +38,12 @@ export default function RootLayout({
     <html lang="es" className={`${inter.variable} ${barlow.variable}`}>
       <body className="bg-pitch-900 text-chalk-100 min-h-screen font-body antialiased">
         <header className="border-b border-pitch-700 bg-pitch-800/80 backdrop-blur-sm sticky top-0 z-50">
-          <div className="max-w-7xl mx-auto px-4 h-14 flex items-center justify-between">
-            <a href="/" className="flex items-center gap-2 group">
-              <div className="w-7 h-7 rounded-full bg-grass-500 flex items-center justify-center text-xs font-bold text-white">
+          <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
+            <a href="/" className="flex items-center gap-2.5 group">
+              <div className="w-9 h-9 rounded-full bg-grass-500 flex items-center justify-center text-base font-bold text-white">
                 11
               </div>
-              <span className="font-display font-bold text-lg tracking-tight text-white group-hover:text-grass-400 transition-colors">
+              <span className="font-display font-bold text-2xl md:text-3xl tracking-tight text-white group-hover:text-grass-400 transition-colors">
                 Fútbol<span className="text-grass-400">11</span>Stats
               </span>
             </a>

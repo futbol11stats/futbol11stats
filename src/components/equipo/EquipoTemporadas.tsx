@@ -1,26 +1,25 @@
 'use client'
 
-import { useState } from 'react'
 import { Users, ArrowRightLeft } from 'lucide-react'
 import Plantilla, { type PlantillaRow } from './Plantilla'
 import Movimientos from './Movimientos'
 import { tempLabel, type MovimientoRow } from '@/lib/equipo'
+import { useTemporada } from './TemporadaContext'
 
-// Pastillas de temporada (client): filtran PLANTILLA y ALTAS/BAJAS a la temporada elegida, sobre datos
-// ya cargados (sin cambiar URL). Por defecto la más reciente. Las temporadas son las de
-// web_equipo_temporadas (solo las que el equipo tiene). Al cambiar de temporada se remonta cada bloque
-// (key=sel) para resetear los "ver más".
+// Pastillas de temporada (client): filtran PLANTILLA y ALTAS/BAJAS a la temporada elegida (estado
+// compartido vía TemporadaContext con el Top 5 del aside). Al cambiar de temporada se remonta cada
+// bloque (key=sel) para resetear los "ver más".
 export default function EquipoTemporadas({
-  temporadas, plantilla, fichajes, promociones, fichas, nota,
+  plantilla, fichajes, promociones, fichas, nota, completa,
 }: {
-  temporadas: string[]                 // codtemporadas, descendente
   plantilla: PlantillaRow[]            // todas las temporadas (cada fila con codtemporada)
   fichajes: MovimientoRow[]
   promociones: MovimientoRow[]
   fichas: Record<string, string>       // codjugador -> nombre canónico (para movimientos)
   nota?: string
+  completa?: boolean                   // aficionados: plantilla con PTS/ELO
 }) {
-  const [sel, setSel] = useState(temporadas[0])
+  const { sel, setSel, temporadas } = useTemporada()
   const plantillaSel = plantilla.filter((r) => String(r.codtemporada) === String(sel))
   const fichajesSel = fichajes.filter((m) => String(m.codtemporada) === String(sel))
   const promoSel = promociones.filter((m) => String(m.codtemporada) === String(sel))
@@ -53,7 +52,7 @@ export default function EquipoTemporadas({
           <Users className="w-3.5 h-3.5 text-grass-400" strokeWidth={2.5} /> Plantilla
           <span className="text-chalk-600 font-normal normal-case tracking-normal">· {tempLabel(sel)}</span>
         </h2>
-        <Plantilla key={sel} filas={plantillaSel} nota={nota} />
+        <Plantilla key={sel} filas={plantillaSel} nota={nota} completa={completa} />
       </section>
 
       {/* Altas y bajas */}

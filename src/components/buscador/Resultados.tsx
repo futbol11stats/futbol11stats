@@ -44,19 +44,19 @@ export function ResultadoJugador({ j, tokens, onNavigate, active }: {
       href={jugadorHref(j.codjugador, j.nombre)}
       onClick={onNavigate}
       data-hit
-      className={`flex items-center gap-2.5 px-3 py-2 transition-colors ${active ? 'bg-pitch-700' : 'hover:bg-pitch-700/60'}`}
+      className={`flex items-center gap-2.5 px-3 py-2.5 transition-colors ${active ? 'bg-pitch-700' : 'hover:bg-pitch-700/60'}`}
     >
-      <span className={`inline-flex items-center justify-center w-7 h-7 bg-white rounded-sm flex-shrink-0 p-0.5 ${inactivo ? 'opacity-60' : ''}`}>
+      <span className={`inline-flex items-center justify-center w-8 h-8 bg-white rounded-sm flex-shrink-0 p-0.5 ${inactivo ? 'opacity-60' : ''}`}>
         {escudoUrl(j.escudo_actual) ? <EscudoImg escudo={j.escudo_actual} nombre={j.equipo_actual_nombre ?? undefined} /> : null}
       </span>
       <span className="min-w-0 flex-1">
         <span className="flex items-center gap-1.5 min-w-0">
-          <span className="font-display font-semibold text-white uppercase truncate">
+          <span className="font-display font-semibold text-white uppercase truncate text-[15px] leading-tight">
             <Highlight text={formatNombre(j.nombre)} tokens={tokens} />
           </span>
           <PastillaMini pos={j.posicion_pastilla} estimada={!!j.posicion_es_estimada} />
         </span>
-        <span className={`block text-[11px] truncate ${inactivo ? 'text-chalk-600' : 'text-chalk-500'}`}>
+        <span className={`block text-xs truncate ${inactivo ? 'text-chalk-600' : 'text-chalk-500'}`}>
           {inactivo
             ? `Último: ${j.equipo_actual_nombre ?? '—'}${j.codtemporada_ultima ? ` · ${tempLabel(j.codtemporada_ultima)}` : ''}`
             : `${j.equipo_actual_nombre ?? '—'}${j.pj_total != null ? ` · ${j.pj_total} PJ` : ''}`}
@@ -76,19 +76,19 @@ export function ResultadoEquipo({ e, tokens, onNavigate, active }: {
       href={equipoHref(e.codequipo, e.nombre) || '#'}
       onClick={onNavigate}
       data-hit
-      className={`flex items-center gap-2.5 px-3 py-2 transition-colors ${active ? 'bg-pitch-700' : 'hover:bg-pitch-700/60'}`}
+      className={`flex items-center gap-2.5 px-3 py-2.5 transition-colors ${active ? 'bg-pitch-700' : 'hover:bg-pitch-700/60'}`}
     >
-      <span className={`inline-flex items-center justify-center w-7 h-7 bg-white rounded-sm flex-shrink-0 p-0.5 ${inactivo ? 'opacity-60' : ''}`}>
+      <span className={`inline-flex items-center justify-center w-8 h-8 bg-white rounded-sm flex-shrink-0 p-0.5 ${inactivo ? 'opacity-60' : ''}`}>
         {escudoUrl(e.escudo) ? <EscudoImg escudo={e.escudo} nombre={e.nombre} /> : null}
       </span>
       <span className="min-w-0 flex-1">
         <span className="flex items-center gap-1.5 min-w-0">
-          <span className="font-display font-semibold text-white uppercase truncate">
+          <span className="font-display font-semibold text-white uppercase truncate text-[15px] leading-tight">
             <Highlight text={e.nombre} tokens={tokens} />
           </span>
-          {juvenil && <span className="flex-shrink-0 text-[9px] font-semibold uppercase tracking-wide text-blue-300 bg-blue-500/15 rounded px-1 py-px">Juvenil</span>}
+          {juvenil && <span className="flex-shrink-0 text-[10px] font-semibold uppercase tracking-wide text-blue-300 bg-blue-500/15 rounded px-1 py-px">Juvenil</span>}
         </span>
-        <span className={`block text-[11px] truncate ${inactivo ? 'text-chalk-600' : 'text-chalk-500'}`}>
+        <span className={`block text-xs truncate ${inactivo ? 'text-chalk-600' : 'text-chalk-500'}`}>
           {inactivo
             ? `Último grupo: ${e.nombre_comp ?? ''}${e.grupo_nombre ? ` · ${e.grupo_nombre}` : ''}${e.codtemporada ? ` · ${tempLabel(e.codtemporada)}` : ''}`
             : `${e.nombre_comp ?? ''}${e.grupo_nombre ? ` · ${e.grupo_nombre}` : ''}`}

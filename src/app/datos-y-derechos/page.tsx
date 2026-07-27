@@ -47,6 +47,17 @@ export default function DatosYDerechosPage() {
           o incompleta.
         </p>
 
+        <h2 className="font-display text-xl font-bold text-white pt-2">Escudos y logotipos</h2>
+        <p>
+          Los escudos de los clubes y los logotipos federativos (RFFM, RFEF) son propiedad de sus
+          respectivos titulares y se muestran con <strong>fines meramente identificativos</strong> de
+          equipos y competiciones, sin implicar afiliación, patrocinio ni aprobación alguna. Si eres
+          titular de alguno y deseas su retirada, escríbenos a{' '}
+          <a href={`mailto:${CONTACTO}?subject=Retirada%20de%20logotipo`}
+            className="text-grass-400 underline hover:text-grass-300 transition-colors">{CONTACTO}</a>{' '}
+          y lo retiraremos.
+        </p>
+
         <h2 className="font-display text-xl font-bold text-white pt-2">Corrección de datos</h2>
         <p>
           Como los datos se calculan de forma automática, algún detalle puede figurar incompleto o

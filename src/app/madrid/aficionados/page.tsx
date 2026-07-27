@@ -4,6 +4,7 @@ import type { Metadata } from 'next'
 import { supabase } from '@/lib/supabase'
 import Link from 'next/link'
 import JsonLd from '@/components/JsonLd'
+import Sello from '@/components/Sello'
 import { SITE_URL } from '@/lib/seo'
 import { graphLd, websiteLd, organizationLd, breadcrumbLd } from '@/lib/jsonld'
 
@@ -137,7 +138,7 @@ function CompeticionCard({
     <div className="bg-pitch-800 rounded-xl border border-pitch-700 overflow-hidden hover:border-grass-500/50 transition-colors">
       <div className="px-4 py-3 border-b border-pitch-700">
         <div className="flex items-center justify-between">
-          <span className="font-semibold text-white text-sm">{nombreCorto[nombre] || nombre}</span>
+          <span className="font-semibold text-white text-sm flex items-center gap-1.5"><Sello nombreComp={nombre} size={18} />{nombreCorto[nombre] || nombre}</span>
           <span className="text-xs text-chalk-600">{grupos.length} grupo{grupos.length !== 1 ? 's' : ''}</span>
         </div>
         {nombreHistorico && (

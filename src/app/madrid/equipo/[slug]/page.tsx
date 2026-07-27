@@ -10,10 +10,14 @@ import { jugadorHref } from '@/lib/jugador'
 import JsonLd from '@/components/JsonLd'
 import { graphLd, breadcrumbLd, sportsTeamLd } from '@/lib/jsonld'
 import EscudoImg from '@/components/EscudoImg'
+import { Suspense } from 'react'
 import NombreEquipo from '@/components/NombreEquipo'
+import Sello from '@/components/Sello'
 import MedidoresEquipo from '@/components/equipo/MedidoresEquipo'
 import { type PlantillaRow } from '@/components/equipo/Plantilla'
 import EquipoTemporadas from '@/components/equipo/EquipoTemporadas'
+import { TemporadaProvider } from '@/components/equipo/TemporadaContext'
+import Top5Plantilla from '@/components/equipo/Top5Plantilla'
 import {
   COLS_EQUIPO, COLS_EQUIPO_TEMPORADAS, COLS_EQUIPO_MOV, COLS_EQUIPO_HITOS, COLS_PLANTILLA_JUVENIL,
   codFromSlug, equipoSlug, tempLabel, fechaCortaDMY, LIVE_COD, RAMA_SLUG, BADGE, HITO_EQUIPO,
@@ -57,13 +61,13 @@ async function getMiniClasif(codgrupo: string, jornada: number) {
 // codtemporada; las pastillas filtran client-side. Todos los codjugador de carrera están en web_jugador.
 async function getPlantillaAfic(cod: string): Promise<PlantillaRow[]> {
   const { data: car } = await supabase.from('web_jugador_carrera')
-    .select('codjugador, codtemporada, pj, goles, minutos, tarjetas_amarillas, tarjetas_rojas')
+    .select('codjugador, codtemporada, pj, goles, minutos, tarjetas_amarillas, tarjetas_rojas, pts_fantasy, elo_final')
     .eq('codequipo', cod)
   const rows = (car || []) as any[]
   const ids = Array.from(new Set(rows.map((r) => String(r.codjugador))))
   if (ids.length === 0) return []
   const { data: jug } = await supabase.from('web_jugador')
-    .select('codjugador, nombre, dorsal_comun, posicion_pastilla').in('codjugador', ids)
+    .select('codjugador, nombre, dorsal_comun, posicion_pastilla, posicion_es_estimada').in('codjugador', ids)
   const info = new Map<string, any>((jug || []).map((j: any) => [String(j.codjugador), j]))
   return rows
     .map((r) => {
@@ -72,11 +76,14 @@ async function getPlantillaAfic(cod: string): Promise<PlantillaRow[]> {
       return {
         key: `${r.codjugador}-${r.codtemporada}`,
         codtemporada: String(r.codtemporada),
+        codjugador: String(r.codjugador),
         dorsal: j.dorsal_comun ?? null,
         pos: j.posicion_pastilla ?? null,
+        estimada: !!j.posicion_es_estimada,
         nombre: formatNombre(j.nombre),
         href: jugadorHref(r.codjugador, j.nombre),
         pj: r.pj, goles: r.goles, minutos: r.minutos, ta: r.tarjetas_amarillas, tr: r.tarjetas_rojas,
+        pts: r.pts_fantasy, elo: r.elo_final,
       } as PlantillaRow
     })
     .filter(Boolean)
@@ -269,11 +276,13 @@ export default async function FichaEquipo({ params }: { params: Promise<{ slug: 
             <div className="mt-2 flex flex-wrap items-center gap-2">
               {inactivo ? (
                 <Chip href={grupoUrl} tone="muted">
+                  <Sello nombreComp={e.nombre_comp} size={16} />
                   Último grupo · {e.grupo_nombre || e.nombre_comp}{e.codtemporada ? ` (${tempLabel(e.codtemporada)})` : ''}
                 </Chip>
               ) : (
                 <>
                   <Chip href={grupoUrl}>
+                    <Sello nombreComp={e.nombre_comp} size={16} />
                     {e.nombre_comp}{e.grupo_nombre ? ` · ${e.grupo_nombre}` : ''}
                     {grupoUrl && <ChevronRight className="w-3 h-3" />}
                   </Chip>
@@ -292,7 +301,10 @@ export default async function FichaEquipo({ params }: { params: Promise<{ slug: 
         </div>
       </section>
 
-      {/* CUERPO */}
+      {/* CUERPO. TemporadaProvider comparte la temporada seleccionada entre las pastillas (main) y el
+          Top 5 (aside); lee ?temporada en cliente -> Suspense para que la página siga siendo ISR. */}
+      <Suspense fallback={<div className="lg:grid lg:grid-cols-[minmax(0,1fr)_300px] lg:gap-8" />}>
+      <TemporadaProvider temporadas={temporadaCods}>
       <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_300px] lg:gap-8 lg:items-start">
 
         {/* ASIDE: mini-clasificación + temporadas */}
@@ -344,9 +356,10 @@ export default async function FichaEquipo({ params }: { params: Promise<{ slug: 
                       {(() => {
                         const compGrupo = `${t.nombre_comp}${t.grupo_nombre ? ` · ${t.grupo_nombre}` : ''}`
                         const url = grupoTempUrl(t)
+                        const inner = <><Sello nombreComp={t.nombre_comp} size={15} /><span className="truncate">{compGrupo}</span></>
                         return url
-                          ? <Link href={url} className="block text-xs text-chalk-400 hover:text-grass-300 truncate transition-colors">{compGrupo}</Link>
-                          : <div className="text-xs text-chalk-400 truncate">{compGrupo}</div>
+                          ? <Link href={url} className="flex items-center gap-1.5 text-xs text-chalk-400 hover:text-grass-300 transition-colors">{inner}</Link>
+                          : <div className="flex items-center gap-1.5 text-xs text-chalk-400">{inner}</div>
                       })()}
                       <div className="text-[11px] text-chalk-600 tabular-nums">{t.posicion_final}º · {t.pts} pts</div>
                     </div>
@@ -358,17 +371,20 @@ export default async function FichaEquipo({ params }: { params: Promise<{ slug: 
               </div>
             </div>
           )}
+
+          {/* Top 5 de la plantilla (aficionados): reactivo al selector de temporada vía contexto. */}
+          {!esJuvenil && <Top5Plantilla plantilla={plantilla} />}
         </aside>
 
         {/* MAIN: pastillas de temporada -> plantilla + altas/bajas (client) + hitos */}
         <main className="min-w-0 space-y-8 lg:col-start-1 lg:row-start-1">
           <EquipoTemporadas
-            temporadas={temporadaCods}
             plantilla={plantilla}
             fichajes={fichajes}
             promociones={promociones}
             fichas={fichasMov}
             nota={esJuvenil ? notaJuvenil : undefined}
+            completa={!esJuvenil}
           />
 
           {/* Hitos (no se filtran por temporada: son del registro de 5 temporadas) */}
@@ -400,6 +416,8 @@ export default async function FichaEquipo({ params }: { params: Promise<{ slug: 
           )}
         </main>
       </div>
+      </TemporadaProvider>
+      </Suspense>
 
       {/* Enlace discreto al canal de datos */}
       <div className="mt-12 pt-4 border-t border-pitch-700/60 flex items-center gap-1.5">
