@@ -239,51 +239,53 @@ export default async function FichaJugador({ params }: { params: Promise<{ slug:
       {/* HERO + MEDIDORES (banda en desktop) */}
       <section className="lg:flex lg:items-start lg:justify-between lg:gap-8 mb-6 md:mb-8">
         {/* Identidad */}
-        <div className="flex items-start gap-4 min-w-0">
-          {/* Avatar de iniciales (fondo del color de la posición) + dorsal en esquina */}
-          <div className="relative flex-shrink-0">
-            <div className={`w-20 h-20 md:w-24 md:h-24 rounded-2xl flex items-center justify-center font-display text-4xl md:text-5xl font-bold text-white ring-2 ring-inset bg-gradient-to-br to-pitch-800 ${AVATAR_POS[j.posicion_pastilla || ''] || 'from-pitch-600/70 ring-pitch-600'}`}>
-              {iniciales(nombre)}
-            </div>
-            {j.dorsal_ultimo != null && (
-              <span className={`absolute -bottom-2 -right-2 w-9 h-9 rounded-full bg-pitch-900 ring-2 flex items-center justify-center font-display text-base font-bold text-white tabular-nums ${DORSAL_POS[j.posicion_pastilla || ''] || 'ring-pitch-600'}`}>
-                {j.dorsal_ultimo}
-              </span>
-            )}
-          </div>
-          <div className="min-w-0 pt-0.5">
-            <div className="flex items-center gap-2 flex-wrap">
-              <Pastilla pos={j.posicion_pastilla} estimada={!!j.posicion_es_estimada} />
-              {j.edad != null && <span className="text-sm text-chalk-500 font-medium">{j.edad} años</span>}
-            </div>
-            <h1 className="font-display text-3xl md:text-4xl font-bold text-white mt-1.5 leading-tight uppercase">{nombre}</h1>
-            {/* Chip de equipo */}
-            <div className="mt-2 flex items-center gap-2 min-w-0">
-              {escudoUrl(j.escudo_actual) && (
-                <span className={`inline-flex items-center justify-center w-6 h-6 bg-white rounded-sm flex-shrink-0 p-0.5 ${inactivo ? 'opacity-60' : ''}`}>
-                  <EscudoImg escudo={j.escudo_actual} nombre={j.equipo_actual_nombre ?? undefined} />
-                </span>
-              )}
-              {inactivo ? (
-                <span className="text-base text-chalk-600 truncate">
-                  Último equipo · <span className="text-chalk-500"><NombreEquipo codequipo={j.codequipo_actual} nombre={j.equipo_actual_nombre} /></span>
-                  {j.codtemporada_ultima ? ` (${tempLabel(j.codtemporada_ultima)})` : ''}
-                </span>
-              ) : (
-                <span className="text-base text-chalk-300 font-medium truncate"><NombreEquipo codequipo={j.codequipo_actual} nombre={j.equipo_actual_nombre} /></span>
-              )}
-            </div>
-            {/* Pastilla de competición (MISMO componente que el hero de equipo): sello + comp · grupo · posición
-                -> vista del grupo. Inactivo: apagada, sin posición. */}
-            {compActual && (
-              <div className="mt-2">
-                <LigaPastilla nombreComp={compActual} grupoNombre={grupoActualNombre}
-                  posicion={inactivo ? null : posicionActual} href={grupoUrl} muted={inactivo} />
+        <div className="min-w-0 lg:flex-1">
+          <div className="flex items-start gap-4 min-w-0">
+            {/* Columna izquierda (centrada bajo el avatar): avatar+dorsal, edad y pastilla de posición */}
+            <div className="flex flex-col items-center gap-2 flex-shrink-0">
+              <div className="relative">
+                <div className={`w-20 h-20 md:w-24 md:h-24 rounded-2xl flex items-center justify-center font-display text-4xl md:text-5xl font-bold text-white ring-2 ring-inset bg-gradient-to-br to-pitch-800 ${AVATAR_POS[j.posicion_pastilla || ''] || 'from-pitch-600/70 ring-pitch-600'}`}>
+                  {iniciales(nombre)}
+                </div>
+                {j.dorsal_ultimo != null && (
+                  <span className={`absolute -bottom-2 -right-2 w-9 h-9 rounded-full bg-pitch-900 ring-2 flex items-center justify-center font-display text-base font-bold text-white tabular-nums ${DORSAL_POS[j.posicion_pastilla || ''] || 'ring-pitch-600'}`}>
+                    {j.dorsal_ultimo}
+                  </span>
+                )}
               </div>
-            )}
-            {/* Copas del equipo ACTUAL en la temporada en curso (inactivos: sin línea) */}
-            <CopasLinea copas={copas} className="mt-1.5" />
+              {j.edad != null && <span className="text-sm text-chalk-500 font-medium">{j.edad} años</span>}
+              <Pastilla pos={j.posicion_pastilla} estimada={!!j.posicion_es_estimada} />
+            </div>
+            {/* Derecha del avatar: nombre grande (gana el ancho) + chip del club */}
+            <div className="min-w-0 flex-1 pt-1">
+              <h1 className="font-display text-3xl md:text-4xl font-bold text-white leading-tight uppercase">{nombre}</h1>
+              <div className="mt-2 flex items-center gap-2 min-w-0">
+                {escudoUrl(j.escudo_actual) && (
+                  <span className={`inline-flex items-center justify-center w-6 h-6 bg-white rounded-sm flex-shrink-0 p-0.5 ${inactivo ? 'opacity-60' : ''}`}>
+                    <EscudoImg escudo={j.escudo_actual} nombre={j.equipo_actual_nombre ?? undefined} />
+                  </span>
+                )}
+                {inactivo ? (
+                  <span className="text-base text-chalk-600 truncate">
+                    Último equipo · <span className="text-chalk-500"><NombreEquipo codequipo={j.codequipo_actual} nombre={j.equipo_actual_nombre} /></span>
+                    {j.codtemporada_ultima ? ` (${tempLabel(j.codtemporada_ultima)})` : ''}
+                  </span>
+                ) : (
+                  <span className="text-base text-chalk-300 font-medium truncate"><NombreEquipo codequipo={j.codequipo_actual} nombre={j.equipo_actual_nombre} /></span>
+                )}
+              </div>
+            </div>
           </div>
+          {/* Pastillas de competición (liga + copas) a ANCHO COMPLETO, a la izquierda, con wrap. Mismo
+              componente LigaPastilla que el hero de equipo. Inactivo: liga apagada, sin copas. */}
+          {(compActual || copas.length > 0) && (
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <LigaPastilla nombreComp={compActual}
+                segments={[compActual, grupoActualNombre, inactivo || posicionActual == null ? null : `${posicionActual}º`]}
+                href={grupoUrl} muted={inactivo} />
+              <CopasLinea copas={copas} />
+            </div>
+          )}
         </div>
 
         {/* Medidores (a la derecha en desktop; debajo en móvil) */}
@@ -338,8 +340,8 @@ export default async function FichaJugador({ params }: { params: Promise<{ slug:
               <div className="bg-pitch-800 rounded-xl border border-pitch-700 px-3 py-1.5">
                 <RankRow rank={j.rank_general} total={j.rank_general_total} label={
                   <span className="flex items-center gap-1.5 min-w-0">
-                    <span className="w-4 h-4 rounded-full bg-grass-500 flex items-center justify-center text-[9px] font-bold text-white flex-shrink-0 leading-none">11</span>
-                    <span className="font-display font-bold tracking-tight text-chalk-300 truncate">Fútbol<span className="text-grass-400">11</span>Stats</span>
+                    <span className="w-5 h-5 rounded-full bg-grass-500 flex items-center justify-center text-[10px] font-bold text-white flex-shrink-0 leading-none">11</span>
+                    <span className="font-display font-bold text-sm tracking-tight text-chalk-200 truncate">Fútbol<span className="text-grass-400">11</span>Stats</span>
                   </span>
                 } />
                 <RankRow rank={j.rank_categoria} total={j.rank_categoria_total} label={

@@ -299,7 +299,9 @@ export default async function FichaEquipo({ params }: { params: Promise<{ slug: 
                 </Chip>
               ) : (
                 /* Pastilla de LIGA (componente compartido con la ficha de jugador). */
-                <LigaPastilla nombreComp={e.nombre_comp} grupoNombre={e.grupo_nombre} posicion={e.posicion_actual} href={grupoUrl} />
+                <LigaPastilla nombreComp={e.nombre_comp}
+                  segments={[e.nombre_comp, e.grupo_nombre, e.posicion_actual != null ? `${e.posicion_actual}º` : null]}
+                  href={grupoUrl} />
               )}
             </div>
             {/* Copas de la temporada en curso (enlazadas). Sin copas -> no renderiza. */}
