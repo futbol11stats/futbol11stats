@@ -22,14 +22,42 @@ export function equipoHref(codequipo: string | number | null | undefined, nombre
   return temporada ? `${base}?temporada=${temporada}` : base
 }
 
-// COPAS del equipo en la temporada en curso (columna JSONB web_equipo.copas — EN CONSTRUCCIÓN en
-// el pipeline). Gated: mientras COPAS_HABILITADO sea false NO se lanza la query (evita un round-trip
-// fallido por página). Contrato de cada entrada (lo que la web necesita; el pipeline lo rellena):
-//   { nombre_comp: string, estado: string|null, href: string|null }
-//   nombre_comp -> sello + nombre corto ("Copa RFFM"); estado -> ronda ("Cuartos"); href -> vista de la copa.
-// Al confirmar que la columna responde: poner COPAS_HABILITADO=true y verificar la forma.
-export const COPAS_HABILITADO = false
+// Ficha mínima de un jugador para los movimientos (existencia + nombre canónico + posición).
+export type FichaMov = { nombre: string; pos: string | null; estimada: boolean }
 
+// Info de un grupo (por codgrupo) para construir el enlace a su vista. Reutilizable por la ficha de
+// jugador (pastilla de competición del hero) y donde haga falta resolver un grupo desde su código.
+export async function getGrupoInfo(codgrupo: string | null | undefined) {
+  if (!codgrupo) return null
+  const { data } = await supabase.from('web_grupos')
+    .select('slug_comp, slug_grupo, jornada_actual, categoria, tipo, nombre_comp, grupo_nombre, codtemporada')
+    .eq('codgrupo', codgrupo).limit(1).maybeSingle()
+  return data as Record<string, any> | null
+}
+
+// URL de la vista de un grupo a partir de su fila de web_grupos (liga -> clasificación; copa -> resultados).
+export function grupoHref(g: Record<string, any> | null | undefined): string | null {
+  if (!g || !g.slug_comp || !g.slug_grupo) return null
+  const rama = String(g.categoria).toUpperCase() === 'JUVENIL' ? 'juveniles' : 'aficionados'
+  const entrada = g.tipo && g.tipo !== 'LIGA' ? 'resultados' : 'clasificacion'
+  return `/madrid/${rama}/${g.slug_comp}/${g.slug_grupo}/${tempLabel(g.codtemporada)}/jornada-${g.jornada_actual || 1}/${entrada}`
+}
+
+// COPAS del equipo en la temporada en curso. Fuente: columna JSONB web_equipo.copas. Cada entrada
+// real: { codtemporada, competicion, codgrupo(=codcompeticion), slug_comp, estado_label }. La web
+// filtra por temporada en curso y construye el href de la vista de copa resolviendo el codgrupo.
+export const COPAS_HABILITADO = true
+
+// Forma REAL de cada entrada en el JSONB (por ahora solo T21).
+type CopaRaw = {
+  codtemporada: string
+  competicion: string
+  codgrupo: string
+  slug_comp: string
+  estado_label: string | null
+}
+
+// Lo que consume CopasLinea (nombre completo -> sello + nombre corto; estado; enlace).
 export type CopaEquipo = {
   nombre_comp: string
   estado: string | null
@@ -40,8 +68,24 @@ export async function getCopasEquipo(codequipo: string | number | null | undefin
   if (!COPAS_HABILITADO || codequipo == null) return []
   const { data, error } = await supabase.from('web_equipo').select('copas').eq('codequipo', String(codequipo)).limit(1).maybeSingle()
   if (error || !data) return []
-  const copas = (data as { copas?: unknown }).copas
-  return Array.isArray(copas) ? (copas as CopaEquipo[]) : []
+  const raw = (data as { copas?: unknown }).copas
+  if (!Array.isArray(raw)) return []
+  // Solo temporada en curso.
+  const copasT = (raw as CopaRaw[]).filter((c) => String(c.codtemporada) === LIVE_COD)
+  if (copasT.length === 0) return []
+  // Resolver slug_grupo/jornada/categoria por codgrupo para el href de la vista de copa (entrada 'resultados').
+  const cods = Array.from(new Set(copasT.map((c) => String(c.codgrupo))))
+  const { data: grupos } = await supabase.from('web_grupos')
+    .select('codgrupo, slug_grupo, jornada_actual, categoria').in('codgrupo', cods)
+  const gmap = new Map((grupos || []).map((g: any) => [String(g.codgrupo), g]))
+  return copasT.map((c) => {
+    const g = gmap.get(String(c.codgrupo))
+    const rama = g && String(g.categoria).toUpperCase() === 'JUVENIL' ? 'juveniles' : 'aficionados'
+    const href = g
+      ? `/madrid/${rama}/${c.slug_comp}/${g.slug_grupo}/${tempLabel(c.codtemporada)}/jornada-${g.jornada_actual || 1}/resultados`
+      : null
+    return { nombre_comp: c.competicion, estado: c.estado_label, href }
+  })
 }
 
 // Columnas explícitas de los fetchers (cotejadas con el DDL de _equipos_export.py).

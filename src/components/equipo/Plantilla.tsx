@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import Pastilla from '@/components/Pastilla'
 
 // Plantilla del equipo (colapsada a ~6 + "ver completa"). Filas ya normalizadas por la página:
 // aficionados llevan href a la ficha del jugador + pts/elo; juvenil NO (menores, sin pts/elo).
@@ -21,10 +22,6 @@ export type PlantillaRow = {
   tr: number | null
   pts?: number | null
   elo?: number | null
-}
-
-export const POS_COLOR_TXT: Record<string, string> = {
-  POR: 'text-orange-300', DEF: 'text-blue-300', MED: 'text-grass-300', DEL: 'text-red-300',
 }
 
 // `completa` (aficionados): set completo PJ·MIN·G·TA·TR·PTS·ELO como la ficha de jugador. En móvil, el
@@ -60,9 +57,7 @@ export default function Plantilla({
             {visibles.map((r) => (
               <tr key={r.key} className="border-b border-pitch-700/50 last:border-0">
                 <td className="text-chalk-600 font-mono text-xs tabular-nums">{r.dorsal ?? ''}</td>
-                <td className={`font-mono text-xs font-semibold ${r.pos ? (POS_COLOR_TXT[r.pos] || 'text-chalk-500') : 'text-chalk-600'}`}>
-                  {r.pos || '—'}{r.pos && r.estimada ? <span className="text-chalk-500">*</span> : null}
-                </td>
+                <td className="whitespace-nowrap"><Pastilla pos={r.pos} estimada={r.estimada} size="mini" /></td>
                 <td className="col-nombre font-medium text-white uppercase">
                   {r.href ? (
                     <Link href={r.href} className="hover:text-grass-300 hover:underline decoration-grass-500/60 underline-offset-2 transition-colors">{r.nombre}</Link>

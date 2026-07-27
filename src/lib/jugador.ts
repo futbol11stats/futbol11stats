@@ -61,6 +61,19 @@ export async function fichasExistentes(codjugadores: (string | number | null | u
   return new Set((data || []).map((r) => String(r.codjugador)))
 }
 
+// ENLAZADO POR EXISTENCIA + POSICIÓN (ambas ramas): de un conjunto de codjugadores, devuelve un Map
+// codjugador -> { pos, estimada } para quien tiene ficha en web_jugador (mayor de edad garantizado
+// HOY). La CLAVE presente = tiene ficha => se enlaza; ausente (menor) => texto plano. La posición
+// alimenta la pastilla en las tablas (el asterisco de estimada solo lo tiene quien tiene ficha).
+export type FichaInfo = { pos: string | null; estimada: boolean }
+export async function fichasInfo(codjugadores: (string | number | null | undefined)[]): Promise<Map<string, FichaInfo>> {
+  const ids = Array.from(new Set(codjugadores.filter(Boolean).map(String)))
+  if (ids.length === 0) return new Map()
+  const { data } = await supabase.from('web_jugador')
+    .select('codjugador, posicion_pastilla, posicion_es_estimada').in('codjugador', ids)
+  return new Map((data || []).map((r: any) => [String(r.codjugador), { pos: r.posicion_pastilla ?? null, estimada: !!r.posicion_es_estimada }]))
+}
+
 // Columnas explícitas de los 4 fetchers de la ficha (evita SELECT *; cotejadas con el DDL del pipeline).
 export const COLS_JUGADOR =
   'codjugador, nombre, anio_nacimiento, edad, posicion_federativa, posicion_pastilla, posicion_es_estimada, ' +

@@ -3,7 +3,7 @@
 import { Users, ArrowRightLeft } from 'lucide-react'
 import Plantilla, { type PlantillaRow } from './Plantilla'
 import Movimientos from './Movimientos'
-import { tempLabel, type MovimientoRow } from '@/lib/equipo'
+import { tempLabel, type MovimientoRow, type FichaMov } from '@/lib/equipo'
 import { useTemporada } from './TemporadaContext'
 
 // Pastillas de temporada (client): filtran PLANTILLA y ALTAS/BAJAS a la temporada elegida (estado
@@ -15,7 +15,7 @@ export default function EquipoTemporadas({
   plantilla: PlantillaRow[]            // todas las temporadas (cada fila con codtemporada)
   fichajes: MovimientoRow[]
   promociones: MovimientoRow[]
-  fichas: Record<string, string>       // codjugador -> nombre canónico (para movimientos)
+  fichas: Record<string, FichaMov>     // codjugador -> {nombre canónico, pos, estimada} (para movimientos)
   nota?: string
   completa?: boolean                   // aficionados: plantilla con PTS/ELO
 }) {

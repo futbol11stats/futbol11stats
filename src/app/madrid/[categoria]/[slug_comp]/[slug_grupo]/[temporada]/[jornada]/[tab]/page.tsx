@@ -9,7 +9,7 @@ import {
 } from '@/lib/columns'
 import JsonLd from '@/components/JsonLd'
 import { graphLd, breadcrumbLd } from '@/lib/jsonld'
-import { fichasExistentes } from '@/lib/jugador'
+import { fichasInfo } from '@/lib/jugador'
 import { nombreOficial } from '@/lib/sellos'
 import Sello from '@/components/Sello'
 import { notFound } from 'next/navigation'
@@ -348,13 +348,14 @@ export default async function GrupoPage({
     xiOptimo = await getXiOptimoTemporada(cg, codtemporada, jornadaNum)
   }
 
-  // ENLAZADO A FICHAS: qué codjugadores de esta página tienen ficha (query barata, una sola vez).
-  // Solo en aficionados; en juveniles ni se consulta (esos jugadores no están en web_jugador).
+  // ENLAZADO POR EXISTENCIA + POSICIÓN (ambas ramas): qué codjugadores tienen ficha (mayor HOY) y su
+  // posición para la pastilla. La protección es por QUIÉN ES HOY el jugador, no por dónde se mira:
+  // también en juveniles se consulta -> quien tiene ficha enlaza, el resto texto plano (como aficionados).
   const codjugsPagina = [
     ...goleadores, ...fantasy, ...eloJugadores, ...porteros, ...golesJ, ...tarjetasJ,
     ...mvpJ, ...xiJ, ...alertasTarjetas, ...xiOptimo, ...suspendidos, ...xiRondaCopa,
   ].map((j: any) => j.codjugador)
-  const fichas = categoria === 'juveniles' ? null : await fichasExistentes(codjugsPagina)
+  const fichas = await fichasInfo(codjugsPagina)
 
   // Copa/playoff: eliminatoria (sin clasificación ni Top-5 Equipos/forma — no aplica en knockout).
   // La ronda seleccionada gobierna AMBOS bloques (jornada = esa ronda; temporada = acumulado J1->ronda).

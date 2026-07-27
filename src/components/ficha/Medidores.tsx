@@ -52,7 +52,7 @@ function PercentilBateria({ percentil, categoria }: { percentil: number; categor
         ))}
       </div>
       <p className="mt-1.5 text-[11px] text-chalk-600">
-        <span className="text-grass-300 font-medium">Percentil {percentil}</span>{categoria ? ` · ${categoria}` : ''}
+        <span className="text-grass-300 font-medium">Percentil</span> <span className="text-white font-semibold">{percentil}</span>{categoria ? ` · ${categoria}` : ''}
       </p>
     </div>
   )

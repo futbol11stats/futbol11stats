@@ -9,7 +9,7 @@ import {
 } from '@/lib/columns'
 import JsonLd from '@/components/JsonLd'
 import { graphLd, breadcrumbLd } from '@/lib/jsonld'
-import { fichasExistentes } from '@/lib/jugador'
+import { fichasInfo } from '@/lib/jugador'
 import { nombreOficial } from '@/lib/sellos'
 import Sello from '@/components/Sello'
 import { notFound } from 'next/navigation'
@@ -333,9 +333,10 @@ export default async function GlobalPage({
     xiJor = rows.map(r => ({ ...r, pts_fantasy: r.pts_jornada, grupo: mkGrupo(r.codgrupo) }))
   }
 
-  // ENLAZADO A FICHAS (solo aficionados; juveniles no consulta): qué codjugadores tienen ficha.
+  // ENLAZADO POR EXISTENCIA + POSICIÓN (ambas ramas): quién tiene ficha (mayor HOY) enlaza; su posición
+  // alimenta la pastilla. También en juveniles (protección por quién es hoy, no por dónde se mira).
   const codjugsPagina = [...ranking, ...mvpJ, ...xiTemp, ...xiJor, ...alertasTarjetas].map((j: any) => j.codjugador)
-  const fichas = categoria === 'juveniles' ? null : await fichasExistentes(codjugsPagina)
+  const fichas = await fichasInfo(codjugsPagina)
 
   const TABS_JORNADA = [
     { id: 'clasificacion',           label: 'Clasificación' },

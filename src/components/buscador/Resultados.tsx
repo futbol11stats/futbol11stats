@@ -1,8 +1,9 @@
 import Link from 'next/link'
 import EscudoImg from '@/components/EscudoImg'
 import { escudoUrl, formatNombre } from '@/lib/supabase'
-import { jugadorHref, tempLabel, POS_COLOR } from '@/lib/jugador'
+import { jugadorHref, tempLabel } from '@/lib/jugador'
 import { equipoHref } from '@/lib/equipo'
+import Pastilla from '@/components/Pastilla'
 import { normAlign, LIVE_COD, type JugadorHit, type EquipoHit } from '@/lib/buscador'
 
 // Resalta en verde los trozos del texto que coinciden con los tokens (insensible a acentos/mayúsculas).
@@ -21,18 +22,6 @@ export function Highlight({ text, tokens }: { text: string; tokens: string[] }) 
   for (let i = 0; i < text.length; i++) { if (marks[i] !== cur) { flush(); cur = marks[i] } buf += text[i] }
   flush()
   return <>{out}</>
-}
-
-// Pastilla de posición compacta (con asterisco si la posición es estimada).
-function PastillaMini({ pos, estimada }: { pos: string | null; estimada: boolean }) {
-  if (!pos) return null
-  const cls = POS_COLOR[pos] || 'bg-pitch-700 text-chalk-400'
-  return (
-    <span title={estimada ? 'Posición estimada por dorsal' : pos}
-      className={`flex-shrink-0 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold ${cls}`}>
-      {pos}{estimada && <span className="ml-px">*</span>}
-    </span>
-  )
 }
 
 export function ResultadoJugador({ j, tokens, onNavigate, active }: {
@@ -54,7 +43,7 @@ export function ResultadoJugador({ j, tokens, onNavigate, active }: {
           <span className="font-display font-semibold text-white uppercase truncate text-[15px] leading-tight">
             <Highlight text={formatNombre(j.nombre)} tokens={tokens} />
           </span>
-          <PastillaMini pos={j.posicion_pastilla} estimada={!!j.posicion_es_estimada} />
+          <Pastilla pos={j.posicion_pastilla} estimada={j.posicion_es_estimada} size="mini" />
         </span>
         <span className={`block text-xs truncate ${inactivo ? 'text-chalk-600' : 'text-chalk-500'}`}>
           {inactivo

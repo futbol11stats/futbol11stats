@@ -9,7 +9,7 @@ export default function NombreJugador({
 }: {
   codjugador: string | number | null | undefined
   nombre: string | null
-  fichas?: Set<string> | null
+  fichas?: { has(key: string): boolean } | null   // Set o Map de codjugadores con ficha
 }) {
   // Nombre en MAYÚSCULAS en la UI (decisión de Fernando): el dato federativo sin acentos parece
   // tener faltas en title-case; en mayúsculas la omisión de acentos es tipográficamente correcta.

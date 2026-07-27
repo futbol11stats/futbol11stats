@@ -4,7 +4,8 @@ import Link from 'next/link'
 import { Star } from 'lucide-react'
 import { useTemporada } from './TemporadaContext'
 import { tempLabel } from '@/lib/equipo'
-import { POS_COLOR_TXT, type PlantillaRow } from './Plantilla'
+import Pastilla from '@/components/Pastilla'
+import { type PlantillaRow } from './Plantilla'
 
 // Top 5 de la plantilla de la TEMPORADA SELECCIONADA (reactivo al mismo selector, vía TemporadaContext).
 // Ordenados por PTS fantasy (desempate por ELO). Formato "Ha jugado con": nombre enlazado + pastilla +
@@ -26,7 +27,7 @@ export default function Top5Plantilla({ plantilla }: { plantilla: PlantillaRow[]
         {top.map((r, i) => (
           <div key={r.key} className="flex items-center gap-2 px-3 py-2 border-b border-pitch-700/50 last:border-0">
             <span className="w-3 text-center text-[11px] text-chalk-600 tabular-nums flex-shrink-0">{i + 1}</span>
-            <span className={`w-8 text-[10px] font-bold flex-shrink-0 ${r.pos ? (POS_COLOR_TXT[r.pos] || 'text-chalk-500') : 'text-chalk-600'}`}>{r.pos || '—'}{r.pos && r.estimada ? '*' : ''}</span>
+            <span className="w-9 flex-shrink-0"><Pastilla pos={r.pos} estimada={r.estimada} size="mini" /></span>
             <span className="flex-1 min-w-0 truncate text-sm font-display uppercase text-white">
               {r.href ? <Link href={r.href} className="hover:text-grass-300 transition-colors">{r.nombre}</Link> : r.nombre}
             </span>

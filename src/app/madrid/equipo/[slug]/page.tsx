@@ -22,7 +22,7 @@ import CopasLinea from '@/components/CopasLinea'
 import {
   COLS_EQUIPO, COLS_EQUIPO_TEMPORADAS, COLS_EQUIPO_MOV, COLS_EQUIPO_HITOS, COLS_PLANTILLA_JUVENIL,
   codFromSlug, equipoSlug, tempLabel, fechaCortaDMY, LIVE_COD, RAMA_SLUG, BADGE, HITO_EQUIPO,
-  getCopasEquipo, type EquipoFicha, type MovimientoRow,
+  getCopasEquipo, type EquipoFicha, type MovimientoRow, type FichaMov,
 } from '@/lib/equipo'
 import { Trophy, Flame, Swords, CalendarCheck, ListOrdered, ChevronRight, ArrowUpRight } from 'lucide-react'
 
@@ -117,13 +117,14 @@ async function getPlantillaJuv(cod: string): Promise<PlantillaRow[]> {
     })
     .sort((a, b) => (b.minutos || 0) - (a.minutos || 0))
 }
-// Existencia + nombre canónico de los jugadores de los movimientos (para enlazar/formatear).
-async function getFichasMovimientos(movs: MovimientoRow[]): Promise<Record<string, string>> {
+// Existencia + nombre canónico + posición de los jugadores de los movimientos (enlazar/formatear/pastilla).
+async function getFichasMovimientos(movs: MovimientoRow[]): Promise<Record<string, FichaMov>> {
   const ids = Array.from(new Set(movs.map((m) => m.codjugador).filter(Boolean).map(String)))
   if (ids.length === 0) return {}
-  const { data } = await supabase.from('web_jugador').select('codjugador, nombre').in('codjugador', ids)
-  const out: Record<string, string> = {}
-  for (const j of (data || []) as any[]) out[String(j.codjugador)] = j.nombre
+  const { data } = await supabase.from('web_jugador')
+    .select('codjugador, nombre, posicion_pastilla, posicion_es_estimada').in('codjugador', ids)
+  const out: Record<string, FichaMov> = {}
+  for (const j of (data || []) as any[]) out[String(j.codjugador)] = { nombre: j.nombre, pos: j.posicion_pastilla ?? null, estimada: !!j.posicion_es_estimada }
   return out
 }
 // Slugs de grupo por temporada (para enlazar cada fila del bloque Temporadas a su vista de grupo).
