@@ -64,6 +64,17 @@ body {
   }
 }
 
+/* Trayectoria con acordeón de partidos: en desktop apretamos el padding horizontal para que las 10-11
+   columnas (incluida ELO) quepan sin scroll en la columna principal de la ficha. Móvil no se toca
+   (ya usa el padding denso de la media query de arriba). */
+@media (min-width: 768px) {
+  .tabla-partidos th,
+  .tabla-partidos td {
+    padding-left: 0.35rem;
+    padding-right: 0.35rem;
+  }
+}
+
 /* Scrollbar */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: #0a1628; }
