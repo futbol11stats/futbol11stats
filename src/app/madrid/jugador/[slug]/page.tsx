@@ -17,9 +17,11 @@ import Trayectoria from '@/components/ficha/Trayectoria'
 import {
   COLS_JUGADOR, COLS_CARRERA, COLS_HITOS, COLS_ACTUACIONES,
   codFromSlug, jugadorSlug, jugadorHref, formatNombre, tempLabel, fechaCorta, curarHitos, signoCls, conSigno,
-  parseResultado, colorSigno, LIVE_COD, POS_COLOR, POS_LABEL,
+  parseResultado, colorSigno, golesRival, LIVE_COD, POS_COLOR, POS_LABEL,
   type JugadorFicha, type HitoRow, type CompaneroTop,
 } from '@/lib/jugador'
+import { getCopasEquipo } from '@/lib/equipo'
+import CopasLinea from '@/components/CopasLinea'
 import {
   Trophy, MapPin, Star, Hash, ArrowUpRight, Users, ListChecks, Hand,
 } from 'lucide-react'
@@ -115,15 +117,64 @@ function StatTile({ valor, label, acento }: { valor: string; label: string; acen
   )
 }
 
-function RankRow({ label, rank, total }: { label: string; rank: number | null; total: number | null }) {
+function RankRow({ label, rank, total }: { label: React.ReactNode; rank: number | null; total: number | null }) {
   if (!rank) return null
   return (
-    <div className="flex items-center justify-between py-1.5 border-b border-pitch-700/50 last:border-0">
-      <span className="text-xs text-chalk-500">{label}</span>
+    <div className="flex items-center justify-between gap-2 py-1.5 border-b border-pitch-700/50 last:border-0">
+      <span className="text-xs text-chalk-500 flex items-center gap-1.5 min-w-0">{label}</span>
       <span className="text-sm text-white font-medium tabular-nums">
         <span className="text-grass-400 font-bold">#{rank}</span>
         {total ? <span className="text-chalk-600 font-normal"> / {num(total)}</span> : null}
       </span>
+    </div>
+  )
+}
+
+// Fila unificada de partido (Mejores actuaciones + Últimos partidos): mismo estilo. Línea principal
+// "vs RIVAL" + marcador coloreado en condensada mayúsculas; línea secundaria (fecha · con equipo) en
+// Inter gris; goles/GC y pts en columnas de ANCHO FIJO para que ambos bloques alineen; pts con signo.
+function PartidoRow({ escudo, equipoNombre, rivalCod, rivalNombre, resultado, fecha, goles, pts, gc, portero }: {
+  escudo: string | null; equipoNombre: string | null; rivalCod: string | null; rivalNombre: string | null
+  resultado: string | null; fecha: string | null; goles: number | null; pts: number | null; gc: number | null; portero: boolean
+}) {
+  const { marcador, signo } = parseResultado(resultado)
+  const g = goles ?? 0, c = gc ?? 0
+  return (
+    <div className="flex items-center gap-3 px-3 py-2.5">
+      <span className="inline-flex items-center justify-center w-8 h-8 bg-white rounded-sm flex-shrink-0 p-0.5">
+        <EscudoImg escudo={escudo} nombre={equipoNombre ?? undefined} />
+      </span>
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-display uppercase text-white truncate">vs <NombreEquipo codequipo={rivalCod} nombre={rivalNombre} /></span>
+          <span className={`text-xs font-semibold tabular-nums flex-shrink-0 ${colorSigno(signo)}`}>{marcador}</span>
+        </div>
+        <div className="text-[11px] text-chalk-600 truncate">{fechaCorta(fecha)} · con {equipoNombre}</div>
+      </div>
+      <div className="flex items-center gap-3 flex-shrink-0 text-center">
+        {/* Goles (campo) / GC (portero) — ancho fijo para alinear entre bloques */}
+        <div className="w-9">
+          {portero ? (
+            <>
+              <div className="font-display text-base font-bold tabular-nums flex items-center justify-center gap-1">
+                {c === 0 ? <Hand className="w-4 h-4" style={{ color: '#38bdf8' }} strokeWidth={2.25} /> : null}
+                <span className={c === 0 ? 'text-chalk-400' : 'text-white'}>{c}</span>
+              </div>
+              <div className="text-[9px] uppercase tracking-wide text-chalk-600">GC</div>
+            </>
+          ) : (
+            <>
+              <div className={`font-display text-base font-bold tabular-nums ${g > 0 ? 'text-white' : 'text-chalk-700'}`}>{g}</div>
+              <div className="text-[9px] uppercase tracking-wide text-chalk-600">{g === 1 ? 'gol' : 'goles'}</div>
+            </>
+          )}
+        </div>
+        {/* Puntos — siempre con signo y color (+N verde / −N rojo) */}
+        <div className="w-9">
+          <div className={`font-display text-base font-bold tabular-nums ${signoCls(pts)}`}>{conSigno(pts)}</div>
+          <div className="text-[9px] uppercase tracking-wide text-chalk-600">pts</div>
+        </div>
+      </div>
     </div>
   )
 }
@@ -160,6 +211,8 @@ export default async function FichaJugador({ params }: { params: Promise<{ slug:
   const portero = !!j.es_portero
   const inactivo = Number(j.codtemporada_ultima) < Number(LIVE_COD)
   const compActual = carrera[0]?.nombre_comp || null
+  // Copas del equipo actual (temporada en curso). Inactivos: sin línea. Gated por COPAS_HABILITADO.
+  const copas = inactivo ? [] : await getCopasEquipo(j.codequipo_actual)
 
   // Escudos: las tablas web_jugador* ya traen el nombre de fichero del bucket (NULL si el equipo no
   // tiene escudo). Se leen directamente de cada fila vía EscudoImg (thumb + fallback; NULL -> placeholder).
@@ -224,8 +277,10 @@ export default async function FichaJugador({ params }: { params: Promise<{ slug:
               )}
             </div>
             {compActual && (
-              <p className="mt-1.5 text-sm text-chalk-500 flex items-center gap-1.5"><Sello nombreComp={compActual} size={16} />{compActual}{j.categoria_rama ? ` · ${j.categoria_rama}` : ''}</p>
+              <p className="mt-1.5 text-sm text-chalk-500 flex items-center gap-1.5"><Sello nombreComp={compActual} size={24} />{compActual}{j.categoria_rama ? ` · ${j.categoria_rama}` : ''}</p>
             )}
+            {/* Copas del equipo ACTUAL en la temporada en curso (inactivos: sin línea) */}
+            <CopasLinea copas={copas} className="mt-1.5" />
           </div>
         </div>
 
@@ -280,8 +335,22 @@ export default async function FichaJugador({ params }: { params: Promise<{ slug:
               </h2>
               <div className="bg-pitch-800 rounded-xl border border-pitch-700 px-3 py-1.5">
                 <RankRow label="General" rank={j.rank_general} total={j.rank_general_total} />
-                <RankRow label={j.categoria_rama ? `Categoría · ${compActual || j.categoria_rama}` : 'Categoría'} rank={j.rank_categoria} total={j.rank_categoria_total} />
-                <RankRow label={j.posicion_pastilla ? `Posición · ${POS_LABEL[j.posicion_pastilla] || j.posicion_pastilla}` : 'Posición'} rank={j.rank_posicion} total={j.rank_posicion_total} />
+                <RankRow rank={j.rank_categoria} total={j.rank_categoria_total} label={
+                  <span className="flex items-center gap-1.5 min-w-0">
+                    {(compActual || j.categoria_rama) && <Sello nombreComp={compActual || j.categoria_rama} size={18} />}
+                    <span className="truncate">Categoría{(compActual || j.categoria_rama) ? ` · ${compActual || j.categoria_rama}` : ''}</span>
+                  </span>
+                } />
+                <RankRow rank={j.rank_posicion} total={j.rank_posicion_total} label={
+                  <span className="flex items-center gap-1.5 min-w-0">
+                    <span className="truncate">Posición{j.posicion_pastilla ? ` · ${POS_LABEL[j.posicion_pastilla] || j.posicion_pastilla}` : ''}</span>
+                    {j.posicion_pastilla && (
+                      <span className={`flex-shrink-0 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold ${POS_COLOR[j.posicion_pastilla] || 'bg-pitch-700 text-chalk-400'}`}>
+                        {j.posicion_pastilla}{j.posicion_es_estimada ? '*' : ''}
+                      </span>
+                    )}
+                  </span>
+                } />
               </div>
               <p className="mt-1.5 text-[10px] text-chalk-600 leading-snug">Por puntos fantasy de la última temporada activa.</p>
             </div>
@@ -353,32 +422,10 @@ export default async function FichaJugador({ params }: { params: Promise<{ slug:
               </h2>
               <div className="bg-pitch-800 rounded-xl border border-pitch-700 divide-y divide-pitch-700/60">
                 {actuaciones.map((a: any) => (
-                  <div key={a.rank} className="flex items-center gap-3 px-3 py-2.5">
-                    <span className="inline-flex items-center justify-center w-8 h-8 bg-white rounded-sm flex-shrink-0 p-0.5">
-                      <EscudoImg escudo={a.escudo} nombre={a.equipo_nombre} />
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium text-white truncate"><NombreEquipo codequipo={a.rival_cod} nombre={a.rival_nombre} /></span>
-                        <span className="text-xs text-chalk-500 tabular-nums flex-shrink-0">{a.resultado}</span>
-                      </div>
-                      <div className="text-[11px] text-chalk-600 truncate">
-                        {fechaCorta(a.fecha)} · con {a.equipo_nombre}
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3 flex-shrink-0 text-center">
-                      {a.goles > 0 && (
-                        <div>
-                          <div className="font-display text-base font-bold text-white tabular-nums">{a.goles}</div>
-                          <div className="text-[9px] uppercase tracking-wide text-chalk-600">{a.goles === 1 ? 'gol' : 'goles'}</div>
-                        </div>
-                      )}
-                      <div>
-                        <div className="font-display text-base font-bold text-grass-400 tabular-nums">{Math.round(a.pts)}</div>
-                        <div className="text-[9px] uppercase tracking-wide text-chalk-600">pts</div>
-                      </div>
-                    </div>
-                  </div>
+                  <PartidoRow key={a.rank} escudo={a.escudo} equipoNombre={a.equipo_nombre}
+                    rivalCod={a.rival_cod} rivalNombre={a.rival_nombre} resultado={a.resultado}
+                    fecha={a.fecha} goles={a.goles} pts={Math.round(a.pts)}
+                    gc={portero ? golesRival(a.resultado) : null} portero={portero} />
                 ))}
               </div>
             </section>
@@ -391,44 +438,11 @@ export default async function FichaJugador({ params }: { params: Promise<{ slug:
                 <ListChecks className="w-3.5 h-3.5 text-grass-400" strokeWidth={2.5} /> Últimos partidos
               </h2>
               <div className="bg-pitch-800 rounded-xl border border-pitch-700 divide-y divide-pitch-700/60">
-                {ultimos.map((p: any) => {
-                  const { marcador, signo } = parseResultado(p.resultado)
-                  const gc = p.goles_encajados ?? 0
-                  return (
-                    <div key={p.codacta} className="flex items-center gap-3 px-3 py-2.5">
-                      <span className="inline-flex items-center justify-center w-8 h-8 bg-white rounded-sm flex-shrink-0 p-0.5">
-                        <EscudoImg escudo={p.escudo} nombre={p.equipo_nombre} />
-                      </span>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm font-medium text-white truncate">vs <NombreEquipo codequipo={p.rival_cod} nombre={p.rival_nombre} /></span>
-                          <span className={`text-xs font-semibold tabular-nums flex-shrink-0 ${colorSigno(signo)}`}>{marcador}</span>
-                        </div>
-                        <div className="text-[11px] text-chalk-600 truncate">{fechaCorta(p.fecha)} · con {p.equipo_nombre}</div>
-                      </div>
-                      <div className="flex items-center gap-3 flex-shrink-0 text-center">
-                        {portero ? (
-                          <div>
-                            <div className="font-display text-base font-bold tabular-nums flex items-center justify-center gap-1">
-                              {gc === 0 ? <Hand className="w-4 h-4" style={{ color: '#38bdf8' }} strokeWidth={2.25} /> : null}
-                              <span className={gc === 0 ? 'text-chalk-400' : 'text-white'}>{gc}</span>
-                            </div>
-                            <div className="text-[9px] uppercase tracking-wide text-chalk-600">GC</div>
-                          </div>
-                        ) : (p.goles > 0 && (
-                          <div>
-                            <div className="font-display text-base font-bold text-white tabular-nums">{p.goles}</div>
-                            <div className="text-[9px] uppercase tracking-wide text-chalk-600">{p.goles === 1 ? 'gol' : 'goles'}</div>
-                          </div>
-                        ))}
-                        <div>
-                          <div className={`font-display text-base font-bold tabular-nums ${signoCls(p.puntos)}`}>{conSigno(p.puntos)}</div>
-                          <div className="text-[9px] uppercase tracking-wide text-chalk-600">pts</div>
-                        </div>
-                      </div>
-                    </div>
-                  )
-                })}
+                {ultimos.map((p: any) => (
+                  <PartidoRow key={p.codacta} escudo={p.escudo} equipoNombre={p.equipo_nombre}
+                    rivalCod={p.rival_cod} rivalNombre={p.rival_nombre} resultado={p.resultado}
+                    fecha={p.fecha} goles={p.goles} pts={p.puntos} gc={p.goles_encajados} portero={portero} />
+                ))}
               </div>
             </section>
           )}

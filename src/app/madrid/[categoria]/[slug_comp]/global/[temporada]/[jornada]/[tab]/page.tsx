@@ -10,6 +10,8 @@ import {
 import JsonLd from '@/components/JsonLd'
 import { graphLd, breadcrumbLd } from '@/lib/jsonld'
 import { fichasExistentes } from '@/lib/jugador'
+import { nombreOficial } from '@/lib/sellos'
+import Sello from '@/components/Sello'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import JornadaSelector from '@/components/JornadaSelector'
@@ -207,7 +209,7 @@ export async function generateMetadata({
   const competicion = await getCompeticion(slug_comp, categoria, codtemporada)
   if (!competicion) return { title: 'Fútbol11Stats' }
 
-  const comp = ensureMadrid(competicion.nombre_comp)
+  const comp = nombreOficial(competicion.nombre_comp) ?? ensureMadrid(competicion.nombre_comp)
   const tl = tabLabel(tab)
   const title = `${tl} · ${comp} Global ${temporada} | Fútbol11Stats`
   const description = `${tl} global de ${comp} (todos los grupos), temporada ${temporada}. Clasificación, goleadores y estadísticas del fútbol amateur de Madrid en Fútbol11Stats.`
@@ -384,7 +386,10 @@ export default async function GlobalPage({
       {/* Header */}
       <div className="mb-4 md:mb-8 flex flex-col md:flex-row md:items-end justify-between gap-3 md:gap-4">
         <div>
-          <h1 className="font-display text-4xl font-bold text-white">{competicion.nombre_historico || competicion.nombre_comp} · Global</h1>
+          <h1 className="font-display text-4xl font-bold text-white flex items-center gap-2.5">
+            <Sello nombreComp={competicion.nombre_comp} size={38} />
+            <span>{nombreOficial(competicion.nombre_comp) ?? (competicion.nombre_historico || competicion.nombre_comp)} · Global</span>
+          </h1>
           <p className="text-grass-400 text-sm mt-1">Todos los grupos · Jornada {jornadaNum} · Temporada {temporada}</p>
           {competicion.nombre_historico && (
             <p className="text-chalk-600 text-xs mt-1.5 flex items-center gap-1.5">

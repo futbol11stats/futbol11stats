@@ -22,6 +22,28 @@ export function equipoHref(codequipo: string | number | null | undefined, nombre
   return temporada ? `${base}?temporada=${temporada}` : base
 }
 
+// COPAS del equipo en la temporada en curso (columna JSONB web_equipo.copas — EN CONSTRUCCIÓN en
+// el pipeline). Gated: mientras COPAS_HABILITADO sea false NO se lanza la query (evita un round-trip
+// fallido por página). Contrato de cada entrada (lo que la web necesita; el pipeline lo rellena):
+//   { nombre_comp: string, estado: string|null, href: string|null }
+//   nombre_comp -> sello + nombre corto ("Copa RFFM"); estado -> ronda ("Cuartos"); href -> vista de la copa.
+// Al confirmar que la columna responde: poner COPAS_HABILITADO=true y verificar la forma.
+export const COPAS_HABILITADO = false
+
+export type CopaEquipo = {
+  nombre_comp: string
+  estado: string | null
+  href: string | null
+}
+
+export async function getCopasEquipo(codequipo: string | number | null | undefined): Promise<CopaEquipo[]> {
+  if (!COPAS_HABILITADO || codequipo == null) return []
+  const { data, error } = await supabase.from('web_equipo').select('copas').eq('codequipo', String(codequipo)).limit(1).maybeSingle()
+  if (error || !data) return []
+  const copas = (data as { copas?: unknown }).copas
+  return Array.isArray(copas) ? (copas as CopaEquipo[]) : []
+}
+
 // Columnas explícitas de los fetchers (cotejadas con el DDL de _equipos_export.py).
 export const COLS_EQUIPO =
   'codequipo, nombre, escudo, club_root, rama, categoria_nivel, nombre_comp, codgrupo, grupo_nombre, ' +

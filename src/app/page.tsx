@@ -176,7 +176,7 @@ function CompeticionCard({
   return (
     <div className="bg-pitch-800 rounded-xl border border-pitch-700 overflow-hidden hover:border-grass-500/50 transition-colors">
       <div className="px-4 py-3 border-b border-pitch-700 flex items-center justify-between">
-        <span className="font-semibold text-white text-sm flex items-center gap-1.5"><Sello nombreComp={nombre} size={18} />{nombreCorto[nombre] || nombre}</span>
+        <span className="font-semibold text-white text-sm flex items-center gap-2"><Sello nombreComp={nombre} size={24} />{nombreCorto[nombre] || nombre}</span>
         <span className="text-xs text-chalk-600">{grupos.length} grupo{grupos.length !== 1 ? 's' : ''}</span>
       </div>
       <div className="px-4 py-2 flex flex-wrap gap-2">

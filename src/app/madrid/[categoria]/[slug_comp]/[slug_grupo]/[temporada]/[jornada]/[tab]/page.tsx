@@ -439,7 +439,7 @@ export default async function GrupoPage({
       <div className="mb-4 md:mb-8 flex flex-col md:flex-row md:items-end justify-between gap-3 md:gap-4">
         <div>
           <h1 className="font-display text-4xl font-bold text-white flex items-center gap-2.5">
-            <Sello nombreComp={grupo.nombre_comp} size={28} />
+            <Sello nombreComp={grupo.nombre_comp} size={38} />
             <span>{nombreOficial(grupo.nombre_comp) ?? (grupo.nombre_historico || grupo.nombre_comp)}{grupo.nombre_grupo ? ` · ${grupo.nombre_grupo}` : ''}</span>
           </h1>
           <p className="text-grass-400 text-sm mt-1">{isCopa ? 'Ronda' : 'Jornada'} {jornadaNum} · Temporada {temporada}</p>

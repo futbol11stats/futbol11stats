@@ -18,10 +18,11 @@ import { type PlantillaRow } from '@/components/equipo/Plantilla'
 import EquipoTemporadas from '@/components/equipo/EquipoTemporadas'
 import { TemporadaProvider } from '@/components/equipo/TemporadaContext'
 import Top5Plantilla from '@/components/equipo/Top5Plantilla'
+import CopasLinea from '@/components/CopasLinea'
 import {
   COLS_EQUIPO, COLS_EQUIPO_TEMPORADAS, COLS_EQUIPO_MOV, COLS_EQUIPO_HITOS, COLS_PLANTILLA_JUVENIL,
   codFromSlug, equipoSlug, tempLabel, fechaCortaDMY, LIVE_COD, RAMA_SLUG, BADGE, HITO_EQUIPO,
-  type EquipoFicha, type MovimientoRow,
+  getCopasEquipo, type EquipoFicha, type MovimientoRow,
 } from '@/lib/equipo'
 import { Trophy, Flame, Swords, CalendarCheck, ListOrdered, ChevronRight, ArrowUpRight } from 'lucide-react'
 
@@ -206,6 +207,9 @@ export default async function FichaEquipo({ params }: { params: Promise<{ slug: 
     ? `/madrid/${ramaSlug}/${grupo.slug_comp}/${grupo.slug_grupo}/${tempLabel(e.codtemporada)}/jornada-${jornadaGrupo}/clasificacion`
     : null
 
+  // Copas de la temporada en curso (línea bajo la pastilla de liga). Gated por COPAS_HABILITADO.
+  const copasEquipo = await getCopasEquipo(e.codequipo)
+
   // Mini-clasificación centrada en el equipo (±2 filas).
   const idx = miniClasif.findIndex((r) => String(r.codequipo) === String(e.codequipo))
   const ventana = idx >= 0
@@ -276,20 +280,20 @@ export default async function FichaEquipo({ params }: { params: Promise<{ slug: 
             <div className="mt-2 flex flex-wrap items-center gap-2">
               {inactivo ? (
                 <Chip href={grupoUrl} tone="muted">
-                  <Sello nombreComp={e.nombre_comp} size={16} />
+                  <Sello nombreComp={e.nombre_comp} size={22} />
                   Último grupo · {e.grupo_nombre || e.nombre_comp}{e.codtemporada ? ` (${tempLabel(e.codtemporada)})` : ''}
                 </Chip>
               ) : (
-                <>
-                  <Chip href={grupoUrl}>
-                    <Sello nombreComp={e.nombre_comp} size={16} />
-                    {e.nombre_comp}{e.grupo_nombre ? ` · ${e.grupo_nombre}` : ''}
-                    {grupoUrl && <ChevronRight className="w-3 h-3" />}
-                  </Chip>
-                  {e.posicion_actual != null && <Chip tone="plain">{e.posicion_actual}º</Chip>}
-                </>
+                /* Pastilla de LIGA: sello + competición · grupo · posición, todo en un enlace al grupo. */
+                <Chip href={grupoUrl}>
+                  <Sello nombreComp={e.nombre_comp} size={22} />
+                  {e.nombre_comp}{e.grupo_nombre ? ` · ${e.grupo_nombre}` : ''}{e.posicion_actual != null ? ` · ${e.posicion_actual}º` : ''}
+                  {grupoUrl && <ChevronRight className="w-3 h-3" />}
+                </Chip>
               )}
             </div>
+            {/* Copas de la temporada en curso (enlazadas). Sin copas -> no renderiza. */}
+            <CopasLinea copas={copasEquipo} className="mt-2" />
           </div>
         </div>
 
@@ -356,7 +360,7 @@ export default async function FichaEquipo({ params }: { params: Promise<{ slug: 
                       {(() => {
                         const compGrupo = `${t.nombre_comp}${t.grupo_nombre ? ` · ${t.grupo_nombre}` : ''}`
                         const url = grupoTempUrl(t)
-                        const inner = <><Sello nombreComp={t.nombre_comp} size={15} /><span className="truncate">{compGrupo}</span></>
+                        const inner = <><Sello nombreComp={t.nombre_comp} size={20} /><span className="truncate">{compGrupo}</span></>
                         return url
                           ? <Link href={url} className="flex items-center gap-1.5 text-xs text-chalk-400 hover:text-grass-300 transition-colors">{inner}</Link>
                           : <div className="flex items-center gap-1.5 text-xs text-chalk-400">{inner}</div>

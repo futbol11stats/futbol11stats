@@ -32,7 +32,13 @@ export function nombreOficial(nombreComp: string | null): string | null {
   return null
 }
 
-// Algunos logos necesitan círculo blanco detrás para contrastar sobre el fondo oscuro.
-export function selloNecesitaCirculo(src: string): boolean {
-  return src === SELLO_RFEF || src === SELLO_RFFM
+// Nombre corto de una copa para pastillas/chips ("Copa RFEF" / "Copa RFFM").
+export function nombreCortoCopa(nombreComp: string | null): string {
+  return norm(nombreComp).includes('rfef') ? 'Copa RFEF' : 'Copa RFFM'
+}
+
+// Los botones-sello nuevos (Tercera/RFEF/RFFM) y las pastillas de copa son insignias
+// autocontenidas (disco con su propio fondo) -> ya no hace falta círculo blanco detrás.
+export function selloNecesitaCirculo(_src: string): boolean {
+  return false
 }

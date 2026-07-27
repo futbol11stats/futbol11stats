@@ -156,7 +156,7 @@ export default function Trayectoria({ carrera, portero, codjugador }: { carrera:
                     </span>
                   </td>
                   <td className="text-chalk-600 hidden sm:table-cell whitespace-nowrap text-xs">
-                    <span className="inline-flex items-center gap-1"><Sello nombreComp={c.nombre_comp} size={15} />{c.nombre_comp}{c.grupo_nombre ? ` · ${c.grupo_nombre}` : ''}</span>
+                    <span className="inline-flex items-center gap-1.5"><Sello nombreComp={c.nombre_comp} size={20} />{c.nombre_comp}{c.grupo_nombre ? ` · ${c.grupo_nombre}` : ''}</span>
                   </td>
                   <td className="text-center text-chalk-400 tabular-nums">{c.pj}</td>
                   <td className="text-center text-chalk-600 tabular-nums">{(c.minutos ?? 0).toLocaleString('es-ES')}</td>

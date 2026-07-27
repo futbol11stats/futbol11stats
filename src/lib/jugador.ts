@@ -190,11 +190,26 @@ export function fechaISO(fecha: string | null): string {
 }
 
 // resultado = "X-Y G/E/P" (ya en perspectiva del jugador): color por el sufijo.
+// Fallback: si viene sin sufijo pero como marcador "X-Y" (p.ej. web_jugador_actuaciones,
+// también en perspectiva del jugador), se deriva el signo comparando los goles.
 export function parseResultado(resultado: string | null): { marcador: string; signo: string } {
   const m = (resultado || '').trim().match(/^(.*?)\s*([GEP])$/i)
-  return m ? { marcador: m[1].trim(), signo: m[2].toUpperCase() } : { marcador: resultado || '', signo: '' }
+  if (m) return { marcador: m[1].trim(), signo: m[2].toUpperCase() }
+  const s = (resultado || '').trim().match(/^(\d+)\s*-\s*(\d+)$/)
+  if (s) {
+    const a = +s[1], b = +s[2]
+    return { marcador: `${a}-${b}`, signo: a > b ? 'G' : a < b ? 'P' : 'E' }
+  }
+  return { marcador: resultado || '', signo: '' }
 }
 export const colorSigno = (s: string) => (s === 'G' ? 'text-grass-300' : s === 'P' ? 'text-red-300' : 'text-chalk-400')
+
+// Goles del rival a partir del marcador "X-Y" (perspectiva del jugador = la Y). Para GC de portero
+// en bloques que no traen goles_encajados (p.ej. web_jugador_actuaciones).
+export function golesRival(resultado: string | null): number {
+  const p = parseResultado(resultado).marcador.split('-')
+  return p.length === 2 ? (parseInt(p[1], 10) || 0) : 0
+}
 
 // Valor con signo y color (para PTS de partido y Δ ELO): +N verde / −N rojo / 0 neutro.
 export const signoCls = (n: number | null | undefined) =>
