@@ -17,6 +17,7 @@ import { fechaISO } from '@/lib/jugador'
 type Partido = {
   codacta: string; jornada: number; fecha: string | null
   esLocal: boolean; golesFav: number | null; golesCon: number | null
+  golesLocal: number | null; golesVisitante: number | null
   rivalNombre: string; rivalEscudo: string | null; rivalCod: string | undefined
   compNombre: string | null; esCopa: boolean
 }
@@ -47,8 +48,9 @@ async function fetchPartidos(nombre: string, codtemporada: string): Promise<Part
       const g = grMap.get(String(r.codgrupo))
       return {
         codacta: r.codacta, jornada: r.jornada, fecha: r.fecha, esLocal: local,
-        golesFav: local ? r.goles_local : r.goles_visitante,
+        golesFav: local ? r.goles_local : r.goles_visitante,   // para el COLOR (perspectiva del equipo)
         golesCon: local ? r.goles_visitante : r.goles_local,
+        golesLocal: r.goles_local, golesVisitante: r.goles_visitante,   // para MOSTRAR (orden absoluto)
         rivalNombre: rival, rivalEscudo: local ? r.escudo_visitante : r.escudo_local, rivalCod: codMap.get(rival),
         compNombre: g?.nombre_comp ?? null, esCopa: !!(g && g.tipo && g.tipo !== 'LIGA'),
       }
@@ -71,8 +73,9 @@ function Fila({ p }: { p: Partido }) {
         : <span className="w-5 h-5 flex-shrink-0" />}
       <span className="flex-1 min-w-0 truncate font-display uppercase text-white"><NombreEquipo codequipo={p.rivalCod} nombre={p.rivalNombre} /></span>
       {p.compNombre && <span className="hidden md:inline-flex flex-shrink-0"><Sello nombreComp={p.compNombre} size={18} /></span>}
+      {/* Marcador en orden ABSOLUTO local-visitante; color por la perspectiva del equipo (fav/con). */}
       {p.golesFav != null
-        ? <span className={`w-10 flex-shrink-0 text-right font-display font-bold tabular-nums ${signoCls(p.golesFav, p.golesCon)}`}>{p.golesFav}-{p.golesCon}</span>
+        ? <span className={`w-10 flex-shrink-0 text-right font-display font-bold tabular-nums ${signoCls(p.golesFav, p.golesCon)}`}>{p.golesLocal}-{p.golesVisitante}</span>
         : <span className="w-10 flex-shrink-0 text-right text-chalk-700 text-xs">—</span>}
     </div>
   )

@@ -217,6 +217,19 @@ export function parseResultado(resultado: string | null): { marcador: string; si
 }
 export const colorSigno = (s: string) => (s === 'G' ? 'text-grass-300' : s === 'P' ? 'text-red-300' : 'text-chalk-400')
 
+// El resultado de web_jugador_partidos/_actuaciones viene en PERSPECTIVA del jugador (gf-gc). El
+// marcador SIEMPRE se muestra en orden LOCAL-VISITANTE (regla única del sitio): si el jugador jugó
+// FUERA (es_local=false) se voltea el par de goles. El COLOR no cambia -> sale del signo del dato,
+// que sigue en perspectiva del jugador (verde victoria / gris empate / rojo derrota).
+export function marcadorLocalVisitante(resultado: string | null, esLocal?: boolean | null): { marcador: string; signo: string } {
+  const { marcador, signo } = parseResultado(resultado)
+  if (esLocal === false) {
+    const p = marcador.split('-')
+    if (p.length === 2) return { marcador: `${p[1].trim()}-${p[0].trim()}`, signo }
+  }
+  return { marcador, signo }
+}
+
 // Goles del rival a partir del marcador "X-Y" (perspectiva del jugador = la Y). Para GC de portero
 // en bloques que no traen goles_encajados (p.ej. web_jugador_actuaciones).
 export function golesRival(resultado: string | null): number {

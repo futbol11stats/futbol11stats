@@ -7,7 +7,7 @@ import EscudoImg from '@/components/EscudoImg'
 import NombreEquipo from '@/components/NombreEquipo'
 import Sello from '@/components/Sello'
 import IndicadorLocal from '@/components/IndicadorLocal'
-import { tempLabel, fechaCorta, signoCls, conSigno, parseResultado, colorSigno } from '@/lib/jugador'
+import { tempLabel, fechaCorta, signoCls, conSigno, marcadorLocalVisitante, colorSigno } from '@/lib/jugador'
 
 export const PARTIDOS_HABILITADO = true
 
@@ -32,7 +32,7 @@ async function fetchPartidos(codjugador: string, codtemporada: string, codequipo
 // Móvil: el set madre es PJ·G·TA·TR·ELO, así que MIN/PTS/resultado viven compactos en la celda EQUIPO.
 const ACENTO = 'border-l-2 border-grass-500/70'
 function PartidoFila({ p, portero }: { p: any; portero: boolean }) {
-  const { marcador, signo } = parseResultado(p.resultado)
+  const { marcador, signo } = marcadorLocalVisitante(p.resultado, p.es_local)
   const goles = p.goles ?? 0, min = p.minutos ?? 0, pts = p.puntos, gc = p.goles_encajados ?? 0
   const ta = p.amarillas ?? 0, da = p.dobles_amarilla ?? 0, tr = p.rojas ?? 0
   const delta = p.elo_delta

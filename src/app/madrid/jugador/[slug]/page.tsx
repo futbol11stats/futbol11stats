@@ -17,7 +17,7 @@ import Trayectoria from '@/components/ficha/Trayectoria'
 import {
   COLS_JUGADOR, COLS_CARRERA, COLS_HITOS, COLS_ACTUACIONES,
   codFromSlug, jugadorSlug, jugadorHref, formatNombre, tempLabel, fechaCorta, curarHitos, signoCls, conSigno,
-  parseResultado, colorSigno, golesRival, LIVE_COD, POS_LABEL,
+  marcadorLocalVisitante, colorSigno, golesRival, LIVE_COD, POS_LABEL,
   type JugadorFicha, type HitoRow, type CompaneroTop,
 } from '@/lib/jugador'
 import { getEquipoActualInfo, getGrupoInfo, grupoHref } from '@/lib/equipo'
@@ -25,6 +25,7 @@ import CopasLinea from '@/components/CopasLinea'
 import Pastilla from '@/components/Pastilla'
 import LigaPastilla from '@/components/LigaPastilla'
 import IndicadorLocal from '@/components/IndicadorLocal'
+import FormaHero from '@/components/equipo/FormaHero'
 import {
   Trophy, MapPin, Star, Hash, ArrowUpRight, Users, ListChecks, Hand,
   Goal, Timer, Calendar, CircleDot,
@@ -61,6 +62,18 @@ async function getUltimosPartidos(cod: string) {
   let r = await q(cols + ', es_local')  // idem: se activa solo cuando exista es_local
   if (r.error) r = await q(cols)
   return (r.data || []) as any[]
+}
+// Racha del hero: los 5 ÚLTIMOS partidos jugados (por temporada+jornada, jamás por el string de
+// fecha) -> chips G/E/P (signo del resultado, perspectiva del jugador). Se invierte para pintar el
+// más reciente a la DERECHA, como la forma de la ficha de equipo.
+async function getRacha5(cod: string): Promise<('G' | 'E' | 'P')[]> {
+  const { data } = await supabase.from('web_jugador_partidos').select('resultado')
+    .eq('codjugador', cod)
+    .order('codtemporada', { ascending: false }).order('jornada', { ascending: false }).limit(5)
+  return ((data || []) as any[])
+    .reverse()
+    .map((p) => marcadorLocalVisitante(p.resultado).signo)
+    .filter((s): s is 'G' | 'E' | 'P' => s === 'G' || s === 'E' || s === 'P')
 }
 
 function iniciales(nombreDisplay: string): string {
@@ -131,7 +144,8 @@ function PartidoRow({ escudo, equipoNombre, rivalCod, rivalNombre, resultado, fe
   resultado: string | null; fecha: string | null; goles: number | null; pts: number | null; gc: number | null; portero: boolean
   esLocal?: boolean | null
 }) {
-  const { marcador, signo } = parseResultado(resultado)
+  // Marcador SIEMPRE en orden local-visitante (voltea si el jugador jugó fuera); color por el signo.
+  const { marcador, signo } = marcadorLocalVisitante(resultado, esLocal)
   const g = goles ?? 0, c = gc ?? 0
   return (
     <div className="flex items-center gap-3 px-3 py-2.5">
@@ -197,8 +211,8 @@ export default async function FichaJugador({ params }: { params: Promise<{ slug:
   if (!cod) notFound()
 
   // Fetchers en paralelo.
-  const [j, carrera, hitosRaw, actuaciones, ultimos] = await Promise.all([
-    getJugador(cod), getCarrera(cod), getHitos(cod), getActuaciones(cod), getUltimosPartidos(cod),
+  const [j, carrera, hitosRaw, actuaciones, ultimos, racha5] = await Promise.all([
+    getJugador(cod), getCarrera(cod), getHitos(cod), getActuaciones(cod), getUltimosPartidos(cod), getRacha5(cod),
   ])
   // Fuera de perímetro = no existe (sin explicar por qué).
   if (!j) notFound()
@@ -296,6 +310,10 @@ export default async function FichaJugador({ params }: { params: Promise<{ slug:
               <CopasLinea copas={copas} />
             </div>
           )}
+          {/* Racha: chips G/E/P de los últimos 5 partidos jugados (más reciente a la derecha). Mismo
+              componente que la forma de la ficha de equipo. Inactivos: etiquetados con su última temporada. */}
+          <FormaHero forma={racha5} ultimaVictoria={null}
+            tempEtiqueta={inactivo && j.codtemporada_ultima ? tempLabel(j.codtemporada_ultima) : null} />
         </div>
 
         {/* Medidores (a la derecha en desktop; debajo en móvil) */}
@@ -356,14 +374,13 @@ export default async function FichaJugador({ params }: { params: Promise<{ slug:
                 } />
                 <RankRow rank={j.rank_categoria} total={j.rank_categoria_total} label={
                   <span className="flex items-center gap-1.5 min-w-0">
-                    <span className="flex-shrink-0">Competición{(compActual || j.categoria_rama) ? ' ·' : ''}</span>
                     {(compActual || j.categoria_rama) && <Sello nombreComp={compActual || j.categoria_rama} size={18} />}
                     <span className="truncate">{compActual || j.categoria_rama}</span>
                   </span>
                 } />
                 <RankRow rank={j.rank_posicion} total={j.rank_posicion_total} label={
                   <span className="flex items-center gap-1.5 min-w-0">
-                    <span className="truncate">Posición{j.posicion_pastilla ? ` · ${POS_LABEL[j.posicion_pastilla] || j.posicion_pastilla}` : ''}</span>
+                    <span className="truncate">{j.posicion_pastilla ? (POS_LABEL[j.posicion_pastilla] || j.posicion_pastilla) : 'Posición'}</span>
                     <Pastilla pos={j.posicion_pastilla} estimada={j.posicion_es_estimada} size="mini" />
                   </span>
                 } />
