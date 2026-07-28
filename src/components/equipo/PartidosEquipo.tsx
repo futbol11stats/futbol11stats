@@ -14,6 +14,12 @@ import { fechaISO } from '@/lib/jugador'
 // Bloque PARTIDOS de la ficha de equipo: reactivo a la temporada seleccionada (TemporadaContext), con
 // fetch perezoso + caché por temporada. Fuente: web_resultados (no trae codequipo -> se filtra por
 // NOMBRE y se resuelven los codequipos del rival aparte). Perspectiva del equipo; liga + copas.
+//
+// DEUDA (septiembre): web_resultados no trae codequipo_local/visitante. El juvenil y el aficionado de
+// un club se llaman IGUAL, así que un filtro por nombre a lo ancho de la temporada pesca la OTRA rama.
+// Parche web: acotamos la query a los codgrupos PROPIOS del equipo en la temporada (liga de
+// web_equipo_temporadas + copas del JSONB), donde el nombre ya es unívoco. Cuando el pipeline añada
+// codequipo_local/visitante a web_resultados, este filtro por nombre+codgrupo se puede retirar.
 type Partido = {
   codacta: string; jornada: number; fecha: string | null
   esLocal: boolean; golesFav: number | null; golesCon: number | null
@@ -22,11 +28,12 @@ type Partido = {
   compNombre: string | null; esCopa: boolean
 }
 
-async function fetchPartidos(nombre: string, codtemporada: string): Promise<Partido[]> {
+async function fetchPartidos(nombre: string, codtemporada: string, grupos: string[]): Promise<Partido[]> {
+  if (!grupos || grupos.length === 0) return []
   const cols = 'codgrupo, jornada, codacta, nombre_local, escudo_local, goles_local, goles_visitante, nombre_visitante, escudo_visitante, fecha'
   const [loc, vis] = await Promise.all([
-    supabase.from('web_resultados').select(cols).eq('codtemporada', Number(codtemporada)).eq('nombre_local', nombre),
-    supabase.from('web_resultados').select(cols).eq('codtemporada', Number(codtemporada)).eq('nombre_visitante', nombre),
+    supabase.from('web_resultados').select(cols).eq('codtemporada', Number(codtemporada)).in('codgrupo', grupos).eq('nombre_local', nombre),
+    supabase.from('web_resultados').select(cols).eq('codtemporada', Number(codtemporada)).in('codgrupo', grupos).eq('nombre_visitante', nombre),
   ])
   const uniq = new Map<string, any>()
   for (const r of [...((loc.data || []) as any[]), ...((vis.data || []) as any[])]) uniq.set(r.codacta, r)
@@ -81,7 +88,7 @@ function Fila({ p }: { p: Partido }) {
   )
 }
 
-export default function PartidosEquipo({ nombre }: { nombre: string }) {
+export default function PartidosEquipo({ nombre, gruposPorTemporada }: { nombre: string; gruposPorTemporada: Record<string, string[]> }) {
   const { sel } = useTemporada()
   const [cache, setCache] = useState<Record<string, { loading: boolean; partidos: Partido[] }>>({})
   const [filtro, setFiltro] = useState<'todas' | 'liga' | 'copa'>('todas')
@@ -90,8 +97,8 @@ export default function PartidosEquipo({ nombre }: { nombre: string }) {
   useEffect(() => {
     if (cache[key]) return
     setCache((m) => ({ ...m, [key]: { loading: true, partidos: [] } }))
-    fetchPartidos(nombre, key).then((partidos) => setCache((m) => ({ ...m, [key]: { loading: false, partidos } })))
-  }, [key, nombre, cache])
+    fetchPartidos(nombre, key, gruposPorTemporada[key] || []).then((partidos) => setCache((m) => ({ ...m, [key]: { loading: false, partidos } })))
+  }, [key, nombre, cache, gruposPorTemporada])
 
   const box = cache[key]
   const hayCopa = !!box?.partidos.some((p) => p.esCopa)

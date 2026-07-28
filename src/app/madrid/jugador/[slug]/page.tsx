@@ -20,7 +20,7 @@ import {
   marcadorLocalVisitante, colorSigno, golesRival, LIVE_COD, POS_LABEL,
   type JugadorFicha, type HitoRow, type CompaneroTop,
 } from '@/lib/jugador'
-import { getEquipoActualInfo, getGrupoInfo, grupoHref } from '@/lib/equipo'
+import { getEquipoActualInfo, getGrupoInfo, grupoHref, type ChipRacha } from '@/lib/equipo'
 import CopasLinea from '@/components/CopasLinea'
 import Pastilla from '@/components/Pastilla'
 import LigaPastilla from '@/components/LigaPastilla'
@@ -64,16 +64,21 @@ async function getUltimosPartidos(cod: string) {
   return (r.data || []) as any[]
 }
 // Racha del hero: los 5 ÚLTIMOS partidos jugados (por temporada+jornada, jamás por el string de
-// fecha) -> chips G/E/P (signo del resultado, perspectiva del jugador). Se invierte para pintar el
-// más reciente a la DERECHA, como la forma de la ficha de equipo.
-async function getRacha5(cod: string): Promise<('G' | 'E' | 'P')[]> {
-  const { data } = await supabase.from('web_jugador_partidos').select('resultado')
+// fecha) -> chips V/E/D con tooltip "Jnn · marcador vs Rival" (marcador en orden local-visitante,
+// perspectiva del jugador para el color). Se invierte para pintar el más reciente a la DERECHA.
+async function getRacha5(cod: string): Promise<ChipRacha[]> {
+  const q = (c: string) => supabase.from('web_jugador_partidos').select(c)
     .eq('codjugador', cod)
     .order('codtemporada', { ascending: false }).order('jornada', { ascending: false }).limit(5)
+  let { data, error } = await q('resultado, jornada, rival_nombre, es_local')
+  if (error) ({ data } = await q('resultado, jornada, rival_nombre'))
   return ((data || []) as any[])
     .reverse()
-    .map((p) => marcadorLocalVisitante(p.resultado).signo)
-    .filter((s): s is 'G' | 'E' | 'P' => s === 'G' || s === 'E' || s === 'P')
+    .map((p): ChipRacha => {
+      const { marcador, signo } = marcadorLocalVisitante(p.resultado, p.es_local)
+      return { signo: signo as 'G' | 'E' | 'P', jornada: p.jornada ?? null, marcador, rival: p.rival_nombre ?? null }
+    })
+    .filter((c) => c.signo === 'G' || c.signo === 'E' || c.signo === 'P')
 }
 
 function iniciales(nombreDisplay: string): string {
@@ -123,12 +128,16 @@ function StatTile({ valor, label, acento, Icon }: {
   )
 }
 
-function RankRow({ label, rank, total }: { label: React.ReactNode; rank: number | null; total: number | null }) {
+// Fila de ranking: retícula de dos columnas — [insignia | texto] a la izquierda, número a la derecha.
+// La INSIGNIA vive en un raíl de ANCHO FIJO COMÚN (w-9, el ancho de la más ancha: la pastilla mini),
+// con las demás (disco, sello) centradas en él -> los tres textos arrancan en el mismo eje vertical.
+function RankRow({ insignia, texto, rank, total }: { insignia: React.ReactNode; texto: React.ReactNode; rank: number | null; total: number | null }) {
   if (!rank) return null
   return (
-    <div className="flex items-center justify-between gap-2 py-1.5 border-b border-pitch-700/50 last:border-0">
-      <span className="text-xs text-chalk-500 flex items-center gap-1.5 min-w-0">{label}</span>
-      <span className="text-sm text-white font-medium tabular-nums">
+    <div className="flex items-center gap-2 py-1.5 border-b border-pitch-700/50 last:border-0">
+      <span className="w-9 flex-shrink-0 flex items-center justify-center">{insignia}</span>
+      <span className="flex-1 min-w-0 truncate text-xs text-chalk-500">{texto}</span>
+      <span className="text-sm text-white font-medium tabular-nums flex-shrink-0">
         <span className="text-grass-400 font-bold">#{rank}</span>
         {total ? <span className="text-chalk-600 font-normal"> / {num(total)}</span> : null}
       </span>
@@ -310,9 +319,10 @@ export default async function FichaJugador({ params }: { params: Promise<{ slug:
               <CopasLinea copas={copas} />
             </div>
           )}
-          {/* Racha: chips G/E/P de los últimos 5 partidos jugados (más reciente a la derecha). Mismo
-              componente que la forma de la ficha de equipo. Inactivos: etiquetados con su última temporada. */}
-          <FormaHero forma={racha5} ultimaVictoria={null}
+          {/* Racha: chips V/E/D de los últimos 5 partidos jugados (más reciente a la derecha). Mismo
+              componente que la forma de la ficha de equipo, con la miga que orienta la lectura.
+              Inactivos: etiquetados con su última temporada. */}
+          <FormaHero forma={racha5} ultimaVictoria={null} miga="últimos 5 · reciente →"
             tempEtiqueta={inactivo && j.codtemporada_ultima ? tempLabel(j.codtemporada_ultima) : null} />
         </div>
 
@@ -366,24 +376,15 @@ export default async function FichaJugador({ params }: { params: Promise<{ slug:
                 <Star className="w-3.5 h-3.5 text-grass-400" strokeWidth={2.5} /> Rankings F11S
               </h2>
               <div className="bg-pitch-800 rounded-xl border border-pitch-700 px-3 py-1.5">
-                <RankRow rank={j.rank_general} total={j.rank_general_total} label={
-                  <span className="flex items-center gap-1.5 min-w-0">
-                    <span className="w-6 h-6 rounded-full bg-grass-500 flex items-center justify-center text-xs font-bold text-white flex-shrink-0 leading-none">11</span>
-                    <span className="font-display font-bold text-base tracking-tight text-chalk-200 truncate">Fútbol<span className="text-grass-400">11</span>Stats</span>
-                  </span>
-                } />
-                <RankRow rank={j.rank_categoria} total={j.rank_categoria_total} label={
-                  <span className="flex items-center gap-1.5 min-w-0">
-                    {(compActual || j.categoria_rama) && <Sello nombreComp={compActual || j.categoria_rama} size={18} />}
-                    <span className="truncate">{compActual || j.categoria_rama}</span>
-                  </span>
-                } />
-                <RankRow rank={j.rank_posicion} total={j.rank_posicion_total} label={
-                  <span className="flex items-center gap-1.5 min-w-0">
-                    <span className="truncate">{j.posicion_pastilla ? (POS_LABEL[j.posicion_pastilla] || j.posicion_pastilla) : 'Posición'}</span>
-                    <Pastilla pos={j.posicion_pastilla} estimada={j.posicion_es_estimada} size="mini" />
-                  </span>
-                } />
+                <RankRow rank={j.rank_general} total={j.rank_general_total}
+                  insignia={<span className="w-6 h-6 rounded-full bg-grass-500 flex items-center justify-center text-xs font-bold text-white leading-none">11</span>}
+                  texto={<span className="font-display font-bold text-base tracking-tight text-chalk-200">Fútbol<span className="text-grass-400">11</span>Stats</span>} />
+                <RankRow rank={j.rank_categoria} total={j.rank_categoria_total}
+                  insignia={(compActual || j.categoria_rama) ? <Sello nombreComp={compActual || j.categoria_rama} size={18} /> : null}
+                  texto={compActual || j.categoria_rama} />
+                <RankRow rank={j.rank_posicion} total={j.rank_posicion_total}
+                  insignia={<Pastilla pos={j.posicion_pastilla} estimada={j.posicion_es_estimada} size="mini" />}
+                  texto={j.posicion_pastilla ? (POS_LABEL[j.posicion_pastilla] || j.posicion_pastilla) : 'Posición'} />
               </div>
               <p className="mt-1.5 text-[10px] text-chalk-600 leading-snug">Por puntos fantasy de la última temporada activa.</p>
             </div>

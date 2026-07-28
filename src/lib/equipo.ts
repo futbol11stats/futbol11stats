@@ -44,10 +44,14 @@ export async function getResultadosGrupo(nombre: string | null, codgrupo: string
   return [...((loc.data || []) as any[]), ...((vis.data || []) as any[])] as ResultadoRow[]
 }
 
+// Un chip de racha/forma: signo (para color), jornada, marcador (orden absoluto local-visitante) y
+// rival — para el tooltip "Jnn · marcador vs Rival". Compartido por hero de equipo y de jugador.
+export type ChipRacha = { signo: 'G' | 'E' | 'P'; jornada: number | null; marcador: string; rival: string | null }
+
 // Resumen de forma (últimos 5 JUGADOS, orden jornada ASC = más reciente a la derecha) + última victoria
 // (por JORNADA, entero — nunca comparando el string DD/MM/YYYY). Perspectiva del equipo por su nombre.
 export function resumenForma(rows: ResultadoRow[], nombre: string): {
-  forma: ('G' | 'E' | 'P')[]
+  forma: ChipRacha[]
   ultimaVictoria: { fecha: string | null; jornada: number } | null
 } {
   const jugados = rows
@@ -57,10 +61,37 @@ export function resumenForma(rows: ResultadoRow[], nombre: string): {
     const local = r.nombre_local === nombre
     const gf = (local ? r.goles_local : r.goles_visitante) as number
     const gc = (local ? r.goles_visitante : r.goles_local) as number
-    return { jornada: r.jornada, fecha: r.fecha, signo: (gf > gc ? 'G' : gf < gc ? 'P' : 'E') as 'G' | 'E' | 'P' }
+    return {
+      jornada: r.jornada, fecha: r.fecha,
+      signo: (gf > gc ? 'G' : gf < gc ? 'P' : 'E') as 'G' | 'E' | 'P',
+      marcador: `${r.goles_local}-${r.goles_visitante}`,               // absoluto local-visitante
+      rival: (local ? r.nombre_visitante : r.nombre_local) as string,
+    }
   })
   const victorias = persp.filter((p) => p.signo === 'G')
-  return { forma: persp.slice(-5).map((p) => p.signo), ultimaVictoria: victorias.length ? victorias[victorias.length - 1] : null }
+  return {
+    forma: persp.slice(-5).map((p) => ({ signo: p.signo, jornada: p.jornada, marcador: p.marcador, rival: p.rival })),
+    ultimaVictoria: victorias.length ? victorias[victorias.length - 1] : null,
+  }
+}
+
+// Grupos (liga + copa) del equipo POR temporada, para acotar la búsqueda de partidos por nombre (el
+// juvenil y el aficionado de un club se llaman IGUAL; sin acotar, el filtro por nombre pesca la otra
+// rama). Liga desde web_equipo_temporadas; copas desde el JSONB web_equipo.copas. Devuelve
+// { codtemporada -> [codgrupo, ...] }.
+export async function getGruposPorTemporada(codequipo: string, temporadasRows: { codtemporada: string | number; codgrupo: string | null }[]): Promise<Record<string, string[]>> {
+  const map: Record<string, Set<string>> = {}
+  const add = (t: string | number | null, g: string | null) => {
+    if (t == null || !g) return
+    ;(map[String(t)] ??= new Set<string>()).add(String(g))
+  }
+  for (const r of temporadasRows) add(r.codtemporada, r.codgrupo)
+  const { data } = await supabase.from('web_equipo').select('copas').eq('codequipo', String(codequipo)).limit(1).maybeSingle()
+  const copas = (data as { copas?: unknown } | null)?.copas
+  if (Array.isArray(copas)) for (const c of copas as any[]) add(c.codtemporada, c.codgrupo)
+  const out: Record<string, string[]> = {}
+  for (const k in map) out[k] = Array.from(map[k])
+  return out
 }
 
 // Días desde una fecha DD/MM/YYYY hasta hoy (aritmética de fechas, no comparación de strings).

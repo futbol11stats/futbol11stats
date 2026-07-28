@@ -25,7 +25,8 @@ import PartidosEquipo from '@/components/equipo/PartidosEquipo'
 import {
   COLS_EQUIPO, COLS_EQUIPO_TEMPORADAS, COLS_EQUIPO_MOV, COLS_EQUIPO_HITOS, COLS_PLANTILLA_JUVENIL,
   codFromSlug, equipoSlug, tempLabel, fechaCortaDMY, LIVE_COD, RAMA_SLUG, BADGE, HITO_EQUIPO,
-  getCopasEquipo, getResultadosGrupo, resumenForma, type EquipoFicha, type MovimientoRow, type FichaMov,
+  getCopasEquipo, getResultadosGrupo, resumenForma, getGruposPorTemporada,
+  type EquipoFicha, type MovimientoRow, type FichaMov,
 } from '@/lib/equipo'
 import { Trophy, Flame, Swords, CalendarCheck, ListOrdered, ChevronRight, ArrowUpRight } from 'lucide-react'
 
@@ -209,12 +210,13 @@ export default async function FichaEquipo({ params }: { params: Promise<{ slug: 
   const ramaSlug = RAMA_SLUG[e.rama || 'aficionados'] || 'aficionados'
 
   // Wave 2: depende de la fila base (grupo, plantilla, fichas de movimientos, slugs de temporadas) — en paralelo.
-  const [grupo, plantilla, fichasMov, gruposTemp, resultadosGrupo] = await Promise.all([
+  const [grupo, plantilla, fichasMov, gruposTemp, resultadosGrupo, gruposPorTemporada] = await Promise.all([
     e.codgrupo ? getGrupoSlug(e.codgrupo) : Promise.resolve(null),
     esJuvenil ? getPlantillaJuv(cod) : getPlantillaAfic(cod),
     getFichasMovimientos(movimientos, cod, esJuvenil),
     getGruposTemporadas(temporadas.map((t: any) => t.codgrupo)),
     getResultadosGrupo(e.nombre, e.codgrupo),
+    getGruposPorTemporada(cod, temporadas),
   ])
   // Forma (últimos 5 de liga del grupo actual) + racha. Días solo si la temporada es la viva.
   const { forma, ultimaVictoria } = resumenForma(resultadosGrupo, e.nombre)
@@ -413,7 +415,7 @@ export default async function FichaEquipo({ params }: { params: Promise<{ slug: 
           />
 
           {/* Partidos de la temporada seleccionada (reactivo al mismo selector; fetch perezoso client-side). */}
-          <PartidosEquipo nombre={e.nombre} />
+          <PartidosEquipo nombre={e.nombre} gruposPorTemporada={gruposPorTemporada} />
 
           {/* Hitos (no se filtran por temporada: son del registro de 5 temporadas) */}
           {hitosVis.length > 0 && (
