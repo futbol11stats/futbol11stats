@@ -153,15 +153,28 @@ async function getEquiposMap(codgrupo: string, codtemporada: number): Promise<Ma
   return m
 }
 
-// Snapshot de TEMPORADA con fallback de 2 eslabones (la "máquina del tiempo"):
+// Snapshot de TEMPORADA con fallback de 3 eslabones (la "máquina del tiempo"):
 //   1) jornada = N seleccionada (acumulado J1->N; copa T21/T22 con snapshots)
 //   2) si vacío -> jornada IS NULL (foto final; temporadas congeladas T17-T20 o sin snapshot)
+//   3) si sigue vacío -> jornada de snapshot MÁS CERCANA disponible. Caso borde: copa NO tiene
+//      foto-final NULL, así que una jornada sin snapshot (o fuera del rango de rondas) caía a vacío;
+//      con esto muestra la ronda más próxima en vez de un bloque vacío.
 // Garantiza que ninguna combinación (grupo, jornada) devuelva vacío si el grupo tiene datos.
 async function fetchSnapshot(build: (q: any) => any, jornada: number) {
   const exact = await build(supabase).eq('jornada', jornada)
   if (exact.data && exact.data.length > 0) return exact.data
   const foto = await build(supabase).is('jornada', null)
-  return foto.data || []
+  if (foto.data && foto.data.length > 0) return foto.data
+  const todos = await build(supabase).not('jornada', 'is', null)
+  const rows = (todos.data || []) as any[]
+  if (rows.length === 0) return []
+  // Jornada objetivo = la de menor distancia a N; en empate, la anterior (lectura de calendario).
+  const jornadas = Array.from(new Set(rows.map((r) => Number(r.jornada))))
+  const objetivo = jornadas.reduce((mejor, j) => {
+    const d = Math.abs(j - jornada), dm = Math.abs(mejor - jornada)
+    return d < dm || (d === dm && j < mejor) ? j : mejor
+  }, jornadas[0])
+  return rows.filter((r) => Number(r.jornada) === objetivo)  // conserva el orden del closure (rank/pos_orden)
 }
 
 async function getTopJugadores(codgrupo: string, codtemporada: number, jornada: number) {
