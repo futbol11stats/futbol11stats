@@ -20,10 +20,12 @@ import { TemporadaProvider } from '@/components/equipo/TemporadaContext'
 import Top5Plantilla from '@/components/equipo/Top5Plantilla'
 import CopasLinea from '@/components/CopasLinea'
 import LigaPastilla from '@/components/LigaPastilla'
+import FormaHero from '@/components/equipo/FormaHero'
+import PartidosEquipo from '@/components/equipo/PartidosEquipo'
 import {
   COLS_EQUIPO, COLS_EQUIPO_TEMPORADAS, COLS_EQUIPO_MOV, COLS_EQUIPO_HITOS, COLS_PLANTILLA_JUVENIL,
   codFromSlug, equipoSlug, tempLabel, fechaCortaDMY, LIVE_COD, RAMA_SLUG, BADGE, HITO_EQUIPO,
-  getCopasEquipo, type EquipoFicha, type MovimientoRow, type FichaMov,
+  getCopasEquipo, getResultadosGrupo, resumenForma, type EquipoFicha, type MovimientoRow, type FichaMov,
 } from '@/lib/equipo'
 import { Trophy, Flame, Swords, CalendarCheck, ListOrdered, ChevronRight, ArrowUpRight } from 'lucide-react'
 
@@ -207,12 +209,16 @@ export default async function FichaEquipo({ params }: { params: Promise<{ slug: 
   const ramaSlug = RAMA_SLUG[e.rama || 'aficionados'] || 'aficionados'
 
   // Wave 2: depende de la fila base (grupo, plantilla, fichas de movimientos, slugs de temporadas) — en paralelo.
-  const [grupo, plantilla, fichasMov, gruposTemp] = await Promise.all([
+  const [grupo, plantilla, fichasMov, gruposTemp, resultadosGrupo] = await Promise.all([
     e.codgrupo ? getGrupoSlug(e.codgrupo) : Promise.resolve(null),
     esJuvenil ? getPlantillaJuv(cod) : getPlantillaAfic(cod),
     getFichasMovimientos(movimientos, cod, esJuvenil),
     getGruposTemporadas(temporadas.map((t: any) => t.codgrupo)),
+    getResultadosGrupo(e.nombre, e.codgrupo),
   ])
+  // Forma (últimos 5 de liga del grupo actual) + racha. Días solo si la temporada es la viva.
+  const { forma, ultimaVictoria } = resumenForma(resultadosGrupo, e.nombre)
+  const tempEnCurso = String(e.codtemporada) === LIVE_COD
   const jornadaGrupo = grupo?.jornada_actual || 1
   const miniClasif = e.codgrupo ? await getMiniClasif(e.codgrupo, jornadaGrupo) : []
 
@@ -306,6 +312,9 @@ export default async function FichaEquipo({ params }: { params: Promise<{ slug: 
             </div>
             {/* Copas de la temporada en curso (enlazadas). Sin copas -> no renderiza. */}
             <CopasLinea copas={copasEquipo} className="mt-2" />
+            {/* Forma (últimos 5) + racha. Inactivos: etiquetados con su última temporada, sin días. */}
+            <FormaHero forma={forma} ultimaVictoria={ultimaVictoria} mostrarDias={tempEnCurso}
+              tempEtiqueta={inactivo && e.codtemporada ? tempLabel(e.codtemporada) : null} />
           </div>
         </div>
 
@@ -402,6 +411,9 @@ export default async function FichaEquipo({ params }: { params: Promise<{ slug: 
             nota={esJuvenil ? notaJuvenil : undefined}
             completa={!esJuvenil}
           />
+
+          {/* Partidos de la temporada seleccionada (reactivo al mismo selector; fetch perezoso client-side). */}
+          <PartidosEquipo nombre={e.nombre} />
 
           {/* Hitos (no se filtran por temporada: son del registro de 5 temporadas) */}
           {hitosVis.length > 0 && (

@@ -27,6 +27,50 @@ export function equipoHref(codequipo: string | number | null | undefined, nombre
 // juvenil) -> pastilla sí, enlace no.
 export type FichaMov = { nombre: string | null; pos: string | null; estimada: boolean; enlazable: boolean }
 
+// FORMA del hero: resultados del equipo en su grupo (web_resultados no trae codequipo -> se filtra por
+// NOMBRE, como local o visitante; dos .eq en vez de .or para no pelear con comillas/comas del nombre).
+export type ResultadoRow = {
+  jornada: number; fecha: string | null
+  goles_local: number | null; goles_visitante: number | null
+  nombre_local: string; nombre_visitante: string
+}
+export async function getResultadosGrupo(nombre: string | null, codgrupo: string | null | undefined): Promise<ResultadoRow[]> {
+  if (!nombre || !codgrupo) return []
+  const cols = 'jornada, fecha, goles_local, goles_visitante, nombre_local, nombre_visitante'
+  const [loc, vis] = await Promise.all([
+    supabase.from('web_resultados').select(cols).eq('codgrupo', String(codgrupo)).eq('nombre_local', nombre),
+    supabase.from('web_resultados').select(cols).eq('codgrupo', String(codgrupo)).eq('nombre_visitante', nombre),
+  ])
+  return [...((loc.data || []) as any[]), ...((vis.data || []) as any[])] as ResultadoRow[]
+}
+
+// Resumen de forma (últimos 5 JUGADOS, orden jornada ASC = más reciente a la derecha) + última victoria
+// (por JORNADA, entero — nunca comparando el string DD/MM/YYYY). Perspectiva del equipo por su nombre.
+export function resumenForma(rows: ResultadoRow[], nombre: string): {
+  forma: ('G' | 'E' | 'P')[]
+  ultimaVictoria: { fecha: string | null; jornada: number } | null
+} {
+  const jugados = rows
+    .filter((r) => r.goles_local != null && r.goles_visitante != null)
+    .sort((a, b) => a.jornada - b.jornada)
+  const persp = jugados.map((r) => {
+    const local = r.nombre_local === nombre
+    const gf = (local ? r.goles_local : r.goles_visitante) as number
+    const gc = (local ? r.goles_visitante : r.goles_local) as number
+    return { jornada: r.jornada, fecha: r.fecha, signo: (gf > gc ? 'G' : gf < gc ? 'P' : 'E') as 'G' | 'E' | 'P' }
+  })
+  const victorias = persp.filter((p) => p.signo === 'G')
+  return { forma: persp.slice(-5).map((p) => p.signo), ultimaVictoria: victorias.length ? victorias[victorias.length - 1] : null }
+}
+
+// Días desde una fecha DD/MM/YYYY hasta hoy (aritmética de fechas, no comparación de strings).
+export function diasDesdeDMY(fecha: string | null): number | null {
+  const m = (fecha || '').match(/^(\d{2})\/(\d{2})\/(\d{4})$/)
+  if (!m) return null
+  const d = new Date(+m[3], +m[2] - 1, +m[1])
+  return Math.floor((new Date().getTime() - d.getTime()) / 86400000)
+}
+
 // Info de un grupo (por codgrupo) para construir el enlace a su vista. Reutilizable por la ficha de
 // jugador (pastilla de competición del hero) y donde haga falta resolver un grupo desde su código.
 export async function getGrupoInfo(codgrupo: string | null | undefined) {
