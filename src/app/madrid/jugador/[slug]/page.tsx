@@ -24,6 +24,7 @@ import { getEquipoActualInfo, getGrupoInfo, grupoHref } from '@/lib/equipo'
 import CopasLinea from '@/components/CopasLinea'
 import Pastilla from '@/components/Pastilla'
 import LigaPastilla from '@/components/LigaPastilla'
+import IndicadorLocal from '@/components/IndicadorLocal'
 import {
   Trophy, MapPin, Star, Hash, ArrowUpRight, Users, ListChecks, Hand,
   Goal, Timer, Calendar, CircleDot,
@@ -46,18 +47,20 @@ async function getHitos(cod: string): Promise<HitoRow[]> {
   return (data || []) as unknown as HitoRow[]
 }
 async function getActuaciones(cod: string) {
-  const { data } = await supabase.from('web_jugador_actuaciones').select(COLS_ACTUACIONES).eq('codjugador', cod).order('rank')
-  return (data || []) as any[]
+  // es_local (local/visitante) llega con el próximo export; se intenta y, si la columna aún no existe,
+  // se reintenta sin ella (el icono casa/avión brota solo cuando el dato aterrice).
+  let r = await supabase.from('web_jugador_actuaciones').select(COLS_ACTUACIONES + ', es_local').eq('codjugador', cod).order('rank')
+  if (r.error) r = await supabase.from('web_jugador_actuaciones').select(COLS_ACTUACIONES).eq('codjugador', cod).order('rank')
+  return (r.data || []) as any[]
 }
 // Los 3 ÚLTIMOS partidos jugados (por temporada+jornada, no por el string de fecha DD/MM/YYYY).
 async function getUltimosPartidos(cod: string) {
-  const { data } = await supabase.from('web_jugador_partidos')
-    .select('codacta, codtemporada, jornada, fecha, equipo_nombre, escudo, rival_cod, rival_nombre, resultado, goles, puntos, goles_encajados')
-    .eq('codjugador', cod)
-    .order('codtemporada', { ascending: false })
-    .order('jornada', { ascending: false })
-    .limit(3)
-  return (data || []) as any[]
+  const cols = 'codacta, codtemporada, jornada, fecha, equipo_nombre, escudo, rival_cod, rival_nombre, resultado, goles, puntos, goles_encajados'
+  const q = (c: string) => supabase.from('web_jugador_partidos').select(c).eq('codjugador', cod)
+    .order('codtemporada', { ascending: false }).order('jornada', { ascending: false }).limit(3)
+  let r = await q(cols + ', es_local')  // idem: se activa solo cuando exista es_local
+  if (r.error) r = await q(cols)
+  return (r.data || []) as any[]
 }
 
 function iniciales(nombreDisplay: string): string {
@@ -123,9 +126,10 @@ function RankRow({ label, rank, total }: { label: React.ReactNode; rank: number 
 // Fila unificada de partido (Mejores actuaciones + Últimos partidos): mismo estilo. Línea principal
 // "vs RIVAL" + marcador coloreado en condensada mayúsculas; línea secundaria (fecha · con equipo) en
 // Inter gris; goles/GC y pts en columnas de ANCHO FIJO para que ambos bloques alineen; pts con signo.
-function PartidoRow({ escudo, equipoNombre, rivalCod, rivalNombre, resultado, fecha, goles, pts, gc, portero }: {
+function PartidoRow({ escudo, equipoNombre, rivalCod, rivalNombre, resultado, fecha, goles, pts, gc, portero, esLocal }: {
   escudo: string | null; equipoNombre: string | null; rivalCod: string | null; rivalNombre: string | null
   resultado: string | null; fecha: string | null; goles: number | null; pts: number | null; gc: number | null; portero: boolean
+  esLocal?: boolean | null
 }) {
   const { marcador, signo } = parseResultado(resultado)
   const g = goles ?? 0, c = gc ?? 0
@@ -136,7 +140,13 @@ function PartidoRow({ escudo, equipoNombre, rivalCod, rivalNombre, resultado, fe
       </span>
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
-          <span className="text-sm font-display uppercase text-white truncate"><span className="font-body normal-case text-chalk-500 text-xs">vs </span><NombreEquipo codequipo={rivalCod} nombre={rivalNombre} /></span>
+          <span className="flex items-center gap-1 min-w-0 text-sm font-display uppercase text-white">
+            {/* Icono casa/avión cuando exista es_local; si no, se mantiene el "vs" textual (fallback). */}
+            {esLocal != null
+              ? <IndicadorLocal esLocal={esLocal} />
+              : <span className="font-body normal-case text-chalk-500 text-xs flex-shrink-0">vs</span>}
+            <span className="truncate min-w-0"><NombreEquipo codequipo={rivalCod} nombre={rivalNombre} /></span>
+          </span>
           <span className={`text-xs font-semibold tabular-nums flex-shrink-0 ${colorSigno(signo)}`}>{marcador}</span>
         </div>
         <div className="text-[11px] text-chalk-600 truncate">{fechaCorta(fecha)} · con {equipoNombre}</div>
@@ -427,7 +437,7 @@ export default async function FichaJugador({ params }: { params: Promise<{ slug:
                   <PartidoRow key={a.rank} escudo={a.escudo} equipoNombre={a.equipo_nombre}
                     rivalCod={a.rival_cod} rivalNombre={a.rival_nombre} resultado={a.resultado}
                     fecha={a.fecha} goles={a.goles} pts={Math.round(a.pts)}
-                    gc={portero ? golesRival(a.resultado) : null} portero={portero} />
+                    gc={portero ? golesRival(a.resultado) : null} portero={portero} esLocal={a.es_local} />
                 ))}
               </div>
             </section>
@@ -443,7 +453,7 @@ export default async function FichaJugador({ params }: { params: Promise<{ slug:
                 {ultimos.map((p: any) => (
                   <PartidoRow key={p.codacta} escudo={p.escudo} equipoNombre={p.equipo_nombre}
                     rivalCod={p.rival_cod} rivalNombre={p.rival_nombre} resultado={p.resultado}
-                    fecha={p.fecha} goles={p.goles} pts={p.puntos} gc={p.goles_encajados} portero={portero} />
+                    fecha={p.fecha} goles={p.goles} pts={p.puntos} gc={p.goles_encajados} portero={portero} esLocal={p.es_local} />
                 ))}
               </div>
             </section>

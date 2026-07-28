@@ -6,6 +6,7 @@ import { supabase, escudoUrl } from '@/lib/supabase'
 import EscudoImg from '@/components/EscudoImg'
 import NombreEquipo from '@/components/NombreEquipo'
 import Sello from '@/components/Sello'
+import IndicadorLocal from '@/components/IndicadorLocal'
 import { tempLabel, fechaCorta, signoCls, conSigno, parseResultado, colorSigno } from '@/lib/jugador'
 
 export const PARTIDOS_HABILITADO = true
@@ -16,13 +17,13 @@ type Carrera = any
 const COLS_P = 'codacta, jornada, fecha, rival_nombre, rival_escudo, resultado, titular, minutos, goles, amarillas, dobles_amarilla, rojas, puntos, elo_delta, goles_encajados'
 
 async function fetchPartidos(codjugador: string, codtemporada: string, codequipo: string) {
-  const { data, error } = await supabase
-    .from('web_jugador_partidos')
-    .select(COLS_P)
-    .eq('codjugador', codjugador)
-    .eq('codtemporada', codtemporada)
-    .eq('codequipo', codequipo)
+  // es_local (local/visitante) llega con el próximo export; se intenta y, si no existe, se reintenta
+  // sin ella -> el icono casa/avión brota solo cuando el dato aterrice.
+  const q = (c: string) => supabase.from('web_jugador_partidos').select(c)
+    .eq('codjugador', codjugador).eq('codtemporada', codtemporada).eq('codequipo', codequipo)
     .order('jornada', { ascending: false })   // por jornada (entero), no por el string de fecha
+  let { data, error } = await q(COLS_P + ', es_local')
+  if (error) ({ data, error } = await q(COLS_P))
   if (error) return { error: error.message, rows: [] as any[] }
   return { error: null, rows: (data || []) as any[] }
 }
@@ -43,7 +44,8 @@ function PartidoFila({ p, portero }: { p: any; portero: boolean }) {
       </td>
       {/* EQUIPO -> escudo rival + nombre (+ resultado·min·pts SOLO en móvil) */}
       <td className="text-chalk-300 max-w-[7rem] sm:max-w-[13rem]">
-        <div className="flex items-center gap-2 min-w-0">
+        <div className="flex items-center gap-1.5 min-w-0">
+          <IndicadorLocal esLocal={p.es_local} />
           {escudoUrl(p.rival_escudo)
             ? <span className="inline-flex items-center justify-center w-5 h-5 bg-white rounded-sm flex-shrink-0 p-px"><EscudoImg escudo={p.rival_escudo} nombre={p.rival_nombre ?? undefined} /></span>
             : <span className="w-5 h-5 flex-shrink-0" />}

@@ -6,6 +6,7 @@ import { supabase, escudoUrl } from '@/lib/supabase'
 import EscudoImg from '@/components/EscudoImg'
 import NombreEquipo from '@/components/NombreEquipo'
 import Sello from '@/components/Sello'
+import IndicadorLocal from '@/components/IndicadorLocal'
 import { useTemporada } from './TemporadaContext'
 import { tempLabel, fechaCortaDMY } from '@/lib/equipo'
 import { fechaISO } from '@/lib/jugador'
@@ -64,7 +65,7 @@ function Fila({ p }: { p: Partido }) {
     <div className="flex items-center gap-2 px-3 py-2 text-sm border-b border-pitch-700/50 last:border-0">
       <span className="w-8 flex-shrink-0 text-center text-[11px] text-chalk-600 tabular-nums">{p.esCopa ? 'R' : 'J'}{p.jornada}</span>
       <span className="hidden md:block w-20 flex-shrink-0 text-[11px] text-chalk-600 tabular-nums">{fechaCortaDMY(p.fecha)}</span>
-      <span className="w-4 flex-shrink-0 text-center text-[11px] text-chalk-500" title={p.esLocal ? 'Local' : 'Visitante'}>{p.esLocal ? 'vs' : '@'}</span>
+      <span className="w-4 flex-shrink-0 flex justify-center"><IndicadorLocal esLocal={p.esLocal} /></span>
       {escudoUrl(p.rivalEscudo)
         ? <span className="inline-flex items-center justify-center w-5 h-5 bg-white rounded-sm flex-shrink-0 p-px"><EscudoImg escudo={p.rivalEscudo} nombre={p.rivalNombre} /></span>
         : <span className="w-5 h-5 flex-shrink-0" />}
