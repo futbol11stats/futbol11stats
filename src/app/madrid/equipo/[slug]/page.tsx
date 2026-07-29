@@ -13,6 +13,7 @@ import EscudoImg from '@/components/EscudoImg'
 import { Suspense } from 'react'
 import NombreEquipo from '@/components/NombreEquipo'
 import Sello from '@/components/Sello'
+import { nombreCortoCopa, colorPastilla, type AcentoPastilla } from '@/lib/sellos'
 import MedidoresEquipo from '@/components/equipo/MedidoresEquipo'
 import { type PlantillaRow } from '@/components/equipo/Plantilla'
 import EquipoTemporadas from '@/components/equipo/EquipoTemporadas'
@@ -25,8 +26,8 @@ import PartidosEquipo from '@/components/equipo/PartidosEquipo'
 import {
   COLS_EQUIPO, COLS_EQUIPO_TEMPORADAS, COLS_EQUIPO_MOV, COLS_EQUIPO_HITOS, COLS_PLANTILLA_JUVENIL,
   codFromSlug, equipoSlug, tempLabel, fechaCortaDMY, LIVE_COD, RAMA_SLUG, BADGE, HITO_EQUIPO,
-  getCopasEquipo, getResultadosGrupo, resumenForma, getGruposPorTemporada,
-  type EquipoFicha, type MovimientoRow, type FichaMov,
+  getCopasPorTemporada, getResultadosGrupo, resumenForma, getGruposPorTemporada,
+  type EquipoFicha, type MovimientoRow, type FichaMov, type CopaEquipo,
 } from '@/lib/equipo'
 import { Trophy, Flame, Swords, CalendarCheck, ListOrdered, ChevronRight, ArrowUpRight } from 'lucide-react'
 
@@ -190,6 +191,34 @@ function Chip({ children, href, tone = 'grass' }: { children: React.ReactNode; h
   return href ? <Link href={href} className="hover:brightness-125 transition">{inner}</Link> : inner
 }
 
+// Acento de color de la pastilla-mini de copa en el bloque Temporadas (mismo criterio que LigaPastilla).
+const COPA_TONO: Record<AcentoPastilla, string> = {
+  verde: 'bg-grass-500/15 text-grass-300 ring-grass-400/25',
+  azul:  'bg-blue-500/15 text-blue-300 ring-blue-500/30',
+  rojo:  'bg-red-500/15 text-red-300 ring-red-500/30',
+}
+
+// Copas de una temporada como pastillas-mini (sello + nombre corto + estado), enlazadas a la vista de
+// esa copa cuando su grupo existe. max-w-full + truncate -> sin desbordes a 390px aunque el estado sea largo.
+function CopasTemporada({ copas }: { copas: CopaEquipo[] }) {
+  if (!copas || copas.length === 0) return null
+  return (
+    <div className="flex flex-wrap items-center gap-1 mt-1">
+      {copas.map((c, i) => {
+        const chip = (
+          <span className={`inline-flex items-center gap-1 max-w-full pl-1 pr-1.5 py-0.5 rounded text-[10px] font-medium ring-1 ring-inset ${COPA_TONO[colorPastilla(c.nombre_comp)]}`}>
+            <Sello nombreComp={c.nombre_comp} size={14} />
+            <span className="truncate">{nombreCortoCopa(c.nombre_comp)}{c.estado ? ` · ${c.estado}` : ''}</span>
+          </span>
+        )
+        return c.href
+          ? <Link key={i} href={c.href} className="max-w-full hover:brightness-125 transition">{chip}</Link>
+          : <span key={i} className="max-w-full">{chip}</span>
+      })}
+    </div>
+  )
+}
+
 // ---- Página ----
 export default async function FichaEquipo({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params
@@ -229,8 +258,10 @@ export default async function FichaEquipo({ params }: { params: Promise<{ slug: 
     ? `/madrid/${ramaSlug}/${grupo.slug_comp}/${grupo.slug_grupo}/${tempLabel(e.codtemporada)}/jornada-${jornadaGrupo}/clasificacion`
     : null
 
-  // Copas de la temporada en curso (línea bajo la pastilla de liga). Gated por COPAS_HABILITADO.
-  const copasEquipo = await getCopasEquipo(e.codequipo)
+  // Copas por temporada (una sola query): el hero muestra solo la VIVA; el bloque Temporadas, las
+  // históricas de cada año. Gated por COPAS_HABILITADO.
+  const copasPorTemporada = await getCopasPorTemporada(e.codequipo)
+  const copasEquipo = copasPorTemporada[LIVE_COD] || []
 
   // Mini-clasificación centrada en el equipo (±2 filas).
   const idx = miniClasif.findIndex((r) => String(r.codequipo) === String(e.codequipo))
@@ -389,6 +420,8 @@ export default async function FichaEquipo({ params }: { params: Promise<{ slug: 
                           : <div className="flex items-center gap-1.5 text-xs text-chalk-400">{inner}</div>
                       })()}
                       <div className="text-[11px] text-chalk-600 tabular-nums">{t.posicion_final}º · {t.pts} pts</div>
+                      {/* Honores de copa de ESA temporada (JSONB): sello + nombre corto + estado, enlazados. */}
+                      <CopasTemporada copas={copasPorTemporada[String(t.codtemporada)]} />
                     </div>
                     {t.badge && BADGE[t.badge] && (
                       <span className={`flex-shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded ${BADGE[t.badge].cls}`}>{BADGE[t.badge].label}</span>

@@ -8,16 +8,24 @@ export const SELLO_RFFM = '/sellos/rffm.png'                    // RFFM (resto d
 export const SELLO_COPA_RFFM = '/sellos/copa-rffm.png'          // Copa RFFM (pastilla circular, fondo propio)
 export const SELLO_COPA_RFEF = '/sellos/copa-rfef.png'          // Copa RFEF / Copa Federación (pastilla circular)
 
+// Normaliza para el matching por nombre: quita acentos, ª/º y PUNTOS (los nombres históricos vienen
+// con puntos: "COPA R.F.E.F.", "COPA R.F.F.M."), colapsa espacios y baja a minúsculas -> las variantes
+// vieja y actual de una misma competición normalizan IGUAL.
 function norm(s: string | null): string {
-  return (s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[ªº]/g, '').toLowerCase()
+  return (s || '')
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .replace(/[ªº]/g, '').replace(/\./g, '')
+    .toLowerCase().replace(/\s+/g, ' ').trim()
 }
 
-// EXCEPCIÓN: las "Final Copa 1ª División Autonómica" (Aficionado/Juvenil) NO son la Copa RFFM: son la
-// final por el título de Autonómica entre los campeones de los dos grupos -> llevan el botón RFFM.
-// Matching por NOMBRE EXACTO (normalizado), no por contener "Copa".
+// TÍTULOS DE LIGA con sello RFFM (NO son copas): la "Final Copa 1ª División Autonómica" y el "Campeón
+// de Madrid" son la final por el título entre los campeones de los dos grupos de la Autonómica/Preferente
+// -> llevan el botón RFFM (no el de Copa). Matching por NOMBRE EXACTO (normalizado), no por "Copa".
 const FINALES_AUTONOMICA = new Set([
   norm('Final Copa 1ª División Autonómica Aficionado'),
   norm('Final Copa 1ª División Autonómica Juvenil'),
+  norm('CAMPEON DE MADRID - CATEGORIA PREFERENTE AFICIONADOS'),
+  norm('CAMPEON DE MADRID - PRIMERA DIVISION AUTONOMICA JUVENIL'),
 ])
 
 // Clasifica una competición a su sello. Final Autonómica -> RFFM (excepción); 3ª RFEF/Play Off Tercera
@@ -52,6 +60,13 @@ const COMP_MAP: Record<string, { corto: string; color: AcentoPastilla }> = {
   // Play Off de ascenso: es el DESENLACE de la liga, no una copa -> acento VERDE (criterio Final
   // Autonómica) y sello de Tercera (lo resuelve selloDe por "tercera"). Match por nombre exacto.
   [norm('Play Off Tercera Federación')]:                  { corto: 'Play Off 3ª RFEF',    color: 'verde' },
+  // Copa RFFM histórica (aficionados): mismo criterio que la Copa de Aficionados RFFM -> rojo. El corto
+  // ya sale del fallback, pero se fija aquí para el COLOR. (norm quita los puntos: "COPA R.F.F.M." -> "copa rffm").
+  [norm('COPA R.F.F.M.')]:                                { corto: 'Copa RFFM',           color: 'rojo' },
+  [norm('FINAL COPA R.F.F.M.')]:                          { corto: 'Final Copa RFFM',     color: 'rojo' },
+  // Campeón de Madrid: título de LIGA (no copa) -> sello RFFM (FINALES_AUTONOMICA) + acento VERDE.
+  [norm('CAMPEON DE MADRID - CATEGORIA PREFERENTE AFICIONADOS')]:  { corto: 'Campeón de Madrid', color: 'verde' },
+  [norm('CAMPEON DE MADRID - PRIMERA DIVISION AUTONOMICA JUVENIL')]: { corto: 'Campeón de Madrid', color: 'verde' },
 }
 
 // Nombre corto de una copa para pastillas/chips.

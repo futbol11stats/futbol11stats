@@ -141,23 +141,44 @@ export type CopaEquipo = {
   href: string | null
 }
 
-// Resuelve el JSONB crudo de copas a CopaEquipo[] (filtra temporada en curso + construye href de copa).
-async function resolveCopas(raw: unknown): Promise<CopaEquipo[]> {
-  if (!COPAS_HABILITADO || !Array.isArray(raw)) return []
-  const copasT = (raw as CopaRaw[]).filter((c) => String(c.codtemporada) === LIVE_COD)
-  if (copasT.length === 0) return []
-  const cods = Array.from(new Set(copasT.map((c) => String(c.codgrupo))))
+// Resuelve un lote de filas crudas de copa a CopaEquipo[] construyendo el href de la vista de copa por
+// codgrupo (web_grupos: slug_grupo, jornada, categoría->rama). Si el grupo aún no está en web_grupos
+// (copas históricas antes de que el pipeline suba grupos/partidos) -> href null: la pastilla se pinta
+// igual (sello + nombre + estado) y se hará navegable sola cuando el grupo aterrice.
+async function resolveCopaRows(rows: CopaRaw[]): Promise<(CopaEquipo & { codtemporada: string })[]> {
+  if (rows.length === 0) return []
+  const cods = Array.from(new Set(rows.map((c) => String(c.codgrupo))))
   const { data: grupos } = await supabase.from('web_grupos')
     .select('codgrupo, slug_grupo, jornada_actual, categoria').in('codgrupo', cods)
   const gmap = new Map((grupos || []).map((g: any) => [String(g.codgrupo), g]))
-  return copasT.map((c) => {
+  return rows.map((c) => {
     const g = gmap.get(String(c.codgrupo))
     const rama = g && String(g.categoria).toUpperCase() === 'JUVENIL' ? 'juveniles' : 'aficionados'
     const href = g
       ? `/madrid/${rama}/${c.slug_comp}/${g.slug_grupo}/${tempLabel(c.codtemporada)}/jornada-${g.jornada_actual || 1}/resultados`
       : null
-    return { nombre_comp: c.competicion, estado: c.estado_label, href }
+    return { nombre_comp: c.competicion, estado: c.estado_label, href, codtemporada: String(c.codtemporada) }
   })
+}
+
+// Copas de la temporada VIVA (hero, línea CopasLinea).
+async function resolveCopas(raw: unknown): Promise<CopaEquipo[]> {
+  if (!COPAS_HABILITADO || !Array.isArray(raw)) return []
+  const copasT = (raw as CopaRaw[]).filter((c) => String(c.codtemporada) === LIVE_COD)
+  return resolveCopaRows(copasT)
+}
+
+// Copas de TODAS las temporadas, agrupadas por codtemporada -> para el bloque Temporadas (honores por
+// año, junto al badge de liga). El hero sigue mostrando solo la viva; aquí salen las históricas.
+export async function getCopasPorTemporada(codequipo: string | number | null | undefined): Promise<Record<string, CopaEquipo[]>> {
+  if (!COPAS_HABILITADO || codequipo == null) return {}
+  const { data } = await supabase.from('web_equipo').select('copas').eq('codequipo', String(codequipo)).limit(1).maybeSingle()
+  const raw = (data as { copas?: unknown } | null)?.copas
+  if (!Array.isArray(raw)) return {}
+  const resolved = await resolveCopaRows(raw as CopaRaw[])
+  const out: Record<string, CopaEquipo[]> = {}
+  for (const c of resolved) (out[c.codtemporada] ??= []).push({ nombre_comp: c.nombre_comp, estado: c.estado, href: c.href })
+  return out
 }
 
 export async function getCopasEquipo(codequipo: string | number | null | undefined): Promise<CopaEquipo[]> {
