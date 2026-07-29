@@ -20,15 +20,19 @@ import { fechaISO } from '@/lib/jugador'
 // Parche web: acotamos la query a los codgrupos PROPIOS del equipo en la temporada (liga de
 // web_equipo_temporadas + copas del JSONB), donde el nombre ya es unívoco. Cuando el pipeline añada
 // codequipo_local/visitante a web_resultados, este filtro por nombre+codgrupo se puede retirar.
+type TipoComp = 'liga' | 'copa' | 'playoff'
 type Partido = {
   codacta: string; jornada: number; fecha: string | null
   esLocal: boolean; golesFav: number | null; golesCon: number | null
   golesLocal: number | null; golesVisitante: number | null
   rivalNombre: string; rivalEscudo: string | null; rivalCod: string | undefined
-  compNombre: string | null; esCopa: boolean
+  compNombre: string | null; tipo: TipoComp
 }
 
-async function fetchPartidos(nombre: string, codtemporada: string, grupos: string[]): Promise<Partido[]> {
+const tipoDeGrupo = (t: string | null | undefined): TipoComp =>
+  t === 'PLAYOFF' ? 'playoff' : t && t !== 'LIGA' ? 'copa' : 'liga'
+
+async function fetchPartidos(nombre: string, rama: string, codtemporada: string, grupos: string[]): Promise<Partido[]> {
   if (!grupos || grupos.length === 0) return []
   const cols = 'codgrupo, jornada, codacta, nombre_local, escudo_local, goles_local, goles_visitante, nombre_visitante, escudo_visitante, fecha'
   const [loc, vis] = await Promise.all([
@@ -39,27 +43,41 @@ async function fetchPartidos(nombre: string, codtemporada: string, grupos: strin
   for (const r of [...((loc.data || []) as any[]), ...((vis.data || []) as any[])]) uniq.set(r.codacta, r)
   const list = Array.from(uniq.values())
   if (list.length === 0) return []
-  const rivalNames = Array.from(new Set(list.map((r) => (r.nombre_local === nombre ? r.nombre_visitante : r.nombre_local))))
   const codgrupos = Array.from(new Set(list.map((r) => String(r.codgrupo))))
-  const [eq, gr] = await Promise.all([
-    supabase.from('web_equipo').select('codequipo, nombre').in('nombre', rivalNames),
+  const pares = list.map((r) => ({ codgrupo: String(r.codgrupo), rival: (r.nombre_local === nombre ? r.nombre_visitante : r.nombre_local) as string }))
+  // Resolución rival -> codequipo. El nombre choca entre ramas (juvenil/aficionado homónimos), así que
+  // NO se resuelve contra web_equipo global. (1) Clasificación del PROPIO grupo (codgrupo+nombre es
+  // unívoco: un grupo de liga = una sola rama). (2) Copa/Playoff no tienen tabla -> se resuelve por
+  // nombre + RAMA del equipo (copas y playoffs son intra-rama, así que el par nombre+rama es único).
+  const [clasi, gr] = await Promise.all([
+    supabase.from('web_clasificacion').select('codgrupo, nombre_equipo, codequipo').in('codgrupo', codgrupos),
     supabase.from('web_grupos').select('codgrupo, tipo, nombre_comp').in('codgrupo', codgrupos),
   ])
-  const codMap = new Map<string, string>()
-  for (const x of (eq.data || []) as any[]) if (!codMap.has(x.nombre)) codMap.set(x.nombre, String(x.codequipo))
+  const codPorGrupoNombre = new Map<string, string>()
+  for (const x of (clasi.data || []) as any[]) {
+    const k = `${x.codgrupo}|${x.nombre_equipo}`
+    if (!codPorGrupoNombre.has(k)) codPorGrupoNombre.set(k, String(x.codequipo))
+  }
+  const faltan = Array.from(new Set(pares.filter((p) => !codPorGrupoNombre.has(`${p.codgrupo}|${p.rival}`)).map((p) => p.rival)))
+  const codPorNombreRama = new Map<string, string>()
+  if (faltan.length) {
+    const { data: eqs } = await supabase.from('web_equipo').select('codequipo, nombre').in('nombre', faltan).eq('rama', rama)
+    for (const x of (eqs || []) as any[]) if (!codPorNombreRama.has(x.nombre)) codPorNombreRama.set(x.nombre, String(x.codequipo))
+  }
   const grMap = new Map<string, any>((gr.data || []).map((g: any) => [String(g.codgrupo), g]))
   return list
     .map((r): Partido => {
       const local = r.nombre_local === nombre
       const rival = local ? r.nombre_visitante : r.nombre_local
       const g = grMap.get(String(r.codgrupo))
+      const rivalCod = codPorGrupoNombre.get(`${r.codgrupo}|${rival}`) ?? codPorNombreRama.get(rival)
       return {
         codacta: r.codacta, jornada: r.jornada, fecha: r.fecha, esLocal: local,
         golesFav: local ? r.goles_local : r.goles_visitante,   // para el COLOR (perspectiva del equipo)
         golesCon: local ? r.goles_visitante : r.goles_local,
         golesLocal: r.goles_local, golesVisitante: r.goles_visitante,   // para MOSTRAR (orden absoluto)
-        rivalNombre: rival, rivalEscudo: local ? r.escudo_visitante : r.escudo_local, rivalCod: codMap.get(rival),
-        compNombre: g?.nombre_comp ?? null, esCopa: !!(g && g.tipo && g.tipo !== 'LIGA'),
+        rivalNombre: rival, rivalEscudo: local ? r.escudo_visitante : r.escudo_local, rivalCod,
+        compNombre: g?.nombre_comp ?? null, tipo: tipoDeGrupo(g?.tipo),
       }
     })
     // Orden de CALENDARIO: por fecha (ISO, no el string DD/MM/YYYY), desempate por jornada.
@@ -69,10 +87,13 @@ async function fetchPartidos(nombre: string, codtemporada: string, grupos: strin
 const signoCls = (fav: number | null, con: number | null) =>
   fav == null || con == null ? 'text-chalk-700' : fav > con ? 'text-grass-400' : fav < con ? 'text-red-400' : 'text-chalk-500'
 
+// Prefijo del nº de jornada según el tipo: liga = J (jornada), copa = R (ronda), playoff = PO.
+const PREFIJO: Record<TipoComp, string> = { liga: 'J', copa: 'R', playoff: 'PO' }
+
 function Fila({ p }: { p: Partido }) {
   return (
     <div className="flex items-center gap-2 px-3 py-2 text-sm border-b border-pitch-700/50 last:border-0">
-      <span className="w-8 flex-shrink-0 text-center text-[11px] text-chalk-600 tabular-nums">{p.esCopa ? 'R' : 'J'}{p.jornada}</span>
+      <span className="w-8 flex-shrink-0 text-center text-[11px] text-chalk-600 tabular-nums">{PREFIJO[p.tipo]}{p.jornada}</span>
       <span className="hidden md:block w-20 flex-shrink-0 text-[11px] text-chalk-600 tabular-nums">{fechaCortaDMY(p.fecha)}</span>
       <span className="w-4 flex-shrink-0 flex justify-center"><IndicadorLocal esLocal={p.esLocal} /></span>
       {escudoUrl(p.rivalEscudo)
@@ -88,22 +109,26 @@ function Fila({ p }: { p: Partido }) {
   )
 }
 
-export default function PartidosEquipo({ nombre, gruposPorTemporada }: { nombre: string; gruposPorTemporada: Record<string, string[]> }) {
+type Filtro = 'todas' | TipoComp
+
+export default function PartidosEquipo({ nombre, rama, gruposPorTemporada }: { nombre: string; rama: string; gruposPorTemporada: Record<string, string[]> }) {
   const { sel } = useTemporada()
   const [cache, setCache] = useState<Record<string, { loading: boolean; partidos: Partido[] }>>({})
-  const [filtro, setFiltro] = useState<'todas' | 'liga' | 'copa'>('todas')
+  const [filtro, setFiltro] = useState<Filtro>('todas')
   const key = String(sel)
 
   useEffect(() => {
     if (cache[key]) return
     setCache((m) => ({ ...m, [key]: { loading: true, partidos: [] } }))
-    fetchPartidos(nombre, key, gruposPorTemporada[key] || []).then((partidos) => setCache((m) => ({ ...m, [key]: { loading: false, partidos } })))
-  }, [key, nombre, cache, gruposPorTemporada])
+    fetchPartidos(nombre, rama, key, gruposPorTemporada[key] || []).then((partidos) => setCache((m) => ({ ...m, [key]: { loading: false, partidos } })))
+  }, [key, nombre, rama, cache, gruposPorTemporada])
 
   const box = cache[key]
-  const hayCopa = !!box?.partidos.some((p) => p.esCopa)
-  const filtros: ('todas' | 'liga' | 'copa')[] = hayCopa ? ['todas', 'liga', 'copa'] : ['todas', 'liga']
-  const filtrados = (box?.partidos || []).filter((p) => filtro === 'todas' || (filtro === 'copa' ? p.esCopa : !p.esCopa))
+  // El Playoff NO es copa: pestaña propia (nunca se lo engulle [Copa]). Cada pestaña solo si hay.
+  const hayCopa = !!box?.partidos.some((p) => p.tipo === 'copa')
+  const hayPlayoff = !!box?.partidos.some((p) => p.tipo === 'playoff')
+  const filtros: Filtro[] = ['todas', 'liga', ...(hayCopa ? ['copa'] as const : []), ...(hayPlayoff ? ['playoff'] as const : [])]
+  const filtrados = (box?.partidos || []).filter((p) => filtro === 'todas' || p.tipo === filtro)
 
   return (
     <section>
@@ -112,7 +137,7 @@ export default function PartidosEquipo({ nombre, gruposPorTemporada }: { nombre:
         <span className="text-chalk-600 font-normal normal-case tracking-normal">· {tempLabel(sel)}</span>
       </h2>
 
-      {/* Filtros Todas / Liga / Copa (Copa solo si hay) */}
+      {/* Filtros Todas / Liga / Copa / Playoff (Copa y Playoff solo si hay) */}
       <div className="flex items-center gap-1.5 mb-2">
         {filtros.map((f) => (
           <button key={f} type="button" onClick={() => setFiltro(f)}

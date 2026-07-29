@@ -415,7 +415,7 @@ export default async function FichaEquipo({ params }: { params: Promise<{ slug: 
           />
 
           {/* Partidos de la temporada seleccionada (reactivo al mismo selector; fetch perezoso client-side). */}
-          <PartidosEquipo nombre={e.nombre} gruposPorTemporada={gruposPorTemporada} />
+          <PartidosEquipo nombre={e.nombre} rama={e.rama || 'aficionados'} gruposPorTemporada={gruposPorTemporada} />
 
           {/* Hitos (no se filtran por temporada: son del registro de 5 temporadas) */}
           {hitosVis.length > 0 && (

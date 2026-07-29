@@ -49,6 +49,9 @@ const COMP_MAP: Record<string, { corto: string; color: AcentoPastilla }> = {
   [norm('Final Copa RFEF Fase Autonómica')]:              { corto: 'Final Copa RFEF',     color: 'azul' },
   [norm('Final Copa 1ª División Autonómica Aficionado')]: { corto: 'Final 1ª Autonómica', color: 'verde' },
   [norm('Final Copa 1ª División Autonómica Juvenil')]:    { corto: 'Final 1ª Autonómica', color: 'verde' },
+  // Play Off de ascenso: es el DESENLACE de la liga, no una copa -> acento VERDE (criterio Final
+  // Autonómica) y sello de Tercera (lo resuelve selloDe por "tercera"). Match por nombre exacto.
+  [norm('Play Off Tercera Federación')]:                  { corto: 'Play Off 3ª RFEF',    color: 'verde' },
 }
 
 // Nombre corto de una copa para pastillas/chips.
