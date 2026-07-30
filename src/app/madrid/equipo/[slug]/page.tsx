@@ -13,7 +13,7 @@ import EscudoImg from '@/components/EscudoImg'
 import { Suspense } from 'react'
 import NombreEquipo from '@/components/NombreEquipo'
 import Sello from '@/components/Sello'
-import { nombreCortoCopa, colorPastilla, type AcentoPastilla } from '@/lib/sellos'
+import { familiaCorto, familiaSello, familiaColor, type AcentoPastilla } from '@/lib/sellos'
 import MedidoresEquipo from '@/components/equipo/MedidoresEquipo'
 import { type PlantillaRow } from '@/components/equipo/Plantilla'
 import EquipoTemporadas from '@/components/equipo/EquipoTemporadas'
@@ -206,9 +206,9 @@ function CopasTemporada({ copas }: { copas: CopaEquipo[] }) {
     <div className="flex flex-wrap items-center gap-1 mt-1">
       {copas.map((c, i) => {
         const chip = (
-          <span className={`inline-flex items-center gap-1 max-w-full pl-1 pr-1.5 py-0.5 rounded text-[10px] font-medium ring-1 ring-inset ${COPA_TONO[colorPastilla(c.nombre_comp)]}`}>
-            <Sello nombreComp={c.nombre_comp} size={14} />
-            <span className="truncate">{nombreCortoCopa(c.nombre_comp)}{c.estado ? ` · ${c.estado}` : ''}</span>
+          <span className={`inline-flex items-center gap-1 max-w-full pl-1 pr-1.5 py-0.5 rounded text-[10px] font-medium ring-1 ring-inset ${COPA_TONO[familiaColor(c.slug_familia, c.nombre_comp)]}`}>
+            <Sello nombreComp={c.nombre_comp} src={c.slug_familia ? familiaSello(c.slug_familia, c.nombre_comp) : undefined} size={14} />
+            <span className="truncate">{familiaCorto(c.slug_familia, c.nombre_comp)}{c.estado ? ` · ${c.estado}` : ''}</span>
           </span>
         )
         return c.href

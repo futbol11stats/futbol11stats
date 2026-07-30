@@ -1,24 +1,81 @@
 // ORDEN de competiciones en los índices (Home, /madrid/aficionados, /madrid/juveniles). Fuente ÚNICA
 // (antes duplicado en las tres páginas). Criterio (Fernando): cada liga seguida de sus copas/finales/
-// play-off. Lo no listado cae al final por orden alfabético (lo resuelve cada página).
+// play-off. Lo no listado cae al final por orden alfabético (lo resuelve cada página). Con el modelo de
+// FAMILIA, cada copa es UNA entrada (nombre_comp de la familia), no una por ronda/final suelta.
 export const ORDEN_AFICIONADOS = [
   '3ª RFEF Madrid',
   'Copa RFEF Fase Autonómica',
-  'Final Copa RFEF Fase Autonómica',
   'Play Off Tercera Federación',
   '1ª Autonómica Madrid',
-  'Final Copa 1ª División Autonómica Aficionado',
+  'Copa Primera División Autonómica Aficionado',
   'Preferente Madrid',
   '1ª Aficionados Madrid',
   '2ª Aficionados Madrid',
-  'Copa de Aficionados RFFM 2025/2026',
+  'Copa de Aficionados RFFM',
 ]
 
 export const ORDEN_JUVENILES = [
   'Nacional Juvenil Madrid',
   '1ª Autonómica Juvenil Madrid',
-  'Final Copa 1ª División Autonómica Juvenil',
+  'Copa Primera División Autonómica Juvenil',
   'Preferente Juvenil Madrid',
   '1ª Juvenil Madrid',
   '2ª Juvenil Madrid',
 ]
+
+// FASE 3 — modelo de FAMILIA de copas. Las 5 familias (slug estable entre temporadas).
+export const FAMILIA_SLUGS = new Set([
+  'copa-rfef', 'copa-rffm', 'playoff-tercera',
+  'copa-primera-division-autonomica-aficionado', 'copa-primera-division-autonomica-juvenil',
+])
+
+// Slugs VIEJOS por competición/ronda suelta (incluidos los que llevan el año o "final" separado) ->
+// familia canónica. 308 a la familia. Derivado del JSONB de honores (slug_comp -> slug_familia). No se
+// incluye 'copa-rffm' (es a la vez slug de familia -> se renderiza, no redirige).
+export const OLD_A_FAMILIA: Record<string, string> = {
+  'copa-rfef-fase-autonomica': 'copa-rfef',
+  'final-copa-rfef-fase-autonomica': 'copa-rfef',
+  'final-copa-rffm': 'copa-rfef',
+  'play-off-tercera-federacion': 'playoff-tercera',
+  'play-off-tercera-rfef': 'playoff-tercera',
+  'copa-de-aficionados-rffm-2025-2026': 'copa-rffm',
+  'copa-de-aficionados-rffm-temp-24-25': 'copa-rffm',
+  'copa-rffm-preferente-aficionados': 'copa-rffm',
+  'fase-final-copa-de-aficionados-rffm': 'copa-rffm',
+  'final-copa-rffm-categoria-preferente-afi': 'copa-rffm',
+  'final-copa-rffm-preferente-aficionado': 'copa-rffm',
+  'final-copa-rffm-preferente-aficionados': 'copa-rffm',
+  'campeon-de-madrid-categoria-preferente-a': 'copa-primera-division-autonomica-aficionado',
+  'copa-campeon-categoria-preferente': 'copa-primera-division-autonomica-aficionado',
+  'copa-rffm-primera-division-autonomica-af': 'copa-primera-division-autonomica-aficionado',
+  'final-copa-1-division-autonomica-aficion': 'copa-primera-division-autonomica-aficionado',
+  'final-copa-primera-division-autonomica-a': 'copa-primera-division-autonomica-aficionado',
+  'campeon-de-madrid-primera-division-auton': 'copa-primera-division-autonomica-juvenil',
+  'copa-juveniles-primera-division-autonomi': 'copa-primera-division-autonomica-juvenil',
+  'final-campeon-primera-division-autonomic': 'copa-primera-division-autonomica-juvenil',
+  'final-copa-1-division-autonomica-juvenil': 'copa-primera-division-autonomica-juvenil',
+}
+
+// ¿Es un slug VIEJO de copa (a redirigir / a ocultar en índices)? El slug de familia NO lo es.
+export const esViejaCopa = (slugComp: string): boolean =>
+  !!OLD_A_FAMILIA[slugComp] && !FAMILIA_SLUGS.has(slugComp)
+
+// slug_grupo de cada familia: el play-off es 'playoff'; el resto, 'copa'. (Para construir el destino
+// del 308 sin consultar la BD.)
+export const familiaSlugGrupo = (familySlug: string): string =>
+  familySlug === 'playoff-tercera' ? 'playoff' : 'copa'
+
+export type Ronda = { n: number; idx: number; slug: string; label: string }
+
+// Segmento [jornada] de la ronda/jornada ACTUAL de un grupo (para enlaces de índices y navegación):
+// en copa por familia, el slug de la ronda por defecto (la jornada_actual); en liga, jornada-N.
+export function segRondaActual(grupo: { tipo?: string | null; jornada_actual: number; rondas?: unknown }): string {
+  const rondas: Ronda[] = grupo.tipo && grupo.tipo !== 'LIGA' && Array.isArray(grupo.rondas) ? (grupo.rondas as Ronda[]) : []
+  if (!rondas.length) return `jornada-${grupo.jornada_actual}`
+  const d = rondas.find((r) => r.idx === grupo.jornada_actual) || rondas[rondas.length - 1]
+  return d ? d.slug : `jornada-${grupo.jornada_actual}`
+}
+
+// Nº de rondas de una copa (para "N rondas" en los índices). Fallback a jornada_actual.
+export const numRondas = (grupo: { jornada_actual: number; rondas?: unknown }): number =>
+  Array.isArray(grupo.rondas) ? (grupo.rondas as unknown[]).length : grupo.jornada_actual

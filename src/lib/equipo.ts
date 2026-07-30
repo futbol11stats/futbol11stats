@@ -125,39 +125,47 @@ export function grupoHref(g: Record<string, any> | null | undefined): string | n
 // filtra por temporada en curso y construye el href de la vista de copa resolviendo el codgrupo.
 export const COPAS_HABILITADO = true
 
-// Forma REAL de cada entrada en el JSONB (por ahora solo T21).
+// Forma REAL de cada entrada en el JSONB. Fase 3: además del grupo suelto de esa ronda, trae el modelo
+// de FAMILIA (slug_familia estable + codgrupo_familia) y la ronda (slug + label) donde quedó el equipo.
 type CopaRaw = {
   codtemporada: string
   competicion: string
   codgrupo: string
   slug_comp: string
   estado_label: string | null
+  slug_familia?: string | null
+  codgrupo_familia?: string | null
+  ronda_slug?: string | null
+  ronda_label?: string | null
 }
 
-// Lo que consume CopasLinea (nombre completo -> sello + nombre corto; estado; enlace).
+// Lo que consume CopasLinea / CopasTemporada (nombre + familia -> sello/nombre corto/color; estado; enlace).
 export type CopaEquipo = {
   nombre_comp: string
+  slug_familia: string | null
   estado: string | null
   href: string | null
 }
 
-// Resuelve un lote de filas crudas de copa a CopaEquipo[] construyendo el href de la vista de copa por
-// codgrupo (web_grupos: slug_grupo, jornada, categoría->rama). Si el grupo aún no está en web_grupos
-// (copas históricas antes de que el pipeline suba grupos/partidos) -> href null: la pastilla se pinta
-// igual (sello + nombre + estado) y se hará navegable sola cuando el grupo aterrice.
+// Resuelve un lote de filas crudas de copa a CopaEquipo[]. El href apunta a la vista de la FAMILIA en
+// esa temporada y a la RONDA donde quedó el equipo (slug_familia + slug_grupo de la familia + ronda_slug;
+// "Eliminado en Semifinales" -> esas semifinales). Si la familia aún no está en web_grupos -> href null:
+// la pastilla se pinta igual y se hará navegable sola cuando aterrice.
 async function resolveCopaRows(rows: CopaRaw[]): Promise<(CopaEquipo & { codtemporada: string })[]> {
   if (rows.length === 0) return []
-  const cods = Array.from(new Set(rows.map((c) => String(c.codgrupo))))
-  const { data: grupos } = await supabase.from('web_grupos')
-    .select('codgrupo, slug_grupo, jornada_actual, categoria').in('codgrupo', cods)
-  const gmap = new Map((grupos || []).map((g: any) => [String(g.codgrupo), g]))
+  const famCods = Array.from(new Set(rows.map((c) => c.codgrupo_familia).filter(Boolean) as string[]))
+  const { data: fams } = famCods.length
+    ? await supabase.from('web_grupos').select('codgrupo, slug_comp, slug_grupo, categoria').in('codgrupo', famCods)
+    : { data: [] as any[] }
+  const fmap = new Map((fams || []).map((g: any) => [String(g.codgrupo), g]))
   return rows.map((c) => {
-    const g = gmap.get(String(c.codgrupo))
-    const rama = g && String(g.categoria).toUpperCase() === 'JUVENIL' ? 'juveniles' : 'aficionados'
-    const href = g
-      ? `/madrid/${rama}/${c.slug_comp}/${g.slug_grupo}/${tempLabel(c.codtemporada)}/jornada-${g.jornada_actual || 1}/resultados`
+    const fam = c.codgrupo_familia ? fmap.get(String(c.codgrupo_familia)) : null
+    const rama = fam && String(fam.categoria).toUpperCase() === 'JUVENIL' ? 'juveniles' : 'aficionados'
+    const ronda = c.ronda_slug || 'final'
+    const href = fam && c.slug_familia
+      ? `/madrid/${rama}/${c.slug_familia}/${fam.slug_grupo}/${tempLabel(c.codtemporada)}/${ronda}/resultados`
       : null
-    return { nombre_comp: c.competicion, estado: c.estado_label, href, codtemporada: String(c.codtemporada) }
+    return { nombre_comp: c.competicion, slug_familia: c.slug_familia ?? null, estado: c.estado_label, href, codtemporada: String(c.codtemporada) }
   })
 }
 
@@ -177,7 +185,7 @@ export async function getCopasPorTemporada(codequipo: string | number | null | u
   if (!Array.isArray(raw)) return {}
   const resolved = await resolveCopaRows(raw as CopaRaw[])
   const out: Record<string, CopaEquipo[]> = {}
-  for (const c of resolved) (out[c.codtemporada] ??= []).push({ nombre_comp: c.nombre_comp, estado: c.estado, href: c.href })
+  for (const c of resolved) (out[c.codtemporada] ??= []).push({ nombre_comp: c.nombre_comp, slug_familia: c.slug_familia, estado: c.estado, href: c.href })
   return out
 }
 

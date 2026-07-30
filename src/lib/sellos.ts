@@ -84,6 +84,23 @@ export function denominacion(nombreComp: string | null): string {
   return DENOM_LIMPIA[norm(nombreComp)] ?? (nombreComp || '')
 }
 
+// Modelo de FAMILIA de copas (Fase 3): cada familia agrupa todas las rondas/temporadas de una copa
+// bajo un slug estable. Los honores del JSONB traen slug_familia -> la pastilla usa el nombre corto,
+// sello y color de la FAMILIA (consistentes), no el de la competicion suelta de esa ronda (que varía).
+const FAMILIA: Record<string, { corto: string; sello: string; color: AcentoPastilla }> = {
+  'copa-rfef':                                   { corto: 'Copa RFEF',              sello: SELLO_COPA_RFEF, color: 'azul' },
+  'copa-rffm':                                   { corto: 'Copa RFFM',              sello: SELLO_COPA_RFFM, color: 'rojo' },
+  'playoff-tercera':                             { corto: 'Play Off 3ª RFEF',       sello: SELLO_TERCERA,   color: 'verde' },
+  'copa-primera-division-autonomica-aficionado': { corto: 'Copa 1ª Autonómica',     sello: SELLO_RFFM,      color: 'verde' },
+  'copa-primera-division-autonomica-juvenil':    { corto: 'Copa 1ª Autonómica Juv.', sello: SELLO_RFFM,     color: 'verde' },
+}
+export const familiaCorto = (slug?: string | null, nombreComp?: string | null): string =>
+  (slug && FAMILIA[slug]?.corto) || nombreCortoCopa(nombreComp ?? null)
+export const familiaSello = (slug?: string | null, nombreComp?: string | null): string =>
+  (slug && FAMILIA[slug]?.sello) || selloDe(nombreComp ?? null)
+export const familiaColor = (slug?: string | null, nombreComp?: string | null): AcentoPastilla =>
+  (slug && FAMILIA[slug]?.color) || colorPastilla(nombreComp ?? null)
+
 // Nombre corto de una copa para pastillas/chips.
 export function nombreCortoCopa(nombreComp: string | null): string {
   const n = norm(nombreComp)

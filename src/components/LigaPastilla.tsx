@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { ChevronRight } from 'lucide-react'
 import Sello from '@/components/Sello'
-import { colorPastilla, type AcentoPastilla } from '@/lib/sellos'
+import { colorPastilla, familiaColor, familiaSello, type AcentoPastilla } from '@/lib/sellos'
 
 // Pastilla de competición — ÚNICO origen de estilo para liga Y copa (hero de equipo y de jugador).
 // Sello + segmentos unidos por " · " en condensada, opcional enlace. El acento de color sale del
@@ -15,18 +15,19 @@ const TONO: Record<AcentoPastilla | 'muted', string> = {
   muted: 'bg-pitch-800 text-chalk-600 ring-1 ring-inset ring-pitch-700',
 }
 
-export default function LigaPastilla({ nombreComp, segments, href, muted = false }: {
+export default function LigaPastilla({ nombreComp, slugFamilia, segments, href, muted = false }: {
   nombreComp: string | null
+  slugFamilia?: string | null   // copa por FAMILIA: sello + color de la familia (en vez de por nombre)
   segments: (string | null | undefined)[]
   href?: string | null
   muted?: boolean
 }) {
   const parts = segments.filter((s): s is string => !!s)
   if (!nombreComp && parts.length === 0) return null
-  const cls = TONO[muted ? 'muted' : colorPastilla(nombreComp)]
+  const cls = TONO[muted ? 'muted' : familiaColor(slugFamilia, nombreComp)]
   const inner = (
     <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-sm font-display font-semibold tracking-tight ${cls}`}>
-      <Sello nombreComp={nombreComp} size={26} />
+      <Sello nombreComp={nombreComp} src={slugFamilia ? familiaSello(slugFamilia, nombreComp) : undefined} size={26} />
       <span>{parts.join(' · ')}</span>
       {href && <ChevronRight className="w-3.5 h-3.5" />}
     </span>

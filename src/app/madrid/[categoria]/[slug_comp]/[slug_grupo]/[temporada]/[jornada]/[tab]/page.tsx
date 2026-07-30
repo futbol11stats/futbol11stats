@@ -11,8 +11,9 @@ import JsonLd from '@/components/JsonLd'
 import { graphLd, breadcrumbLd } from '@/lib/jsonld'
 import { fichasInfo } from '@/lib/jugador'
 import { nombreOficial, denominacion } from '@/lib/sellos'
+import { FAMILIA_SLUGS, OLD_A_FAMILIA, familiaSlugGrupo, type Ronda } from '@/lib/competiciones'
 import Sello from '@/components/Sello'
-import { notFound } from 'next/navigation'
+import { notFound, permanentRedirect } from 'next/navigation'
 import Link from 'next/link'
 import JornadaSelector from '@/components/JornadaSelector'
 import TabScroller from '@/components/TabScroller'
@@ -41,6 +42,16 @@ const CATEGORIA_MAP: Record<string, string> = {
   juveniles: 'JUVENIL',
 }
 
+// Resuelve la ronda seleccionada de una familia desde el segmento [jornada] (que en copa es el slug de
+// ronda). Sin match -> ronda por defecto (jornada_actual) -> última. Devuelve idx (= jornada del snapshot),
+// slug y label.
+function resolveRonda(rondas: Ronda[], seg: string, jornadaActual: number): Ronda | null {
+  if (!rondas.length) return null
+  return rondas.find((r) => r.slug === seg)
+    || rondas.find((r) => r.idx === jornadaActual)
+    || rondas[rondas.length - 1]
+}
+
 async function getGrupoBySlug(
   categoria: string,
   slugComp: string,
@@ -56,8 +67,11 @@ async function getGrupoBySlug(
   // Evita mezclar aficionados con juveniles (mismos slugs entre categorías).
   const cat = CATEGORIA_MAP[categoria]
   if (cat) query = query.eq('categoria', cat)
-  const { data } = await query.limit(1).single()
-  return data
+  const { data } = await query
+  if (!data || !data.length) return null
+  // Prefiere la fila de FAMILIA (codgrupo fam-*) cuando coexiste con una vieja del mismo slug (p.ej.
+  // 'copa-rffm' es slug de familia Y hubo un grupo viejo homónimo).
+  return (data as any[]).find((g) => String(g.codgrupo).startsWith('fam-')) ?? data[0]
 }
 
 // Mismo grupo en otras temporadas. Se casa por SLUG (slug_comp + slug_grupo), NO por nombre_comp: los
@@ -66,19 +80,23 @@ async function getGrupoBySlug(
 async function getVariantesPorTemporada(categoria: string, slugComp: string, slugGrupo: string) {
   let query = supabase
     .from('web_grupos')
-    .select('codtemporada, slug_comp, slug_grupo, jornada_actual')
+    .select('codgrupo, codtemporada, slug_comp, slug_grupo, jornada_actual, rondas')
     .eq('slug_comp', slugComp)
     .eq('slug_grupo', slugGrupo)
   const cat = CATEGORIA_MAP[categoria]   // no mezclar aficionados/juveniles con mismos slugs
   if (cat) query = query.eq('categoria', cat)
   const { data } = await query
-  const map: Record<number, { slug_comp: string; slug_grupo: string; jornada_actual: number }> = {}
+  const map: Record<number, { slug_comp: string; slug_grupo: string; seg: string }> = {}
   for (const g of data || []) {
-    map[g.codtemporada] = {
-      slug_comp: g.slug_comp,
-      slug_grupo: g.slug_grupo,
-      jornada_actual: g.jornada_actual,
-    }
+    const esFamilia = String(g.codgrupo).startsWith('fam-')
+    // Si coexisten familia y vieja del mismo slug, la familia manda.
+    if (map[g.codtemporada] && !esFamilia) continue
+    const rondas: Ronda[] = Array.isArray(g.rondas) ? g.rondas : []
+    const dflt = rondas.find((r) => r.idx === g.jornada_actual) || rondas[rondas.length - 1]
+    // Segmento [jornada] al saltar de temporada: en copa, el slug de la ronda por defecto (última/actual);
+    // en liga, jornada-N. Así se aterriza siempre en una ronda válida de esa temporada.
+    const seg = dflt ? dflt.slug : `jornada-${g.jornada_actual}`
+    map[g.codtemporada] = { slug_comp: g.slug_comp, slug_grupo: g.slug_grupo, seg }
   }
   return map
 }
@@ -247,6 +265,11 @@ export async function generateMetadata({
   const { categoria, slug_comp, slug_grupo, temporada, tab } = await params
   const codtemporada = TEMPORADA_MAP[temporada]
   if (!codtemporada) return { title: 'Fútbol11Stats' }
+  // Slugs viejos: el canonical es el de la familia (la página hace el 308).
+  const famMeta = OLD_A_FAMILIA[slug_comp]
+  if (famMeta && !FAMILIA_SLUGS.has(slug_comp)) {
+    return { alternates: { canonical: `/madrid/${categoria}/${famMeta}/${familiaSlugGrupo(famMeta)}/${temporada}/final/${tab}` } }
+  }
   const grupo = await getGrupoBySlug(categoria, slug_comp, slug_grupo, codtemporada)
   if (!grupo) return { title: 'Fútbol11Stats' }
 
@@ -255,8 +278,13 @@ export async function generateMetadata({
   const tl = tabLabel(tab)
   const title = `${tl} · ${comp}${grp} ${temporada} | Fútbol11Stats`
   const description = `${tl} de ${comp}${grp}, temporada ${temporada}. Clasificación, resultados, goleadores, tarjetas y estadísticas del fútbol amateur de Madrid en Fútbol11Stats.`
-  // Canonical: toda jornada apunta a la jornada actual (máxima) -> mata la duplicación del time-machine.
-  const canonical = `/madrid/${categoria}/${slug_comp}/${slug_grupo}/${temporada}/jornada-${grupo.jornada_actual}/${tab}`
+  // Canonical: toda ronda/jornada apunta a la actual (máxima) -> mata la duplicación del time-machine.
+  // Copa por familia: el segmento canónico es el slug de la ronda por defecto.
+  const rondasMeta: Ronda[] = grupo.tipo !== 'LIGA' && Array.isArray(grupo.rondas) ? grupo.rondas : []
+  const segCanon = rondasMeta.length
+    ? (rondasMeta.find((r) => r.idx === grupo.jornada_actual)?.slug || rondasMeta[rondasMeta.length - 1]?.slug || `jornada-${grupo.jornada_actual}`)
+    : `jornada-${grupo.jornada_actual}`
+  const canonical = `/madrid/${categoria}/${slug_comp}/${slug_grupo}/${temporada}/${segCanon}/${tab}`
 
   return {
     title,
@@ -283,13 +311,27 @@ export default async function GrupoPage({
   const codtemporada = TEMPORADA_MAP[temporada]
   if (!codtemporada) notFound()
 
+  // FASE 3 — 308 de los slugs VIEJOS de copa/ronda a la familia canónica (misma temporada, ronda por
+  // defecto). El slug de familia NO se redirige (se renderiza). Ninguna URL indexada queda en 404.
+  const fam = OLD_A_FAMILIA[slug_comp]
+  if (fam && !FAMILIA_SLUGS.has(slug_comp)) {
+    permanentRedirect(`/madrid/${categoria}/${fam}/${familiaSlugGrupo(fam)}/${temporada}/final/${tab}`)
+  }
+
   const grupo = await getGrupoBySlug(categoria, slug_comp, slug_grupo, codtemporada)
   if (!grupo) notFound()
 
   // Copa/playoff: sin clasificación (eliminatoria); scope de competición fusionando rondas.
   const isCopa = !!grupo.tipo && grupo.tipo !== 'LIGA'
 
-  const jornadaNum = parseInt(jornada.replace('jornada-', '')) || grupo.jornada_actual
+  // Familia de copa: el segmento [jornada] es el SLUG de la RONDA. Se resuelve a su idx (= jornada del
+  // snapshot; el ranking es acumulado y la ronda actúa de filtro time-machine, igual que la jornada en liga).
+  const rondas: Ronda[] = isCopa && Array.isArray(grupo.rondas) ? grupo.rondas : []
+  const esFamilia = rondas.length > 0
+  const rondaSel = esFamilia ? resolveRonda(rondas, jornada, grupo.jornada_actual) : null
+  const jornadaNum = rondaSel ? rondaSel.idx : (parseInt(jornada.replace('jornada-', '')) || grupo.jornada_actual)
+  // Segmento [jornada] de la ronda/jornada ACTUAL (para construir enlaces): slug de ronda en copa, jornada-N en liga.
+  const segJornada = rondaSel ? rondaSel.slug : `jornada-${jornadaNum}`
 
   const cg = grupo.codgrupo
   // Tab efectivo (para gatear los fetch): en copa, cualquier tab que no exista cae a 'resultados'.
@@ -411,10 +453,11 @@ export default async function GrupoPage({
       ]
   const TEMPORADAS = [21, 20, 19, 18, 17]
 
-  // Base de URL sin jornada ni tab (para el selector de jornada)
+  // Base de URL sin jornada ni tab (para el selector de jornada/ronda)
   const baseUrl = `/madrid/${categoria}/${slug_comp}/${slug_grupo}/${temporada}`
-  // Base de URL para los enlaces de tabs (misma temporada/jornada, cambia el tab)
-  const baseTab = `${baseUrl}/jornada-${jornadaNum}`
+  // Base de URL para los enlaces de tabs (misma temporada/ronda, cambia el tab): en copa el segmento
+  // es el slug de la ronda; en liga, jornada-N.
+  const baseTab = `${baseUrl}/${segJornada}`
   // Tabs que existen en la vista GLOBAL (resultados/goleadores-jornada/tarjetas-jornada son
   // exclusivos de grupo). Al pulsar "Global" se conserva el tab actual si existe allí; si no,
   // fallback a clasificación.
@@ -428,18 +471,22 @@ export default async function GrupoPage({
   // BreadcrumbList (JSON-LD) con URLs canónicas (www). Copa: sin nivel de grupo ni global.
   const catLabel = categoria === 'juveniles' ? 'Juveniles' : 'Aficionados'
   const jact = grupo.jornada_actual
+  // Segmento canónico de la ronda/jornada actual (para crumbs y canonical): slug de la ronda por defecto en copa.
+  const segJact = esFamilia
+    ? (rondas.find((r) => r.idx === jact)?.slug || rondas[rondas.length - 1]?.slug || `jornada-${jact}`)
+    : `jornada-${jact}`
   const gBase = `${SITE_URL}/madrid/${categoria}/${slug_comp}/${slug_grupo}/${temporada}`
   const crumbs: { name: string; url: string }[] = [
     { name: 'Inicio', url: `${SITE_URL}/` },
     { name: catLabel, url: `${SITE_URL}/madrid/${categoria}` },
   ]
   if (isCopa) {
-    crumbs.push({ name: ensureMadrid(denominacion(grupo.nombre_comp)), url: `${gBase}/jornada-${jact}/resultados` })
+    crumbs.push({ name: ensureMadrid(denominacion(grupo.nombre_comp)), url: `${gBase}/${segJact}/resultados` })
   } else {
     crumbs.push({ name: ensureMadrid(denominacion(grupo.nombre_comp)), url: `${SITE_URL}/madrid/${categoria}/${slug_comp}/global/${temporada}/jornada-${jact}/clasificacion` })
     if (grupo.nombre_grupo) crumbs.push({ name: grupo.nombre_grupo, url: `${gBase}/jornada-${jact}/clasificacion` })
   }
-  crumbs.push({ name: tabLabel(tab2), url: `${gBase}/jornada-${jact}/${tab}` })
+  crumbs.push({ name: tabLabel(tab2), url: `${gBase}/${segJact}/${tab}` })
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
@@ -460,7 +507,7 @@ export default async function GrupoPage({
             <Sello nombreComp={grupo.nombre_comp} size={38} />
             <span>{nombreOficial(grupo.nombre_comp) ?? (grupo.nombre_historico || denominacion(grupo.nombre_comp))}{grupo.nombre_grupo ? ` · ${grupo.nombre_grupo}` : ''}</span>
           </h1>
-          <p className="text-grass-400 text-sm mt-1">{isCopa ? 'Ronda' : 'Jornada'} {jornadaNum} · Temporada {temporada}</p>
+          <p className="text-grass-400 text-sm mt-1">{rondaSel ? rondaSel.label : `${isCopa ? 'Ronda' : 'Jornada'} ${jornadaNum}`} · Temporada {temporada}</p>
           {grupo.nombre_historico && (
             <p className="text-chalk-600 text-xs mt-1.5 flex items-center gap-1.5">
               <svg className="w-3.5 h-3.5 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
@@ -470,39 +517,59 @@ export default async function GrupoPage({
             </p>
           )}
 
-          {/* Selector de jornada */}
-          <div className="flex items-center gap-2 mt-2 md:mt-3">
-            {jornadaNum > 1 ? (
-              <Link
-                href={`${baseUrl}/jornada-${jornadaNum - 1}/${tab}`}
-                className="text-xs px-3 py-1.5 rounded-md bg-pitch-700 text-chalk-200 hover:bg-grass-500 hover:text-white transition-colors"
-              >
-                ← Anterior
-              </Link>
-            ) : (
-              <span className="text-xs px-3 py-1.5 rounded-md bg-pitch-800 text-chalk-700 opacity-40 cursor-not-allowed">
-                ← Anterior
-              </span>
-            )}
-            <JornadaSelector
-              jornadaNum={jornadaNum}
-              totalJornadas={grupo.total_jornadas}
-              baseUrl={baseUrl}
-              tab={tab}
-            />
-            {jornadaNum < grupo.total_jornadas ? (
-              <Link
-                href={`${baseUrl}/jornada-${jornadaNum + 1}/${tab}`}
-                className="text-xs px-3 py-1.5 rounded-md bg-pitch-700 text-chalk-200 hover:bg-grass-500 hover:text-white transition-colors"
-              >
-                Siguiente →
-              </Link>
-            ) : (
-              <span className="text-xs px-3 py-1.5 rounded-md bg-pitch-800 text-chalk-700 opacity-40 cursor-not-allowed">
-                Siguiente →
-              </span>
-            )}
-          </div>
+          {/* Selector de RONDA (copa por familia): pastillas con la etiqueta del dato — solo las rondas
+              con partidos (las del JSONB `rondas`). Sustituye al selector de jornada de las ligas. */}
+          {esFamilia ? (
+            <div className="scroll-row gap-1.5 mt-2 md:mt-3">
+              {rondas.map((r) => (
+                <Link
+                  key={r.slug}
+                  href={`${baseUrl}/${r.slug}/${tab}`}
+                  className={`text-xs px-3 py-1.5 rounded-md transition-colors whitespace-nowrap ${
+                    r.idx === jornadaNum
+                      ? 'bg-grass-500 text-white font-semibold'
+                      : 'bg-pitch-700 text-chalk-200 hover:bg-grass-500 hover:text-white'
+                  }`}
+                >
+                  {r.label}
+                </Link>
+              ))}
+            </div>
+          ) : (
+            /* Selector de jornada (ligas y copas sin modelo de familia) */
+            <div className="flex items-center gap-2 mt-2 md:mt-3">
+              {jornadaNum > 1 ? (
+                <Link
+                  href={`${baseUrl}/jornada-${jornadaNum - 1}/${tab}`}
+                  className="text-xs px-3 py-1.5 rounded-md bg-pitch-700 text-chalk-200 hover:bg-grass-500 hover:text-white transition-colors"
+                >
+                  ← Anterior
+                </Link>
+              ) : (
+                <span className="text-xs px-3 py-1.5 rounded-md bg-pitch-800 text-chalk-700 opacity-40 cursor-not-allowed">
+                  ← Anterior
+                </span>
+              )}
+              <JornadaSelector
+                jornadaNum={jornadaNum}
+                totalJornadas={grupo.total_jornadas}
+                baseUrl={baseUrl}
+                tab={tab}
+              />
+              {jornadaNum < grupo.total_jornadas ? (
+                <Link
+                  href={`${baseUrl}/jornada-${jornadaNum + 1}/${tab}`}
+                  className="text-xs px-3 py-1.5 rounded-md bg-pitch-700 text-chalk-200 hover:bg-grass-500 hover:text-white transition-colors"
+                >
+                  Siguiente →
+                </Link>
+              ) : (
+                <span className="text-xs px-3 py-1.5 rounded-md bg-pitch-800 text-chalk-700 opacity-40 cursor-not-allowed">
+                  Siguiente →
+                </span>
+              )}
+            </div>
+          )}
         </div>
         {/* Selector de temporada — enlaza a la variante (slug propio) de cada temporada */}
         <div className="scroll-row gap-1.5">
@@ -524,7 +591,7 @@ export default async function GrupoPage({
             return (
               <Link
                 key={cod}
-                href={`/madrid/${categoria}/${v.slug_comp}/${v.slug_grupo}/${label}/jornada-${v.jornada_actual}/${tab}`}
+                href={`/madrid/${categoria}/${v.slug_comp}/${v.slug_grupo}/${label}/${v.seg}/${tab}`}
                 className={`text-xs px-3 py-1.5 rounded-md transition-colors ${
                   codtemporada === cod
                     ? 'bg-grass-500 text-white font-semibold'
@@ -565,7 +632,7 @@ export default async function GrupoPage({
       )}
 
       {/* Tabs — JORNADA */}
-      <p className="text-[11px] font-semibold uppercase tracking-widest text-chalk-600 mb-1">Jornada</p>
+      <p className="text-[11px] font-semibold uppercase tracking-widest text-chalk-600 mb-1">{esFamilia ? 'Ronda' : 'Jornada'}</p>
       <TabScroller className="scroll-row border-b border-pitch-700 gap-1 mb-3 md:mb-4">
         {TABS_JORNADA.map(t => (
           <Link

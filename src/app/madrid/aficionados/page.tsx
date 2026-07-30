@@ -7,7 +7,7 @@ import JsonLd from '@/components/JsonLd'
 import Sello from '@/components/Sello'
 import { SITE_URL } from '@/lib/seo'
 import { graphLd, websiteLd, organizationLd, breadcrumbLd } from '@/lib/jsonld'
-import { ORDEN_AFICIONADOS as COMPETICION_ORDER } from '@/lib/competiciones'
+import { ORDEN_AFICIONADOS as COMPETICION_ORDER, esViejaCopa, segRondaActual, numRondas } from '@/lib/competiciones'
 
 export const metadata: Metadata = {
   title: 'Fútbol Aficionados Madrid — categorías y grupos | Fútbol11Stats',
@@ -26,11 +26,13 @@ export const metadata: Metadata = {
 async function getGrupos() {
   const { data } = await supabase
     .from('web_grupos')
-    .select('codtemporada, nombre_comp, nombre_grupo, codgrupo, categoria, jornada_actual, slug_comp, slug_grupo, tipo')
+    .select('codtemporada, nombre_comp, nombre_grupo, codgrupo, categoria, jornada_actual, slug_comp, slug_grupo, tipo, rondas')
     .eq('categoria', 'AFICIONADO')
     .eq('codtemporada', 21)
     .order('nombre_comp')
-  return data || []
+  // Copa por FAMILIA: oculta las páginas VIEJAS por competición/ronda (coexisten en BD; la familia es la
+  // canónica). Cada copa queda como UNA entrada.
+  return (data || []).filter((g: any) => !esViejaCopa(g.slug_comp))
 }
 
 // nombre_historico solo está poblado en T17-T19; mapeamos nombre_comp -> nombre_historico
@@ -117,7 +119,7 @@ function CompeticionCard({
   nombreHistorico,
 }: {
   nombre: string
-  grupos: { codgrupo: string; nombre_grupo: string; jornada_actual: number; slug_comp: string; slug_grupo: string; tipo?: string }[]
+  grupos: { codgrupo: string; nombre_grupo: string; jornada_actual: number; slug_comp: string; slug_grupo: string; tipo?: string; rondas?: unknown }[]
   nombreHistorico?: string
 }) {
   const nombreCorto: Record<string, string> = {
@@ -159,10 +161,10 @@ function CompeticionCard({
           return (
           <Link
             key={g.codgrupo}
-            href={`/madrid/aficionados/${g.slug_comp}/${g.slug_grupo}/2025-26/jornada-${g.jornada_actual}/${entrada}`}
+            href={`/madrid/aficionados/${g.slug_comp}/${g.slug_grupo}/2025-26/${esCopa ? segRondaActual(g) : `jornada-${g.jornada_actual}`}/${entrada}`}
             className="text-xs bg-pitch-700 hover:bg-grass-500 text-chalk-200 hover:text-white px-3 py-1.5 rounded-md transition-colors"
           >
-            {esCopa ? `Ver competición · ${g.jornada_actual} rondas` : `${g.nombre_grupo} · J${g.jornada_actual}`}
+            {esCopa ? `Ver competición · ${numRondas(g)} rondas` : `${g.nombre_grupo} · J${g.jornada_actual}`}
           </Link>
         )})}
       </div>

@@ -1,5 +1,6 @@
 import type { MetadataRoute } from 'next'
 import { supabase } from '@/lib/supabase'
+import { esViejaCopa, segRondaActual } from '@/lib/competiciones'
 import {
   SITE_URL,
   TEMP_LABEL_BY_COD,
@@ -21,9 +22,10 @@ export const revalidate = 2592000 // ISR 30d (Fluid CPU): se regenera con cada d
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const { data } = await supabase
     .from('web_grupos')
-    .select('codtemporada, categoria, slug_comp, slug_grupo, jornada_actual, tipo')
+    .select('codtemporada, categoria, slug_comp, slug_grupo, jornada_actual, tipo, rondas')
 
-  const grupos = data || []
+  // Copa por FAMILIA: no listar las páginas viejas por competición (redirigen 308 a la familia).
+  const grupos = (data || []).filter((g: any) => !esViejaCopa(g.slug_comp))
 
   const urls: MetadataRoute.Sitemap = [
     { url: `${SITE_URL}/`, changeFrequency: 'weekly', priority: 1 },
@@ -41,7 +43,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     const j = g.jornada_actual || 1
     const isLiga = !g.tipo || g.tipo === 'LIGA'
     const isLive = g.codtemporada === LIVE_SEASON
-    const base = `${SITE_URL}/madrid/${cat}/${g.slug_comp}/${g.slug_grupo}/${temp}/jornada-${j}`
+    // Copa por familia: el segmento es el slug de la ronda por defecto; liga: jornada-N.
+    const seg = isLiga ? `jornada-${j}` : segRondaActual(g)
+    const base = `${SITE_URL}/madrid/${cat}/${g.slug_comp}/${g.slug_grupo}/${temp}/${seg}`
 
     if (isLive) {
       for (const t of isLiga ? GROUP_TABS_LIGA : GROUP_TABS_COPA) {
