@@ -65,6 +65,23 @@ export const esViejaCopa = (slugComp: string): boolean =>
 export const familiaSlugGrupo = (familySlug: string): string =>
   familySlug === 'playoff-tercera' ? 'playoff' : 'copa'
 
+// Leyenda "Hasta 2023-24: <nombre antiguo>" del índice. Para las FAMILIAS de copa el web_grupos.nombre_historico
+// es RUIDO (nombres de la ronda suelta por temporada) -> daba leyendas al revés. Corrección de dominio
+// (Fernando): la categoría se renombró "Preferente" -> "Autonómica" en 2024-25, así que SOLO las dos Copa
+// 1ª Autonómica tuvieron renombre real; el resto de familias no -> sin leyenda. Las LIGAS conservan su
+// nombre_historico del dato (que sí es correcto). Devuelve el nombre antiguo, o null para no mostrar leyenda.
+const HISTORICO_COPA: Record<string, string | null> = {
+  'Copa Primera División Autonómica Aficionado': 'Copa Primera División Preferente Aficionado',
+  'Copa Primera División Autonómica Juvenil': 'Copa Primera División Preferente Juvenil',
+  'Copa RFEF Fase Autonómica': null,
+  'Copa de Aficionados RFFM': null,
+  'Play Off Tercera Federación': null,
+}
+export function historicoLegenda(nombreComp: string, nombreHistoricoDB?: string | null): string | null {
+  if (nombreComp in HISTORICO_COPA) return HISTORICO_COPA[nombreComp]
+  return nombreHistoricoDB ?? null
+}
+
 export type Ronda = { n: number; idx: number; slug: string; label: string }
 
 // Segmento [jornada] de la ronda/jornada ACTUAL de un grupo (para enlaces de índices y navegación):

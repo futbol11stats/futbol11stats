@@ -49,8 +49,10 @@ export function selloDe(nombreComp: string | null): string {
 // Denominación OFICIAL para H1/metadata de la cabecera de competición. null = conserva el nombre actual.
 export function nombreOficial(nombreComp: string | null): string | null {
   const n = norm(nombreComp)
-  if (/\b3\s*rfef\b/.test(n) && !n.includes('play off') && !n.includes('copa')) return 'Tercera Federación'
-  if (n === norm('3ª RFEF') ) return 'Tercera Federación'
+  // Denominación oficial desde 2023-24 (antes "Tercera RFEF"). Solo en superficies con espacio; las
+  // pastillas/tablas/trayectorias siguen usando "3ª RFEF" (segmentos propios, no nombreOficial).
+  if (/\b3\s*rfef\b/.test(n) && !n.includes('play off') && !n.includes('copa')) return 'Tercera Federación RFEF'
+  if (n === norm('3ª RFEF') ) return 'Tercera Federación RFEF'
   if (n.includes('nacional juvenil')) return 'Liga Nacional Juvenil'
   return null
 }

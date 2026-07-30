@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabase'
 import Link from 'next/link'
 import JsonLd from '@/components/JsonLd'
 import Sello from '@/components/Sello'
-import { familiaSello } from '@/lib/sellos'
+import { familiaSello, nombreOficial } from '@/lib/sellos'
 import { graphLd, websiteLd, organizationLd } from '@/lib/jsonld'
 import { ORDEN_AFICIONADOS, ORDEN_JUVENILES, esViejaCopa, segRondaActual, numRondas } from '@/lib/competiciones'
 
@@ -165,11 +165,12 @@ function CompeticionCard({
   }
   // Sello por FAMILIA (fam-*: slug_comp = slug de familia) -> las Copa 1ª Autonómica llevan botón RFFM.
   const famSlug = grupos.find((g) => String(g.codgrupo).startsWith('fam-'))?.slug_comp
+  const titulo = nombreOficial(nombre) ?? (nombreCorto[nombre] || nombre)
 
   return (
     <div className="bg-pitch-800 rounded-xl border border-pitch-700 overflow-hidden hover:border-grass-500/50 transition-colors">
       <div className="px-4 py-3 border-b border-pitch-700 flex items-center justify-between">
-        <span className="font-semibold text-white text-sm flex items-center gap-2"><Sello nombreComp={nombre} src={famSlug ? familiaSello(famSlug, nombre) : undefined} size={24} />{nombreCorto[nombre] || nombre}</span>
+        <span className="font-semibold text-white text-sm flex items-center gap-2"><Sello nombreComp={nombre} src={famSlug ? familiaSello(famSlug, nombre) : undefined} size={24} />{titulo}</span>
         <span className="text-xs text-chalk-600">{grupos.length} grupo{grupos.length !== 1 ? 's' : ''}</span>
       </div>
       <div className="px-4 py-2 flex flex-wrap gap-2">
@@ -190,7 +191,7 @@ function CompeticionCard({
             href={`/madrid/${categoria}/${g.slug_comp}/${g.slug_grupo}/2025-26/${esCopa ? segRondaActual(g) : `jornada-${g.jornada_actual}`}/${entrada}`}
             className="text-xs bg-pitch-700 hover:bg-grass-500 text-chalk-200 hover:text-white px-3 py-1.5 rounded-md transition-colors"
           >
-            {esCopa ? `Ver competición · ${numRondas(g)} rondas` : `${g.nombre_grupo} · J${g.jornada_actual}`}
+            {esCopa ? `Ver competición · ${numRondas(g)} ronda${numRondas(g) === 1 ? '' : 's'}` : `${g.nombre_grupo} · J${g.jornada_actual}`}
           </Link>
         )})}
       </div>

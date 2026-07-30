@@ -7,8 +7,8 @@ import JsonLd from '@/components/JsonLd'
 import Sello from '@/components/Sello'
 import { SITE_URL } from '@/lib/seo'
 import { graphLd, websiteLd, organizationLd, breadcrumbLd } from '@/lib/jsonld'
-import { ORDEN_AFICIONADOS as COMPETICION_ORDER, esViejaCopa, segRondaActual, numRondas } from '@/lib/competiciones'
-import { familiaSello } from '@/lib/sellos'
+import { ORDEN_AFICIONADOS as COMPETICION_ORDER, esViejaCopa, segRondaActual, numRondas, historicoLegenda } from '@/lib/competiciones'
+import { familiaSello, nombreOficial } from '@/lib/sellos'
 
 export const metadata: Metadata = {
   title: 'Fútbol Aficionados Madrid — categorías y grupos | Fútbol11Stats',
@@ -133,20 +133,24 @@ function CompeticionCard({
   // Sello por FAMILIA: web_grupos no trae slug_familia, pero en las filas fam-* el slug_comp ES el slug
   // de familia -> resuelve el sello correcto (las Copa 1ª Autonómica llevan botón RFFM, no copa).
   const famSlug = grupos.find((g) => String(g.codgrupo).startsWith('fam-'))?.slug_comp
+  // Título: denominación oficial donde hay espacio (Tercera Federación RFEF, Liga Nacional Juvenil); resto, corto.
+  const titulo = nombreOficial(nombre) ?? (nombreCorto[nombre] || nombre)
+  // Leyenda de nombre antiguo corregida (el nombre_historico de las familias de copa es ruido).
+  const hist = historicoLegenda(nombre, nombreHistorico)
 
   return (
     <div className="bg-pitch-800 rounded-xl border border-pitch-700 overflow-hidden hover:border-grass-500/50 transition-colors">
       <div className="px-4 py-3 border-b border-pitch-700">
         <div className="flex items-center justify-between">
-          <span className="font-semibold text-white text-sm flex items-center gap-2"><Sello nombreComp={nombre} src={famSlug ? familiaSello(famSlug, nombre) : undefined} size={24} />{nombreCorto[nombre] || nombre}</span>
+          <span className="font-semibold text-white text-sm flex items-center gap-2"><Sello nombreComp={nombre} src={famSlug ? familiaSello(famSlug, nombre) : undefined} size={24} />{titulo}</span>
           <span className="text-xs text-chalk-600">{grupos.length} grupo{grupos.length !== 1 ? 's' : ''}</span>
         </div>
-        {nombreHistorico && (
+        {hist && (
           <p className="text-chalk-600 text-[11px] mt-1 flex items-center gap-1">
             <svg className="w-3 h-3 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
               <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
             </svg>
-            Hasta 2023-24: {nombreHistorico}
+            Hasta 2023-24: {hist}
           </p>
         )}
       </div>
@@ -168,7 +172,7 @@ function CompeticionCard({
             href={`/madrid/aficionados/${g.slug_comp}/${g.slug_grupo}/2025-26/${esCopa ? segRondaActual(g) : `jornada-${g.jornada_actual}`}/${entrada}`}
             className="text-xs bg-pitch-700 hover:bg-grass-500 text-chalk-200 hover:text-white px-3 py-1.5 rounded-md transition-colors"
           >
-            {esCopa ? `Ver competición · ${numRondas(g)} rondas` : `${g.nombre_grupo} · J${g.jornada_actual}`}
+            {esCopa ? `Ver competición · ${numRondas(g)} ronda${numRondas(g) === 1 ? '' : 's'}` : `${g.nombre_grupo} · J${g.jornada_actual}`}
           </Link>
         )})}
       </div>
