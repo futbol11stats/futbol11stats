@@ -71,8 +71,10 @@ export const familiaSlugGrupo = (familySlug: string): string =>
 // 1ª Autonómica tuvieron renombre real; el resto de familias no -> sin leyenda. Las LIGAS conservan su
 // nombre_historico del dato (que sí es correcto). Devuelve el nombre antiguo, o null para no mostrar leyenda.
 const HISTORICO_COPA: Record<string, string | null> = {
+  // Solo el AFICIONADO cambió "Preferente" -> "Autonómica" (2024-25). El JUVENIL fue "Autonómica" en
+  // TODAS las temporadas (dato de Fernando) -> sin leyenda. El resto de familias tampoco se renombraron.
   'Copa Primera División Autonómica Aficionado': 'Copa Primera División Preferente Aficionado',
-  'Copa Primera División Autonómica Juvenil': 'Copa Primera División Preferente Juvenil',
+  'Copa Primera División Autonómica Juvenil': null,
   'Copa RFEF Fase Autonómica': null,
   'Copa de Aficionados RFFM': null,
   'Play Off Tercera Federación': null,
