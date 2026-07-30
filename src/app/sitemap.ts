@@ -9,6 +9,7 @@ import {
   GROUP_TABS_LIGA,
   GROUP_TABS_COPA,
   GLOBAL_TABS,
+  noindexJuvenil,
 } from '@/lib/seo'
 
 export const revalidate = 2592000 // ISR 30d (Fluid CPU): se regenera con cada deploy/re-export; el sitemap solo cambia al añadir grupos/temporadas nuevas
@@ -49,6 +50,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
     if (isLive) {
       for (const t of isLiga ? GROUP_TABS_LIGA : GROUP_TABS_COPA) {
+        if (noindexJuvenil(cat, t)) continue   // juvenil: fuera las pestañas con nombres de menores
         urls.push({ url: `${base}/${t}`, changeFrequency: 'weekly', priority: 0.7 })
       }
     } else {
@@ -67,6 +69,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         const gbase = `${SITE_URL}/madrid/${cat}/${g.slug_comp}/global/${temp}/jornada-${j}`
         if (isLive) {
           for (const t of GLOBAL_TABS) {
+            if (noindexJuvenil(cat, t)) continue   // juvenil: fuera las pestañas globales con jugadores
             urls.push({ url: `${gbase}/${t}`, changeFrequency: 'weekly', priority: 0.6 })
           }
         } else {

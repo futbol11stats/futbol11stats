@@ -74,3 +74,14 @@ export const GLOBAL_TABS = [
   'top10-elo-jugadores-temporada',
   'once-optimo-temporada',
 ]
+
+// Pestañas que NO listan nombres de jugador (solo equipos): clasificación, resultados y forma de equipos.
+// Siguen indexables aun en JUVENIL (valor SEO real, sin exponer menores). El RESTO (goleadores, porteros,
+// tarjetas, fantasy, ELO jugadores, XI óptimo, top5 jugadores, sancionados/suspendidos de la pestaña de
+// tarjetas) sí muestran jugadores -> en juvenil, noindex.
+export const TABS_SIN_JUGADOR = new Set(['clasificacion', 'resultados', 'top5-equipos-jornada'])
+
+// ¿Debe llevar noindex esta página de competición? Solo en JUVENIL y solo en pestañas con nombres de
+// jugador (menores). "follow" se mantiene aparte. Aficionados nunca; clasificación/resultados nunca.
+export const noindexJuvenil = (categoria: string, tab: string): boolean =>
+  categoria === 'juveniles' && !TABS_SIN_JUGADOR.has(tab)

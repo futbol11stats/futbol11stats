@@ -2,7 +2,7 @@ export const revalidate = 2592000  // ISR 30d (Fluid CPU free tier): contenido c
 
 import type { Metadata } from 'next'
 import { supabase } from '@/lib/supabase'
-import { SITE_URL, ensureMadrid, tabLabel } from '@/lib/seo'
+import { SITE_URL, ensureMadrid, tabLabel, noindexJuvenil } from '@/lib/seo'
 import {
   COLS_CLASIFICACION, COLS_TOP_JUGADORES, COLS_ALERTAS,
   COLS_JUEGO_LIMPIO, COLS_XI_OPTIMO, COLS_EQUIPOS_FORMA,
@@ -219,6 +219,8 @@ export async function generateMetadata({
     title,
     description,
     alternates: { canonical },
+    // JUVENIL: noindex en las pestañas globales que listan jugadores (menores); clasificación no.
+    ...(noindexJuvenil(categoria, tab) ? { robots: { index: false, follow: true } } : {}),
     openGraph: { title, description, url: canonical, siteName: 'Fútbol11Stats', locale: 'es_ES', type: 'website' },
   }
 }
