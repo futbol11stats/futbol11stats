@@ -88,7 +88,10 @@ export async function getGruposPorTemporada(codequipo: string, temporadasRows: {
   for (const r of temporadasRows) add(r.codtemporada, r.codgrupo)
   const { data } = await supabase.from('web_equipo').select('copas').eq('codequipo', String(codequipo)).limit(1).maybeSingle()
   const copas = (data as { copas?: unknown } | null)?.copas
-  if (Array.isArray(copas)) for (const c of copas as any[]) add(c.codtemporada, c.codgrupo)
+  // Copa por FAMILIA: usa el codgrupo de la familia (fam-*), que tiene TODAS las rondas, los mismos
+  // codacta y el tipo correcto (COPA/PLAYOFF). Así PartidosEquipo deja de depender de las filas viejas
+  // de copa -> el pipeline puede borrarlas. Fallback al codgrupo viejo si aún no hubiera familia.
+  if (Array.isArray(copas)) for (const c of copas as any[]) add(c.codtemporada, c.codgrupo_familia ?? c.codgrupo)
   const out: Record<string, string[]> = {}
   for (const k in map) out[k] = Array.from(map[k])
   return out
