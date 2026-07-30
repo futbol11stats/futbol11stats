@@ -2,7 +2,6 @@ import type { MetadataRoute } from 'next'
 import { supabase } from '@/lib/supabase'
 import { SITE_URL } from '@/lib/seo'
 import { equipoSlug } from '@/lib/equipo'
-import { contarKeyset } from '@/app/jugadores/sitemap'
 
 export const revalidate = 2592000 // ISR 30d: solo cambia al reexportar el catálogo de equipos.
 
@@ -14,11 +13,14 @@ const PAGE = 1000
 
 type Fila = { codequipo: string; nombre: string }
 
+// Solo fichas de AFICIONADOS: las JUVENILES llevan noindex (nombres de menores en la plantilla) -> fuera
+// del sitemap. El filtro se aplica en la query (keyset por codequipo compatible) para que el recuento de
+// particiones y las URLs cuadren.
 async function todasLasFilas(): Promise<Fila[]> {
   const filas: Fila[] = []
   let ultimo = ''
   for (;;) {
-    let q = supabase.from('web_equipo').select('codequipo, nombre').order('codequipo', { ascending: true }).limit(PAGE)
+    let q = supabase.from('web_equipo').select('codequipo, nombre').neq('rama', 'juvenil').order('codequipo', { ascending: true }).limit(PAGE)
     if (ultimo) q = q.gt('codequipo', ultimo)
     const { data, error } = await q
     if (error) throw new Error(`[sitemap equipos] fallo paginando web_equipo tras ${filas.length} filas: ${error.message || 'error sin mensaje'}`)
@@ -31,8 +33,9 @@ async function todasLasFilas(): Promise<Fila[]> {
 }
 
 export async function generateSitemaps() {
-  const total = await contarKeyset('web_equipo', 'codequipo')
-  if (total === 0) throw new Error('[sitemap equipos] web_equipo devolvió 0 filas al particionar')
+  // Recuento SOLO de aficionados (mismo filtro que las URLs) para que n particiones cuadre.
+  const total = (await todasLasFilas()).length
+  if (total === 0) throw new Error('[sitemap equipos] web_equipo (aficionados) devolvió 0 filas al particionar')
   const n = Math.max(1, Math.ceil(total / EQUIPOS_SITEMAP_CHUNK))
   return Array.from({ length: n }, (_, i) => ({ id: i }))
 }

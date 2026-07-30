@@ -172,6 +172,9 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   return {
     title, description,
     alternates: { canonical },
+    // NOINDEX en fichas JUVENILES: sus plantillas listan nombres de menores -> no indexables. "follow"
+    // para que los enlaces salientes sigan pasando autoridad. Las de aficionados siguen indexables.
+    ...(e.rama === 'juvenil' ? { robots: { index: false, follow: true } } : {}),
     openGraph: { title, description, url: canonical, siteName: 'Fútbol11Stats', locale: 'es_ES', type: 'website' },
   }
 }
