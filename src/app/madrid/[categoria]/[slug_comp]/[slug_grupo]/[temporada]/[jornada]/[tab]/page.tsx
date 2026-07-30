@@ -10,7 +10,7 @@ import {
 import JsonLd from '@/components/JsonLd'
 import { graphLd, breadcrumbLd } from '@/lib/jsonld'
 import { fichasInfo } from '@/lib/jugador'
-import { nombreOficial, denominacion } from '@/lib/sellos'
+import { nombreOficial, denominacion, familiaSello } from '@/lib/sellos'
 import { FAMILIA_SLUGS, OLD_A_FAMILIA, familiaSlugGrupo, type Ronda } from '@/lib/competiciones'
 import Sello from '@/components/Sello'
 import { notFound, permanentRedirect } from 'next/navigation'
@@ -504,7 +504,7 @@ export default async function GrupoPage({
       <div className="mb-4 md:mb-8 flex flex-col md:flex-row md:items-end justify-between gap-3 md:gap-4">
         <div>
           <h1 className="font-display text-4xl font-bold text-white flex items-center gap-2.5">
-            <Sello nombreComp={grupo.nombre_comp} size={38} />
+            <Sello nombreComp={grupo.nombre_comp} src={esFamilia ? familiaSello(grupo.slug_comp, grupo.nombre_comp) : undefined} size={38} />
             <span>{nombreOficial(grupo.nombre_comp) ?? (grupo.nombre_historico || denominacion(grupo.nombre_comp))}{grupo.nombre_grupo ? ` · ${grupo.nombre_grupo}` : ''}</span>
           </h1>
           <p className="text-grass-400 text-sm mt-1">{rondaSel ? rondaSel.label : `${isCopa ? 'Ronda' : 'Jornada'} ${jornadaNum}`} · Temporada {temporada}</p>

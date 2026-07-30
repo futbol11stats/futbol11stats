@@ -33,6 +33,12 @@ const FINALES_AUTONOMICA = new Set([
 export function selloDe(nombreComp: string | null): string {
   const n = norm(nombreComp)
   if (FINALES_AUTONOMICA.has(n)) return SELLO_RFFM
+  // Copa/Campeón/Final de la 1ª División Autonómica o Categoría Preferente: son el TÍTULO de esas ligas
+  // regionales (no una copa) -> botón RFFM. Cubre todas las variantes históricas por nombre (Campeón de
+  // Madrid, Copa Campeón Categoría Preferente, Copa Juveniles 1ª Div. Autonómica, Final Campeón…), como
+  // red de seguridad para las superficies que resuelven por NOMBRE (índices). Va ANTES del "copa" porque
+  // estos nombres llevan "Copa". No pisa "Copa RFEF Fase Autonómica" (dice "fase", no "división").
+  if (n.includes('division autonomica') || n.includes('categoria preferente')) return SELLO_RFFM
   // Copas: "Copa ... RFEF/Federación" -> sello Copa RFEF; cualquier otra copa -> Copa RFFM.
   if (n.includes('copa')) return n.includes('rfef') ? SELLO_COPA_RFEF : SELLO_COPA_RFFM
   if (n.includes('tercera') || /\b3\s*rfef\b/.test(n)) return SELLO_TERCERA

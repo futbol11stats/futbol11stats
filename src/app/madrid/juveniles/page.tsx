@@ -8,6 +8,7 @@ import Sello from '@/components/Sello'
 import { SITE_URL } from '@/lib/seo'
 import { graphLd, websiteLd, organizationLd, breadcrumbLd } from '@/lib/jsonld'
 import { ORDEN_JUVENILES as COMPETICION_ORDER, esViejaCopa, segRondaActual, numRondas } from '@/lib/competiciones'
+import { familiaSello } from '@/lib/sellos'
 
 export const metadata: Metadata = {
   title: 'Fútbol Juvenil Madrid — categorías y grupos | Fútbol11Stats',
@@ -128,12 +129,14 @@ function CompeticionCard({
     '1ª Juvenil Madrid': '1ª Juvenil',
     '2ª Juvenil Madrid': '2ª Juvenil',
   }
+  // Sello por FAMILIA (fam-*: slug_comp = slug de familia) -> la Copa 1ª Autonómica Juv. lleva botón RFFM.
+  const famSlug = grupos.find((g) => String(g.codgrupo).startsWith('fam-'))?.slug_comp
 
   return (
     <div className="bg-pitch-800 rounded-xl border border-pitch-700 overflow-hidden hover:border-grass-500/50 transition-colors">
       <div className="px-4 py-3 border-b border-pitch-700">
         <div className="flex items-center justify-between">
-          <span className="font-semibold text-white text-sm flex items-center gap-2"><Sello nombreComp={nombre} size={24} />{nombreCorto[nombre] || nombre}</span>
+          <span className="font-semibold text-white text-sm flex items-center gap-2"><Sello nombreComp={nombre} src={famSlug ? familiaSello(famSlug, nombre) : undefined} size={24} />{nombreCorto[nombre] || nombre}</span>
           <span className="text-xs text-chalk-600">{grupos.length} grupo{grupos.length !== 1 ? 's' : ''}</span>
         </div>
         {nombreHistorico && (
