@@ -69,6 +69,21 @@ const COMP_MAP: Record<string, { corto: string; color: AcentoPastilla }> = {
   [norm('CAMPEON DE MADRID - PRIMERA DIVISION AUTONOMICA JUVENIL')]: { corto: 'Campeón de Madrid', color: 'verde' },
 }
 
+// Denominación LIMPIA (completa) de copa/playoff para la CABECERA/breadcrumb de la página de
+// competición: los nombres históricos vienen con puntos y en mayúsculas ("COPA R.F.E.F. FASE
+// AUTONOMICA", "PLAY OFF TERCERA FEDERACION"). norm() las normaliza igual que la forma actual, así que
+// cualquier variante cae en su denominación canónica. No mapeada -> el nombre tal cual.
+const DENOM_LIMPIA: Record<string, string> = {
+  [norm('Copa RFEF Fase Autonómica')]:       'Copa RFEF Fase Autonómica',
+  [norm('Final Copa RFEF Fase Autonómica')]: 'Final Copa RFEF Fase Autonómica',
+  [norm('COPA R.F.F.M.')]:                    'Copa RFFM',
+  [norm('FINAL COPA R.F.F.M.')]:              'Final Copa RFFM',
+  [norm('Play Off Tercera Federación')]:      'Play Off Tercera Federación',
+}
+export function denominacion(nombreComp: string | null): string {
+  return DENOM_LIMPIA[norm(nombreComp)] ?? (nombreComp || '')
+}
+
 // Nombre corto de una copa para pastillas/chips.
 export function nombreCortoCopa(nombreComp: string | null): string {
   const n = norm(nombreComp)

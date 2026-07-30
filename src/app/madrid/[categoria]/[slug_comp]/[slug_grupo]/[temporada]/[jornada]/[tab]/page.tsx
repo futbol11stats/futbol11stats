@@ -10,7 +10,7 @@ import {
 import JsonLd from '@/components/JsonLd'
 import { graphLd, breadcrumbLd } from '@/lib/jsonld'
 import { fichasInfo } from '@/lib/jugador'
-import { nombreOficial } from '@/lib/sellos'
+import { nombreOficial, denominacion } from '@/lib/sellos'
 import Sello from '@/components/Sello'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
@@ -60,14 +60,18 @@ async function getGrupoBySlug(
   return data
 }
 
-// Mismo grupo en otras temporadas (mismo nombre_comp + nombre_grupo, consistentes
-// entre temporadas), con el slug propio de cada temporada para construir su URL.
-async function getVariantesPorTemporada(nombreComp: string, nombreGrupo: string) {
-  const { data } = await supabase
+// Mismo grupo en otras temporadas. Se casa por SLUG (slug_comp + slug_grupo), NO por nombre_comp: los
+// nombres históricos de copa vienen con puntos/mayúsculas ("COPA R.F.E.F." vs "Copa RFEF") y romperían
+// el match; el pipeline dejó los slugs consistentes 1:1 entre temporadas, así que el slug es la clave.
+async function getVariantesPorTemporada(categoria: string, slugComp: string, slugGrupo: string) {
+  let query = supabase
     .from('web_grupos')
     .select('codtemporada, slug_comp, slug_grupo, jornada_actual')
-    .eq('nombre_comp', nombreComp)
-    .ilike('nombre_grupo', nombreGrupo)
+    .eq('slug_comp', slugComp)
+    .eq('slug_grupo', slugGrupo)
+  const cat = CATEGORIA_MAP[categoria]   // no mezclar aficionados/juveniles con mismos slugs
+  if (cat) query = query.eq('categoria', cat)
+  const { data } = await query
   const map: Record<number, { slug_comp: string; slug_grupo: string; jornada_actual: number }> = {}
   for (const g of data || []) {
     map[g.codtemporada] = {
@@ -246,7 +250,7 @@ export async function generateMetadata({
   const grupo = await getGrupoBySlug(categoria, slug_comp, slug_grupo, codtemporada)
   if (!grupo) return { title: 'Fútbol11Stats' }
 
-  const comp = nombreOficial(grupo.nombre_comp) ?? ensureMadrid(grupo.nombre_comp)  // denominación oficial (3ªRFEF->Tercera Federación, Nacional Juvenil->Liga Nacional Juvenil)
+  const comp = nombreOficial(grupo.nombre_comp) ?? ensureMadrid(denominacion(grupo.nombre_comp))  // denominación oficial (3ªRFEF->Tercera Federación, Nacional Juvenil->Liga Nacional Juvenil)
   const grp = grupo.nombre_grupo ? ` ${grupo.nombre_grupo}` : ''
   const tl = tabLabel(tab)
   const title = `${tl} · ${comp}${grp} ${temporada} | Fútbol11Stats`
@@ -298,7 +302,7 @@ export default async function GrupoPage({
 
   // Comunes del layout: selector de temporada (siempre) + nav de grupos hermanos (solo liga).
   const [variantes, gruposComp] = await Promise.all([
-    getVariantesPorTemporada(grupo.nombre_comp, grupo.nombre_grupo),
+    getVariantesPorTemporada(categoria, grupo.slug_comp, grupo.slug_grupo),
     isCopa ? Promise.resolve([] as any[]) : getGruposCompeticion(grupo.nombre_comp, codtemporada),
   ])
 
@@ -430,9 +434,9 @@ export default async function GrupoPage({
     { name: catLabel, url: `${SITE_URL}/madrid/${categoria}` },
   ]
   if (isCopa) {
-    crumbs.push({ name: ensureMadrid(grupo.nombre_comp), url: `${gBase}/jornada-${jact}/resultados` })
+    crumbs.push({ name: ensureMadrid(denominacion(grupo.nombre_comp)), url: `${gBase}/jornada-${jact}/resultados` })
   } else {
-    crumbs.push({ name: ensureMadrid(grupo.nombre_comp), url: `${SITE_URL}/madrid/${categoria}/${slug_comp}/global/${temporada}/jornada-${jact}/clasificacion` })
+    crumbs.push({ name: ensureMadrid(denominacion(grupo.nombre_comp)), url: `${SITE_URL}/madrid/${categoria}/${slug_comp}/global/${temporada}/jornada-${jact}/clasificacion` })
     if (grupo.nombre_grupo) crumbs.push({ name: grupo.nombre_grupo, url: `${gBase}/jornada-${jact}/clasificacion` })
   }
   crumbs.push({ name: tabLabel(tab2), url: `${gBase}/jornada-${jact}/${tab}` })
@@ -446,7 +450,7 @@ export default async function GrupoPage({
         <span>·</span>
         <Link href={`/madrid/${categoria}`} className="hover:text-white transition-colors capitalize">{categoria}</Link>
         <span>·</span>
-        <span className="text-white">{grupo.nombre_comp}</span>
+        <span className="text-white">{denominacion(grupo.nombre_comp)}</span>
       </nav>
 
       {/* Header */}
@@ -454,7 +458,7 @@ export default async function GrupoPage({
         <div>
           <h1 className="font-display text-4xl font-bold text-white flex items-center gap-2.5">
             <Sello nombreComp={grupo.nombre_comp} size={38} />
-            <span>{nombreOficial(grupo.nombre_comp) ?? (grupo.nombre_historico || grupo.nombre_comp)}{grupo.nombre_grupo ? ` · ${grupo.nombre_grupo}` : ''}</span>
+            <span>{nombreOficial(grupo.nombre_comp) ?? (grupo.nombre_historico || denominacion(grupo.nombre_comp))}{grupo.nombre_grupo ? ` · ${grupo.nombre_grupo}` : ''}</span>
           </h1>
           <p className="text-grass-400 text-sm mt-1">{isCopa ? 'Ronda' : 'Jornada'} {jornadaNum} · Temporada {temporada}</p>
           {grupo.nombre_historico && (
