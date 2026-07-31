@@ -28,7 +28,7 @@ import IndicadorLocal from '@/components/IndicadorLocal'
 import FormaHero from '@/components/equipo/FormaHero'
 import AvisoDato from '@/components/AvisoDato'
 import {
-  Trophy, MapPin, Star, Hash, ArrowUpRight, Users, ListChecks, Hand,
+  Trophy, MapPin, Star, Hash, Users, ListChecks, Hand,
   Goal, Timer, Calendar, CircleDot,
 } from 'lucide-react'
 
@@ -234,6 +234,16 @@ export default async function FichaJugador({ params }: { params: Promise<{ slug:
   const nombre = formatNombre(j.nombre)
   const portero = !!j.es_portero
   const inactivo = Number(j.codtemporada_ultima) < Number(LIVE_COD)
+  // Aviso de colaboración según el estado de la posición. SIN posición -> se queda en el hero (el hueco
+  // es visible ahí, con contexto inmediato). ESTIMADA/CONFIRMADA -> baja al final (el visitante ya ha
+  // visto los datos y sabe si algo no cuadra). Textos exactos por caso; mailto con asunto contextual.
+  const sinPosicion = !j.posicion_pastilla
+  const aviso = sinPosicion
+    ? { pre: '¿Conoces la posición de este jugador?', enlace: 'Dínoslo', post: ' y la añadimos.', asunto: `Posición de ${nombre}` }
+    : j.posicion_es_estimada
+      ? { pre: 'Esta demarcación es una estimación a partir del dorsal. ¿Sabes cuál es la suya?', enlace: 'Dínoslo', post: '.', asunto: `Posición de ${nombre}` }
+      : { pre: '¿Hay algo que no cuadra en esta ficha?', enlace: 'Escríbenos', post: '.', asunto: `Corrección en la ficha de ${nombre}` }
+  const avisoHref = `mailto:futbol11stats@gmail.com?subject=${encodeURIComponent(aviso.asunto)}`
   const compActual = carrera[0]?.nombre_comp || null
   const grupoActualNombre = carrera[0]?.grupo_nombre || null
   // Copas + posición en liga del equipo actual (una query). Info del grupo actual (para el enlace de la
@@ -325,17 +335,10 @@ export default async function FichaJugador({ params }: { params: Promise<{ slug:
               Inactivos: etiquetados con su última temporada. */}
           <FormaHero forma={racha5} ultimaVictoria={null} miga="últimos 5 · reciente →"
             tempEtiqueta={inactivo && j.codtemporada_ultima ? tempLabel(j.codtemporada_ultima) : null} />
-          {/* Aviso de colaboración según el estado de la posición: sin asignar / estimada (asterisco,
-              del dorsal) / confirmada en el acta. Discreto, al pie del hero, contextual a la demarcación. */}
-          {(() => {
-            const a = !j.posicion_pastilla
-              ? { pre: '¿Conoces la posición de este jugador?', enlace: 'Dínoslo', post: ' y la añadimos.', asunto: `Posición de ${nombre}` }
-              : j.posicion_es_estimada
-                ? { pre: 'Esta demarcación es una estimación a partir del dorsal. ¿Sabes cuál es la suya?', enlace: 'Dínoslo', post: '.', asunto: `Posición de ${nombre}` }
-                : { pre: '¿Hay algo que no cuadra en esta ficha?', enlace: 'Escríbenos', post: '.', asunto: `Corrección en la ficha de ${nombre}` }
-            return <AvisoDato className="mt-3" pre={a.pre} enlace={a.enlace} post={a.post}
-              href={`mailto:futbol11stats@gmail.com?subject=${encodeURIComponent(a.asunto)}`} />
-          })()}
+          {/* SIN posición: el aviso se queda en el hero, donde el hueco es visible. Los demás casos bajan al final. */}
+          {sinPosicion && (
+            <AvisoDato className="mt-3" pre={aviso.pre} enlace={aviso.enlace} post={aviso.post} href={avisoHref} />
+          )}
         </div>
 
         {/* Medidores (a la derecha en desktop; debajo en móvil) */}
@@ -514,12 +517,13 @@ export default async function FichaJugador({ params }: { params: Promise<{ slug:
         </main>
       </div>
 
-      {/* Enlace discreto al canal de derechos */}
-      <div className="mt-12 pt-4 border-t border-pitch-700/60 flex items-center gap-1.5">
-        <Link href="/privacidad" className="inline-flex items-center gap-1 text-xs text-chalk-600 hover:text-chalk-400 transition-colors">
-          <ArrowUpRight className="w-3 h-3" /> Sobre estos datos
-        </Link>
-      </div>
+      {/* Aviso de colaboración al FINAL (posición estimada/confirmada): ya se han visto todos los datos.
+          Con aire arriba y abajo, pero discreto. (Sin posición, el aviso va arriba y aquí no hay nada.) */}
+      {!sinPosicion && (
+        <div className="mt-12 pt-5 pb-2 border-t border-pitch-700/60">
+          <AvisoDato pre={aviso.pre} enlace={aviso.enlace} post={aviso.post} href={avisoHref} />
+        </div>
+      )}
     </div>
   )
 }

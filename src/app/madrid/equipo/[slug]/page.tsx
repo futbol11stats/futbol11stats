@@ -30,7 +30,7 @@ import {
   getCopasPorTemporada, getResultadosGrupo, resumenForma, getGruposPorTemporada,
   type EquipoFicha, type MovimientoRow, type FichaMov, type CopaEquipo,
 } from '@/lib/equipo'
-import { Trophy, Flame, Swords, CalendarCheck, ListOrdered, ChevronRight, ArrowUpRight } from 'lucide-react'
+import { Trophy, Flame, Swords, CalendarCheck, ListOrdered, ChevronRight } from 'lucide-react'
 
 // --- Fetchers ---
 async function getEquipo(cod: string): Promise<EquipoFicha | null> {
@@ -352,9 +352,6 @@ export default async function FichaEquipo({ params }: { params: Promise<{ slug: 
             {/* Forma (últimos 5) + racha. Inactivos: etiquetados con su última temporada, sin días. */}
             <FormaHero forma={forma} ultimaVictoria={ultimaVictoria} mostrarDias={tempEnCurso}
               tempEtiqueta={inactivo && e.codtemporada ? tempLabel(e.codtemporada) : null} />
-            {/* Aviso de colaboración (discreto, al pie del hero). */}
-            <AvisoDato className="mt-3" pre="¿Ves algún dato incorrecto?" enlace="Escríbenos" post=" y lo revisamos."
-              href={`mailto:futbol11stats@gmail.com?subject=${encodeURIComponent(`Corrección en ${e.nombre}`)}`} />
           </div>
         </div>
 
@@ -489,11 +486,10 @@ export default async function FichaEquipo({ params }: { params: Promise<{ slug: 
       </TemporadaProvider>
       </Suspense>
 
-      {/* Enlace discreto al canal de datos */}
-      <div className="mt-12 pt-4 border-t border-pitch-700/60 flex items-center gap-1.5">
-        <Link href="/privacidad" className="inline-flex items-center gap-1 text-xs text-chalk-600 hover:text-chalk-400 transition-colors">
-          <ArrowUpRight className="w-3 h-3" /> Sobre estos datos
-        </Link>
+      {/* Aviso de colaboración al FINAL, con aire (arriba y abajo) pero discreto. */}
+      <div className="mt-12 pt-5 pb-2 border-t border-pitch-700/60">
+        <AvisoDato pre="¿Ves algún dato incorrecto?" enlace="Escríbenos" post=" y lo revisamos."
+          href={`mailto:futbol11stats@gmail.com?subject=${encodeURIComponent(`Corrección en ${e.nombre}`)}`} />
       </div>
     </div>
   )
