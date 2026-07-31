@@ -504,7 +504,7 @@ export default async function FichaJugador({ params }: { params: Promise<{ slug:
 
       {/* Enlace discreto al canal de derechos */}
       <div className="mt-12 pt-4 border-t border-pitch-700/60 flex items-center gap-1.5">
-        <Link href="/datos-y-derechos" className="inline-flex items-center gap-1 text-xs text-chalk-600 hover:text-chalk-400 transition-colors">
+        <Link href="/privacidad" className="inline-flex items-center gap-1 text-xs text-chalk-600 hover:text-chalk-400 transition-colors">
           <ArrowUpRight className="w-3 h-3" /> Sobre estos datos
         </Link>
       </div>

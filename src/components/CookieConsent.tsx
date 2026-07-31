@@ -45,7 +45,9 @@ export default function CookieConsent() {
             <p className="text-xs leading-relaxed text-chalk-200 flex-1">
               Usamos cookies de analítica (Google Analytics) para entender el uso del sitio. Las
               estadísticas propias sin cookies funcionan siempre.{' '}
-              <a href="/cookies" className="text-grass-400 underline hover:text-grass-300">Más información</a>.
+              <a href="/cookies" className="text-grass-400 underline hover:text-grass-300">Cookies</a>
+              {' · '}
+              <a href="/privacidad" className="text-grass-400 underline hover:text-grass-300">Privacidad</a>.
             </p>
             {/* Dos botones de IGUAL prominencia (mismo tamaño y peso visual) — requisito AEPD */}
             <div className="flex gap-2 shrink-0">

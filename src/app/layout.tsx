@@ -66,8 +66,9 @@ export default function RootLayout({
               Toda la información de nuestra web y sus canales en RRSS tiene carácter NO OFICIAL. Las clasificaciones, rankings y datos estadísticos son calculados de forma automática por nuestro sistema en función de los datos recopilados de cada partido, por lo que la información puede ser de carácter provisional, errónea o incompleta. El administrador de Futbol11Stats.com no se hace responsable de los perjuicios causados por una posible información incorrecta. Todas las marcas, nombres de clubes o elementos ilustrativos mencionados pertenecen a sus respectivos propietarios.
             </p>
             <p className="flex flex-wrap gap-x-4 gap-y-1 pt-1">
+              <a href="/aviso-legal" className="underline hover:text-white transition-colors">Aviso legal</a>
+              <a href="/privacidad" className="underline hover:text-white transition-colors">Privacidad</a>
               <a href="/cookies" className="underline hover:text-white transition-colors">Cookies</a>
-              <a href="/datos-y-derechos" className="underline hover:text-white transition-colors">Datos y derechos</a>
               <CookieSettingsButton />
             </p>
             <p className="flex flex-wrap items-center gap-x-3 gap-y-1 pt-1">
