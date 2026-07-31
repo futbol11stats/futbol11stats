@@ -37,11 +37,13 @@ export default function CookiesPage() {
           cookies <strong>no se instalan</strong> y no se hace ninguna petición a Google.
         </p>
 
-        <h2 className="font-display text-xl font-bold text-white pt-2">Vercel Web Analytics — sin cookies</h2>
+        <h2 className="font-display text-xl font-bold text-white pt-2">Vercel Web Analytics y Speed Insights — sin cookies</h2>
         <p>
-          Usamos además la analítica de Vercel, que <strong>no utiliza cookies</strong> ni identifica a
-          los visitantes: mide páginas vistas de forma anónima y agregada. Al no usar cookies, funciona
-          siempre y no requiere consentimiento.
+          Usamos además la analítica de Vercel (<strong>Web Analytics</strong> y <strong>Speed
+          Insights</strong>), que <strong>no utiliza cookies</strong> ni identifica a los visitantes:
+          mide de forma anónima y agregada las páginas vistas y el rendimiento técnico de las páginas
+          (tiempos de carga y estabilidad visual). Al no usar cookies, funciona siempre y no requiere
+          consentimiento.
         </p>
 
         <h2 className="font-display text-xl font-bold text-white pt-2">Cambiar tu elección</h2>
