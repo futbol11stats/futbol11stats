@@ -60,12 +60,10 @@ export default function RootLayout({
         <footer className="border-t border-pitch-700 mt-16 py-8 text-chalk-600 text-xs leading-relaxed">
           <div className="max-w-4xl mx-auto px-4 space-y-3">
             <p>
-              <strong className="text-chalk-500">Aviso Legal e Informativo:</strong> Futbol11Stats.com es un proyecto de comunicación y análisis estadístico totalmente independiente, gestionado con fines informativos, periodísticos y de entretenimiento en torno al fútbol regional y de base. No somos un canal oficial, ni representamos, ni tenemos vinculación jurídica, institucional o comercial con ninguna federación territorial, organismo deportivo ni con sus clubes afiliados.
-            </p>
-            <p>
-              Toda la información de nuestra web y sus canales en RRSS tiene carácter NO OFICIAL. Las clasificaciones, rankings y datos estadísticos son calculados de forma automática por nuestro sistema en función de los datos recopilados de cada partido, por lo que la información puede ser de carácter provisional, errónea o incompleta. El administrador de Futbol11Stats.com no se hace responsable de los perjuicios causados por una posible información incorrecta. Todas las marcas, nombres de clubes o elementos ilustrativos mencionados pertenecen a sus respectivos propietarios.
+              Fútbol11Stats es un proyecto independiente, sin vinculación con ninguna federación ni club. Los datos proceden de fuentes públicas y pueden contener errores.
             </p>
             <p className="flex flex-wrap gap-x-4 gap-y-1 pt-1">
+              <a href="/sobre" className="underline hover:text-white transition-colors">Sobre el proyecto</a>
               <a href="/aviso-legal" className="underline hover:text-white transition-colors">Aviso legal</a>
               <a href="/privacidad" className="underline hover:text-white transition-colors">Privacidad</a>
               <a href="/cookies" className="underline hover:text-white transition-colors">Cookies</a>

@@ -26,6 +26,7 @@ import Pastilla from '@/components/Pastilla'
 import LigaPastilla from '@/components/LigaPastilla'
 import IndicadorLocal from '@/components/IndicadorLocal'
 import FormaHero from '@/components/equipo/FormaHero'
+import AvisoDato from '@/components/AvisoDato'
 import {
   Trophy, MapPin, Star, Hash, ArrowUpRight, Users, ListChecks, Hand,
   Goal, Timer, Calendar, CircleDot,
@@ -324,6 +325,17 @@ export default async function FichaJugador({ params }: { params: Promise<{ slug:
               Inactivos: etiquetados con su última temporada. */}
           <FormaHero forma={racha5} ultimaVictoria={null} miga="últimos 5 · reciente →"
             tempEtiqueta={inactivo && j.codtemporada_ultima ? tempLabel(j.codtemporada_ultima) : null} />
+          {/* Aviso de colaboración según el estado de la posición: sin asignar / estimada (asterisco,
+              del dorsal) / confirmada en el acta. Discreto, al pie del hero, contextual a la demarcación. */}
+          {(() => {
+            const a = !j.posicion_pastilla
+              ? { pre: '¿Conoces la posición de este jugador?', enlace: 'Dínoslo', post: ' y la añadimos.', asunto: `Posición de ${nombre}` }
+              : j.posicion_es_estimada
+                ? { pre: 'Esta demarcación es una estimación a partir del dorsal. ¿Sabes cuál es la suya?', enlace: 'Dínoslo', post: '.', asunto: `Posición de ${nombre}` }
+                : { pre: '¿Hay algo que no cuadra en esta ficha?', enlace: 'Escríbenos', post: '.', asunto: `Corrección en la ficha de ${nombre}` }
+            return <AvisoDato className="mt-3" pre={a.pre} enlace={a.enlace} post={a.post}
+              href={`mailto:futbol11stats@gmail.com?subject=${encodeURIComponent(a.asunto)}`} />
+          })()}
         </div>
 
         {/* Medidores (a la derecha en desktop; debajo en móvil) */}

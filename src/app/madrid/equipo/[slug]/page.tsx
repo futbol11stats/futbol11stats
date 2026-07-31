@@ -22,6 +22,7 @@ import Top5Plantilla from '@/components/equipo/Top5Plantilla'
 import CopasLinea from '@/components/CopasLinea'
 import LigaPastilla from '@/components/LigaPastilla'
 import FormaHero from '@/components/equipo/FormaHero'
+import AvisoDato from '@/components/AvisoDato'
 import PartidosEquipo from '@/components/equipo/PartidosEquipo'
 import {
   COLS_EQUIPO, COLS_EQUIPO_TEMPORADAS, COLS_EQUIPO_MOV, COLS_EQUIPO_HITOS, COLS_PLANTILLA_JUVENIL,
@@ -351,6 +352,9 @@ export default async function FichaEquipo({ params }: { params: Promise<{ slug: 
             {/* Forma (últimos 5) + racha. Inactivos: etiquetados con su última temporada, sin días. */}
             <FormaHero forma={forma} ultimaVictoria={ultimaVictoria} mostrarDias={tempEnCurso}
               tempEtiqueta={inactivo && e.codtemporada ? tempLabel(e.codtemporada) : null} />
+            {/* Aviso de colaboración (discreto, al pie del hero). */}
+            <AvisoDato className="mt-3" pre="¿Ves algún dato incorrecto?" enlace="Escríbenos" post=" y lo revisamos."
+              href={`mailto:futbol11stats@gmail.com?subject=${encodeURIComponent(`Corrección en ${e.nombre}`)}`} />
           </div>
         </div>
 

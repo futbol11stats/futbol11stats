@@ -32,6 +32,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${SITE_URL}/`, changeFrequency: 'weekly', priority: 1 },
     { url: `${SITE_URL}/madrid/aficionados`, changeFrequency: 'weekly', priority: 0.8 },
     { url: `${SITE_URL}/madrid/juveniles`, changeFrequency: 'weekly', priority: 0.8 },
+    { url: `${SITE_URL}/sobre`, changeFrequency: 'yearly', priority: 0.6 },   // legales van con noindex y fuera
   ]
 
   const globalsSeen = new Set<string>()
