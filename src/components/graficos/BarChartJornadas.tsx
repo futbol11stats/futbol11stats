@@ -5,15 +5,18 @@ import { escalon, PALETA_FONDO } from '@/lib/escala'
 // más carriles configurables debajo del eje. Zona positiva arriba y negativa abajo, separadas por una
 // línea de cero visible; los negativos crecen hacia abajo.
 //
-// `valor(d)` codifica los TRES estados visuales, distintos y no intercambiables:
-//   • null              → SIN DATO         → no se dibuja nada.
-//   • NaN               → NO JUGÓ          → barra mínima punteada y tenue sobre la línea de cero.
-//   • 0                 → barra MÍNIMA sólida.
-//   • número finito ≠ 0 → barra escalada (positiva hacia arriba, negativa hacia abajo), coloreada por
-//                         escalon(valor, cortes).
+// `estado(d)` codifica los TRES estados visuales como una unión discriminada explícita (no un centinela
+// numérico: un NaN se colaría en la media y, al serializar a JSON, se volvería null — justo el otro estado):
+//   • { tipo: 'sin_dato' }        → no se dibuja nada.
+//   • { tipo: 'no_jugo' }         → barra mínima punteada y tenue sobre la línea de cero.
+//   • { tipo: 'valor', v: 0 }     → barra MÍNIMA sólida.
+//   • { tipo: 'valor', v: ≠ 0 }   → barra escalada (positiva arriba, negativa abajo), coloreada por
+//                                    escalon(v, cortes).
 //
 // El color/estado del carril de rol NO se decide aquí: el consumidor construye ese carril y su `render`
 // llama a derivarRol() de escala.ts. El componente no reimplementa esa condición.
+
+export type EstadoBarra = { tipo: 'valor'; v: number } | { tipo: 'no_jugo' } | { tipo: 'sin_dato' }
 
 const GUTTER = 26 // ancho del canalón izquierdo (px)
 const COL = 30 // ancho de columna por jornada (px)
@@ -27,7 +30,7 @@ type Carril<T> = { icono: ReactNode; render: (d: T) => ReactNode }
 
 export default function BarChartJornadas<T>({
   datos,
-  valor,
+  estado,
   cortes,
   carriles,
   etiqueta,
@@ -35,25 +38,26 @@ export default function BarChartJornadas<T>({
   destacarUltimo = false,
 }: {
   datos: T[]
-  valor: (d: T) => number | null
+  estado: (d: T) => EstadoBarra
   cortes: readonly [number, number, number, number]
   carriles: Carril<T>[]
   etiqueta: (d: T) => string
   mostrarMedia?: boolean
   destacarUltimo?: boolean
 }) {
-  const valores = datos.map(valor)
-  const finitos = valores.filter((v): v is number => v !== null && Number.isFinite(v))
+  const estados = datos.map(estado)
+  // Solo los estados con valor cuentan para la escala y la media (sin NaN que se propaguen en silencio).
+  const valores = estados.filter((e): e is { tipo: 'valor'; v: number } => e.tipo === 'valor').map((e) => e.v)
 
-  const posMax = Math.max(1, ...finitos.filter((v) => v > 0))
-  const negMax = Math.max(1, ...finitos.filter((v) => v < 0).map((v) => -v))
-  const hayNeg = finitos.some((v) => v < 0)
+  const posMax = Math.max(1, ...valores.filter((v) => v > 0))
+  const negMax = Math.max(1, ...valores.filter((v) => v < 0).map((v) => -v))
+  const hayNeg = valores.some((v) => v < 0)
 
   const zeroY = Math.round(PLOT_H * (hayNeg ? 0.66 : 0.9)) // px desde arriba hasta la línea de cero
   const areaPos = zeroY - MIN_BAR
   const areaNeg = PLOT_H - zeroY - MIN_BAR
 
-  const media = finitos.length ? finitos.reduce((a, b) => a + b, 0) / finitos.length : null
+  const media = valores.length ? valores.reduce((a, b) => a + b, 0) / valores.length : null
   const mediaY = media !== null && media > 0 ? zeroY - (media / posMax) * areaPos : null
 
   return (
@@ -93,11 +97,10 @@ export default function BarChartJornadas<T>({
               />
             )}
             {datos.map((d, i) => {
-              const v = valores[i]
               const ultimo = destacarUltimo && i === datos.length - 1
               return (
                 <div key={i} className="relative flex-shrink-0" style={{ width: COL }}>
-                  {renderBarra(v, cortes, posMax, negMax, zeroY, areaPos, areaNeg, ultimo)}
+                  {renderBarra(estados[i], cortes, posMax, negMax, zeroY, areaPos, areaNeg, ultimo)}
                 </div>
               )
             })}
@@ -137,7 +140,7 @@ export default function BarChartJornadas<T>({
 }
 
 function renderBarra(
-  v: number | null,
+  e: EstadoBarra,
   cortes: readonly [number, number, number, number],
   posMax: number,
   negMax: number,
@@ -147,14 +150,14 @@ function renderBarra(
   ultimo: boolean
 ): ReactNode {
   // SIN DATO: nada.
-  if (v === null) return null
+  if (e.tipo === 'sin_dato') return null
 
   const anillo = ultimo ? 'ring-2 ring-white/70' : ''
   const base = 'absolute rounded-sm'
   const izq = { left: '50%', width: BAR_W, marginLeft: -BAR_W / 2 } as const
 
   // NO JUGÓ: barra mínima punteada y tenue, sobre la línea de cero.
-  if (Number.isNaN(v)) {
+  if (e.tipo === 'no_jugo') {
     return (
       <div
         className={`${base} border border-dashed border-chalk-600/50 ${anillo}`}
@@ -162,6 +165,8 @@ function renderBarra(
       />
     )
   }
+
+  const v = e.v
 
   // 0: barra mínima sólida.
   if (v === 0) {

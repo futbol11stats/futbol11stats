@@ -1,23 +1,35 @@
-// Escala visual de 5 escalones (0 = negativo/muy bajo … 4 = muy alto) para métricas de rendimiento.
+// Escala visual de 5 escalones para métricas de rendimiento:
+//   0 = negativo (único escalón rojo)
+//   1 = bajo     (azul-pizarra apagado y frío)
+//   2 = medio    (verde)
+//   3 = alto     (verde más claro)
+//   4 = muy alto (verde claro)
+// El ÁMBAR está reservado en el resto del sitio a playoff, copa y estado disciplinario ("en ciclo de
+// amarillas"); NO se usa como escalón de rendimiento (rompería el código de color). Ver PROTOCOLO.md.
 //
-// Los mapas de clases son LITERALES COMPLETAS a propósito: el JIT de Tailwind purga cualquier clase
-// que no aparezca textualmente en un fichero escaneado, así que nunca se construyen por concatenación
-// (ni `text-${x}`, ni plantillas). (src/lib está en el `content` de tailwind.config.js.)
+// Rampa de TEXTO pensada para leerse cómoda sobre el fondo pitch-900: todos los tonos superan 4,5:1 de
+// contraste; la escala se distingue por tono, no por legibilidad. El escalón 2 sube a grass-400 (grass-500
+// quedaba oscuro sobre pitch) y el 4 usa green-300 (Tailwind) porque grass solo tiene 300/400/500 y el 300
+// lo ocupa ya el escalón 3. El FONDO sí mantiene el verde oscuro (grass-500) en el escalón 2.
+//
+// Los mapas de clases son LITERALES COMPLETAS a propósito: el JIT de Tailwind purga cualquier clase que no
+// aparezca textualmente en un fichero escaneado, así que nunca se construyen por concatenación (ni
+// `text-${x}`, ni plantillas). (src/lib está en el `content` de tailwind.config.js.)
 
 export const PALETA_TEXTO: Record<0 | 1 | 2 | 3 | 4, string> = {
-  0: 'text-red-400',
-  1: 'text-amber-400',
-  2: 'text-chalk-200',
-  3: 'text-grass-300',
-  4: 'text-grass-400',
+  0: 'text-red-400',    // #f87171
+  1: 'text-slate-400',  // #94a3b8
+  2: 'text-grass-400',  // #22a050
+  3: 'text-grass-300',  // #2dc768
+  4: 'text-green-300',  // #86efac
 }
 
 export const PALETA_FONDO: Record<0 | 1 | 2 | 3 | 4, string> = {
   0: 'bg-red-500/20',
-  1: 'bg-amber-500/20',
-  2: 'bg-chalk-600/10',
-  3: 'bg-grass-500/20',
-  4: 'bg-grass-400/30',
+  1: 'bg-slate-500/20',
+  2: 'bg-grass-500/20',
+  3: 'bg-grass-400/25',
+  4: 'bg-grass-300/30',
 }
 
 // Devuelve 0 si `valor` no llega al primer corte; en otro caso, el índice del último corte superado, +1.
