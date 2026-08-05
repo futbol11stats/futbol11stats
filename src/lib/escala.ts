@@ -52,9 +52,15 @@ export function cortesValidos(cortes: readonly [number, number, number, number])
   return cortes[0] < cortes[1] && cortes[1] < cortes[2] && cortes[2] < cortes[3]
 }
 
-// provisional: sustituir por percentiles por categoría y temporada cuando el pipeline los exporte.
+// puntosPartido: cortes REALES medidos sobre T21. Hallazgo: la distribución de puntos por partido es
+// IDÉNTICA en las cinco categorías de aficionados (P10=0, P50=2, P80=4, P90=6 en todas). Por eso un único
+// cuarteto fijo sirve para todo el sitio y esta métrica NO necesita umbrales por categoría — a diferencia
+// de la media y el ELO, que sí varían entre categorías y vendrán de web_percentiles.
+// Cobertura con [0,2,4,7]: escalón 1 (0-1) ≈45%, escalón 2 (2-3) ≈30%, escalón 3 (4-6) ≈17%, escalón 4 (7+) ≈8%.
+//
+// mediaPartido y elo siguen siendo PROVISIONALES hasta conectar los percentiles por categoría (web_percentiles).
 export const CORTES_FIJOS = {
-  puntosPartido: [1, 3, 5, 8],
+  puntosPartido: [0, 2, 4, 7],
   mediaPartido: [1.5, 2.5, 3.5, 4.5],
   elo: [850, 950, 1050, 1150],
 } as const
