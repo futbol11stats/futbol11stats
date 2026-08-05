@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { derivarRol } from './escala'
+import { derivarRol, escalon, cortesValidos } from './escala'
 
 // Los cinco roles posibles, uno por caso. El orden de las comprobaciones en derivarRol() es
 // significativo; el caso crítico lo fija de forma explícita:
@@ -39,5 +39,27 @@ describe('derivarRol · precedencia', () => {
 
   it("90+ minutos exactos cuentan como 'completo'", () => {
     expect(derivarRol(true, 95, 0, 0)).toBe('completo')
+  })
+})
+
+// El escalón 0 (rojo) es solo para valores NEGATIVOS. Un 0 real no puede pintarse rojo.
+describe('escalon', () => {
+  it('un valor de 0 no es rojo (escalón 0), aunque no llegue al primer corte', () => {
+    expect(escalon(0, [1, 1, 2, 4])).not.toBe(0)
+  })
+
+  it('un valor negativo sí es el escalón 0', () => {
+    expect(escalon(-2, [1, 1, 2, 4])).toBe(0)
+  })
+})
+
+// cortesValidos() detecta rampas degeneradas para que el consumidor caiga a CORTES_FIJOS.
+describe('cortesValidos', () => {
+  it('cortes empatados no son válidos', () => {
+    expect(cortesValidos([1, 1, 2, 4])).toBe(false)
+  })
+
+  it('cortes estrictamente crecientes son válidos', () => {
+    expect(cortesValidos([1, 2, 3, 4])).toBe(true)
   })
 })

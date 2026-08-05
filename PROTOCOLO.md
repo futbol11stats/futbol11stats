@@ -56,20 +56,34 @@ La web tiene un **código de color con significado**; no se improvisa.
 
 ### Escala de rendimiento — 5 escalones (`src/lib/escala.ts`)
 
-| Escalón | Semántica | Texto | Hex | Fondo |
-|--------:|-----------|-------|-----|-------|
-| 0 | negativo   | `text-red-400`    | `#f87171` | `bg-red-500/20`   |
-| 1 | bajo       | `text-slate-400`  | `#94a3b8` | `bg-slate-500/20` |
-| 2 | medio      | `text-grass-400`  | `#22a050` | `bg-grass-500/20` |
-| 3 | alto       | `text-grass-300`  | `#2dc768` | `bg-grass-400/25` |
-| 4 | muy alto   | `text-green-300`  | `#86efac` | `bg-grass-300/30` |
+| Escalón | Semántica | Texto | Hex | Contraste s/ `pitch-900` | Fondo |
+|--------:|-----------|-------|-----|:-:|-------|
+| 0 | negativo   | `text-red-400`    | `#f87171` | 6,55:1  | `bg-red-400/20`    |
+| 1 | bajo       | `text-slate-400`  | `#94a3b8` | 7,07:1  | `bg-slate-400/20`  |
+| 2 | medio      | `text-grass-400`  | `#22a050` | 5,36:1  | `bg-grass-400/20`  |
+| 3 | alto       | `text-grass-200`  | `#2ee56b` | 10,82:1 | `bg-grass-200/25`  |
+| 4 | muy alto   | `text-grass-100`  | `#8cf0a2` | 13,04:1 | `bg-grass-100/30`  |
 
 - **Un único rojo** (escalón 0 = negativo). El azul-pizarra frío (`slate-400`) es el «bajo», neutro y
   apagado, para no competir con el azul de las pastillas de competición.
-- La rampa de **texto** se distingue por **tono, no por legibilidad**: los cinco tonos superan **4,5:1**
-  de contraste sobre `pitch-900` (`#0a1628`). Un valor medio se lee igual de cómodo que uno alto.
+- **Rampa verde progresiva.** Usa `grass-400` + los dos tonos nuevos `grass-200` (`#2ee56b`) y `grass-100`
+  (`#8cf0a2`). Se **salta `grass-300`** a propósito: quedaba casi idéntico a `grass-400` y un 2 y un 3 no
+  se distinguían en una barra de 24px. **No se tocan `grass-300/400/500`** (siguen en uso en el resto del
+  sitio); `grass-300` sigue siendo color del sistema, solo que la escala ya no lo usa.
+- Los cinco tonos de **texto** superan **4,5:1** de contraste sobre `pitch-900` (`#0a1628`); el más
+  ajustado es el escalón 2 (5,36:1).
+- El **escalón 0 es solo para valores negativos** (`valor < 0`). Un 0 real (p. ej. 0 puntos en un partido)
+  cae en el escalón 1, nunca en rojo.
 - Los mapas de clases son **literales completas**: el JIT de Tailwind purga cualquier clase construida
   por concatenación (`text-${x}`), así que nunca se ensamblan a trozos.
+
+### Percentiles vs. umbrales fijos
+
+**Los percentiles (por categoría y temporada) solo se aplican a métricas continuas:** la **media de
+puntos** y el **ELO**. Los **puntos de un partido** usan **umbrales fijos** (`CORTES_FIJOS.puntosPartido`),
+porque son enteros pequeños y su distribución no admite cinco escalones separados: los percentiles reales
+salen empatados (p. ej. P20=1, P40=1, P60=2, P80=4) y producirían una rampa degenerada. Antes de pintar con
+cortes venidos del pipeline, validar con `cortesValidos()` y, si son degenerados, caer a `CORTES_FIJOS`.
 
 ### El ámbar está reservado
 
