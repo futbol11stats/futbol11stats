@@ -167,3 +167,39 @@ Lista de dudas de diseño/dominio resueltas por mi cuenta para no parar. Formato
 - **Elegí:** mapear los códigos crudos (`CICLO_COMPLETADO`, `EN_CICLO`, `SANCIONADO`, ...) a texto humano y
   no decir "completado" con 2/5 amarillas. Si `amarillas_ciclo < ciclo_umbral` es "en ciclo (N de M)";
   "completado"/"sanción" solo cuando corresponde.
+
+---
+
+# Corrección de criterio: maqueta = estructura; sitio = componentes
+
+Las maquetas eran bocetos con placeholders (círculos con iniciales, pastillas simuladas). Donde la maqueta
+dibujaba un placeholder de algo que YA existe como componente del sitio, se usa el componente real.
+
+## D16 REVERTIDA · Trayectoria vuelve
+- Antes la quité porque la maqueta no la tenía. La maqueta era incompleta; la ficha actual sí la lleva.
+- Ahora: sección Trayectoria con el componente real `@/components/ficha/Trayectoria` (acordeón por etapa).
+  Al desplegar una etapa muestra TODOS sus partidos (liga y copa), lo que resuelve el "solo liga".
+- Marcada «Todas las temporadas»: no se filtra por el selector de competición del ámbito (es multi-temporada,
+  como en la ficha actual). Si se quisiera filtrar, habría que gatear cada etapa por codgrupo.
+
+## D24 · Rankings de Nivel: 3 ámbitos, no 4
+- El punto pedía cuatro (Madrid, competición, categoría, posición). `web_jugador` solo expone tres rangos:
+  `rank_general` (Fútbol11Stats/Madrid), `rank_categoria` (competición/categoría — un único campo) y
+  `rank_posicion`. No hay rango por "grupo" ni separación competición/categoría.
+- Elegí: tres filas (Fútbol11Stats·Madrid / Competición / Posición), cada una con número + barra de percentil
+  + el icono del sitio (badge 11, Sello, Pastilla). Percentil = floor((1 − rank/total)·100), tope 99.
+- Cambio: si el pipeline exporta `rank_grupo` o separa competición/categoría, añadir esas filas.
+
+## D25 · Scroll-spy con dos columnas
+- Problema: el aside (Nivel/Totales/Compañeros) es sticky y siempre visible; un IntersectionObserver oscilaba
+  entre una sección del aside y otra del main.
+- Solución: scroll-spy determinista por posición (última sección cuyo top ya pasó la línea de disparo, en
+  orden de DOM) y, en desktop, se IGNORAN las secciones del aside (marcadas `aside:true`) para el cálculo del
+  activo, ya que están siempre a la vista. El array de secciones va en orden de aparición del DOM.
+
+## D26 · Componentes deliberadamente NO reutilizados (rediseño de la maqueta, no placeholders)
+- `Medidores` → sustituido por la caja "Nivel" de la maqueta (ELO + percentil + batería + rankings).
+- `Hitos` (componente) → timeline inline de la maqueta.
+- `FormaHero` → chips de racha inline de la maqueta.
+- `AvisoDato` → pie con botones "Compartir ficha / Corregir datos" de la maqueta.
+- Si se prefieren los componentes, son sustituciones directas.
