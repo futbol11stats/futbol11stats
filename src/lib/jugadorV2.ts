@@ -68,6 +68,27 @@ export async function getAlertaActual(cod: string): Promise<AlertaRow | null> {
   return ((data && data[0]) as AlertaRow) || null
 }
 
+// Texto humano de la alerta disciplinaria. NUNCA muestra el código crudo (CICLO_COMPLETADO…) ni dice
+// "completado" con un ciclo a medias: prioriza el conteo real del ciclo vigente. Ver DECISIONES (D23).
+export function alertaHumana(a: AlertaRow | null): string | null {
+  if (!a) return null
+  const um = a.ciclo_umbral ?? 5
+  const ac = a.amarillas_ciclo ?? 0
+  if (ac > 0 && ac < um) return `<b>En ciclo</b> — ${ac} de ${um} amarillas.${ac === um - 1 ? ' Una más y cumple sanción.' : ''}`
+  if (ac >= um && um > 0) return `<b>Ciclo completado</b> — ${ac} amarillas: sanción por acumulación.`
+  if ((a.rojas_directas ?? 0) > 0) return `<b>Sancionado</b> — roja directa.`
+  if ((a.dobles_amarillas ?? 0) > 0) return `<b>Sancionado</b> — doble amarilla.`
+  if (a.estado === 'SANCIONADO') return `<b>Sancionado</b>`
+  return null
+}
+
+// ¿El jugador tiene algún partido con goles_encajados no nulo? (para decidir si mostrar "P. a 0").
+export async function tienePorteriaDato(cod: string): Promise<boolean> {
+  const { data } = await supabase.from('web_jugador_partidos').select('id')
+    .eq('codjugador', cod).not('goles_encajados', 'is', null).limit(1)
+  return !!(data && data.length)
+}
+
 // Cortes de percentil (métrica/categoría/temporada). Devuelve la 4-tupla o null si no hay fila.
 export async function getPercentilCortes(
   metrica: string, categoria: string | null, codtempInt: number | null
@@ -109,6 +130,22 @@ export type JornadaDatum = {
 }
 export type CompAmbito = { codgrupo: string; nombre_comp: string; jornadas: JornadaDatum[] }
 
+// Resultados del grupo con escudos y nombres (para pintar el rival también en jornadas NO jugadas).
+// web_resultados no trae codequipo -> se filtra por nombre (local o visitante), como en @/lib/equipo.
+type ResRich = { jornada: number; gl: number | null; gv: number | null; nl: string; nv: string; el: string | null; ev: string | null }
+async function resultadosGrupoRich(nombre: string | null, codgrupo: string): Promise<ResRich[]> {
+  if (!nombre) return []
+  const cols = 'jornada, goles_local, goles_visitante, nombre_local, nombre_visitante, escudo_local, escudo_visitante'
+  const [loc, vis] = await Promise.all([
+    supabase.from('web_resultados').select(cols).eq('codgrupo', codgrupo).eq('nombre_local', nombre),
+    supabase.from('web_resultados').select(cols).eq('codgrupo', codgrupo).eq('nombre_visitante', nombre),
+  ])
+  return [...((loc.data || []) as any[]), ...((vis.data || []) as any[])].map((r) => ({
+    jornada: r.jornada, gl: r.goles_local, gv: r.goles_visitante, nl: r.nombre_local, nv: r.nombre_visitante,
+    el: r.escudo_local, ev: r.escudo_visitante,
+  }))
+}
+
 // Cruza partidos jugados con las jornadas reales del equipo (web_resultados) para materializar las
 // AUSENCIAS: una jornada que el equipo jugó y el jugador no aparece -> {tipo:'no_jugo'}. Sin este cruce,
 // una lesión larga sería invisible. Ver DECISIONES-PENDIENTES.md (D3).
@@ -128,16 +165,29 @@ export async function getAmbitoTemporada(cod: string, codtemp: string): Promise<
   for (const [codgrupo, ps] of Array.from(porGrupo.entries())) {
     const nombreEquipo: string | null = ps[0]?.equipo_nombre ?? null
     const nombreComp: string = ps[0]?.competicion ?? 'Competición'
-    // Jornadas reales del equipo en ese grupo (para las ausencias).
-    const teamRows = await getResultadosGrupo(nombreEquipo, codgrupo)
-    const jornadasEquipo = new Set<number>(teamRows.filter((r) => r.goles_local != null).map((r) => r.jornada))
+    // Jornadas reales del equipo en ese grupo (para las ausencias), con rival/escudo/resultado.
+    const teamRows = await resultadosGrupoRich(nombreEquipo, codgrupo)
+    const teamPorJornada = new Map<number, ResRich>()
+    for (const r of teamRows) if (r.gl != null) teamPorJornada.set(r.jornada, r)
+    const jornadasEquipo = new Set<number>(Array.from(teamPorJornada.keys()))
     const jugadas = new Map<number, any>()
     for (const p of ps) jugadas.set(p.jornada, p)
     Array.from(jugadas.keys()).forEach((j) => jornadasEquipo.add(j)) // por si el equipo aún no está en web_resultados
 
     const jornadas: JornadaDatum[] = Array.from(jornadasEquipo).sort((a, b) => a - b).map((jornada) => {
       const p = jugadas.get(jornada)
-      if (!p) return { jornada, estado: { tipo: 'no_jugo' } }
+      if (!p) {
+        // Ausencia: rival y resultado desde los resultados del equipo (perspectiva del equipo).
+        const r = teamPorJornada.get(jornada)
+        if (!r) return { jornada, estado: { tipo: 'no_jugo' } }
+        const local = r.nl === nombreEquipo
+        const gf = (local ? r.gl : r.gv) ?? 0, gc = (local ? r.gv : r.gl) ?? 0
+        return {
+          jornada, estado: { tipo: 'no_jugo' },
+          rivalNombre: local ? r.nv : r.nl, rivalEscudo: local ? r.ev : r.el,
+          resultado: `${gf}-${gc} ${gf > gc ? 'G' : gf < gc ? 'P' : 'E'}`, esLocal: local,
+        }
+      }
       const rol = derivarRol(!!p.titular, p.minutos ?? 0, p.rojas ?? 0, p.dobles_amarilla ?? 0)
       return {
         jornada,

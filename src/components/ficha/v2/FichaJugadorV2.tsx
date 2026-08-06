@@ -1,350 +1,396 @@
+import './ficha.css'
+import type { ReactNode } from 'react'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { supabase, escudoUrl } from '@/lib/supabase'
 import EscudoImg from '@/components/EscudoImg'
-import NombreEquipo from '@/components/NombreEquipo'
 import Sello from '@/components/Sello'
-import Pastilla from '@/components/Pastilla'
-import LigaPastilla from '@/components/LigaPastilla'
-import CopasLinea from '@/components/CopasLinea'
-import SectionNav from '@/components/ui/SectionNav'
-import KpiBar from '@/components/ui/KpiBar'
 import CompartirBtn from '@/components/ficha/v2/CompartirBtn'
-import AmbitoJornadas from '@/components/ficha/v2/AmbitoJornadas'
-import Forma from '@/components/ficha/v2/Forma'
-import Analisis from '@/components/ficha/v2/Analisis'
-import Nivel from '@/components/ficha/v2/Nivel'
-import Totales from '@/components/ficha/v2/Totales'
-import Temporadas from '@/components/ficha/v2/Temporadas'
-import ListaPartidos, { type PartidoLite } from '@/components/ficha/v2/ListaPartidos'
-import Trayectoria from '@/components/ficha/Trayectoria'
-import Hitos from '@/components/ficha/Hitos'
+import NavSpy from '@/components/ficha/v2/NavSpy'
+import CompChips from '@/components/ficha/v2/CompChips'
+import Echo from '@/components/ficha/v2/Echo'
+import Jornadas from '@/components/ficha/v2/Jornadas'
+import {
+  Balon, Reloj, Escudo, Estrella, CamisetaHueca, TarjetaAmarilla, TarjetaRoja, Guante,
+} from '@/components/iconos'
 import { getEquipoActualInfo } from '@/lib/equipo'
-import { formatNombre, tempLabel, jugadorSlug, jugadorHref, golesRival, curarHitos, LIVE_COD, POS_LABEL, type CompaneroTop } from '@/lib/jugador'
-import { PALETA_TEXTO, escalon, CORTES_FIJOS } from '@/lib/escala'
+import {
+  formatNombre, tempLabel, jugadorSlug, jugadorHref, curarHitos, HITO_CONFIG, fechaCorta,
+  marcadorLocalVisitante, LIVE_COD, type HitoRow, type CompaneroTop,
+} from '@/lib/jugador'
+import { CORTES_FIJOS } from '@/lib/escala'
 import {
   getJugadorV2, getCarreraV2, getAlertaActual, getAmbitoTemporada, getCortesElo, labelToCod,
   getPartidosTemporada, ventanasForma, racha5DePartidos, splitCasaFuera, balanceEquipo,
-  getActuacionesV2, getHitosV2, ultimosDePartidos,
+  getActuacionesV2, getHitosV2, alertaHumana, tienePorteriaDato,
   type CarreraRow,
 } from '@/lib/jugadorV2'
 
-const num = (n: number | null | undefined) => (n ?? 0).toLocaleString('es-ES')
-const iniciales = (nombre: string) => {
-  const w = nombre.split(/\s+/).filter(Boolean)
-  return (w.length ? (w[0][0] + (w[1]?.[0] ?? w[0][1] ?? '')) : '?').toUpperCase()
-}
-const AVATAR_POS: Record<string, string> = {
-  POR: 'from-orange-500/45 ring-orange-500/60', DEF: 'from-blue-500/45 ring-blue-500/60',
-  MED: 'from-grass-500/45 ring-grass-400/60', DEL: 'from-red-500/45 ring-red-500/60',
-}
-
-// Color de rendimiento (clase de texto) para un valor con sus cortes; '' si no hay valor.
-function claseNivel(valor: number | null | undefined, cortes: readonly [number, number, number, number]): string {
-  return valor == null ? 'text-chalk-100' : PALETA_TEXTO[escalon(valor, cortes)]
-}
+const PAL = ['#f87171', '#94a3b8', '#22a050', '#2ee56b', '#8cf0a2']
+function esc(v: number, c: readonly [number, number, number, number]) { if (v < 0) return 0; let n = 1; for (let i = 0; i < 4; i++) if (v >= c[i]) n = i + 1; return n }
+const mil = (n: number | null | undefined) => (n == null ? '—' : Number(n).toLocaleString('es-ES'))
+const med1 = (v: number) => v.toFixed(1).replace('.', ',')
 
 export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: string; temporadaLabel: string | null }) {
   const [j, carrera] = await Promise.all([getJugadorV2(cod), getCarreraV2(cod)])
   if (!j) notFound()
 
+  const rawNombre = j.nombre || ''
+  const apellidos = (rawNombre.split(',')[0] || '').trim().toUpperCase()
+  const pila = ((rawNombre.split(',')[1] || '').trim() || apellidos).toUpperCase()
   const nombre = formatNombre(j.nombre)
+  const ini = ((pila[0] || '') + (apellidos[0] || '')).toUpperCase()
   const slug = jugadorSlug(j.codjugador, j.nombre)
-  const portero = !!j.es_portero
   const inactivo = Number(j.codtemporada_ultima) < Number(LIVE_COD)
 
-  // Temporada seleccionada: la del parámetro (si es válida y el jugador la tiene) o la más reciente.
-  const temporadasJugador = Array.from(new Set(carrera.map((c) => c.codtemporada)))
+  const temporadas = Array.from(new Set(carrera.map((c) => c.codtemporada)))
   const codPedido = labelToCod(temporadaLabel)
-  const tempSel = (codPedido && temporadasJugador.includes(codPedido)) ? codPedido : (carrera[0]?.codtemporada ?? null)
+  const tempSel = (codPedido && temporadas.includes(codPedido)) ? codPedido : (carrera[0]?.codtemporada ?? null)
   const etapas = carrera.filter((c) => c.codtemporada === tempSel)
   const etapaPrincipal: CarreraRow | undefined = etapas[0]
   const categoriaSel = etapaPrincipal?.nombre_comp ?? j.categoria_rama ?? null
 
-  // Agregados de la temporada seleccionada (suma de etapas). Media = pts fantasy / PJ.
   const sum = (f: (c: CarreraRow) => number | null) => etapas.reduce((s, c) => s + (f(c) ?? 0), 0)
-  const pj = sum((c) => c.pj), golesT = sum((c) => c.goles), ptsF = sum((c) => c.pts_fantasy), minT = sum((c) => c.minutos)
+  const pj = sum((c) => c.pj), golesT = sum((c) => c.goles), ptsF = sum((c) => c.pts_fantasy)
   const media = pj > 0 ? ptsF / pj : null
   const eloSel = etapaPrincipal?.elo_final ?? j.elo_actual ?? null
 
-  const [equipoInfo, cortesElo, alerta, comps, partidosTemp] = await Promise.all([
+  const [equipoInfo, cortesElo, alerta, comps, partidosTemp, actuaciones, hitosRaw, hayP0] = await Promise.all([
     inactivo ? Promise.resolve({ copas: [], posicionActual: null }) : getEquipoActualInfo(j.codequipo_actual),
     getCortesElo(categoriaSel, tempSel ? Number(tempSel) : null),
     getAlertaActual(cod),
     tempSel ? getAmbitoTemporada(cod, tempSel) : Promise.resolve([]),
     tempSel ? getPartidosTemporada(cod, tempSel) : Promise.resolve([] as any[]),
+    getActuacionesV2(cod),
+    getHitosV2(cod),
+    tienePorteriaDato(cod),
   ])
-  const { copas, posicionActual } = equipoInfo
 
-  const [actuaciones, hitosRaw] = await Promise.all([getActuacionesV2(cod), getHitosV2(cod)])
-  const { curados, todos } = curarHitos(hitosRaw)
-  const companeros = (j.companeros_top || []).slice(0, 5)
+  const cMed = (v: number | null) => (v == null ? '' : PAL[esc(v, CORTES_FIJOS.mediaPartido)])
+  const cElo = (v: number | null) => (v == null ? '' : PAL[esc(v, cortesElo)])
+  const cPts = (v: number) => PAL[esc(v, CORTES_FIJOS.puntosPartido)]
 
-  // Forma, casa/fuera y balance del equipo (con/sin él) sobre los partidos de la temporada seleccionada.
   const ventanas = ventanasForma(partidosTemp)
   const racha = racha5DePartidos(partidosTemp)
   const split = splitCasaFuera(partidosTemp)
   const balance = await balanceEquipo(partidosTemp)
-  const ultimos = ultimosDePartidos(partidosTemp)
+  const { curados } = curarHitos(hitosRaw)
+  const companeros = (j.companeros_top || []).slice(0, 5)
+  const compNames = comps.map((c) => c.nombre_comp)
+  const ligaCod = comps[0]?.codgrupo
 
-  const filasActuaciones: PartidoLite[] = actuaciones.map((a: any) => ({
-    escudo: a.escudo, equipoNombre: a.equipo_nombre, rivalCod: a.rival_cod, rivalNombre: a.rival_nombre,
-    resultado: a.resultado, fecha: a.fecha, goles: a.goles, pts: Math.round(a.pts),
-    gc: portero ? golesRival(a.resultado) : null, esLocal: a.es_local ?? null,
-  }))
-  const filasUltimos: PartidoLite[] = ultimos.map((p: any) => ({
-    escudo: p.escudo, equipoNombre: p.equipo_nombre, rivalCod: p.rival_cod, rivalNombre: p.rival_nombre,
-    resultado: p.resultado, fecha: p.fecha, goles: p.goles, pts: p.puntos,
-    gc: p.goles_encajados ?? null, esLocal: p.es_local ?? null,
-  }))
+  // Percentil: floor (rank 358/38.173 -> 99, no 100). Batería: min(10, round(pct/10)).
+  const pct = j.elo_percentil != null ? Math.floor(j.elo_percentil) : null
+  const llenos = pct != null ? Math.min(10, Math.round(pct / 10)) : 0
+  const eloBig = j.elo_actual ?? eloSel
 
-  // Totales de carrera: amarillas/rojas no están en web_jugador -> se suman de la carrera.
-  const amarillasTotal = carrera.reduce((s, c) => s + (c.tarjetas_amarillas ?? 0), 0)
-  const rojasTotal = carrera.reduce((s, c) => s + (c.tarjetas_rojas ?? 0), 0)
   const dorsalesOtros = (j.dorsales_otros || []).filter((d) => d !== j.dorsal_ultimo && d !== j.dorsal_comun)
-  const hayNivel = j.elo_actual != null || !!j.rank_general || !!j.rank_categoria || !!j.rank_posicion
+  const amarillasTot = carrera.reduce((s, c) => s + (c.tarjetas_amarillas ?? 0), 0)
+  const rojasTot = carrera.reduce((s, c) => s + (c.tarjetas_rojas ?? 0), 0)
 
-  // Nombre en dos líneas: pila pequeño arriba, apellidos grandes.
-  const partes = nombre.split(/\s+/)
-  const pila = partes[0] ?? ''
-  const apellidos = partes.slice(1).join(' ') || pila
+  const cuentaTemp = new Map<string, number>()
+  for (const c of carrera) cuentaTemp.set(c.codtemporada, (cuentaTemp.get(c.codtemporada) ?? 0) + 1)
 
-  // Secciones presentes (para la barra de anclas).
+  const tempTxt = tempSel ? tempLabel(tempSel) : ''
+  const alertaTxt = alertaHumana(alerta)
+
   const secciones = [
-    comps.length > 0 ? { id: 'jornadas', label: 'Por jornada' } : null,
-    partidosTemp.length > 0 ? { id: 'forma', label: 'Forma' } : null,
-    partidosTemp.length > 0 ? { id: 'analisis', label: 'Análisis' } : null,
-    hayNivel ? { id: 'nivel', label: 'Nivel' } : null,
-    carrera.length > 0 ? { id: 'totales', label: 'Totales' } : null,
-    carrera.length > 0 ? { id: 'temporadas', label: 'Temporadas' } : null,
-    carrera.length > 0 ? { id: 'trayectoria', label: 'Trayectoria' } : null,
-    (filasActuaciones.length > 0 || filasUltimos.length > 0) ? { id: 'partidos', label: 'Partidos' } : null,
-    todos.length > 0 ? { id: 'hitos', label: 'Hitos' } : null,
-    companeros.length > 0 ? { id: 'companeros', label: 'Ha jugado con' } : null,
-  ].filter(Boolean) as { id: string; label: string }[]
+    { id: 's-jornadas', label: 'Jornadas' }, { id: 's-forma', label: 'Forma' }, { id: 's-analisis', label: 'Análisis' },
+    { id: 's-nivel', label: 'Nivel' }, { id: 's-totales', label: 'Totales' }, { id: 's-temporadas', label: 'Temporadas' },
+    { id: 's-partidos', label: 'Partidos' }, { id: 's-hitos', label: 'Hitos' }, { id: 's-mates', label: 'Compañeros' },
+  ]
 
-  // Etiqueta reutilizable para las secciones que NO dependen de la temporada seleccionada.
-  const todasTemp = <span className="ml-1.5 rounded bg-pitch-700 px-1.5 py-0.5 text-chalk-500 normal-case tracking-normal" style={{ fontSize: 'var(--t-micro)' }}>Todas las temporadas</span>
+  // --- helpers de render ---
+  const filaBalance = (t: string, sub: string, o: { pg: number; pe: number; pp: number; pj: number }, hi: boolean) => {
+    const pc = o.pj ? Math.round((o.pg / o.pj) * 100) : 0
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '9px 0', borderTop: '1px solid var(--line-2)' }}>
+        <div style={{ width: 58, flex: 'none' }}>
+          <div className="num" style={{ fontSize: 'var(--t-sm)', color: hi ? 'var(--e4)' : 'var(--ink-3)' }}>{t}</div>
+          <div style={{ fontSize: 'var(--t-micro)', color: 'var(--ink-3)', marginTop: 1 }}>{sub}</div>
+        </div>
+        <div style={{ flex: 1, display: 'flex', height: 20, borderRadius: 5, overflow: 'hidden', gap: 2 }}>
+          {o.pg > 0 && <span style={{ flex: o.pg, background: 'var(--e3)', opacity: hi ? 1 : .45 }} />}
+          {o.pe > 0 && <span style={{ flex: o.pe, background: 'var(--e1)', opacity: hi ? 1 : .45 }} />}
+          {o.pp > 0 && <span style={{ flex: o.pp, background: 'var(--e0)', opacity: hi ? 1 : .45 }} />}
+        </div>
+        <div className="num" style={{ width: 44, textAlign: 'right', fontSize: 'var(--n-md)', color: hi ? 'var(--e3)' : 'var(--ink-3)' }}>{pc}%</div>
+      </div>
+    )
+  }
+
+  const totales: Array<[ReactNode, string, string]> = [
+    [<Escudo size={13} key="i" />, mil(j.pj_total), 'PJ'],
+    [<Reloj size={13} key="i" />, mil(j.minutos_total), 'Min'],
+    [<Balon size={13} key="i" />, mil(j.goles_total), 'Goles'],
+    [<Estrella size={13} key="i" />, mil(j.titular_total), 'Titular'],
+    [<CamisetaHueca size={13} key="i" />, mil(j.suplente_total), 'Supl.'],
+    [<span style={{ color: 'var(--card-y)', display: 'flex' }} key="i"><TarjetaAmarilla size={11} /></span>, mil(amarillasTot), 'TA'],
+    [<span style={{ color: 'var(--card-r)', display: 'flex' }} key="i"><TarjetaRoja size={11} /></span>, mil(rojasTot), 'TR'],
+  ]
+  if (hayP0) totales.push([<Guante size={13} key="i" />, mil(j.porterias_cero_total), 'P. a 0'])
+
+  const RC: Record<string, string> = { G: 'var(--e3)', E: 'var(--ink-3)', P: 'var(--e0)' }
 
   return (
-    <div className="max-w-5xl mx-auto px-4 py-6" style={{ fontSize: 'var(--t-body)' }}>
-
+    <div className="fjv2">
       {/* 1 · HERO */}
-      <section className="flex items-start gap-4">
-        <div className="relative flex-shrink-0">
-          <div className={`w-20 h-20 rounded-2xl flex items-center justify-center font-display font-bold text-white ring-2 ring-inset bg-gradient-to-br to-pitch-800 ${AVATAR_POS[j.posicion_pastilla || ''] || 'from-pitch-600/70 ring-pitch-600'}`}
-            style={{ fontSize: 'var(--n-lg)' }}>
-            {iniciales(nombre)}
+      <div className="hero">
+        <div className="hero-top">
+          <div className="avatar">{ini}{j.dorsal_ultimo != null && <div className="dorsal">{j.dorsal_ultimo}</div>}</div>
+          <div className="hero-name">
+            <div className="first">{pila}</div>
+            <div className="last">{apellidos}</div>
           </div>
-          {j.dorsal_ultimo != null && (
-            <span className="absolute -bottom-2 -right-2 w-8 h-8 rounded-full bg-pitch-900 ring-2 ring-pitch-600 flex items-center justify-center font-display font-bold text-white tabular-nums"
-              style={{ fontSize: 'var(--t-lead)' }}>{j.dorsal_ultimo}</span>
-          )}
+          <CompartirBtn titulo={`${nombre} · Fútbol11Stats`} variant="icon" />
         </div>
-
-        <div className="min-w-0 flex-1">
-          <div className="flex items-start justify-between gap-2">
-            <h1 className="min-w-0 leading-none">
-              <span className="block text-chalk-500" style={{ fontSize: 'var(--t-lead)' }}>{pila}</span>
-              <span className="block font-display font-bold text-white leading-tight" style={{ fontSize: 'var(--n-lg)' }}>{apellidos}</span>
-            </h1>
-            <CompartirBtn titulo={`${nombre} · Fútbol11Stats`} className="flex-shrink-0 mt-1" />
+        <div className="hero-pills">
+          {j.posicion_pastilla && <span className="pill pos">{j.posicion_pastilla}{j.posicion_es_estimada ? ' · est' : ''}</span>}
+          {j.edad != null && <span className="pill n">{j.edad} años</span>}
+          {j.equipo_actual_nombre && <span className="pill n">{j.equipo_actual_nombre.toUpperCase()}</span>}
+          {etapaPrincipal?.nombre_comp && <span className="pill liga">{etapaPrincipal.nombre_comp}{etapaPrincipal.grupo_nombre ? ` · ${etapaPrincipal.grupo_nombre}` : ''}</span>}
+          {comps.filter((c) => c.codgrupo !== ligaCod).map((c) => <span className="pill n" key={c.codgrupo}>{c.nombre_comp.toUpperCase()}</span>)}
+        </div>
+        {alertaTxt && (
+          <div className="alert">
+            <span style={{ color: 'var(--card-y)', display: 'flex' }}><TarjetaAmarilla size={13} /></span>
+            <span dangerouslySetInnerHTML={{ __html: alertaTxt }} />
           </div>
-
-          <div className="mt-2 flex flex-wrap items-center gap-1.5" style={{ fontSize: 'var(--t-cap)' }}>
-            <Pastilla pos={j.posicion_pastilla} estimada={!!j.posicion_es_estimada} />
-            {j.posicion_es_estimada && <span className="text-chalk-600" style={{ fontSize: 'var(--t-micro)' }}>est.</span>}
-            {j.edad != null && <span className="rounded-full bg-pitch-800 px-2 py-0.5 text-chalk-400 tabular-nums">{j.edad} años</span>}
-            {j.equipo_actual_nombre && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-pitch-800 px-2 py-0.5 text-chalk-300">
-                {escudoUrl(j.escudo_actual) && (
-                  <span className="inline-flex items-center justify-center w-4 h-4 bg-white rounded-sm p-px"><EscudoImg escudo={j.escudo_actual} nombre={j.equipo_actual_nombre ?? undefined} /></span>
-                )}
-                <NombreEquipo codequipo={j.codequipo_actual} nombre={j.equipo_actual_nombre} />
-              </span>
-            )}
-          </div>
-
-          {(categoriaSel || copas.length > 0) && (
-            <div className="mt-2 flex flex-wrap items-center gap-2">
-              <LigaPastilla nombreComp={etapaPrincipal?.nombre_comp ?? null}
-                segments={[etapaPrincipal?.nombre_comp ?? null, etapaPrincipal?.grupo_nombre ?? null, inactivo || posicionActual == null ? null : `${posicionActual}º`]}
-                muted={inactivo} />
-              <CopasLinea copas={copas} />
-              {categoriaSel && <Sello nombreComp={categoriaSel} size={20} />}
-            </div>
-          )}
-        </div>
-      </section>
-
-      {/* Franja disciplinaria: solo si hay alerta (ciclo de amarillas o sanción) */}
-      {alerta && alerta.estado && (
-        <div className="mt-4 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 flex items-center gap-2 text-amber-300" style={{ fontSize: 'var(--t-sm)' }}>
-          <span className="font-semibold uppercase tracking-wide" style={{ fontSize: 'var(--t-micro)' }}>{alerta.estado}</span>
-          {alerta.amarillas_ciclo != null && alerta.ciclo_umbral != null && (
-            <span className="text-amber-200/80">{alerta.amarillas_ciclo}/{alerta.ciclo_umbral} amarillas del ciclo</span>
-          )}
-          {(alerta.rojas_directas ?? 0) > 0 && <span className="text-red-300">roja directa</span>}
-        </div>
-      )}
-
-      {/* 2 · KPIs */}
-      <div className="mt-5 rounded-xl border border-pitch-700 bg-pitch-800 py-3">
-        <KpiBar items={[
-          { valor: num(pj), clave: 'PJ' },
-          { valor: num(golesT), clave: portero ? 'P. a 0' : 'Goles' },
-          { valor: num(Math.round(ptsF)), clave: 'Pts Fantasy' },
-          { valor: media != null ? media.toFixed(2) : '—', clave: 'Media', className: claseNivel(media, CORTES_FIJOS.mediaPartido) },
-          { valor: eloSel != null ? String(Math.round(eloSel)) : '—', clave: 'ELO', className: claseNivel(eloSel, cortesElo) },
-        ]} />
+        )}
       </div>
 
-      {/* Barra de anclas */}
-      {secciones.length > 0 && <div className="mt-5"><SectionNav secciones={secciones} /></div>}
+      {/* 2 · KPIs */}
+      <div className="kpis">
+        <div className="kpi"><div className="v num">{mil(pj)}</div><div className="k">PJ</div></div>
+        <div className="kpi"><div className="v num">{mil(golesT)}</div><div className="k">Goles</div></div>
+        <div className="kpi"><div className="v num">{mil(Math.round(ptsF))}</div><div className="k">Pts F.</div></div>
+        <div className="kpi"><div className="v num" style={{ color: cMed(media) }}>{media != null ? med1(media) : '—'}</div><div className="k">Media</div></div>
+        <div className="kpi"><div className="v num" style={{ color: cElo(eloSel) }}>{eloSel != null ? mil(Math.round(eloSel)) : '—'}</div><div className="k">ELO</div></div>
+      </div>
 
-      {/* 3 · Ámbito */}
-      <section className="mt-6">
-        <h2 className="text-[11px] font-semibold uppercase tracking-widest text-chalk-600 mb-2" style={{ fontSize: 'var(--t-micro)' }}>Ámbito</h2>
-        <div className="flex flex-wrap items-center gap-1.5">
-          <span className="text-chalk-600" style={{ fontSize: 'var(--t-micro)' }}>Temporada:</span>
-          {carrera
-            .map((c) => c.codtemporada)
-            .filter((t, i, a) => a.indexOf(t) === i)
-            .map((t) => {
-              const activa = t === tempSel
-              return (
-                <Link key={t} href={`/madrid/jugador/${slug}/${tempLabel(t)}/v2`}
-                  className={`rounded-full px-2.5 py-0.5 tabular-nums transition-colors ${activa ? 'bg-grass-500 text-white' : 'bg-pitch-800 text-chalk-500 hover:text-white'}`}
-                  style={{ fontSize: 'var(--t-sm)' }}>{tempLabel(t)}</Link>
-              )
-            })}
-        </div>
-        <p className="mt-2 text-chalk-600" style={{ fontSize: 'var(--t-micro)' }}>
-          Las secciones marcadas «Todas las temporadas» no dependen de la selección.
-        </p>
-      </section>
+      {/* SCOPE */}
+      <div className="scope">
+        <div className="scope-lbl">Temporada</div>
+        <div className="track"><div className="rail">
+          {temporadas.map((t) => (
+            <Link key={t} href={`/madrid/jugador/${slug}/${tempLabel(t)}/v2`} className={t === tempSel ? 'on' : ''}>{tempLabel(t)}</Link>
+          ))}
+        </div></div>
+        {comps.length > 0 && <>
+          <div className="scope-lbl" style={{ paddingTop: 11 }}>Competición</div>
+          <div className="track"><div className="rail"><CompChips comps={comps.map((c) => ({ label: c.nombre_comp, count: c.jornadas.length }))} /></div></div>
+        </>}
+        <div className="scope-note">Las secciones marcadas «Todas las temporadas» no dependen de esta selección.</div>
+      </div>
 
-      {/* 4 · Puntos por jornada */}
-      {comps.length > 0 && (
-        <section id="jornadas" className="mt-6 scroll-mt-24">
-          <h2 className="flex items-center gap-1.5 font-semibold uppercase tracking-widest text-chalk-600 mb-2" style={{ fontSize: 'var(--t-micro)' }}>
-            Puntos por jornada · <span className="text-chalk-500 normal-case tracking-normal">{tempLabel(tempSel)}</span>
-          </h2>
-          <AmbitoJornadas comps={comps} cortes={CORTES_FIJOS.puntosPartido} />
-        </section>
-      )}
+      {/* NAV */}
+      <NavSpy secciones={secciones} />
 
-      {/* 5 · Forma */}
-      {partidosTemp.length > 0 && (
-        <section id="forma" className="mt-8 scroll-mt-24">
-          <h2 className="font-semibold uppercase tracking-widest text-chalk-600 mb-2" style={{ fontSize: 'var(--t-micro)' }}>Forma · {tempLabel(tempSel)}</h2>
-          <Forma ventanas={ventanas} racha={racha} />
-        </section>
-      )}
-
-      {/* 6 · Análisis */}
-      {partidosTemp.length > 0 && (
-        <section id="analisis" className="mt-8 scroll-mt-24">
-          <h2 className="font-semibold uppercase tracking-widest text-chalk-600 mb-2" style={{ fontSize: 'var(--t-micro)' }}>Análisis · {tempLabel(tempSel)}</h2>
-          <Analisis nombreEquipo={etapaPrincipal?.equipo_nombre ?? j.equipo_actual_nombre ?? null}
-            con={balance.con} sin={balance.sin} suficiente={balance.suficiente}
-            casa={split.casa} fuera={split.fuera} hayLocal={split.hayLocal} />
-        </section>
-      )}
-
-      {/* 7 · Nivel */}
-      {hayNivel && (
-        <section id="nivel" className="mt-8 scroll-mt-24">
-          <h2 className="font-semibold uppercase tracking-widest text-chalk-600 mb-2" style={{ fontSize: 'var(--t-micro)' }}>Nivel</h2>
-          <Nivel elo={j.elo_actual} percentil={j.elo_percentil} cortesElo={cortesElo}
-            categoria={categoriaSel} posicion={j.posicion_pastilla} estimada={j.posicion_es_estimada}
-            ranks={{
-              general: [j.rank_general, j.rank_general_total],
-              categoria: [j.rank_categoria, j.rank_categoria_total],
-              posicion: [j.rank_posicion, j.rank_posicion_total],
-            }} />
-        </section>
-      )}
-
-      {/* 8 · Totales (todas las temporadas) */}
-      {carrera.length > 0 && (
-        <section id="totales" className="mt-8 scroll-mt-24">
-          <h2 className="flex items-center font-semibold uppercase tracking-widest text-chalk-600 mb-2" style={{ fontSize: 'var(--t-micro)' }}>Totales {todasTemp}</h2>
-          <Totales pj={j.pj_total} minutos={j.minutos_total} goles={j.goles_total} titular={j.titular_total}
-            suplente={j.suplente_total} amarillas={amarillasTotal} rojas={rojasTotal} porteriasCero={j.porterias_cero_total}
-            dorsalUltimo={j.dorsal_ultimo} dorsalComun={j.dorsal_comun} dorsalesOtros={dorsalesOtros} />
-        </section>
-      )}
-
-      {/* 9 · Temporadas (todas las temporadas) */}
-      {carrera.length > 0 && (
-        <section id="temporadas" className="mt-8 scroll-mt-24">
-          <h2 className="flex items-center font-semibold uppercase tracking-widest text-chalk-600 mb-2" style={{ fontSize: 'var(--t-micro)' }}>Temporadas {todasTemp}</h2>
-          <Temporadas carrera={carrera} />
-        </section>
-      )}
-
-      {/* 10 · Trayectoria (todas las temporadas) — reutiliza el acordeón por etapa existente */}
-      {carrera.length > 0 && (
-        <section id="trayectoria" className="mt-8 scroll-mt-24">
-          <h2 className="flex items-center font-semibold uppercase tracking-widest text-chalk-600 mb-2" style={{ fontSize: 'var(--t-micro)' }}>Trayectoria {todasTemp}</h2>
-          <Trayectoria carrera={carrera} portero={portero} codjugador={j.codjugador} />
-        </section>
-      )}
-
-      {/* 11 · Mejores actuaciones y Últimos partidos */}
-      {(filasActuaciones.length > 0 || filasUltimos.length > 0) && (
-        <section id="partidos" className="mt-8 scroll-mt-24 space-y-6">
-          {filasActuaciones.length > 0 && (
-            <div>
-              <h2 className="font-semibold uppercase tracking-widest text-chalk-600 mb-2" style={{ fontSize: 'var(--t-micro)' }}>Mejores actuaciones {todasTemp}</h2>
-              <ListaPartidos rows={filasActuaciones} portero={portero} />
-            </div>
-          )}
-          {filasUltimos.length > 0 && (
-            <div>
-              <h2 className="font-semibold uppercase tracking-widest text-chalk-600 mb-2" style={{ fontSize: 'var(--t-micro)' }}>Últimos partidos · {tempLabel(tempSel)}</h2>
-              <ListaPartidos rows={filasUltimos} portero={portero} />
-            </div>
-          )}
-        </section>
-      )}
-
-      {/* 12 · Hitos — reutiliza la línea temporal existente (edad en ámbar cuando existe) */}
-      {todos.length > 0 && (
-        <section id="hitos" className="mt-8 scroll-mt-24">
-          <h2 className="font-semibold uppercase tracking-widest text-chalk-600 mb-3" style={{ fontSize: 'var(--t-micro)' }}>Hitos</h2>
-          <Hitos curados={curados} todos={todos} portero={portero} />
-        </section>
-      )}
-
-      {/* 13 · Ha jugado con (top 5 por ELO) */}
-      {companeros.length > 0 && (
-        <section id="companeros" className="mt-8 scroll-mt-24">
-          <h2 className="font-semibold uppercase tracking-widest text-chalk-600 mb-2" style={{ fontSize: 'var(--t-micro)' }}>Ha jugado con</h2>
-          <div className="rounded-xl border border-pitch-700 bg-pitch-800">
-            {companeros.map((c: CompaneroTop) => (
-              <div key={c.codjugador} className="flex items-center gap-2 px-3 py-2 border-b border-pitch-700/50 last:border-0">
-                <span className="inline-flex items-center justify-center w-6 h-6 bg-white rounded-sm flex-shrink-0 p-px">
-                  <EscudoImg escudo={c.escudo_actual} nombre={c.equipo_actual ?? undefined} />
-                </span>
-                <Link href={jugadorHref(c.codjugador, c.nombre)} className="flex-1 min-w-0 truncate font-display uppercase text-white hover:text-grass-300 transition-colors" style={{ fontSize: 'var(--t-sm)' }}>{formatNombre(c.nombre)}</Link>
-                <Pastilla pos={c.posicion_pastilla} estimada={c.posicion_es_estimada} size="mini" />
-                <span className="flex-shrink-0 w-9 text-right text-chalk-500 tabular-nums" style={{ fontSize: 'var(--t-cap)' }}>{c.elo != null ? Math.round(c.elo) : ''}</span>
+      <div className="layout">
+        <div className="aside">
+          {/* NIVEL */}
+          <section id="s-nivel">
+            <div className="s-head"><div className="s-title">Nivel</div><div className="s-sub"><Echo temporada={tempTxt} comps={compNames} /></div></div>
+            <div className="box">
+              <div className="elo-top">
+                <div><div className="cap">ELO F11S</div><div className="elo-v" style={{ color: cElo(eloBig) }}>{eloBig != null ? mil(Math.round(eloBig)) : '—'}</div></div>
+                <div style={{ textAlign: 'right' }}><div className="cap">Percentil</div><div className="elo-v" style={{ color: cElo(eloBig) }}>{pct != null ? pct : '—'}</div></div>
               </div>
-            ))}
-          </div>
-        </section>
-      )}
+              <div className="batt">{Array.from({ length: 10 }).map((_, i) => <i key={i} style={i < llenos ? { background: cElo(eloBig) } : undefined} />)}</div>
+              {pct != null && <div className="batt-lbl">Mejor que el <b>{pct} %</b> de los jugadores de su categoría</div>}
+              <div className="ranks">
+                <div className="rk"><div className="r-v">{j.rank_categoria ? `${j.rank_categoria}º` : '—'}</div><div className="r-k">Categoría</div></div>
+                <div className="rk"><div className="r-v">{j.rank_posicion ? `${j.rank_posicion}º` : '—'}</div><div className="r-k">Posición</div></div>
+                <div className="rk"><div className="r-v">{j.rank_general ? `${mil(j.rank_general)}º` : '—'}</div><div className="r-k">Madrid</div></div>
+              </div>
+            </div>
+          </section>
 
-      {/* 14 · Pie */}
-      <footer className="mt-12 pt-5 border-t border-pitch-700/60 flex items-center justify-between text-chalk-600" style={{ fontSize: 'var(--t-cap)' }}>
-        <CompartirBtn titulo={`${nombre} · Fútbol11Stats`} label="Compartir" />
-        <a href={`mailto:futbol11stats@gmail.com?subject=${encodeURIComponent(`Corrección en la ficha de ${nombre}`)}`}
-          className="hover:text-white transition-colors">Corregir datos</a>
-      </footer>
+          {/* TOTALES */}
+          <section id="s-totales">
+            <div className="s-head"><div className="s-title">Totales</div><div className="s-sub"><span className="allscope">Todas las temporadas</span></div></div>
+            <div className="totales">
+              {totales.map(([ic, v, k], i) => (
+                <div className="tot" key={i}><div className="t-i">{ic}</div><div className="t-v">{v}</div><div className="t-k">{k}</div></div>
+              ))}
+            </div>
+            <div style={{ padding: '10px var(--pad) 0', fontSize: 'var(--t-cap)', color: 'var(--ink-3)', lineHeight: 1.5 }}>
+              <b style={{ color: 'var(--ink-2)' }}>Dorsal</b>
+              {j.dorsal_ultimo != null && <> · último <b style={{ color: 'var(--ink-2)' }}>{j.dorsal_ultimo}</b></>}
+              {j.dorsal_comun != null && <> · habitual <b style={{ color: 'var(--ink-2)' }}>{j.dorsal_comun}</b></>}
+              {dorsalesOtros.length > 0 && <> · otros {dorsalesOtros.join(', ')}</>}
+            </div>
+          </section>
 
-      <p className="sr-only">{POS_LABEL[j.posicion_pastilla || ''] || ''}</p>
+          {/* COMPAÑEROS */}
+          {companeros.length > 0 && (
+            <section id="s-mates">
+              <div className="s-head"><div className="s-title">Ha jugado con</div><div className="s-sub">top 5 por ELO</div></div>
+              <div className="track"><div className="rail">
+                {companeros.map((c: CompaneroTop) => {
+                  const nm = formatNombre(c.nombre)
+                  const mi = nm.split(/\s+/).map((w) => w[0]).slice(0, 2).join('').toUpperCase()
+                  return (
+                    <Link key={c.codjugador} href={jugadorHref(c.codjugador, c.nombre)} className="mate">
+                      <div className="m-av">{c.escudo_actual ? <EscudoImg escudo={c.escudo_actual} nombre={c.equipo_actual ?? undefined} /> : mi}</div>
+                      <div className="m-n">{nm}</div>
+                      <div className="m-e" style={{ color: cElo(c.elo ?? null) }}>ELO {c.elo != null ? mil(Math.round(c.elo)) : '—'}</div>
+                    </Link>
+                  )
+                })}
+              </div></div>
+            </section>
+          )}
+        </div>
+
+        <div className="main">
+          {/* JORNADAS */}
+          <section id="s-jornadas">
+            <div className="s-head"><div className="s-title">Puntos por jornada</div><div className="s-sub"><Echo temporada={tempTxt} comps={compNames} /></div></div>
+            {comps.length > 0
+              ? <Jornadas comps={comps} cortes={CORTES_FIJOS.puntosPartido} />
+              : <p style={{ padding: '0 var(--pad)', color: 'var(--ink-3)', fontSize: 'var(--t-sm)' }}>Sin partidos en esta temporada.</p>}
+          </section>
+
+          {/* FORMA */}
+          <section id="s-forma">
+            <div className="s-head"><div className="s-title">Forma</div><div className="s-sub">media de puntos por partido</div></div>
+            <div className="windows">
+              {ventanas.map((v) => {
+                const d = v.delta
+                const ds = d == null ? '—' : `${d > 0 ? '+' : ''}${med1(d)}`
+                return (
+                  <div className="win" key={v.label}>
+                    <div className="w-k">{v.label}</div>
+                    <div className="w-v" style={{ color: cMed(v.media) }}>{v.media != null ? med1(v.media) : '—'}</div>
+                    <div className="w-s">{ds}</div>
+                  </div>
+                )
+              })}
+            </div>
+            <div style={{ padding: '12px var(--pad) 2px', display: 'flex', gap: 5, alignItems: 'center' }}>
+              <span style={{ fontSize: 'var(--t-cap)', color: 'var(--ink-3)', marginRight: 5 }}>Racha</span>
+              {racha.map((r, i) => (
+                <span key={i} className="num" style={{ width: 22, height: 22, borderRadius: 6, display: 'grid', placeItems: 'center', fontSize: 'var(--t-sm)', color: '#0a1628', background: RC[r.signo] }}>{r.signo}</span>
+              ))}
+            </div>
+          </section>
+
+          {/* ANÁLISIS */}
+          <section id="s-analisis">
+            <div className="s-head"><div className="s-title">Análisis</div><div className="s-sub"><Echo temporada={tempTxt} comps={compNames} /></div></div>
+            <div className="box">
+              <div className="cap" style={{ marginBottom: 5 }}>Balance del equipo</div>
+              {filaBalance('Con él', `${balance.con.pj} partidos`, balance.con, true)}
+              {filaBalance('Sin él', `${balance.sin.pj} partidos`, balance.sin, false)}
+              <div style={balance.suficiente
+                ? { marginTop: 11, padding: '9px 11px', borderRadius: 8, fontSize: 'var(--t-sm)', lineHeight: 1.5, background: 'rgba(46,229,107,.09)', border: '1px solid rgba(46,229,107,.24)', color: '#b7f5cb' }
+                : { marginTop: 11, padding: '9px 11px', borderRadius: 8, fontSize: 'var(--t-sm)', lineHeight: 1.5, background: 'rgba(255,255,255,.04)', border: '1px solid var(--line)', color: 'var(--ink-3)' }}>
+                {balance.suficiente
+                  ? <>El equipo gana el <b>{balance.con.pj ? Math.round(balance.con.pg / balance.con.pj * 100) : 0} %</b> con él y el <b>{balance.sin.pj ? Math.round(balance.sin.pg / balance.sin.pj * 100) : 0} %</b> sin él.</>
+                  : <>Muestra insuficiente (con él <b style={{ color: 'var(--ink-2)' }}>{balance.con.pj}</b> · sin él <b style={{ color: 'var(--ink-2)' }}>{balance.sin.pj}</b>; hacen falta 8 por lado). Este bloque no se publicaría.</>}
+              </div>
+              <div style={{ marginTop: 8, fontSize: 'var(--t-cap)', color: 'var(--ink-3)', lineHeight: 1.5 }}>
+                Balance del equipo, no medida de impacto. Solo se publica con 8 partidos o más en cada lado.
+              </div>
+            </div>
+            {split.hayLocal && (
+              <div className="windows" style={{ gridTemplateColumns: '1fr 1fr' }}>
+                {([['Casa', split.casa], ['Fuera', split.fuera]] as const).map(([k, s]) => (
+                  <div className="win" key={k}>
+                    <div className="w-k">{k}</div>
+                    <div className="w-v" style={{ color: cMed(s.media) }}>{s.media != null ? med1(s.media) : '—'}</div>
+                    <div className="w-s">{s.pj} PJ · {s.goles} goles</div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+
+          {/* TEMPORADAS */}
+          <section id="s-temporadas">
+            <div className="s-head"><div className="s-title">Temporadas</div><div className="s-sub"><span className="allscope">Todas las temporadas</span></div></div>
+            <div className="track"><div className="rail" id="seasons">
+              {carrera.map((c, i) => {
+                const compartida = (cuentaTemp.get(c.codtemporada) ?? 0) > 1
+                return (
+                  <div className="season" key={`${c.codtemporada}-${c.codequipo}-${i}`}>
+                    <div className="accent" style={{ background: cMed(c.media_fantasy) || 'var(--line)' }} />
+                    {compartida && <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'var(--amber)', opacity: .7 }} />}
+                    <div className="s-top">
+                      <div className="s-crest">{c.escudo ? <EscudoImg escudo={c.escudo} nombre={c.equipo_nombre ?? undefined} /> : null}</div>
+                      <div className="s-yr">{tempLabel(c.codtemporada)}</div>
+                    </div>
+                    <div className="s-cat">
+                      <span className="pill n" style={{ maxWidth: '100%', overflow: 'hidden' }}>
+                        {c.nombre_comp ? <Sello nombreComp={c.nombre_comp} size={14} /> : null}
+                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.nombre_comp}{c.grupo_nombre ? ` · ${c.grupo_nombre}` : ''}</span>
+                      </span>
+                    </div>
+                    <div className="s-duo">
+                      <div><div className="d-v" style={{ color: cMed(c.media_fantasy) }}>{c.media_fantasy != null ? med1(c.media_fantasy) : '—'}</div><div className="d-k">MEDIA</div></div>
+                      <div><div className="d-v" style={{ color: cElo(c.elo_final) }}>{c.elo_final != null ? mil(Math.round(c.elo_final)) : '—'}</div><div className="d-k">ELO</div></div>
+                    </div>
+                    <div className="s-stats">
+                      <div><b>{mil(c.pj)}</b>PJ</div><div><b>{mil(c.minutos)}</b>MIN</div><div><b>{mil(c.goles)}</b>GOLES</div>
+                    </div>
+                  </div>
+                )
+              })}
+            </div></div>
+          </section>
+
+          {/* MEJORES ACTUACIONES */}
+          <section id="s-partidos">
+            <div className="s-head"><div className="s-title">Mejores actuaciones</div><div className="s-sub"><span className="allscope">Todas las temporadas</span></div></div>
+            <div>
+              {actuaciones.slice(0, 3).map((a: any, i: number) => {
+                const { marcador, signo } = marcadorLocalVisitante(a.resultado, a.es_local)
+                const col = signo === 'G' ? 'var(--e3)' : signo === 'E' ? 'var(--ink-2)' : 'var(--e0)'
+                const g = a.goles ?? 0
+                return (
+                  <div className="match" key={i}>
+                    <div className="m-score" style={{ color: col }}>{marcador}</div>
+                    <div className="m-mid">
+                      <div className="m-riv">{a.rival_nombre}</div>
+                      <div className="m-meta">
+                        <span>{fechaCorta(a.fecha)}</span>
+                        {g > 0 && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 2, color: 'var(--e4)' }}><Balon size={12} />{g > 1 ? `×${g}` : ''}</span>}
+                      </div>
+                    </div>
+                    <div className="m-pts" style={{ background: cPts(Math.round(a.pts)) }}>{Math.round(a.pts)}</div>
+                  </div>
+                )
+              })}
+            </div>
+          </section>
+
+          {/* HITOS */}
+          <section id="s-hitos" style={{ borderBottom: 0 }}>
+            <div className="s-head"><div className="s-title">Hitos</div><div className="s-sub"><span className="allscope">Todas las temporadas</span></div></div>
+            <div>
+              {curados.slice(0, 8).map((h: HitoRow, i: number) => {
+                const cfg = HITO_CONFIG[h.tipo_hito]
+                const texto = cfg ? cfg.label(h) : h.tipo_hito
+                const anio = (h.fecha || '').match(/(\d{4})$/)?.[1]
+                const edad = anio && j.anio_nacimiento ? Number(anio) - j.anio_nacimiento : null
+                return (
+                  <div className="hito" key={i}>
+                    <div className="h-dot" />
+                    <div>
+                      <div className="h-t">{texto}{h.contexto_nombre ? <span style={{ color: 'var(--ink-3)' }}> · {h.contexto_nombre}</span> : ''}</div>
+                      <div className="h-m">{fechaCorta(h.fecha)}{edad != null && edad > 0 ? <> · <span className="h-age">{edad} años</span></> : ''}</div>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+            <div className="foot" style={{ paddingTop: 18 }}>
+              <CompartirBtn titulo={`${nombre} · Fútbol11Stats`} variant="btn" />
+              <a className="btn" href={`mailto:futbol11stats@gmail.com?subject=${encodeURIComponent(`Corrección en la ficha de ${nombre}`)}`}>Corregir datos</a>
+            </div>
+          </section>
+        </div>
+      </div>
     </div>
   )
 }

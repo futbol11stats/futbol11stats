@@ -117,3 +117,53 @@ Lista de dudas de diseño/dominio resueltas por mi cuenta para no parar. Formato
 - **Elegí:** la más reciente del jugador (orden temporada+jornada desc). Se pinta la franja solo si existe
   y tiene `estado`.
 - **Cambio:** si debe ceñirse a la temporada seleccionada, filtrar por `codtemporada`.
+
+---
+
+# Corrección contra la maqueta aprobada (maquetas/ficha-jugador.html)
+
+## D16 · La maqueta NO tiene sección "Trayectoria" (acordeón)
+- **Dudé:** la spec anterior pedía una sección Trayectoria (acordeón por etapa); la maqueta no la incluye
+  (su nav es Jornadas/Forma/Análisis/Nivel/Totales/Temporadas/Partidos/Hitos/Compañeros) y usa el carrusel
+  de **Temporadas** como vista de trayectoria.
+- **Elegí:** eliminar la sección Trayectoria de /v2 (gana la maqueta). El bug "Trayectoria solo muestra
+  liga / debe obedecer al selector" queda resuelto por eliminación; el selector de competición filtra el
+  gráfico de Jornadas (única sección cuyos datos varían por competición con datos reales).
+- **Cambio:** si se quiere recuperar el acordeón, reañadir `TrayectoriaV2` y gatearlo al selector.
+
+## D17 · CSS de la ficha en archivo propio (no CSS Module)
+- **Dudé:** Tailwind vs CSS Module vs CSS global.
+- **Elegí:** un `ficha.css` nuevo con TODO el CSS de la maqueta, cada regla prefijada con `.fjv2` (para no
+  colisionar), importado por el componente. Permite clases dinámicas (`res-G/E/P`, barras) y fidelidad 1:1
+  con las magnitudes de la maqueta (--plotH, --laneH, --colW, --pad, escala tipográfica). No toca globals.css.
+
+## D18 · Selector de competición y "scope-echo"
+- **Dudé:** en la maqueta el selector de competición es casi cosmético (solo cambia el texto "echo"); con
+  datos reales el gráfico de Jornadas sí varía por competición.
+- **Elegí:** estado de competición en cliente (contexto) que controla el gráfico de Jornadas y los subtítulos
+  "echo". Temporada por ruta (enlaces server).
+
+## D19 · Dorsales (bug f)
+- **Dudé:** el bullet pedía "camiseta con el número dentro"; la maqueta pinta una LÍNEA de texto
+  "**Dorsal** · último 7 · habitual 7 · otros 15, 8" (y el dorsal-camiseta va en el avatar del hero).
+- **Elegí:** seguir la maqueta (línea "Dorsal · …" en Totales + badge de dorsal en el avatar).
+- **Cambio:** si se quiere el icono camiseta con número en Totales, sustituir la línea.
+
+## D20 · Pastilla de competición en tarjeta de temporada (bug g)
+- **Dudé:** la maqueta muestra la categoría como texto `.s-cat`; el bullet pide "pastilla de competición
+  con el mismo estilo que el resto del sitio".
+- **Elegí:** usar el `Sello` del sitio + nombre de competición en el pie de cada tarjeta (estilo del sitio),
+  manteniendo el resto de la tarjeta como la maqueta.
+
+## D21 · Percentil y batería (bug d)
+- **Elegí:** mostrar `Math.floor(elo_percentil)` (rank 358/38.173 -> 99, no 100). Batería = `min(10,
+  round(pct/10))`; con pct 100 se llena entera.
+
+## D22 · Casilla "P. a 0" condicional (bug b)
+- **Elegí:** ocultar la casilla de porterías a cero si el jugador no tiene ninguna fila con
+  `goles_encajados` no nulo (delantero como Bosco). Se detecta con una query de existencia.
+
+## D23 · Estados de disciplina (bug a)
+- **Elegí:** mapear los códigos crudos (`CICLO_COMPLETADO`, `EN_CICLO`, `SANCIONADO`, ...) a texto humano y
+  no decir "completado" con 2/5 amarillas. Si `amarillas_ciclo < ciclo_umbral` es "en ciclo (N de M)";
+  "completado"/"sanción" solo cuando corresponde.
