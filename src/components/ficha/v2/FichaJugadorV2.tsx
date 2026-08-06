@@ -11,11 +11,14 @@ import SectionNav from '@/components/ui/SectionNav'
 import KpiBar from '@/components/ui/KpiBar'
 import CompartirBtn from '@/components/ficha/v2/CompartirBtn'
 import AmbitoJornadas from '@/components/ficha/v2/AmbitoJornadas'
+import Forma from '@/components/ficha/v2/Forma'
+import Analisis from '@/components/ficha/v2/Analisis'
 import { getEquipoActualInfo } from '@/lib/equipo'
 import { formatNombre, tempLabel, jugadorSlug, LIVE_COD, POS_LABEL } from '@/lib/jugador'
 import { PALETA_TEXTO, escalon, CORTES_FIJOS } from '@/lib/escala'
 import {
   getJugadorV2, getCarreraV2, getAlertaActual, getAmbitoTemporada, getCortesElo, labelToCod,
+  getPartidosTemporada, ventanasForma, racha5DePartidos, splitCasaFuera, balanceEquipo,
   type CarreraRow,
 } from '@/lib/jugadorV2'
 
@@ -57,13 +60,20 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
   const media = pj > 0 ? ptsF / pj : null
   const eloSel = etapaPrincipal?.elo_final ?? j.elo_actual ?? null
 
-  const [equipoInfo, cortesElo, alerta, comps] = await Promise.all([
+  const [equipoInfo, cortesElo, alerta, comps, partidosTemp] = await Promise.all([
     inactivo ? Promise.resolve({ copas: [], posicionActual: null }) : getEquipoActualInfo(j.codequipo_actual),
     getCortesElo(categoriaSel, tempSel ? Number(tempSel) : null),
     getAlertaActual(cod),
     tempSel ? getAmbitoTemporada(cod, tempSel) : Promise.resolve([]),
+    tempSel ? getPartidosTemporada(cod, tempSel) : Promise.resolve([] as any[]),
   ])
   const { copas, posicionActual } = equipoInfo
+
+  // Forma, casa/fuera y balance del equipo (con/sin él) sobre los partidos de la temporada seleccionada.
+  const ventanas = ventanasForma(partidosTemp)
+  const racha = racha5DePartidos(partidosTemp)
+  const split = splitCasaFuera(partidosTemp)
+  const balance = await balanceEquipo(partidosTemp)
 
   // Nombre en dos líneas: pila pequeño arriba, apellidos grandes.
   const partes = nombre.split(/\s+/)
@@ -73,6 +83,8 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
   // Secciones presentes (para la barra de anclas).
   const secciones = [
     comps.length > 0 ? { id: 'jornadas', label: 'Por jornada' } : null,
+    partidosTemp.length > 0 ? { id: 'forma', label: 'Forma' } : null,
+    partidosTemp.length > 0 ? { id: 'analisis', label: 'Análisis' } : null,
   ].filter(Boolean) as { id: string; label: string }[]
 
   return (
@@ -180,6 +192,24 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
             Puntos por jornada · <span className="text-chalk-500 normal-case tracking-normal">{tempLabel(tempSel)}</span>
           </h2>
           <AmbitoJornadas comps={comps} cortes={CORTES_FIJOS.puntosPartido} />
+        </section>
+      )}
+
+      {/* 5 · Forma */}
+      {partidosTemp.length > 0 && (
+        <section id="forma" className="mt-8 scroll-mt-24">
+          <h2 className="font-semibold uppercase tracking-widest text-chalk-600 mb-2" style={{ fontSize: 'var(--t-micro)' }}>Forma · {tempLabel(tempSel)}</h2>
+          <Forma ventanas={ventanas} racha={racha} />
+        </section>
+      )}
+
+      {/* 6 · Análisis */}
+      {partidosTemp.length > 0 && (
+        <section id="analisis" className="mt-8 scroll-mt-24">
+          <h2 className="font-semibold uppercase tracking-widest text-chalk-600 mb-2" style={{ fontSize: 'var(--t-micro)' }}>Análisis · {tempLabel(tempSel)}</h2>
+          <Analisis nombreEquipo={etapaPrincipal?.equipo_nombre ?? j.equipo_actual_nombre ?? null}
+            con={balance.con} sin={balance.sin} suficiente={balance.suficiente}
+            casa={split.casa} fuera={split.fuera} hayLocal={split.hayLocal} />
         </section>
       )}
 
