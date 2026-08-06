@@ -1,8 +1,8 @@
 'use client'
 
 import { useEffect, useRef, type ReactNode } from 'react'
-import EscudoImg from '@/components/EscudoImg'
 import IndicadorLocal from '@/components/IndicadorLocal'
+import EscudoBox from '@/components/ficha/v2/EscudoBox'
 import {
   Balon, Guante, TarjetaAmarilla, TarjetaRoja, Camiseta, CamisetaHueca,
   TrianguloArriba, TrianguloAbajo, Guion, Casa, Avion, Escudo,
@@ -97,7 +97,7 @@ export default function Jornadas({ comps, cortes }: { comps: CompAmbito[]; corte
                   <div className="lane">{rol(d)}</div>
                   <div className="lane">
                     <div className="rival">
-                      <div className="crest"><EscudoImg escudo={d.rivalEscudo ?? null} nombre={d.rivalNombre ?? undefined} /></div>
+                      <EscudoBox escudo={d.rivalEscudo ?? null} nombre={d.rivalNombre ?? undefined} size={21} radius={3} />
                       <div className={`resu res-${res}`} />
                     </div>
                     {d.esLocal != null && <IndicadorLocal esLocal={d.esLocal} />}

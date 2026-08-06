@@ -2,7 +2,8 @@ import './ficha.css'
 import type { ReactNode } from 'react'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import EscudoImg from '@/components/EscudoImg'
+import EscudoBox from '@/components/ficha/v2/EscudoBox'
+import { escudoUrl } from '@/lib/supabase'
 import NombreEquipo from '@/components/NombreEquipo'
 import Sello from '@/components/Sello'
 import Pastilla from '@/components/Pastilla'
@@ -202,9 +203,7 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
           {j.edad != null && <span className="pill n">{j.edad} años</span>}
           {j.equipo_actual_nombre && (
             <span className="pill n">
-              <span style={{ width: 16, height: 16, background: '#fff', borderRadius: 3, display: 'inline-grid', placeItems: 'center', padding: 1 }}>
-                <EscudoImg escudo={j.escudo_actual} nombre={j.equipo_actual_nombre ?? undefined} />
-              </span>
+              <EscudoBox escudo={j.escudo_actual} nombre={j.equipo_actual_nombre ?? undefined} size={16} radius={3} />
               <NombreEquipo codequipo={j.codequipo_actual} nombre={j.equipo_actual_nombre} />
             </span>
           )}
@@ -298,7 +297,7 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
                   const mi = nm.split(/\s+/).map((w) => w[0]).slice(0, 2).join('').toUpperCase()
                   return (
                     <Link key={c.codjugador} href={jugadorHref(c.codjugador, c.nombre)} className="mate">
-                      <div className="m-av">{c.escudo_actual ? <EscudoImg escudo={c.escudo_actual} nombre={c.equipo_actual ?? undefined} /> : mi}</div>
+                      {escudoUrl(c.escudo_actual) ? <EscudoBox escudo={c.escudo_actual} nombre={c.equipo_actual ?? undefined} size={46} radius={9} /> : <div className="m-av">{mi}</div>}
                       <div className="m-n">{nm}</div>
                       <div className="m-e" style={{ color: cElo(c.elo ?? null) }}>ELO {c.elo != null ? mil(Math.round(c.elo)) : '—'}</div>
                     </Link>
@@ -384,7 +383,7 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
                     <div className="accent" style={{ background: cMed(c.media_fantasy) || 'var(--line)' }} />
                     {compartida && <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'var(--amber)', opacity: .7 }} />}
                     <div className="s-top">
-                      <div className="s-crest">{c.escudo ? <EscudoImg escudo={c.escudo} nombre={c.equipo_nombre ?? undefined} /> : null}</div>
+                      <EscudoBox escudo={c.escudo} nombre={c.equipo_nombre ?? undefined} size={22} radius={3} />
                       <div className="s-yr">{tempLabel(c.codtemporada)}</div>
                     </div>
                     <div className="s-cat">
@@ -428,7 +427,7 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
                 return (
                   <div className="match" key={i}>
                     <div className="m-score" style={{ color: col }}>{marcador}</div>
-                    <span className="m-crest"><EscudoImg escudo={a.escudo} nombre={a.equipo_nombre ?? undefined} /></span>
+                    <EscudoBox escudo={a.escudo} nombre={a.equipo_nombre ?? undefined} size={26} radius={4} />
                     <div className="m-mid">
                       <div className="m-riv"><NombreEquipo codequipo={a.rival_cod} nombre={a.rival_nombre} /></div>
                       <div className="m-meta">
