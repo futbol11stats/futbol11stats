@@ -13,6 +13,9 @@ import CompartirBtn from '@/components/ficha/v2/CompartirBtn'
 import AmbitoJornadas from '@/components/ficha/v2/AmbitoJornadas'
 import Forma from '@/components/ficha/v2/Forma'
 import Analisis from '@/components/ficha/v2/Analisis'
+import Nivel from '@/components/ficha/v2/Nivel'
+import Totales from '@/components/ficha/v2/Totales'
+import Temporadas from '@/components/ficha/v2/Temporadas'
 import { getEquipoActualInfo } from '@/lib/equipo'
 import { formatNombre, tempLabel, jugadorSlug, LIVE_COD, POS_LABEL } from '@/lib/jugador'
 import { PALETA_TEXTO, escalon, CORTES_FIJOS } from '@/lib/escala'
@@ -75,6 +78,12 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
   const split = splitCasaFuera(partidosTemp)
   const balance = await balanceEquipo(partidosTemp)
 
+  // Totales de carrera: amarillas/rojas no están en web_jugador -> se suman de la carrera.
+  const amarillasTotal = carrera.reduce((s, c) => s + (c.tarjetas_amarillas ?? 0), 0)
+  const rojasTotal = carrera.reduce((s, c) => s + (c.tarjetas_rojas ?? 0), 0)
+  const dorsalesOtros = (j.dorsales_otros || []).filter((d) => d !== j.dorsal_ultimo && d !== j.dorsal_comun)
+  const hayNivel = j.elo_actual != null || !!j.rank_general || !!j.rank_categoria || !!j.rank_posicion
+
   // Nombre en dos líneas: pila pequeño arriba, apellidos grandes.
   const partes = nombre.split(/\s+/)
   const pila = partes[0] ?? ''
@@ -85,7 +94,13 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
     comps.length > 0 ? { id: 'jornadas', label: 'Por jornada' } : null,
     partidosTemp.length > 0 ? { id: 'forma', label: 'Forma' } : null,
     partidosTemp.length > 0 ? { id: 'analisis', label: 'Análisis' } : null,
+    hayNivel ? { id: 'nivel', label: 'Nivel' } : null,
+    carrera.length > 0 ? { id: 'totales', label: 'Totales' } : null,
+    carrera.length > 0 ? { id: 'temporadas', label: 'Temporadas' } : null,
   ].filter(Boolean) as { id: string; label: string }[]
+
+  // Etiqueta reutilizable para las secciones que NO dependen de la temporada seleccionada.
+  const todasTemp = <span className="ml-1.5 rounded bg-pitch-700 px-1.5 py-0.5 text-chalk-500 normal-case tracking-normal" style={{ fontSize: 'var(--t-micro)' }}>Todas las temporadas</span>
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-6" style={{ fontSize: 'var(--t-body)' }}>
@@ -210,6 +225,38 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
           <Analisis nombreEquipo={etapaPrincipal?.equipo_nombre ?? j.equipo_actual_nombre ?? null}
             con={balance.con} sin={balance.sin} suficiente={balance.suficiente}
             casa={split.casa} fuera={split.fuera} hayLocal={split.hayLocal} />
+        </section>
+      )}
+
+      {/* 7 · Nivel */}
+      {hayNivel && (
+        <section id="nivel" className="mt-8 scroll-mt-24">
+          <h2 className="font-semibold uppercase tracking-widest text-chalk-600 mb-2" style={{ fontSize: 'var(--t-micro)' }}>Nivel</h2>
+          <Nivel elo={j.elo_actual} percentil={j.elo_percentil} cortesElo={cortesElo}
+            categoria={categoriaSel} posicion={j.posicion_pastilla} estimada={j.posicion_es_estimada}
+            ranks={{
+              general: [j.rank_general, j.rank_general_total],
+              categoria: [j.rank_categoria, j.rank_categoria_total],
+              posicion: [j.rank_posicion, j.rank_posicion_total],
+            }} />
+        </section>
+      )}
+
+      {/* 8 · Totales (todas las temporadas) */}
+      {carrera.length > 0 && (
+        <section id="totales" className="mt-8 scroll-mt-24">
+          <h2 className="flex items-center font-semibold uppercase tracking-widest text-chalk-600 mb-2" style={{ fontSize: 'var(--t-micro)' }}>Totales {todasTemp}</h2>
+          <Totales pj={j.pj_total} minutos={j.minutos_total} goles={j.goles_total} titular={j.titular_total}
+            suplente={j.suplente_total} amarillas={amarillasTotal} rojas={rojasTotal} porteriasCero={j.porterias_cero_total}
+            dorsalUltimo={j.dorsal_ultimo} dorsalComun={j.dorsal_comun} dorsalesOtros={dorsalesOtros} />
+        </section>
+      )}
+
+      {/* 9 · Temporadas (todas las temporadas) */}
+      {carrera.length > 0 && (
+        <section id="temporadas" className="mt-8 scroll-mt-24">
+          <h2 className="flex items-center font-semibold uppercase tracking-widest text-chalk-600 mb-2" style={{ fontSize: 'var(--t-micro)' }}>Temporadas {todasTemp}</h2>
+          <Temporadas carrera={carrera} />
         </section>
       )}
 
