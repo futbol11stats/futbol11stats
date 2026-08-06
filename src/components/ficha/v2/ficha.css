@@ -79,8 +79,9 @@
 .fjv2 .col+.col{margin-left:2px}
 .fjv2 .col.now{background:rgba(255,255,255,.05);border-radius:8px 8px 0 0}
 .fjv2 .plot{height:var(--plotH);width:100%;display:flex;flex-direction:column;justify-content:flex-end;position:relative}
-.fjv2 .pos{height:108px;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:4px}
-.fjv2 .neg{height:32px;display:flex;flex-direction:column;align-items:center;gap:3px}
+/* .pos/.neg acotados a .plot: la clase "pos" también la usa la pastilla de posición (.pill.pos). */
+.fjv2 .plot .pos{height:108px;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:4px}
+.fjv2 .plot .neg{height:32px;display:flex;flex-direction:column;align-items:center;gap:3px}
 .fjv2 .zero{position:absolute;left:-2px;right:-2px;bottom:32px;height:1px;background:var(--line)}
 .fjv2 .chip{font-family:var(--font-display),'Barlow Condensed',sans-serif;font-weight:700;font-size:var(--t-lead);line-height:1;padding:2px 6px;border-radius:4px;font-variant-numeric:tabular-nums;color:#08111f}
 .fjv2 .bar{width:24px;border-radius:3px 3px 0 0;min-height:3px}
