@@ -16,12 +16,16 @@ import Analisis from '@/components/ficha/v2/Analisis'
 import Nivel from '@/components/ficha/v2/Nivel'
 import Totales from '@/components/ficha/v2/Totales'
 import Temporadas from '@/components/ficha/v2/Temporadas'
+import ListaPartidos, { type PartidoLite } from '@/components/ficha/v2/ListaPartidos'
+import Trayectoria from '@/components/ficha/Trayectoria'
+import Hitos from '@/components/ficha/Hitos'
 import { getEquipoActualInfo } from '@/lib/equipo'
-import { formatNombre, tempLabel, jugadorSlug, LIVE_COD, POS_LABEL } from '@/lib/jugador'
+import { formatNombre, tempLabel, jugadorSlug, jugadorHref, golesRival, curarHitos, LIVE_COD, POS_LABEL, type CompaneroTop } from '@/lib/jugador'
 import { PALETA_TEXTO, escalon, CORTES_FIJOS } from '@/lib/escala'
 import {
   getJugadorV2, getCarreraV2, getAlertaActual, getAmbitoTemporada, getCortesElo, labelToCod,
   getPartidosTemporada, ventanasForma, racha5DePartidos, splitCasaFuera, balanceEquipo,
+  getActuacionesV2, getHitosV2, ultimosDePartidos,
   type CarreraRow,
 } from '@/lib/jugadorV2'
 
@@ -72,11 +76,27 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
   ])
   const { copas, posicionActual } = equipoInfo
 
+  const [actuaciones, hitosRaw] = await Promise.all([getActuacionesV2(cod), getHitosV2(cod)])
+  const { curados, todos } = curarHitos(hitosRaw)
+  const companeros = (j.companeros_top || []).slice(0, 5)
+
   // Forma, casa/fuera y balance del equipo (con/sin él) sobre los partidos de la temporada seleccionada.
   const ventanas = ventanasForma(partidosTemp)
   const racha = racha5DePartidos(partidosTemp)
   const split = splitCasaFuera(partidosTemp)
   const balance = await balanceEquipo(partidosTemp)
+  const ultimos = ultimosDePartidos(partidosTemp)
+
+  const filasActuaciones: PartidoLite[] = actuaciones.map((a: any) => ({
+    escudo: a.escudo, equipoNombre: a.equipo_nombre, rivalCod: a.rival_cod, rivalNombre: a.rival_nombre,
+    resultado: a.resultado, fecha: a.fecha, goles: a.goles, pts: Math.round(a.pts),
+    gc: portero ? golesRival(a.resultado) : null, esLocal: a.es_local ?? null,
+  }))
+  const filasUltimos: PartidoLite[] = ultimos.map((p: any) => ({
+    escudo: p.escudo, equipoNombre: p.equipo_nombre, rivalCod: p.rival_cod, rivalNombre: p.rival_nombre,
+    resultado: p.resultado, fecha: p.fecha, goles: p.goles, pts: p.puntos,
+    gc: p.goles_encajados ?? null, esLocal: p.es_local ?? null,
+  }))
 
   // Totales de carrera: amarillas/rojas no están en web_jugador -> se suman de la carrera.
   const amarillasTotal = carrera.reduce((s, c) => s + (c.tarjetas_amarillas ?? 0), 0)
@@ -97,6 +117,10 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
     hayNivel ? { id: 'nivel', label: 'Nivel' } : null,
     carrera.length > 0 ? { id: 'totales', label: 'Totales' } : null,
     carrera.length > 0 ? { id: 'temporadas', label: 'Temporadas' } : null,
+    carrera.length > 0 ? { id: 'trayectoria', label: 'Trayectoria' } : null,
+    (filasActuaciones.length > 0 || filasUltimos.length > 0) ? { id: 'partidos', label: 'Partidos' } : null,
+    todos.length > 0 ? { id: 'hitos', label: 'Hitos' } : null,
+    companeros.length > 0 ? { id: 'companeros', label: 'Ha jugado con' } : null,
   ].filter(Boolean) as { id: string; label: string }[]
 
   // Etiqueta reutilizable para las secciones que NO dependen de la temporada seleccionada.
@@ -260,7 +284,60 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
         </section>
       )}
 
-      {/* Pie provisional (se completa en secciones posteriores) */}
+      {/* 10 · Trayectoria (todas las temporadas) — reutiliza el acordeón por etapa existente */}
+      {carrera.length > 0 && (
+        <section id="trayectoria" className="mt-8 scroll-mt-24">
+          <h2 className="flex items-center font-semibold uppercase tracking-widest text-chalk-600 mb-2" style={{ fontSize: 'var(--t-micro)' }}>Trayectoria {todasTemp}</h2>
+          <Trayectoria carrera={carrera} portero={portero} codjugador={j.codjugador} />
+        </section>
+      )}
+
+      {/* 11 · Mejores actuaciones y Últimos partidos */}
+      {(filasActuaciones.length > 0 || filasUltimos.length > 0) && (
+        <section id="partidos" className="mt-8 scroll-mt-24 space-y-6">
+          {filasActuaciones.length > 0 && (
+            <div>
+              <h2 className="font-semibold uppercase tracking-widest text-chalk-600 mb-2" style={{ fontSize: 'var(--t-micro)' }}>Mejores actuaciones {todasTemp}</h2>
+              <ListaPartidos rows={filasActuaciones} portero={portero} />
+            </div>
+          )}
+          {filasUltimos.length > 0 && (
+            <div>
+              <h2 className="font-semibold uppercase tracking-widest text-chalk-600 mb-2" style={{ fontSize: 'var(--t-micro)' }}>Últimos partidos · {tempLabel(tempSel)}</h2>
+              <ListaPartidos rows={filasUltimos} portero={portero} />
+            </div>
+          )}
+        </section>
+      )}
+
+      {/* 12 · Hitos — reutiliza la línea temporal existente (edad en ámbar cuando existe) */}
+      {todos.length > 0 && (
+        <section id="hitos" className="mt-8 scroll-mt-24">
+          <h2 className="font-semibold uppercase tracking-widest text-chalk-600 mb-3" style={{ fontSize: 'var(--t-micro)' }}>Hitos</h2>
+          <Hitos curados={curados} todos={todos} portero={portero} />
+        </section>
+      )}
+
+      {/* 13 · Ha jugado con (top 5 por ELO) */}
+      {companeros.length > 0 && (
+        <section id="companeros" className="mt-8 scroll-mt-24">
+          <h2 className="font-semibold uppercase tracking-widest text-chalk-600 mb-2" style={{ fontSize: 'var(--t-micro)' }}>Ha jugado con</h2>
+          <div className="rounded-xl border border-pitch-700 bg-pitch-800">
+            {companeros.map((c: CompaneroTop) => (
+              <div key={c.codjugador} className="flex items-center gap-2 px-3 py-2 border-b border-pitch-700/50 last:border-0">
+                <span className="inline-flex items-center justify-center w-6 h-6 bg-white rounded-sm flex-shrink-0 p-px">
+                  <EscudoImg escudo={c.escudo_actual} nombre={c.equipo_actual ?? undefined} />
+                </span>
+                <Link href={jugadorHref(c.codjugador, c.nombre)} className="flex-1 min-w-0 truncate font-display uppercase text-white hover:text-grass-300 transition-colors" style={{ fontSize: 'var(--t-sm)' }}>{formatNombre(c.nombre)}</Link>
+                <Pastilla pos={c.posicion_pastilla} estimada={c.posicion_es_estimada} size="mini" />
+                <span className="flex-shrink-0 w-9 text-right text-chalk-500 tabular-nums" style={{ fontSize: 'var(--t-cap)' }}>{c.elo != null ? Math.round(c.elo) : ''}</span>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* 14 · Pie */}
       <footer className="mt-12 pt-5 border-t border-pitch-700/60 flex items-center justify-between text-chalk-600" style={{ fontSize: 'var(--t-cap)' }}>
         <CompartirBtn titulo={`${nombre} · Fútbol11Stats`} label="Compartir" />
         <a href={`mailto:futbol11stats@gmail.com?subject=${encodeURIComponent(`Corrección en la ficha de ${nombre}`)}`}
