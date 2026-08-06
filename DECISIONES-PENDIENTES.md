@@ -203,3 +203,14 @@ dibujaba un placeholder de algo que YA existe como componente del sitio, se usa 
 - `FormaHero` → chips de racha inline de la maqueta.
 - `AvisoDato` → pie con botones "Compartir ficha / Corregir datos" de la maqueta.
 - Si se prefieren los componentes, son sustituciones directas.
+
+## D27 · Ancho de columna del gráfico > maqueta (desviación consciente)
+- La maqueta fija --colW 40px (móvil) / 50px (desktop), pero dibujaba solo 12 jornadas; un jugador real
+  tiene hasta 34. Para dar aire se sube a **46px (móvil) / 56px (desktop)**. Desviación consciente de la
+  maqueta, aprobada. El resto de magnitudes del gráfico siguen siendo las de la maqueta.
+
+## D28 · Rankings: la ficha ACTUAL también muestra 3 (no 4)
+- Verificado en [slug]/page.tsx: la ficha actual pinta 3 RankRow (general=Fútbol11Stats con badge 11,
+  categoria=competición con Sello, posicion con Pastilla). `JugadorFicha`/`COLS_JUGADOR` solo tienen
+  rank_general/categoria/posicion. No existe un 4º ranking en el dato ni en la ficha actual; la v2 ya
+  reproduce esos 3 con sus iconos. Si el pipeline exporta rank_grupo, se añade la 4ª fila.
