@@ -3,19 +3,28 @@ import type { ReactNode } from 'react'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import EscudoImg from '@/components/EscudoImg'
+import NombreEquipo from '@/components/NombreEquipo'
 import Sello from '@/components/Sello'
+import Pastilla from '@/components/Pastilla'
+import LigaPastilla from '@/components/LigaPastilla'
+import CopasLinea from '@/components/CopasLinea'
+import IndicadorLocal from '@/components/IndicadorLocal'
+import Trayectoria from '@/components/ficha/Trayectoria'
+import JsonLd from '@/components/JsonLd'
 import CompartirBtn from '@/components/ficha/v2/CompartirBtn'
 import NavSpy from '@/components/ficha/v2/NavSpy'
 import CompChips from '@/components/ficha/v2/CompChips'
 import Echo from '@/components/ficha/v2/Echo'
 import Jornadas from '@/components/ficha/v2/Jornadas'
 import {
-  Balon, Reloj, Escudo, Estrella, CamisetaHueca, TarjetaAmarilla, TarjetaRoja, Guante,
+  Balon, Reloj, Escudo, Camiseta, CamisetaHueca, TarjetaAmarilla, TarjetaRoja, Guante,
 } from '@/components/iconos'
-import { getEquipoActualInfo } from '@/lib/equipo'
+import { getEquipoActualInfo, getGrupoInfo, grupoHref } from '@/lib/equipo'
+import { graphLd, breadcrumbLd } from '@/lib/jsonld'
+import { SITE_URL } from '@/lib/seo'
 import {
   formatNombre, tempLabel, jugadorSlug, jugadorHref, curarHitos, HITO_CONFIG, fechaCorta,
-  marcadorLocalVisitante, LIVE_COD, type HitoRow, type CompaneroTop,
+  marcadorLocalVisitante, POS_LABEL, LIVE_COD, type HitoRow, type CompaneroTop,
 } from '@/lib/jugador'
 import { CORTES_FIJOS } from '@/lib/escala'
 import {
@@ -41,6 +50,7 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
   const nombre = formatNombre(j.nombre)
   const ini = ((pila[0] || '') + (apellidos[0] || '')).toUpperCase()
   const slug = jugadorSlug(j.codjugador, j.nombre)
+  const portero = !!j.es_portero
   const inactivo = Number(j.codtemporada_ultima) < Number(LIVE_COD)
 
   const temporadas = Array.from(new Set(carrera.map((c) => c.codtemporada)))
@@ -55,7 +65,7 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
   const media = pj > 0 ? ptsF / pj : null
   const eloSel = etapaPrincipal?.elo_final ?? j.elo_actual ?? null
 
-  const [equipoInfo, cortesElo, alerta, comps, partidosTemp, actuaciones, hitosRaw, hayP0] = await Promise.all([
+  const [equipoInfo, cortesElo, alerta, comps, partidosTemp, actuaciones, hitosRaw, hayP0, grupoInfo] = await Promise.all([
     inactivo ? Promise.resolve({ copas: [], posicionActual: null }) : getEquipoActualInfo(j.codequipo_actual),
     getCortesElo(categoriaSel, tempSel ? Number(tempSel) : null),
     getAlertaActual(cod),
@@ -64,7 +74,10 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
     getActuacionesV2(cod),
     getHitosV2(cod),
     tienePorteriaDato(cod),
+    getGrupoInfo(etapaPrincipal?.codgrupo),
   ])
+  const { copas, posicionActual } = equipoInfo
+  const grupoUrl = grupoHref(grupoInfo)
 
   const cMed = (v: number | null) => (v == null ? '' : PAL[esc(v, CORTES_FIJOS.mediaPartido)])
   const cElo = (v: number | null) => (v == null ? '' : PAL[esc(v, cortesElo)])
@@ -95,10 +108,25 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
   const tempTxt = tempSel ? tempLabel(tempSel) : ''
   const alertaTxt = alertaHumana(alerta)
 
-  const secciones = [
-    { id: 's-jornadas', label: 'Jornadas' }, { id: 's-forma', label: 'Forma' }, { id: 's-analisis', label: 'Análisis' },
-    { id: 's-nivel', label: 'Nivel' }, { id: 's-totales', label: 'Totales' }, { id: 's-temporadas', label: 'Temporadas' },
-    { id: 's-partidos', label: 'Partidos' }, { id: 's-hitos', label: 'Hitos' }, { id: 's-mates', label: 'Compañeros' },
+  // Orden EXACTO de aparición en el DOM: primero el aside (Nivel, Totales, Compañeros), luego el main.
+  // `aside:true` -> el scroll-spy las ignora en desktop (columna sticky, siempre visible). Ver NavSpy.
+  const secciones = ([
+    { id: 's-nivel', label: 'Nivel', aside: true },
+    { id: 's-totales', label: 'Totales', aside: true },
+    companeros.length ? { id: 's-mates', label: 'Compañeros', aside: true } : null,
+    comps.length ? { id: 's-jornadas', label: 'Jornadas' } : null,
+    partidosTemp.length ? { id: 's-forma', label: 'Forma' } : null,
+    partidosTemp.length ? { id: 's-analisis', label: 'Análisis' } : null,
+    carrera.length ? { id: 's-temporadas', label: 'Temporadas' } : null,
+    carrera.length ? { id: 's-trayectoria', label: 'Trayectoria' } : null,
+    actuaciones.length ? { id: 's-partidos', label: 'Partidos' } : null,
+    curados.length ? { id: 's-hitos', label: 'Hitos' } : null,
+  ].filter(Boolean)) as { id: string; label: string; aside?: boolean }[]
+
+  const crumbs = [
+    { name: 'Inicio', url: `${SITE_URL}/` },
+    { name: 'Jugadores', url: `${SITE_URL}/madrid/aficionados` },
+    { name: nombre, url: `${SITE_URL}/madrid/jugador/${slug}/v2` },
   ]
 
   // --- helpers de render ---
@@ -120,11 +148,34 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
     )
   }
 
+  // Fila de ranking con el mismo tratamiento que el ELO: icono del sitio + nº + barra de percentil.
+  // Percentil = mejor que el X% = (1 - rank/total), floor y tope 99.
+  const RankFila = (insignia: ReactNode, label: string, rank: number | null, total: number | null) => {
+    if (!rank) return null
+    const p = total ? Math.min(99, Math.floor((1 - rank / total) * 100)) : null
+    const ll = p != null ? Math.round(p / 10) : 0
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '9px 0', borderTop: '1px solid var(--line-2)' }}>
+        <span style={{ width: 24, display: 'flex', justifyContent: 'center', flexShrink: 0 }}>{insignia}</span>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, fontSize: 'var(--t-cap)' }}>
+            <span style={{ color: 'var(--ink-3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label}</span>
+            <span className="num" style={{ fontSize: 'var(--t-sm)', flexShrink: 0 }}><span style={{ color: 'var(--e3)' }}>#{mil(rank)}</span><span style={{ color: 'var(--ink-4)' }}> / {mil(total)}</span></span>
+          </div>
+          <div style={{ display: 'flex', gap: 2, marginTop: 5 }}>
+            {Array.from({ length: 10 }).map((_, i) => <span key={i} style={{ height: 6, flex: 1, borderRadius: 2, background: (p != null && i < ll) ? 'var(--e3)' : 'rgba(255,255,255,.1)' }} />)}
+          </div>
+        </div>
+      </div>
+    )
+  }
+  const badge11 = <span style={{ width: 20, height: 20, borderRadius: '50%', background: '#1a7a3c', display: 'grid', placeItems: 'center', fontFamily: 'var(--font-display), sans-serif', fontWeight: 700, color: '#fff', fontSize: 11, lineHeight: 1 }}>11</span>
+
   const totales: Array<[ReactNode, string, string]> = [
     [<Escudo size={13} key="i" />, mil(j.pj_total), 'PJ'],
     [<Reloj size={13} key="i" />, mil(j.minutos_total), 'Min'],
     [<Balon size={13} key="i" />, mil(j.goles_total), 'Goles'],
-    [<Estrella size={13} key="i" />, mil(j.titular_total), 'Titular'],
+    [<Camiseta size={13} key="i" />, mil(j.titular_total), 'Titular'],
     [<CamisetaHueca size={13} key="i" />, mil(j.suplente_total), 'Supl.'],
     [<span style={{ color: 'var(--card-y)', display: 'flex' }} key="i"><TarjetaAmarilla size={11} /></span>, mil(amarillasTot), 'TA'],
     [<span style={{ color: 'var(--card-r)', display: 'flex' }} key="i"><TarjetaRoja size={11} /></span>, mil(rojasTot), 'TR'],
@@ -135,6 +186,7 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
 
   return (
     <div className="fjv2">
+      <JsonLd data={graphLd(breadcrumbLd(crumbs))} />
       {/* 1 · HERO */}
       <div className="hero">
         <div className="hero-top">
@@ -146,12 +198,25 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
           <CompartirBtn titulo={`${nombre} · Fútbol11Stats`} variant="icon" />
         </div>
         <div className="hero-pills">
-          {j.posicion_pastilla && <span className="pill pos">{j.posicion_pastilla}{j.posicion_es_estimada ? ' · est' : ''}</span>}
+          <Pastilla pos={j.posicion_pastilla} estimada={!!j.posicion_es_estimada} />
           {j.edad != null && <span className="pill n">{j.edad} años</span>}
-          {j.equipo_actual_nombre && <span className="pill n">{j.equipo_actual_nombre.toUpperCase()}</span>}
-          {etapaPrincipal?.nombre_comp && <span className="pill liga">{etapaPrincipal.nombre_comp}{etapaPrincipal.grupo_nombre ? ` · ${etapaPrincipal.grupo_nombre}` : ''}</span>}
-          {comps.filter((c) => c.codgrupo !== ligaCod).map((c) => <span className="pill n" key={c.codgrupo}>{c.nombre_comp.toUpperCase()}</span>)}
+          {j.equipo_actual_nombre && (
+            <span className="pill n">
+              <span style={{ width: 16, height: 16, background: '#fff', borderRadius: 3, display: 'inline-grid', placeItems: 'center', padding: 1 }}>
+                <EscudoImg escudo={j.escudo_actual} nombre={j.equipo_actual_nombre ?? undefined} />
+              </span>
+              <NombreEquipo codequipo={j.codequipo_actual} nombre={j.equipo_actual_nombre} />
+            </span>
+          )}
         </div>
+        {(etapaPrincipal?.nombre_comp || copas.length > 0) && (
+          <div className="hero-pills" style={{ marginTop: 8 }}>
+            <LigaPastilla nombreComp={etapaPrincipal?.nombre_comp ?? null}
+              segments={[etapaPrincipal?.nombre_comp ?? null, etapaPrincipal?.grupo_nombre ?? null, inactivo || posicionActual == null ? null : `${posicionActual}º`]}
+              href={grupoUrl} muted={inactivo} />
+            <CopasLinea copas={copas} />
+          </div>
+        )}
         {alertaTxt && (
           <div className="alert">
             <span style={{ color: 'var(--card-y)', display: 'flex' }}><TarjetaAmarilla size={13} /></span>
@@ -199,10 +264,10 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
               </div>
               <div className="batt">{Array.from({ length: 10 }).map((_, i) => <i key={i} style={i < llenos ? { background: cElo(eloBig) } : undefined} />)}</div>
               {pct != null && <div className="batt-lbl">Mejor que el <b>{pct} %</b> de los jugadores de su categoría</div>}
-              <div className="ranks">
-                <div className="rk"><div className="r-v">{j.rank_categoria ? `${j.rank_categoria}º` : '—'}</div><div className="r-k">Categoría</div></div>
-                <div className="rk"><div className="r-v">{j.rank_posicion ? `${j.rank_posicion}º` : '—'}</div><div className="r-k">Posición</div></div>
-                <div className="rk"><div className="r-v">{j.rank_general ? `${mil(j.rank_general)}º` : '—'}</div><div className="r-k">Madrid</div></div>
+              <div style={{ marginTop: 13 }}>
+                {RankFila(badge11, 'Fútbol11Stats · Madrid', j.rank_general, j.rank_general_total)}
+                {RankFila(categoriaSel ? <Sello nombreComp={categoriaSel} size={18} /> : null, categoriaSel || 'Competición', j.rank_categoria, j.rank_categoria_total)}
+                {RankFila(<Pastilla pos={j.posicion_pastilla} estimada={!!j.posicion_es_estimada} size="mini" />, j.posicion_pastilla ? (POS_LABEL[j.posicion_pastilla] || j.posicion_pastilla) : 'Posición', j.rank_posicion, j.rank_posicion_total)}
               </div>
             </div>
           </section>
@@ -341,6 +406,17 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
             </div></div>
           </section>
 
+          {/* TRAYECTORIA (todas las temporadas) — componente real del sitio (acordeón por etapa; al desplegar
+              muestra TODOS los partidos de esa etapa, liga y copa, no solo liga) */}
+          {carrera.length > 0 && (
+            <section id="s-trayectoria">
+              <div className="s-head"><div className="s-title">Trayectoria</div><div className="s-sub"><span className="allscope">Todas las temporadas</span></div></div>
+              <div style={{ padding: '0 var(--pad)' }}>
+                <Trayectoria carrera={carrera} portero={portero} codjugador={j.codjugador} />
+              </div>
+            </section>
+          )}
+
           {/* MEJORES ACTUACIONES */}
           <section id="s-partidos">
             <div className="s-head"><div className="s-title">Mejores actuaciones</div><div className="s-sub"><span className="allscope">Todas las temporadas</span></div></div>
@@ -352,11 +428,14 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
                 return (
                   <div className="match" key={i}>
                     <div className="m-score" style={{ color: col }}>{marcador}</div>
+                    <span className="m-crest"><EscudoImg escudo={a.escudo} nombre={a.equipo_nombre ?? undefined} /></span>
                     <div className="m-mid">
-                      <div className="m-riv">{a.rival_nombre}</div>
+                      <div className="m-riv"><NombreEquipo codequipo={a.rival_cod} nombre={a.rival_nombre} /></div>
                       <div className="m-meta">
-                        <span>{fechaCorta(a.fecha)}</span>
+                        {a.es_local != null && <IndicadorLocal esLocal={a.es_local} />}
+                        <span>{fechaCorta(a.fecha)}{a.jornada != null ? ` · J${a.jornada}` : ''}</span>
                         {g > 0 && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 2, color: 'var(--e4)' }}><Balon size={12} />{g > 1 ? `×${g}` : ''}</span>}
+                        {a.minutos != null && <span>{a.minutos}&#39;</span>}
                       </div>
                     </div>
                     <div className="m-pts" style={{ background: cPts(Math.round(a.pts)) }}>{Math.round(a.pts)}</div>

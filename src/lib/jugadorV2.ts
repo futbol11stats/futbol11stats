@@ -47,7 +47,18 @@ export async function getCarreraV2(cod: string): Promise<CarreraRow[]> {
 export async function getActuacionesV2(cod: string): Promise<any[]> {
   let r = await supabase.from('web_jugador_actuaciones').select(COLS_ACTUACIONES + ', es_local').eq('codjugador', cod).order('rank')
   if (r.error) r = await supabase.from('web_jugador_actuaciones').select(COLS_ACTUACIONES).eq('codjugador', cod).order('rank')
-  return (r.data || []) as any[]
+  const rows = (r.data || []) as any[]
+  // web_jugador_actuaciones no trae jornada ni minutos, pero web_jugador_partidos SÍ (mismo codacta):
+  // se cruza por codacta para poder mostrarlos. Ver punto 10.
+  const codactas = rows.map((a) => a.codacta).filter(Boolean)
+  if (codactas.length) {
+    const { data } = await supabase.from('web_jugador_partidos').select('codacta, jornada, minutos')
+      .eq('codjugador', cod).in('codacta', codactas)
+    const m = new Map<string, { jornada: number | null; minutos: number | null }>()
+    for (const p of (data || []) as any[]) m.set(String(p.codacta), { jornada: p.jornada, minutos: p.minutos })
+    for (const a of rows) { const e = m.get(String(a.codacta)); if (e) { a.jornada = e.jornada; a.minutos = e.minutos } }
+  }
+  return rows
 }
 
 export async function getHitosV2(cod: string): Promise<HitoRow[]> {

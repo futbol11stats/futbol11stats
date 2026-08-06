@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, type ReactNode } from 'react'
 import EscudoImg from '@/components/EscudoImg'
+import IndicadorLocal from '@/components/IndicadorLocal'
 import {
   Balon, Guante, TarjetaAmarilla, TarjetaRoja, Camiseta, CamisetaHueca,
   TrianguloArriba, TrianguloAbajo, Guion, Casa, Avion, Escudo,
@@ -99,7 +100,7 @@ export default function Jornadas({ comps, cortes }: { comps: CompAmbito[]; corte
                       <div className="crest"><EscudoImg escudo={d.rivalEscudo ?? null} nombre={d.rivalNombre ?? undefined} /></div>
                       <div className={`resu res-${res}`} />
                     </div>
-                    {d.esLocal != null && <span style={{ color: 'var(--ink-3)', display: 'flex' }}>{d.esLocal ? <Casa size={11} /> : <Avion size={11} />}</span>}
+                    {d.esLocal != null && <IndicadorLocal esLocal={d.esLocal} />}
                   </div>
                   <div className="lane"><span className="jlabel">J{d.jornada}</span></div>
                 </div>
