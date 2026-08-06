@@ -27,7 +27,8 @@ import {
 
 const PAL = ['#f87171', '#94a3b8', '#22a050', '#2ee56b', '#8cf0a2']
 function esc(v: number, c: readonly [number, number, number, number]) { if (v < 0) return 0; let n = 1; for (let i = 0; i < 4; i++) if (v >= c[i]) n = i + 1; return n }
-const mil = (n: number | null | undefined) => (n == null ? '—' : Number(n).toLocaleString('es-ES'))
+// Separador de millares MANUAL (el runtime de Vercel tiene ICU reducido y toLocaleString no agrupa).
+const mil = (n: number | null | undefined) => (n == null ? '—' : Math.round(Number(n)).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.'))
 const med1 = (v: number) => v.toFixed(1).replace('.', ',')
 
 export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: string; temporadaLabel: string | null }) {
@@ -78,8 +79,9 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
   const compNames = comps.map((c) => c.nombre_comp)
   const ligaCod = comps[0]?.codgrupo
 
-  // Percentil: floor (rank 358/38.173 -> 99, no 100). Batería: min(10, round(pct/10)).
-  const pct = j.elo_percentil != null ? Math.floor(j.elo_percentil) : null
+  // Percentil: floor y TOPE 99 (no se puede ser "mejor que el 100 %" de su categoría, incluido uno mismo;
+  // rank 358/38.173 -> 99). Batería: min(10, round(pct/10)) -> se llena entera en el tope.
+  const pct = j.elo_percentil != null ? Math.min(99, Math.floor(j.elo_percentil)) : null
   const llenos = pct != null ? Math.min(10, Math.round(pct / 10)) : 0
   const eloBig = j.elo_actual ?? eloSel
 
