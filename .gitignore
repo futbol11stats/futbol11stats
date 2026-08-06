@@ -19,6 +19,9 @@
 *.pem
 *.bak
 
+# maquetas de referencia visual (no se sirven ni se versionan)
+/maquetas/
+
 # debug
 npm-debug.log*
 yarn-debug.log*
