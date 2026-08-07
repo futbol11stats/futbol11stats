@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { ChevronLeft, ChevronRight } from 'lucide-react'
 import IndicadorLocal from '@/components/IndicadorLocal'
 import EscudoBox from '@/components/ficha/v2/EscudoBox'
 import {
@@ -34,6 +35,12 @@ export default function Jornadas({ comps, cortes }: { comps: CompAmbito[]; corte
     const el = trackRef.current
     if (!el) return
     setFades({ l: el.scrollLeft > 4, r: el.scrollLeft < el.scrollWidth - el.clientWidth - 4 })
+  }
+  // Desplaza ~una pantalla (80% del ancho visible) con animación. onScroll actualiza fades/flechas.
+  const nudge = (dir: -1 | 1) => {
+    const el = trackRef.current
+    if (!el) return
+    el.scrollBy({ left: dir * el.clientWidth * 0.8, behavior: 'smooth' })
   }
   useEffect(() => {
     const el = trackRef.current
@@ -131,6 +138,16 @@ export default function Jornadas({ comps, cortes }: { comps: CompAmbito[]; corte
         {/* Degradados que indican que hay más gráfico al hacer scroll (solo desktop, ver ficha.css). */}
         <div className="chart-fade chart-fade-l" style={{ opacity: fades.l ? 1 : 0 }} aria-hidden="true" />
         <div className="chart-fade chart-fade-r" style={{ opacity: fades.r ? 1 : 0 }} aria-hidden="true" />
+        {/* Flechas de navegación (solo desktop): dan una forma de mover el gráfico sin barra ni gesto.
+            Visibles solo cuando hay contenido en esa dirección (misma lógica que los degradados). */}
+        <button type="button" className="chart-nav chart-nav-l" aria-label="Jornadas anteriores"
+          style={{ opacity: fades.l ? 1 : 0, pointerEvents: fades.l ? 'auto' : 'none' }} onClick={() => nudge(-1)}>
+          <ChevronLeft size={18} strokeWidth={2.5} />
+        </button>
+        <button type="button" className="chart-nav chart-nav-r" aria-label="Jornadas siguientes"
+          style={{ opacity: fades.r ? 1 : 0, pointerEvents: fades.r ? 'auto' : 'none' }} onClick={() => nudge(1)}>
+          <ChevronRight size={18} strokeWidth={2.5} />
+        </button>
       </div>
 
       {/* Leyenda: enseña a leer los símbolos, en el mismo orden que los carriles (arriba abajo). */}

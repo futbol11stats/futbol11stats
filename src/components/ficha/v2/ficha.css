@@ -86,6 +86,16 @@
 .fjv2 .chart-fade{display:none;position:absolute;top:0;bottom:0;width:40px;z-index:3;pointer-events:none;transition:opacity .18s ease}
 .fjv2 .chart-fade-l{left:32px;background:linear-gradient(90deg,var(--pitch-900) 25%,transparent)}
 .fjv2 .chart-fade-r{right:0;background:linear-gradient(270deg,var(--pitch-900) 25%,transparent)}
+/* Flechas de navegación del gráfico (solo desktop): círculos sólidos centrados en la zona de barras
+   (--plotH). La izquierda pegada al canalón (32px), la derecha al borde. Opacidad/clic los controla el
+   cliente según fades.l/fades.r. */
+.fjv2 .chart-nav{display:none;position:absolute;top:calc(var(--plotH) / 2);transform:translateY(-50%);
+  z-index:4;width:30px;height:30px;border-radius:50%;align-items:center;justify-content:center;
+  background:var(--pitch-700);border:1px solid var(--line);color:var(--ink);cursor:pointer;
+  box-shadow:0 2px 8px rgba(0,0,0,.4);transition:opacity .18s ease,background .15s ease,border-color .15s ease}
+.fjv2 .chart-nav:hover{background:var(--pitch-800);border-color:rgba(255,255,255,.28)}
+.fjv2 .chart-nav-l{left:34px}
+.fjv2 .chart-nav-r{right:6px}
 .fjv2 .gutter{flex:none;width:32px;border-right:1px solid var(--line);background:var(--pitch-900);display:flex;flex-direction:column}
 .fjv2 .gutter .g-plot{height:var(--plotH)}
 .fjv2 .gutter .g-lane{height:var(--laneH);display:grid;place-items:center;color:var(--ink-3)}
@@ -219,4 +229,5 @@
   .fjv2 .nav .rail{flex-wrap:nowrap;padding:0 22px}
   .fjv2 .chart-wrap .track{overflow-x:auto}
   .fjv2 .chart-fade{display:block}
+  .fjv2 .chart-nav{display:flex}
 }
