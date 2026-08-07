@@ -312,7 +312,9 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
           {/* COMPAÑEROS */}
           {companeros.length > 0 && (
             <section id="s-mates">
-              <div className="s-head"><div className="s-title">Ha jugado con</div><div className="s-sub">top 6 por ELO</div></div>
+              {/* slice(0,6) preparado para dos filas de tres, pero web_jugador.companeros_top viene con
+                  exactamente 5 desde el pipeline: el subtítulo refleja el nº real y saldrá 6 solo. */}
+              <div className="s-head"><div className="s-title">Ha jugado con</div><div className="s-sub">top {companeros.length} por ELO</div></div>
               <div className="track"><div className="rail">
                 {companeros.map((c: CompaneroTop) => {
                   const nm = formatNombre(c.nombre)
