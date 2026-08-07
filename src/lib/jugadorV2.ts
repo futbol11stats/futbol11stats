@@ -100,6 +100,23 @@ export async function tienePorteriaDato(cod: string): Promise<boolean> {
   return !!(data && data.length)
 }
 
+// Totales de tarjetas de TODA la carrera desde web_jugador_partidos. Sus tres columnas son DISJUNTAS
+// a nivel de evento: amarilla simple, doble amarilla y roja directa no se solapan (la doble no suma
+// al ciclo de sanción, va aparte). OJO: web_jugador_carrera.tarjetas_rojas mezcla rojas directas +
+// dobles, por eso NO se usa aquí. web_jugador_partidos tiene una fila por partido jugado y su recuento
+// coincide EXACTO con la suma de pj de carrera (verificado en los 38.173 jugadores).
+export async function getTarjetasTotales(cod: string): Promise<{ amarillas: number; dobles: number; rojas: number }> {
+  const { data } = await supabase.from('web_jugador_partidos')
+    .select('amarillas, dobles_amarilla, rojas').eq('codjugador', cod)
+  let amarillas = 0, dobles = 0, rojas = 0
+  for (const p of (data || []) as any[]) {
+    amarillas += p.amarillas ?? 0
+    dobles += p.dobles_amarilla ?? 0
+    rojas += p.rojas ?? 0
+  }
+  return { amarillas, dobles, rojas }
+}
+
 // Cortes de percentil (métrica/categoría/temporada). Devuelve la 4-tupla o null si no hay fila.
 export async function getPercentilCortes(
   metrica: string, categoria: string | null, codtempInt: number | null

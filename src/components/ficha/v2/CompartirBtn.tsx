@@ -17,7 +17,7 @@ export default function CompartirBtn({ titulo, variant = 'icon' }: { titulo: str
   }
   if (variant === 'btn') {
     return (
-      <button type="button" className="btn p" onClick={onClick}>
+      <button type="button" className="btn" onClick={onClick}>
         <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 7 }}>
           <Compartir size={15} />{copiado ? '¡Enlace copiado!' : 'Compartir ficha'}
         </span>

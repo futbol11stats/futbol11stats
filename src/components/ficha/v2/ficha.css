@@ -45,13 +45,19 @@
    competición…), con su contenido centrado verticalmente. */
 .fjv2 .hero-pills{display:flex;align-items:stretch;gap:6px;margin-top:10px;flex-wrap:wrap}
 .fjv2 .hero-pills>*{display:inline-flex;align-items:center}
-.fjv2 .alert{display:flex;align-items:center;gap:8px;margin-top:11px;padding:9px 11px;border-radius:9px;
-  background:rgba(240,180,41,.1);border:1px solid rgba(240,180,41,.3);font-size:var(--t-sm);line-height:1.45;color:#f5dda3}
+/* Las pastillas neutras (edad, equipo) usan la condensada a 13px; el resto de la fila (Pastilla de
+   posición, LigaPastilla) van a 14px. Se igualan a 14px para que no parezcan más pequeñas. */
+.fjv2 .hero-pills .pill{font-size:14px}
+.fjv2 .alert{display:flex;align-items:center;gap:8px;margin-top:11px;padding:4px 11px;border-radius:9px;
+  background:rgba(240,180,41,.1);border:1px solid rgba(240,180,41,.3);font-size:var(--t-sm);line-height:1.35;color:#f5dda3}
 .fjv2 .alert b{font-weight:600;color:var(--amber)}
 
+/* Móvil: 5 columnas visibles (PJ · Min · Pts F. · Media · ELO); Goles/P.a0 se oculta por espacio sin
+   reordenar el resto. Desktop: 6 columnas, Goles/P.a0 reaparece en su sitio (3ª). */
 .fjv2 .kpis{display:grid;grid-template-columns:repeat(5,1fr);border-bottom:1px solid var(--line)}
 .fjv2 .kpi{padding:11px 3px 12px;text-align:center;border-right:1px solid var(--line-2)}
 .fjv2 .kpi:last-child{border-right:0}
+.fjv2 .kpi-goles{display:none}
 .fjv2 .kpi .v{font-size:var(--n-md)}
 .fjv2 .kpi .k{font-size:var(--t-micro);letter-spacing:.07em;text-transform:uppercase;color:var(--ink-3);margin-top:5px;font-weight:600}
 
@@ -96,7 +102,9 @@
 .fjv2 .avgtag{position:absolute;right:8px;transform:translateY(-50%);font-family:var(--font-display),'Barlow Condensed',sans-serif;font-size:var(--t-micro);font-weight:600;color:var(--ink-2);background:var(--pitch-900);padding:0 5px}
 .fjv2 .lane{height:var(--laneH);width:100%;display:flex;align-items:center;justify-content:center;gap:3px}
 .fjv2 .mins{font-family:var(--font-display),'Barlow Condensed',sans-serif;font-size:var(--t-cap);font-weight:600;color:var(--ink-3);font-variant-numeric:tabular-nums}
-.fjv2 .rival-lane{position:relative}
+/* Un poco más alta que el resto de carriles para dejar aire entre el escudo (centrado) y la línea de
+   resultado, que va pegada al fondo. */
+.fjv2 .rival-lane{position:relative;height:calc(var(--laneH) + 6px)}
 .fjv2 .rival-top{display:flex;align-items:center;justify-content:center;gap:3px}
 /* Escudos como en el resto del sitio: caja blanca rounded-sm, escudo object-contain (sin círculo ni recorte). */
 .fjv2 .crest{width:21px;height:21px;border-radius:3px;display:grid;place-items:center;background:#fff;padding:1px}
@@ -131,6 +139,15 @@
 .fjv2 .batt i{height:9px;flex:1;border-radius:2px;background:rgba(255,255,255,.1)}
 .fjv2 .batt-lbl{font-size:var(--t-sm);color:var(--ink-3);margin-top:8px;line-height:1.5}
 .fjv2 .batt-lbl b{color:var(--ink-2)}
+/* Balance del equipo (Análisis): caso de un solo nivel -> etiqueta en una línea sobre una barra a todo
+   el ancho, y nota que explica el %. .bal-note es también la nota verde del caso con comparativa. */
+.fjv2 .bal-solo{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:8px;font-size:var(--t-sm);color:var(--ink-2)}
+.fjv2 .bal-solo b{color:var(--ink);font-weight:700}
+.fjv2 .bal-solo .num{font-size:var(--n-md);color:var(--e3)}
+.fjv2 .bal-bar{display:flex;height:22px;border-radius:6px;overflow:hidden;gap:2px}
+.fjv2 .bal-note{margin-top:11px;padding:9px 11px;border-radius:8px;font-size:var(--t-sm);line-height:1.5;background:rgba(46,229,107,.09);border:1px solid rgba(46,229,107,.24);color:#b7f5cb}
+.fjv2 .bal-note b{font-weight:700;color:#8cf0a2}
+
 .fjv2 .ranks{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;margin-top:13px;background:var(--line-2);border:1px solid var(--line-2);border-radius:8px;overflow:hidden}
 .fjv2 .rk{background:var(--pitch-900);padding:10px 4px;text-align:center}
 .fjv2 .rk .r-v{font-family:var(--font-display),'Barlow Condensed',sans-serif;font-size:var(--n-sm);font-weight:700;line-height:1}
@@ -181,13 +198,17 @@
 
 .fjv2 .foot{padding:var(--pad);display:flex;gap:9px}
 .fjv2 .btn{flex:1;padding:11px;border-radius:9px;text-align:center;font-family:var(--font-display),'Barlow Condensed',sans-serif;font-size:var(--t-lead);font-weight:600;letter-spacing:.04em;border:1px solid var(--line);background:rgba(255,255,255,.04);color:var(--ink-2);cursor:pointer;text-decoration:none}
-.fjv2 .btn.p{background:rgba(46,229,107,.14);border-color:rgba(46,229,107,.4);color:#8cf0a2}
 
 @media(min-width:1000px){
   .fjv2{--t-micro:12px;--t-cap:13px;--t-sm:14px;--t-body:15px;--t-lead:17px;
     --n-sm:21px;--n-md:28px;--n-lg:38px;--h-sec:23px;--colW:56px;--pad:22px;
     max-width:1160px;border:1px solid var(--line);border-radius:16px;overflow:hidden;margin-top:20px}
   .fjv2 .hero{padding:24px 28px}
+  /* KPIs: 6 columnas con Goles/P.a0 visible en su sitio (3ª). */
+  .fjv2 .kpis{grid-template-columns:repeat(6,1fr)}
+  .fjv2 .kpi-goles{display:block}
+  /* Marcador de "Mejores actuaciones": con más aire no debe partir "2-14" en dos líneas. */
+  .fjv2 .m-score{width:auto;min-width:46px;white-space:nowrap}
   .fjv2 .avatar{width:100px;height:100px;font-size:42px;border-radius:18px}
   .fjv2 .hero-name .last{font-size:42px} .fjv2 .hero-name .first{font-size:17px}
   .fjv2 .layout{display:grid;grid-template-columns:360px 1fr;align-items:start}

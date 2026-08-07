@@ -19,7 +19,7 @@ import CompChips from '@/components/ficha/v2/CompChips'
 import Echo from '@/components/ficha/v2/Echo'
 import Jornadas from '@/components/ficha/v2/Jornadas'
 import {
-  Balon, Reloj, Escudo, Camiseta, CamisetaHueca, TarjetaAmarilla, TarjetaRoja, Guante,
+  Balon, Reloj, Escudo, Camiseta, CamisetaHueca, TarjetaAmarilla, TarjetaDoble, TarjetaRoja, Guante,
 } from '@/components/iconos'
 import { getEquipoActualInfo, getGrupoInfo, grupoHref } from '@/lib/equipo'
 import { graphLd, breadcrumbLd } from '@/lib/jsonld'
@@ -32,7 +32,7 @@ import { CORTES_FIJOS } from '@/lib/escala'
 import {
   getJugadorV2, getCarreraV2, getAlertaActual, getAmbitoTemporada, getCortesElo, labelToCod,
   getPartidosTemporada, ventanasForma, racha5DePartidos, splitCasaFuera, balanceEquipo,
-  getActuacionesV2, getHitosV2, alertaHumana, tienePorteriaDato,
+  getActuacionesV2, getHitosV2, alertaHumana, tienePorteriaDato, getTarjetasTotales,
   type CarreraRow,
 } from '@/lib/jugadorV2'
 
@@ -64,10 +64,11 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
 
   const sum = (f: (c: CarreraRow) => number | null) => etapas.reduce((s, c) => s + (f(c) ?? 0), 0)
   const pj = sum((c) => c.pj), golesT = sum((c) => c.goles), ptsF = sum((c) => c.pts_fantasy)
+  const minT = sum((c) => c.minutos), p0Sel = sum((c) => c.porterias_cero)
   const media = pj > 0 ? ptsF / pj : null
   const eloSel = etapaPrincipal?.elo_final ?? j.elo_actual ?? null
 
-  const [equipoInfo, cortesElo, alerta, comps, partidosTemp, actuaciones, hitosRaw, hayP0, grupoInfo] = await Promise.all([
+  const [equipoInfo, cortesElo, alerta, comps, partidosTemp, actuaciones, hitosRaw, hayP0, grupoInfo, tarjetas] = await Promise.all([
     inactivo ? Promise.resolve({ copas: [], posicionActual: null }) : getEquipoActualInfo(j.codequipo_actual),
     getCortesElo(categoriaSel, tempSel ? Number(tempSel) : null),
     getAlertaActual(cod),
@@ -77,6 +78,7 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
     getHitosV2(cod),
     tienePorteriaDato(cod),
     getGrupoInfo(etapaPrincipal?.codgrupo),
+    getTarjetasTotales(cod),
   ])
   const { copas, posicionActual } = equipoInfo
   const grupoUrl = grupoHref(grupoInfo)
@@ -101,8 +103,6 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
   const eloBig = j.elo_actual ?? eloSel
 
   const dorsalesOtros = (j.dorsales_otros || []).filter((d) => d !== j.dorsal_ultimo && d !== j.dorsal_comun)
-  const amarillasTot = carrera.reduce((s, c) => s + (c.tarjetas_amarillas ?? 0), 0)
-  const rojasTot = carrera.reduce((s, c) => s + (c.tarjetas_rojas ?? 0), 0)
 
   const cuentaTemp = new Map<string, number>()
   for (const c of carrera) cuentaTemp.set(c.codtemporada, (cuentaTemp.get(c.codtemporada) ?? 0) + 1)
@@ -173,20 +173,22 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
   }
   const badge11 = <span style={{ width: 20, height: 20, borderRadius: '50%', background: '#1a7a3c', display: 'grid', placeItems: 'center', fontFamily: 'var(--font-display), sans-serif', fontWeight: 700, color: '#fff', fontSize: 11, lineHeight: 1 }}>11</span>
 
+  // 3ª casilla: goles (jugador de campo) o porterías a cero (portero, si hay dato de portería).
+  const golesTile: [ReactNode, string, string] = hayP0
+    ? [<Guante size={13} key="i" />, mil(j.porterias_cero_total), 'P. a 0']
+    : [<Balon size={13} key="i" />, mil(j.goles_total), 'Goles']
+  // TA · 2A · TR son conjuntos DISJUNTOS (amarilla simple / doble amarilla / roja directa), tomados de
+  // web_jugador_partidos, que las separa a nivel de evento. Ver getTarjetasTotales.
   const totales: Array<[ReactNode, string, string]> = [
     [<Escudo size={13} key="i" />, mil(j.pj_total), 'PJ'],
     [<Reloj size={13} key="i" />, mil(j.minutos_total), 'Min'],
-    [<Balon size={13} key="i" />, mil(j.goles_total), 'Goles'],
+    golesTile,
     [<Camiseta size={13} key="i" />, mil(j.titular_total), 'Titular'],
     [<CamisetaHueca size={13} key="i" />, mil(j.suplente_total), 'Supl.'],
-    [<span style={{ color: 'var(--card-y)', display: 'flex' }} key="i"><TarjetaAmarilla size={11} /></span>, mil(amarillasTot), 'TA'],
-    [<span style={{ color: 'var(--card-r)', display: 'flex' }} key="i"><TarjetaRoja size={11} /></span>, mil(rojasTot), 'TR'],
+    [<span style={{ color: 'var(--card-y)', display: 'flex' }} key="i"><TarjetaAmarilla size={11} /></span>, mil(tarjetas.amarillas), 'TA'],
+    [<span style={{ color: 'var(--card-y)', display: 'flex' }} key="i"><TarjetaDoble size={12} /></span>, mil(tarjetas.dobles), '2A'],
+    [<span style={{ color: 'var(--card-r)', display: 'flex' }} key="i"><TarjetaRoja size={11} /></span>, mil(tarjetas.rojas), 'TR'],
   ]
-  // 8ª casilla: porterías a cero (portero) o, si no, el % de titularidad (titular ÷ PJ) — dato real que
-  // rellena el hueco.
-  const pctTitular = (j.pj_total && j.titular_total != null) ? Math.round((j.titular_total / j.pj_total) * 100) : null
-  if (hayP0) totales.push([<Guante size={13} key="i" />, mil(j.porterias_cero_total), 'P. a 0'])
-  else if (pctTitular != null) totales.push([<Camiseta size={13} key="i" />, `${pctTitular}%`, 'Titularidad'])
 
   const RC: Record<string, string> = { G: 'var(--e3)', E: 'var(--ink-3)', P: 'var(--e0)' }
 
@@ -227,10 +229,15 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
         )}
       </div>
 
-      {/* 2 · KPIs */}
+      {/* 2 · KPIs — mismo orden en móvil y desktop; en móvil se oculta Goles/P.a0 (.kpi-goles) por espacio,
+          sin reordenar el resto. */}
       <div className="kpis">
         <div className="kpi"><div className="v num">{mil(pj)}</div><div className="k">PJ</div></div>
-        <div className="kpi"><div className="v num">{mil(golesT)}</div><div className="k">Goles</div></div>
+        <div className="kpi"><div className="v num">{mil(minT)}</div><div className="k">Min</div></div>
+        <div className="kpi kpi-goles">
+          <div className="v num">{hayP0 ? mil(p0Sel) : mil(golesT)}</div>
+          <div className="k">{hayP0 ? 'P. a 0' : 'Goles'}</div>
+        </div>
         <div className="kpi"><div className="v num">{mil(Math.round(ptsF))}</div><div className="k">Pts F.</div></div>
         <div className="kpi"><div className="v num" style={{ color: cMed(media) }}>{media != null ? med1(media) : '—'}</div><div className="k">Media</div></div>
         <div className="kpi"><div className="v num" style={{ color: cElo(eloSel) }}>{eloSel != null ? mil(Math.round(eloSel)) : '—'}</div><div className="k">ELO</div></div>
@@ -356,20 +363,36 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
                 <>
                   {filaBalance('Con él', `${balance.con.pj} partidos`, balance.con, true)}
                   {filaBalance('Sin él', `${balance.sin.pj} partidos`, balance.sin, false)}
-                  <div style={{ marginTop: 11, padding: '9px 11px', borderRadius: 8, fontSize: 'var(--t-sm)', lineHeight: 1.5, background: 'rgba(46,229,107,.09)', border: '1px solid rgba(46,229,107,.24)', color: '#b7f5cb' }}>
-                    El equipo gana el <b>{balance.con.pj ? Math.round(balance.con.pg / balance.con.pj * 100) : 0} %</b> con él y el <b>{balance.sin.pj ? Math.round(balance.sin.pg / balance.sin.pj * 100) : 0} %</b> sin él.
+                  <div className="bal-note">
+                    <b>{balance.con.pj ? Math.round(balance.con.pg / balance.con.pj * 100) : 0} %</b> de victorias con él y <b>{balance.sin.pj ? Math.round(balance.sin.pg / balance.sin.pj * 100) : 0} %</b> sin él.
                   </div>
                 </>
               ) : (
-                // Muestra insuficiente en algún lado: un solo nivel con sus participaciones con el equipo.
-                filaBalance('Con el equipo', `${balance.con.pj} partidos`, balance.con, true)
+                // Muestra insuficiente en algún lado: un solo nivel. Etiqueta en una línea sobre la barra,
+                // que ocupa todo el ancho.
+                <>
+                  <div className="bal-solo">
+                    <span>Con el equipo · <b>{balance.con.pj}</b> partidos</span>
+                    <span className="num">{balance.con.pj ? Math.round(balance.con.pg / balance.con.pj * 100) : 0} %</span>
+                  </div>
+                  <div className="bal-bar">
+                    {balance.con.pg > 0 && <span style={{ flex: balance.con.pg, background: 'var(--e3)' }} />}
+                    {balance.con.pe > 0 && <span style={{ flex: balance.con.pe, background: 'var(--e1)' }} />}
+                    {balance.con.pp > 0 && <span style={{ flex: balance.con.pp, background: 'var(--e0)' }} />}
+                  </div>
+                  <div className="bal-note">
+                    <b>{balance.con.pj ? Math.round(balance.con.pg / balance.con.pj * 100) : 0} %</b> de victorias con él.
+                  </div>
+                </>
               )}
             </div>
             {split.hayLocal && (
               <div className="windows" style={{ gridTemplateColumns: '1fr 1fr' }}>
                 {([['Casa', split.casa], ['Fuera', split.fuera]] as const).map(([k, s]) => (
                   <div className="win" key={k}>
-                    <div className="w-k">{k}</div>
+                    <div className="w-k" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
+                      <IndicadorLocal esLocal={k === 'Casa'} />{k}
+                    </div>
                     <div className="w-v" style={{ color: cMed(s.media) }}>{s.media != null ? med1(s.media) : '—'}</div>
                     <div className="w-s">{s.pj} PJ · {s.goles} goles</div>
                   </div>
