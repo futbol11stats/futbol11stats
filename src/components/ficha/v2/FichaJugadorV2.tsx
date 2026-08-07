@@ -11,6 +11,7 @@ import LigaPastilla from '@/components/LigaPastilla'
 import CopasLinea from '@/components/CopasLinea'
 import IndicadorLocal from '@/components/IndicadorLocal'
 import Trayectoria from '@/components/ficha/Trayectoria'
+import EloSparkline from '@/components/ficha/EloSparkline'
 import JsonLd from '@/components/JsonLd'
 import CompartirBtn from '@/components/ficha/v2/CompartirBtn'
 import NavSpy from '@/components/ficha/v2/NavSpy'
@@ -181,7 +182,11 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
     [<span style={{ color: 'var(--card-y)', display: 'flex' }} key="i"><TarjetaAmarilla size={11} /></span>, mil(amarillasTot), 'TA'],
     [<span style={{ color: 'var(--card-r)', display: 'flex' }} key="i"><TarjetaRoja size={11} /></span>, mil(rojasTot), 'TR'],
   ]
+  // 8ª casilla: porterías a cero (portero) o, si no, el % de titularidad (titular ÷ PJ) — dato real que
+  // rellena el hueco.
+  const pctTitular = (j.pj_total && j.titular_total != null) ? Math.round((j.titular_total / j.pj_total) * 100) : null
   if (hayP0) totales.push([<Guante size={13} key="i" />, mil(j.porterias_cero_total), 'P. a 0'])
+  else if (pctTitular != null) totales.push([<Camiseta size={13} key="i" />, `${pctTitular}%`, 'Titularidad'])
 
   const RC: Record<string, string> = { G: 'var(--e3)', E: 'var(--ink-3)', P: 'var(--e0)' }
 
@@ -263,6 +268,8 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
               </div>
               <div className="batt">{Array.from({ length: 10 }).map((_, i) => <i key={i} style={i < llenos ? { background: cElo(eloBig) } : undefined} />)}</div>
               {pct != null && <div className="batt-lbl">Mejor que el <b>{pct} %</b> de los jugadores de su categoría</div>}
+              {/* Evolución del ELO (cierre por temporada) — mismo sparkline que la ficha actual (Medidores). */}
+              <EloSparkline serie={j.elo_serie || []} className="w-full h-9 mt-3" />
               <div style={{ marginTop: 13 }}>
                 {RankFila(badge11, 'Fútbol11Stats · Madrid', j.rank_general, j.rank_general_total)}
                 {RankFila(categoriaSel ? <Sello nombreComp={categoriaSel} size={18} /> : null, categoriaSel || 'Competición', j.rank_categoria, j.rank_categoria_total)}
@@ -466,7 +473,7 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
             </div>
             <div className="foot" style={{ paddingTop: 18 }}>
               <CompartirBtn titulo={`${nombre} · Fútbol11Stats`} variant="btn" />
-              <a className="btn" href={`mailto:futbol11stats@gmail.com?subject=${encodeURIComponent(`Corrección en la ficha de ${nombre}`)}`}>Corregir datos</a>
+              <a className="btn" href={`mailto:futbol11stats@gmail.com?subject=${encodeURIComponent(`Corrección en la ficha de ${nombre}`)}&body=${encodeURIComponent(`Jugador: ${nombre} (código ${j.codjugador})\nFicha: ${SITE_URL}/madrid/jugador/${slug}/v2\n\nQué está mal:\n`)}`}>Corregir datos</a>
             </div>
           </section>
         </div>

@@ -16,7 +16,13 @@ export default function CompartirBtn({ titulo, variant = 'icon' }: { titulo: str
     } catch { /* cancelado */ }
   }
   if (variant === 'btn') {
-    return <button type="button" className="btn p" onClick={onClick}>{copiado ? '¡Enlace copiado!' : 'Compartir ficha'}</button>
+    return (
+      <button type="button" className="btn p" onClick={onClick}>
+        <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 7 }}>
+          <Compartir size={15} />{copiado ? '¡Enlace copiado!' : 'Compartir ficha'}
+        </span>
+      </button>
+    )
   }
   return <button type="button" className="share" aria-label="Compartir" onClick={onClick}><Compartir size={17} /></button>
 }
