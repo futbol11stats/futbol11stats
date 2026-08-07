@@ -9,6 +9,7 @@ import {
   TrianguloArriba, TrianguloAbajo, Guion, Escudo,
 } from '@/components/iconos'
 import { derivarRol } from '@/lib/escala'
+import { marcadorLocalVisitante } from '@/lib/jugador'
 import { useComp } from './compStore'
 import type { CompAmbito, JornadaDatum } from '@/lib/jugadorV2'
 
@@ -105,7 +106,7 @@ export default function Jornadas({ comps, cortes }: { comps: CompAmbito[]; corte
           <div className="g-plot" />
           <div className="g-lane"><Balon size={12} /></div>
           <div className="g-lane"><Camiseta size={13} /></div>
-          <div className="g-lane"><Escudo size={13} /></div>
+          <div className="g-lane g-lane-rival"><Escudo size={13} /></div>
           <div className="g-lane" />
         </div>
         <div className="track" ref={trackRef} onScroll={onScroll}>
@@ -113,13 +114,17 @@ export default function Jornadas({ comps, cortes }: { comps: CompAmbito[]; corte
             {comp.jornadas.map((d, i) => {
               const last = i === comp.jornadas.length - 1
               const res = signoDe(d.resultado)
+              // Marcador en orden local-visitante (voltea si jugó fuera); color por el signo del resultado.
+              const { marcador } = marcadorLocalVisitante(d.resultado ?? null, d.esLocal)
               return (
                 <div key={d.jornada} className={`col${last ? ' now' : ''}`}>
                   <div className="plot">{barra(d)}<div className="zero" /></div>
                   <div className="lane">{eventos(d)}</div>
                   <div className="lane">{rol(d)}</div>
-                  {/* Rival: escudo + casa/avión centrados; la línea de resultado ocupa TODO el ancho de la columna. */}
+                  {/* Rival: marcador (coloreado) encima del escudo; casa/avión al lado; la línea de
+                      resultado ocupa TODO el ancho de la columna, abajo. */}
                   <div className="lane rival-lane">
+                    {d.resultado && <div className={`rival-mk res-t-${res}`}>{marcador}</div>}
                     <div className="rival-top">
                       <EscudoBox escudo={d.rivalEscudo ?? null} nombre={d.rivalNombre ?? undefined} size={20} radius={3} />
                       {d.esLocal != null && <IndicadorLocal esLocal={d.esLocal} />}
@@ -130,11 +135,12 @@ export default function Jornadas({ comps, cortes }: { comps: CompAmbito[]; corte
                 </div>
               )
             })}
-            <div className="avgline" style={{ top: avgTop }}>
-              <span className="avgtag">med {media.toFixed(1).replace('.', ',')}</span>
-            </div>
           </div>
         </div>
+        {/* Línea de media: overlay FIJO sobre el área de barras (no scrollea), de extremo a extremo
+            (del canalón al borde) a la altura de la media; etiqueta anclada en el canalón izquierdo. */}
+        <div className="avg-line" style={{ top: avgTop }} aria-hidden="true" />
+        <div className="avg-tag" style={{ top: avgTop }}>{media.toFixed(1).replace('.', ',')}</div>
         {/* Degradados que indican que hay más gráfico al hacer scroll (solo desktop, ver ficha.css). */}
         <div className="chart-fade chart-fade-l" style={{ opacity: fades.l ? 1 : 0 }} aria-hidden="true" />
         <div className="chart-fade chart-fade-r" style={{ opacity: fades.r ? 1 : 0 }} aria-hidden="true" />

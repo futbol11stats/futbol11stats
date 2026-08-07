@@ -32,8 +32,7 @@
 .fjv2 .hero-top{display:flex;align-items:center;gap:12px}
 /* Avatar de iniciales: alto para cubrir el nombre (1 línea) + dos líneas de apellidos. */
 .fjv2 .avatar{width:70px;height:70px;border-radius:14px;flex:none;display:grid;place-items:center;position:relative;
-  font-family:var(--font-display),'Barlow Condensed',sans-serif;font-weight:700;font-size:30px;
-  background:#3a2140;color:#f2a3c0;border:1px solid rgba(242,163,192,.3)}
+  font-family:var(--font-display),'Barlow Condensed',sans-serif;font-weight:700;font-size:30px;color:#fff}
 .fjv2 .dorsal{position:absolute;bottom:-6px;right:-6px;width:23px;height:23px;border-radius:7px;
   background:var(--pitch-700);border:1px solid var(--line);display:grid;place-items:center;
   font-family:var(--font-display),'Barlow Condensed',sans-serif;font-size:var(--t-sm);font-weight:700}
@@ -58,6 +57,7 @@
 .fjv2 .kpi{padding:11px 3px 12px;text-align:center;border-right:1px solid var(--line-2)}
 .fjv2 .kpi:last-child{border-right:0}
 .fjv2 .kpi-goles{display:none}
+.fjv2 .kpi .kpi-i{display:flex;justify-content:center;align-items:center;color:var(--ink-3);height:15px;margin-bottom:5px}
 .fjv2 .kpi .v{font-size:var(--n-md)}
 .fjv2 .kpi .k{font-size:var(--t-micro);letter-spacing:.07em;text-transform:uppercase;color:var(--ink-3);margin-top:5px;font-weight:600}
 
@@ -99,6 +99,7 @@
 .fjv2 .gutter{flex:none;width:32px;border-right:1px solid var(--line);background:var(--pitch-900);display:flex;flex-direction:column}
 .fjv2 .gutter .g-plot{height:var(--plotH)}
 .fjv2 .gutter .g-lane{height:var(--laneH);display:grid;place-items:center;color:var(--ink-3)}
+.fjv2 .gutter .g-lane-rival{height:44px}   /* == .rival-lane, para no desalinear las filas de abajo */
 .fjv2 .cols{display:flex;padding:0 10px 0 5px;position:relative}
 .fjv2 .col{width:var(--colW);flex:none;display:flex;flex-direction:column;align-items:center}
 .fjv2 .col+.col{margin-left:2px}
@@ -113,13 +114,19 @@
 .fjv2 .bar.down{border-radius:0 0 3px 3px}
 .fjv2 .bar.cero{height:4px;background:var(--e1);opacity:.7;border-radius:2px}
 .fjv2 .bar.aus{height:4px;border-radius:2px;opacity:.55;background:repeating-linear-gradient(90deg,var(--ink-3) 0 3px,transparent 3px 6px)}
-.fjv2 .avgline{position:absolute;left:0;right:0;height:0;border-top:1px dashed rgba(255,255,255,.35)}
-.fjv2 .avgtag{position:absolute;right:8px;transform:translateY(-50%);font-family:var(--font-display),'Barlow Condensed',sans-serif;font-size:var(--t-micro);font-weight:600;color:var(--ink-2);background:var(--pitch-900);padding:0 5px}
+/* Línea de media: overlay FIJO sobre chart-wrap (no scrollea). left:32px = tras el canalón -> cubre el
+   área de barras de extremo a extremo. La etiqueta se ancla dentro del canalón izquierdo (left:0..32px). */
+.fjv2 .avg-line{position:absolute;left:32px;right:0;height:0;border-top:1px dashed rgba(255,255,255,.4);z-index:1;pointer-events:none}
+.fjv2 .avg-tag{position:absolute;left:0;width:32px;transform:translateY(-50%);text-align:right;padding-right:4px;
+  font-family:var(--font-display),'Barlow Condensed',sans-serif;font-size:10px;font-weight:700;color:var(--ink-2);
+  font-variant-numeric:tabular-nums;line-height:1;background:var(--pitch-900);z-index:2;pointer-events:none}
 .fjv2 .lane{height:var(--laneH);width:100%;display:flex;align-items:center;justify-content:center;gap:3px}
 .fjv2 .mins{font-family:var(--font-display),'Barlow Condensed',sans-serif;font-size:var(--t-cap);font-weight:600;color:var(--ink-3);font-variant-numeric:tabular-nums}
-/* Un poco más alta que el resto de carriles para dejar aire entre el escudo (centrado) y la línea de
-   resultado, que va pegada al fondo. */
-.fjv2 .rival-lane{position:relative;height:calc(var(--laneH) + 6px)}
+/* Carril de rival en columna: marcador (coloreado) arriba, escudo+localía en medio, línea de resultado
+   pegada al fondo. Más alto para que quepan los tres con aire. Su gemelo en el canalón: .g-lane-rival. */
+.fjv2 .rival-lane{position:relative;height:44px;flex-direction:column;gap:1px}
+.fjv2 .rival-mk{font-family:var(--font-display),'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;line-height:1;font-variant-numeric:tabular-nums}
+.fjv2 .res-t-G{color:var(--e3)} .fjv2 .res-t-E{color:var(--ink-3)} .fjv2 .res-t-P{color:var(--e0)}
 .fjv2 .rival-top{display:flex;align-items:center;justify-content:center;gap:3px}
 /* Escudos como en el resto del sitio: caja blanca rounded-sm, escudo object-contain (sin círculo ni recorte). */
 .fjv2 .crest{width:21px;height:21px;border-radius:3px;display:grid;place-items:center;background:#fff;padding:1px}

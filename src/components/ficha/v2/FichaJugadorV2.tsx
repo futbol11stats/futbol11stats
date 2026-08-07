@@ -20,6 +20,7 @@ import Echo from '@/components/ficha/v2/Echo'
 import Jornadas from '@/components/ficha/v2/Jornadas'
 import {
   Balon, Reloj, Escudo, Camiseta, CamisetaHueca, TarjetaAmarilla, TarjetaDoble, TarjetaRoja, Guante,
+  Estrella, Marcador, Promocion,
 } from '@/components/iconos'
 import { getEquipoActualInfo, getGrupoInfo, grupoHref } from '@/lib/equipo'
 import { graphLd, breadcrumbLd } from '@/lib/jsonld'
@@ -51,6 +52,11 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
   const pila = ((rawNombre.split(',')[1] || '').trim() || apellidos).toUpperCase()
   const nombre = formatNombre(j.nombre)
   const ini = ((pila[0] || '') + (apellidos[0] || '')).toUpperCase()
+  // Color del avatar por demarcación, como en la ficha antigua (AVATAR_POS en [slug]/page.tsx):
+  // gradiente + aro por posición (POR naranja, DEF azul, MED verde, DEL rojo), texto blanco.
+  const AVA_POS: Record<string, string> = { POR: '249,115,22', DEF: '59,130,246', MED: '34,160,80', DEL: '239,68,68' }
+  const avaRGB = AVA_POS[j.posicion_pastilla || ''] || '100,116,139'
+  const avatarStyle = { background: `linear-gradient(to bottom right, rgba(${avaRGB},.45), var(--pitch-800))`, border: `2px solid rgba(${avaRGB},.6)` }
   const slug = jugadorSlug(j.codjugador, j.nombre)
   const portero = !!j.es_portero
   const inactivo = Number(j.codtemporada_ultima) < Number(LIVE_COD)
@@ -182,7 +188,7 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
 
   // 3ª casilla: goles (jugador de campo) o porterías a cero (portero, si hay dato de portería).
   const golesTile: [ReactNode, string, string] = hayP0
-    ? [<Guante size={13} key="i" />, mil(j.porterias_cero_total), 'P. a 0']
+    ? [<Guante size={13} key="i" />, mil(j.porterias_cero_total), 'P. a cero']
     : [<Balon size={13} key="i" />, mil(j.goles_total), 'Goles']
   // Dos filas por naturaleza del dato: arriba PARTICIPACIÓN (PJ·Min·Titular·Supl.), abajo EVENTOS
   // (Goles/P.a0 · TA · 2TA · TR). TA · 2TA · TR son DISJUNTAS (amarilla simple / doble amarilla / roja
@@ -206,7 +212,7 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
       {/* 1 · HERO */}
       <div className="hero">
         <div className="hero-top">
-          <div className="avatar">{ini}{j.dorsal_ultimo != null && <div className="dorsal">{j.dorsal_ultimo}</div>}</div>
+          <div className="avatar" style={avatarStyle}>{ini}{j.dorsal_ultimo != null && <div className="dorsal">{j.dorsal_ultimo}</div>}</div>
           <div className="hero-name">
             <div className="first">{pila}</div>
             <div className="last">{apellidos}</div>
@@ -240,15 +246,16 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
       {/* 2 · KPIs — mismo orden en móvil y desktop; en móvil se oculta Goles/P.a0 (.kpi-goles) por espacio,
           sin reordenar el resto. */}
       <div className="kpis">
-        <div className="kpi"><div className="v num">{mil(pj)}</div><div className="k">PJ</div></div>
-        <div className="kpi"><div className="v num">{mil(minT)}</div><div className="k">Min</div></div>
+        <div className="kpi"><div className="kpi-i"><Escudo size={14} /></div><div className="v num">{mil(pj)}</div><div className="k">PJ</div></div>
+        <div className="kpi"><div className="kpi-i"><Reloj size={14} /></div><div className="v num">{mil(minT)}</div><div className="k">Min</div></div>
         <div className="kpi kpi-goles">
+          <div className="kpi-i">{hayP0 ? <Guante size={14} /> : <Balon size={14} />}</div>
           <div className="v num">{hayP0 ? mil(p0Sel) : mil(golesT)}</div>
-          <div className="k">{hayP0 ? 'P. a 0' : 'Goles'}</div>
+          <div className="k">{hayP0 ? 'P. a cero' : 'Goles'}</div>
         </div>
-        <div className="kpi"><div className="v num">{mil(Math.round(ptsF))}</div><div className="k">Pts F.</div></div>
-        <div className="kpi"><div className="v num" style={{ color: cMed(media) }}>{media != null ? med1(media) : '—'}</div><div className="k">Media</div></div>
-        <div className="kpi"><div className="v num" style={{ color: cElo(eloSel) }}>{eloSel != null ? mil(Math.round(eloSel)) : '—'}</div><div className="k">ELO</div></div>
+        <div className="kpi"><div className="kpi-i"><Estrella size={14} /></div><div className="v num">{mil(Math.round(ptsF))}</div><div className="k">Pts F.</div></div>
+        <div className="kpi"><div className="kpi-i"><Marcador size={14} /></div><div className="v num" style={{ color: cMed(media) }}>{media != null ? med1(media) : '—'}</div><div className="k">Media</div></div>
+        <div className="kpi"><div className="kpi-i"><Promocion size={14} /></div><div className="v num" style={{ color: cElo(eloSel) }}>{eloSel != null ? mil(Math.round(eloSel)) : '—'}</div><div className="k">ELO</div></div>
       </div>
 
       {/* SCOPE */}
@@ -286,9 +293,10 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
               {/* Evolución del ELO (cierre por temporada) — mismo sparkline que la ficha actual (Medidores). */}
               <EloSparkline serie={j.elo_serie || []} className="w-full h-9 mt-3" />
               <div style={{ marginTop: 13 }}>
+                {/* Los tres rankings unificados con el badge (11) verde, como en la sección Rankings. */}
                 {RankFila(badge11, 'Fútbol11Stats · Madrid', j.rank_general, j.rank_general_total)}
-                {RankFila(categoriaSel ? <Sello nombreComp={categoriaSel} size={18} /> : null, categoriaSel || 'Competición', j.rank_categoria, j.rank_categoria_total)}
-                {RankFila(<Pastilla pos={j.posicion_pastilla} estimada={!!j.posicion_es_estimada} size="mini" />, j.posicion_pastilla ? (POS_LABEL[j.posicion_pastilla] || j.posicion_pastilla) : 'Posición', j.rank_posicion, j.rank_posicion_total)}
+                {RankFila(badge11, categoriaSel || 'Competición', j.rank_categoria, j.rank_categoria_total)}
+                {RankFila(badge11, j.posicion_pastilla ? (POS_LABEL[j.posicion_pastilla] || j.posicion_pastilla) : 'Posición', j.rank_posicion, j.rank_posicion_total)}
               </div>
             </div>
           </section>
