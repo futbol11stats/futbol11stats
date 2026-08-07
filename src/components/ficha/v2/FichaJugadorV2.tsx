@@ -91,8 +91,15 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
   const racha = racha5DePartidos(partidosTemp)
   const split = splitCasaFuera(partidosTemp)
   const balance = await balanceEquipo(partidosTemp)
+  // Global del equipo esa temporada = con él + sin él (balanceEquipo reparte TODOS los resultados del
+  // equipo en esos dos cubos). Sirve de línea base para ver si con el jugador va mejor o peor.
+  const glob = {
+    pg: balance.con.pg + balance.sin.pg, pe: balance.con.pe + balance.sin.pe,
+    pp: balance.con.pp + balance.sin.pp, pj: balance.con.pj + balance.sin.pj,
+  }
+  const pcWin = (o: { pg: number; pj: number }) => (o.pj ? Math.round((o.pg / o.pj) * 100) : 0)
   const { curados } = curarHitos(hitosRaw)
-  const companeros = (j.companeros_top || []).slice(0, 5)
+  const companeros = (j.companeros_top || []).slice(0, 6)
   const compNames = comps.map((c) => c.nombre_comp)
   const ligaCod = comps[0]?.codgrupo
 
@@ -177,16 +184,17 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
   const golesTile: [ReactNode, string, string] = hayP0
     ? [<Guante size={13} key="i" />, mil(j.porterias_cero_total), 'P. a 0']
     : [<Balon size={13} key="i" />, mil(j.goles_total), 'Goles']
-  // TA · 2A · TR son conjuntos DISJUNTOS (amarilla simple / doble amarilla / roja directa), tomados de
-  // web_jugador_partidos, que las separa a nivel de evento. Ver getTarjetasTotales.
+  // Dos filas por naturaleza del dato: arriba PARTICIPACIÓN (PJ·Min·Titular·Supl.), abajo EVENTOS
+  // (Goles/P.a0 · TA · 2TA · TR). TA · 2TA · TR son DISJUNTAS (amarilla simple / doble amarilla / roja
+  // directa) desde web_jugador_partidos, que las separa a nivel de evento. Ver getTarjetasTotales.
   const totales: Array<[ReactNode, string, string]> = [
     [<Escudo size={13} key="i" />, mil(j.pj_total), 'PJ'],
     [<Reloj size={13} key="i" />, mil(j.minutos_total), 'Min'],
-    golesTile,
     [<Camiseta size={13} key="i" />, mil(j.titular_total), 'Titular'],
     [<CamisetaHueca size={13} key="i" />, mil(j.suplente_total), 'Supl.'],
+    golesTile,
     [<span style={{ color: 'var(--card-y)', display: 'flex' }} key="i"><TarjetaAmarilla size={11} /></span>, mil(tarjetas.amarillas), 'TA'],
-    [<span style={{ color: 'var(--card-y)', display: 'flex' }} key="i"><TarjetaDoble size={12} /></span>, mil(tarjetas.dobles), '2A'],
+    [<span style={{ color: 'var(--card-y)', display: 'flex' }} key="i"><TarjetaDoble size={12} /></span>, mil(tarjetas.dobles), '2TA'],
     [<span style={{ color: 'var(--card-r)', display: 'flex' }} key="i"><TarjetaRoja size={11} /></span>, mil(tarjetas.rojas), 'TR'],
   ]
 
@@ -265,7 +273,9 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
         <div className="aside">
           {/* NIVEL */}
           <section id="s-nivel">
-            <div className="s-head"><div className="s-title">Nivel</div><div className="s-sub"><Echo temporada={tempTxt} comps={compNames} /></div></div>
+            {/* Los rankings salen de web_jugador (rank_general/categoria/posicion): son ACTUALES, no por
+                temporada, así que no cambian con el selector. El subtítulo lo deja claro (sin Echo). */}
+            <div className="s-head"><div className="s-title">Nivel</div><div className="s-sub"><span className="allscope">Situación actual</span></div></div>
             <div className="box">
               <div className="elo-top">
                 <div><div className="cap">ELO F11S</div><div className="elo-v" style={{ color: cElo(eloBig) }}>{eloBig != null ? mil(Math.round(eloBig)) : '—'}</div></div>
@@ -302,7 +312,7 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
           {/* COMPAÑEROS */}
           {companeros.length > 0 && (
             <section id="s-mates">
-              <div className="s-head"><div className="s-title">Ha jugado con</div><div className="s-sub">top 5 por ELO</div></div>
+              <div className="s-head"><div className="s-title">Ha jugado con</div><div className="s-sub">top 6 por ELO</div></div>
               <div className="track"><div className="rail">
                 {companeros.map((c: CompaneroTop) => {
                   const nm = formatNombre(c.nombre)
@@ -358,33 +368,16 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
             <div className="s-head"><div className="s-title">Análisis</div><div className="s-sub"><Echo temporada={tempTxt} comps={compNames} /></div></div>
             <div className="box">
               <div className="cap" style={{ marginBottom: 5 }}>Balance del equipo</div>
-              {balance.suficiente ? (
-                // Con >=8 partidos por lado: comparación con él / sin él.
-                <>
-                  {filaBalance('Con él', `${balance.con.pj} partidos`, balance.con, true)}
-                  {filaBalance('Sin él', `${balance.sin.pj} partidos`, balance.sin, false)}
-                  <div className="bal-note">
-                    <b>{balance.con.pj ? Math.round(balance.con.pg / balance.con.pj * 100) : 0} %</b> de victorias con él y <b>{balance.sin.pj ? Math.round(balance.sin.pg / balance.sin.pj * 100) : 0} %</b> sin él.
-                  </div>
-                </>
-              ) : (
-                // Muestra insuficiente en algún lado: un solo nivel. Etiqueta en una línea sobre la barra,
-                // que ocupa todo el ancho.
-                <>
-                  <div className="bal-solo">
-                    <span>Con el equipo · <b>{balance.con.pj}</b> partidos</span>
-                    <span className="num">{balance.con.pj ? Math.round(balance.con.pg / balance.con.pj * 100) : 0} %</span>
-                  </div>
-                  <div className="bal-bar">
-                    {balance.con.pg > 0 && <span style={{ flex: balance.con.pg, background: 'var(--e3)' }} />}
-                    {balance.con.pe > 0 && <span style={{ flex: balance.con.pe, background: 'var(--e1)' }} />}
-                    {balance.con.pp > 0 && <span style={{ flex: balance.con.pp, background: 'var(--e0)' }} />}
-                  </div>
-                  <div className="bal-note">
-                    <b>{balance.con.pj ? Math.round(balance.con.pg / balance.con.pj * 100) : 0} %</b> de victorias con él.
-                  </div>
-                </>
-              )}
+              {/* Línea base (Global) + con él, y sin él cuando hay contraparte suficiente (>=8 por lado).
+                  Comparar con la global dice si el equipo va mejor o peor con el jugador. */}
+              {filaBalance('Global', `${glob.pj} partidos`, glob, false)}
+              {filaBalance('Con él', `${balance.con.pj} partidos`, balance.con, true)}
+              {balance.suficiente && filaBalance('Sin él', `${balance.sin.pj} partidos`, balance.sin, false)}
+              <div className="bal-note">
+                {balance.suficiente
+                  ? <><b>{pcWin(balance.con)} %</b> de victorias con él y <b>{pcWin(balance.sin)} %</b> sin él · media del equipo <b>{pcWin(glob)} %</b>.</>
+                  : <><b>{pcWin(balance.con)} %</b> de victorias con él · media del equipo <b>{pcWin(glob)} %</b>.</>}
+              </div>
             </div>
             {split.hayLocal && (
               <div className="windows" style={{ gridTemplateColumns: '1fr 1fr' }}>

@@ -80,7 +80,12 @@
 .fjv2 .s-title{font-family:var(--font-display),'Barlow Condensed',sans-serif;font-size:var(--h-sec);font-weight:700;letter-spacing:.02em}
 .fjv2 .s-sub{font-size:var(--t-cap);color:var(--ink-3);text-align:right;line-height:1.35}
 
-.fjv2 .chart-wrap{display:flex;align-items:stretch}
+.fjv2 .chart-wrap{display:flex;align-items:stretch;position:relative}
+/* Degradados de scroll del gráfico: solo desktop (donde la barra va oculta y no se ve que hay más).
+   Empiezan tras el canalón izquierdo (32px). Su opacidad la controla el cliente según la posición. */
+.fjv2 .chart-fade{display:none;position:absolute;top:0;bottom:0;width:40px;z-index:3;pointer-events:none;transition:opacity .18s ease}
+.fjv2 .chart-fade-l{left:32px;background:linear-gradient(90deg,var(--pitch-900) 25%,transparent)}
+.fjv2 .chart-fade-r{right:0;background:linear-gradient(270deg,var(--pitch-900) 25%,transparent)}
 .fjv2 .gutter{flex:none;width:32px;border-right:1px solid var(--line);background:var(--pitch-900);display:flex;flex-direction:column}
 .fjv2 .gutter .g-plot{height:var(--plotH)}
 .fjv2 .gutter .g-lane{height:var(--laneH);display:grid;place-items:center;color:var(--ink-3)}
@@ -139,12 +144,7 @@
 .fjv2 .batt i{height:9px;flex:1;border-radius:2px;background:rgba(255,255,255,.1)}
 .fjv2 .batt-lbl{font-size:var(--t-sm);color:var(--ink-3);margin-top:8px;line-height:1.5}
 .fjv2 .batt-lbl b{color:var(--ink-2)}
-/* Balance del equipo (Análisis): caso de un solo nivel -> etiqueta en una línea sobre una barra a todo
-   el ancho, y nota que explica el %. .bal-note es también la nota verde del caso con comparativa. */
-.fjv2 .bal-solo{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:8px;font-size:var(--t-sm);color:var(--ink-2)}
-.fjv2 .bal-solo b{color:var(--ink);font-weight:700}
-.fjv2 .bal-solo .num{font-size:var(--n-md);color:var(--e3)}
-.fjv2 .bal-bar{display:flex;height:22px;border-radius:6px;overflow:hidden;gap:2px}
+/* Nota del balance del equipo (Análisis): explica el % de victorias, sobre las filas Global/Con/Sin. */
 .fjv2 .bal-note{margin-top:11px;padding:9px 11px;border-radius:8px;font-size:var(--t-sm);line-height:1.5;background:rgba(46,229,107,.09);border:1px solid rgba(46,229,107,.24);color:#b7f5cb}
 .fjv2 .bal-note b{font-weight:700;color:#8cf0a2}
 
@@ -218,4 +218,5 @@
   .fjv2 #seasons.rail{gap:11px} .fjv2 .season{width:calc(20% - 9px)}
   .fjv2 .nav .rail{flex-wrap:nowrap;padding:0 22px}
   .fjv2 .chart-wrap .track{overflow-x:auto}
+  .fjv2 .chart-fade{display:block}
 }

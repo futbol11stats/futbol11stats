@@ -22,6 +22,7 @@ export default function EscudoImg({
     <img
       src={thumb}
       alt={nombre ? `Escudo ${nombre}` : 'Escudo del equipo'}
+      title={nombre || undefined}
       loading="lazy"
       width={128}
       height={128}

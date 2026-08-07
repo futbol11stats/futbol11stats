@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import IndicadorLocal from '@/components/IndicadorLocal'
 import EscudoBox from '@/components/ficha/v2/EscudoBox'
 import {
@@ -27,7 +27,20 @@ export default function Jornadas({ comps, cortes }: { comps: CompAmbito[]; corte
   const trackRef = useRef<HTMLDivElement>(null)
   const sel = Math.min(useComp(), comps.length - 1)
   const comp = comps[sel]
-  useEffect(() => { if (trackRef.current) trackRef.current.scrollLeft = 99999 }, [sel])
+  // Señal de que el gráfico tiene scroll horizontal (en desktop la barra va oculta): degradado de
+  // desvanecido en el borde con contenido oculto. Se recalcula al hacer scroll y al cambiar de comp.
+  const [fades, setFades] = useState({ l: false, r: false })
+  const onScroll = () => {
+    const el = trackRef.current
+    if (!el) return
+    setFades({ l: el.scrollLeft > 4, r: el.scrollLeft < el.scrollWidth - el.clientWidth - 4 })
+  }
+  useEffect(() => {
+    const el = trackRef.current
+    if (!el) return
+    el.scrollLeft = 99999   // arranca en la jornada más reciente (derecha) -> hay contenido a la izquierda
+    onScroll()
+  }, [sel])
   if (!comp) return null
 
   const jug = comp.jornadas.filter((x) => x.estado.tipo === 'valor') as Array<JornadaDatum & { estado: { tipo: 'valor'; v: number } }>
@@ -88,7 +101,7 @@ export default function Jornadas({ comps, cortes }: { comps: CompAmbito[]; corte
           <div className="g-lane"><Escudo size={13} /></div>
           <div className="g-lane" />
         </div>
-        <div className="track" ref={trackRef}>
+        <div className="track" ref={trackRef} onScroll={onScroll}>
           <div className="cols" style={{ position: 'relative' }}>
             {comp.jornadas.map((d, i) => {
               const last = i === comp.jornadas.length - 1
@@ -115,6 +128,9 @@ export default function Jornadas({ comps, cortes }: { comps: CompAmbito[]; corte
             </div>
           </div>
         </div>
+        {/* Degradados que indican que hay más gráfico al hacer scroll (solo desktop, ver ficha.css). */}
+        <div className="chart-fade chart-fade-l" style={{ opacity: fades.l ? 1 : 0 }} aria-hidden="true" />
+        <div className="chart-fade chart-fade-r" style={{ opacity: fades.r ? 1 : 0 }} aria-hidden="true" />
       </div>
 
       {/* Leyenda: enseña a leer los símbolos, en el mismo orden que los carriles (arriba abajo). */}
