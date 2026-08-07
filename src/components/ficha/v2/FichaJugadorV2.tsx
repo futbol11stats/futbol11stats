@@ -208,19 +208,17 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
           {j.edad != null && <span className="pill n">{j.edad} años</span>}
           {j.equipo_actual_nombre && (
             <span className="pill n">
-              <EscudoBox escudo={j.escudo_actual} nombre={j.equipo_actual_nombre ?? undefined} size={16} radius={3} />
+              <EscudoBox escudo={j.escudo_actual} nombre={j.equipo_actual_nombre ?? undefined} size={26} radius={4} />
               <NombreEquipo codequipo={j.codequipo_actual} nombre={j.equipo_actual_nombre} />
             </span>
           )}
-        </div>
-        {(etapaPrincipal?.nombre_comp || copas.length > 0) && (
-          <div className="hero-pills" style={{ marginTop: 8 }}>
+          {etapaPrincipal?.nombre_comp && (
             <LigaPastilla nombreComp={etapaPrincipal?.nombre_comp ?? null}
               segments={[etapaPrincipal?.nombre_comp ?? null, etapaPrincipal?.grupo_nombre ?? null, inactivo || posicionActual == null ? null : `${posicionActual}º`]}
               href={grupoUrl} muted={inactivo} />
-            <CopasLinea copas={copas} />
-          </div>
-        )}
+          )}
+          <CopasLinea copas={copas} />
+        </div>
         {alertaTxt && (
           <div className="alert">
             <span style={{ color: 'var(--card-y)', display: 'flex' }}><TarjetaAmarilla size={13} /></span>
