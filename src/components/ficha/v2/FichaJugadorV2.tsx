@@ -353,18 +353,19 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
             <div className="s-head"><div className="s-title">Análisis</div><div className="s-sub"><Echo temporada={tempTxt} comps={compNames} /></div></div>
             <div className="box">
               <div className="cap" style={{ marginBottom: 5 }}>Balance del equipo</div>
-              {filaBalance('Con él', `${balance.con.pj} partidos`, balance.con, true)}
-              {filaBalance('Sin él', `${balance.sin.pj} partidos`, balance.sin, false)}
-              <div style={balance.suficiente
-                ? { marginTop: 11, padding: '9px 11px', borderRadius: 8, fontSize: 'var(--t-sm)', lineHeight: 1.5, background: 'rgba(46,229,107,.09)', border: '1px solid rgba(46,229,107,.24)', color: '#b7f5cb' }
-                : { marginTop: 11, padding: '9px 11px', borderRadius: 8, fontSize: 'var(--t-sm)', lineHeight: 1.5, background: 'rgba(255,255,255,.04)', border: '1px solid var(--line)', color: 'var(--ink-3)' }}>
-                {balance.suficiente
-                  ? <>El equipo gana el <b>{balance.con.pj ? Math.round(balance.con.pg / balance.con.pj * 100) : 0} %</b> con él y el <b>{balance.sin.pj ? Math.round(balance.sin.pg / balance.sin.pj * 100) : 0} %</b> sin él.</>
-                  : <>Muestra insuficiente (con él <b style={{ color: 'var(--ink-2)' }}>{balance.con.pj}</b> · sin él <b style={{ color: 'var(--ink-2)' }}>{balance.sin.pj}</b>; hacen falta 8 por lado). Este bloque no se publicaría.</>}
-              </div>
-              <div style={{ marginTop: 8, fontSize: 'var(--t-cap)', color: 'var(--ink-3)', lineHeight: 1.5 }}>
-                Balance del equipo, no medida de impacto. Solo se publica con 8 partidos o más en cada lado.
-              </div>
+              {balance.suficiente ? (
+                // Con >=8 partidos por lado: comparación con él / sin él.
+                <>
+                  {filaBalance('Con él', `${balance.con.pj} partidos`, balance.con, true)}
+                  {filaBalance('Sin él', `${balance.sin.pj} partidos`, balance.sin, false)}
+                  <div style={{ marginTop: 11, padding: '9px 11px', borderRadius: 8, fontSize: 'var(--t-sm)', lineHeight: 1.5, background: 'rgba(46,229,107,.09)', border: '1px solid rgba(46,229,107,.24)', color: '#b7f5cb' }}>
+                    El equipo gana el <b>{balance.con.pj ? Math.round(balance.con.pg / balance.con.pj * 100) : 0} %</b> con él y el <b>{balance.sin.pj ? Math.round(balance.sin.pg / balance.sin.pj * 100) : 0} %</b> sin él.
+                  </div>
+                </>
+              ) : (
+                // Muestra insuficiente en algún lado: un solo nivel con sus participaciones con el equipo.
+                filaBalance('Con el equipo', `${balance.con.pj} partidos`, balance.con, true)
+              )}
             </div>
             {split.hayLocal && (
               <div className="windows" style={{ gridTemplateColumns: '1fr 1fr' }}>
