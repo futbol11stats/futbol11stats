@@ -4,8 +4,8 @@ import { useEffect, useRef, type ReactNode } from 'react'
 import IndicadorLocal from '@/components/IndicadorLocal'
 import EscudoBox from '@/components/ficha/v2/EscudoBox'
 import {
-  Balon, Guante, TarjetaAmarilla, TarjetaRoja, Camiseta, CamisetaHueca,
-  TrianguloArriba, TrianguloAbajo, Guion, Casa, Avion, Escudo,
+  Balon, Guante, TarjetaAmarilla, TarjetaDoble, TarjetaRoja, Camiseta, CamisetaHueca,
+  TrianguloArriba, TrianguloAbajo, Guion, Escudo,
 } from '@/components/iconos'
 import { derivarRol } from '@/lib/escala'
 import { useComp } from './compStore'
@@ -35,7 +35,6 @@ export default function Jornadas({ comps, cortes }: { comps: CompAmbito[]; corte
   const maxP = Math.max(...vals, 1)
   const minP = Math.min(...vals, 0)
   const media = jug.length ? vals.reduce((a, b) => a + b, 0) / jug.length : 0
-  // Línea de media sobre el plot: y desde el borde superior del col = 108 (cero) - media/maxP*POS_H.
   const avgTop = 108 - Math.round((media / maxP) * POS_H)
 
   function barra(d: JornadaDatum) {
@@ -51,26 +50,30 @@ export default function Jornadas({ comps, cortes }: { comps: CompAmbito[]; corte
     return (<><div className="pos" /><div className="neg"><div className="bar down" style={{ height: h, background: 'var(--e0)' }} /><div className="chip" style={{ background: 'var(--e0)', color: '#0a1628' }}>{v}</div></div></>)
   }
 
+  // Carril de eventos: gol (×N), portería a cero, amarilla / doble amarilla / roja (cada una con su glifo).
   function eventos(d: JornadaDatum) {
-    if (d.estado.tipo !== 'valor') return <span style={{ color: 'var(--ink-4)' }}><Guion size={11} /></span>
+    if (d.estado.tipo !== 'valor') return null
     const g = d.goles ?? 0
     const items: ReactNode[] = []
     if (g === 1) items.push(<span key="g" style={{ color: 'var(--e4)', display: 'inline-flex' }}><Balon size={12} /></span>)
     else if (g > 1) items.push(<span key="g" style={{ color: 'var(--e4)', display: 'inline-flex', alignItems: 'center', gap: 1 }}><Balon size={12} /><span className="num" style={{ fontSize: 'var(--t-cap)', color: 'var(--e4)' }}>×{g}</span></span>)
+    if (d.gc === 0) items.push(<span key="p0" style={{ color: 'var(--amber)', display: 'inline-flex' }}><Guante size={12} /></span>)
     if ((d.amarillas ?? 0) > 0) items.push(<span key="ta" style={{ color: 'var(--card-y)', display: 'inline-flex' }}><TarjetaAmarilla size={11} /></span>)
-    if ((d.rojas ?? 0) > 0 || (d.dobles ?? 0) > 0) items.push(<span key="tr" style={{ color: 'var(--card-r)', display: 'inline-flex' }}><TarjetaRoja size={11} /></span>)
+    if ((d.dobles ?? 0) > 0) items.push(<span key="td" style={{ color: 'var(--card-y)', display: 'inline-flex' }}><TarjetaDoble size={12} /></span>)
+    if ((d.rojas ?? 0) > 0) items.push(<span key="tr" style={{ color: 'var(--card-r)', display: 'inline-flex' }}><TarjetaRoja size={11} /></span>)
     if (items.length === 0) return <span style={{ color: 'var(--ink-4)' }}>·</span>
     return <>{items}</>
   }
 
+  // Carril de rol: camiseta (titular/suplente) + cambio (salió/entró); no jugó -> guion. La expulsión ya
+  // se ve como tarjeta roja en el carril de eventos, así que aquí no se duplica.
   function rol(d: JornadaDatum) {
-    if (d.estado.tipo !== 'valor') return null
+    if (d.estado.tipo !== 'valor') return <span style={{ color: 'var(--ink-4)', display: 'flex' }}><Guion size={11} /></span>
     const r = derivarRol(!!d.titular, d.minutos ?? 0, d.rojas ?? 0, d.dobles ?? 0)
     const shirt = d.titular
       ? <span style={{ color: 'var(--ink)', display: 'flex' }}><Camiseta size={13} /></span>
       : <span style={{ color: 'var(--ink-3)', display: 'flex' }}><CamisetaHueca size={13} /></span>
-    const marca = r === 'expulsado' ? <span style={{ color: 'var(--e0)', display: 'flex' }}><TarjetaRoja size={10} /></span>
-      : r === 'sustituido' ? <span style={{ color: 'var(--e0)', display: 'flex' }}><TrianguloAbajo size={9} /></span>
+    const marca = r === 'sustituido' ? <span style={{ color: 'var(--e0)', display: 'flex' }}><TrianguloAbajo size={9} /></span>
       : r === 'entro' ? <span style={{ color: 'var(--e3)', display: 'flex' }}><TrianguloArriba size={9} /></span> : null
     return (<><span style={{ display: 'flex', alignItems: 'center', gap: 2 }}>{shirt}{marca}</span><span className="mins">{d.minutos}&#39;</span></>)
   }
@@ -95,12 +98,13 @@ export default function Jornadas({ comps, cortes }: { comps: CompAmbito[]; corte
                   <div className="plot">{barra(d)}<div className="zero" /></div>
                   <div className="lane">{eventos(d)}</div>
                   <div className="lane">{rol(d)}</div>
-                  <div className="lane">
-                    <div className="rival">
-                      <EscudoBox escudo={d.rivalEscudo ?? null} nombre={d.rivalNombre ?? undefined} size={21} radius={3} />
-                      <div className={`resu res-${res}`} />
+                  {/* Rival: escudo + casa/avión centrados; la línea de resultado ocupa TODO el ancho de la columna. */}
+                  <div className="lane rival-lane">
+                    <div className="rival-top">
+                      <EscudoBox escudo={d.rivalEscudo ?? null} nombre={d.rivalNombre ?? undefined} size={20} radius={3} />
+                      {d.esLocal != null && <IndicadorLocal esLocal={d.esLocal} />}
                     </div>
-                    {d.esLocal != null && <IndicadorLocal esLocal={d.esLocal} />}
+                    <div className={`resu res-${res}`} />
                   </div>
                   <div className="lane"><span className="jlabel">J{d.jornada}</span></div>
                 </div>
@@ -113,31 +117,29 @@ export default function Jornadas({ comps, cortes }: { comps: CompAmbito[]; corte
         </div>
       </div>
 
+      {/* Leyenda: enseña a leer los símbolos, en el mismo orden que los carriles (arriba abajo). */}
       <div className="legend">
         <h4>Cómo se lee</h4>
         <div className="lg-row">
-          <span className="lg-item"><span className="gl" style={{ color: 'var(--ink)' }}><Camiseta size={13} /></span>Titular</span>
-          <span className="lg-item"><span className="gl"><CamisetaHueca size={13} /></span>Suplente</span>
-          <span className="lg-item"><span className="gl" style={{ color: 'var(--e0)' }}><TrianguloAbajo size={9} /></span>Salió</span>
-          <span className="lg-item"><span className="gl" style={{ color: 'var(--e3)' }}><TrianguloArriba size={9} /></span>Entró</span>
-          <span className="lg-item"><span className="gl" style={{ color: 'var(--e0)' }}><TarjetaRoja size={11} /></span>Expulsado</span>
-          <span className="lg-item"><span className="gl"><Guion size={11} /></span>No jugó</span>
-        </div>
-        <div className="lg-row" style={{ marginTop: 6 }}>
           <span className="lg-item"><span className="gl" style={{ color: 'var(--e4)' }}><Balon size={12} /></span>Gol</span>
           <span className="lg-item"><span className="gl" style={{ color: 'var(--amber)' }}><Guante size={13} /></span>Portería a cero</span>
           <span className="lg-item"><span className="gl" style={{ color: 'var(--card-y)' }}><TarjetaAmarilla size={11} /></span>Amarilla</span>
-          <span className="lg-item"><span className="gl" style={{ color: 'var(--ink-3)' }}><Casa size={11} /></span>Casa</span>
-          <span className="lg-item"><span className="gl" style={{ color: 'var(--ink-3)' }}><Avion size={11} /></span>Fuera</span>
+          <span className="lg-item"><span className="gl" style={{ color: 'var(--card-y)' }}><TarjetaDoble size={12} /></span>Doble amarilla</span>
+          <span className="lg-item"><span className="gl" style={{ color: 'var(--card-r)' }}><TarjetaRoja size={11} /></span>Roja</span>
         </div>
-        <div className="swatches">
-          <div className="sw" style={{ background: 'var(--e0)' }} /><div className="sw" style={{ background: 'var(--e1)' }} />
-          <div className="sw" style={{ background: 'var(--e2)' }} /><div className="sw" style={{ background: 'var(--e3)' }} />
-          <div className="sw" style={{ background: 'var(--e4)' }} />
+        <div className="lg-row" style={{ marginTop: 6 }}>
+          <span className="lg-item"><span className="gl" style={{ color: 'var(--ink)' }}><Camiseta size={13} /></span>Titular</span>
+          <span className="lg-item"><span className="gl"><CamisetaHueca size={13} /></span>Suplente</span>
+          <span className="lg-item"><span className="gl" style={{ color: 'var(--ink-4)' }}><Guion size={11} /></span>No jugó</span>
         </div>
-        <div className="sw-labels"><span>negativo</span><span>0–1</span><span>2–3</span><span>4–6</span><span>7+</span></div>
-        <div className="sw-note">Umbrales <b>fijos</b> para puntos de un partido: los percentiles reales salen empatados
-          (P20=1, P40=1, P60=2, P80=4) y degenerarían la rampa. Media y ELO sí van por percentil.</div>
+        <div className="lg-row" style={{ marginTop: 6 }}>
+          <span className="lg-item"><span className="gl" style={{ color: 'var(--e0)' }}><TrianguloAbajo size={9} /></span>Salió</span>
+          <span className="lg-item"><span className="gl" style={{ color: 'var(--e3)' }}><TrianguloArriba size={9} /></span>Entró</span>
+        </div>
+        <div className="lg-row" style={{ marginTop: 6 }}>
+          <span className="lg-item"><span className="gl"><IndicadorLocal esLocal={true} /></span>Casa</span>
+          <span className="lg-item"><span className="gl"><IndicadorLocal esLocal={false} /></span>Fuera</span>
+        </div>
       </div>
     </>
   )

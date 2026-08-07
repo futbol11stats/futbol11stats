@@ -92,11 +92,13 @@
 .fjv2 .avgtag{position:absolute;right:8px;transform:translateY(-50%);font-family:var(--font-display),'Barlow Condensed',sans-serif;font-size:var(--t-micro);font-weight:600;color:var(--ink-2);background:var(--pitch-900);padding:0 5px}
 .fjv2 .lane{height:var(--laneH);width:100%;display:flex;align-items:center;justify-content:center;gap:3px}
 .fjv2 .mins{font-family:var(--font-display),'Barlow Condensed',sans-serif;font-size:var(--t-cap);font-weight:600;color:var(--ink-3);font-variant-numeric:tabular-nums}
-.fjv2 .rival{display:flex;flex-direction:column;align-items:center;gap:2px}
+.fjv2 .rival-lane{position:relative}
+.fjv2 .rival-top{display:flex;align-items:center;justify-content:center;gap:3px}
 /* Escudos como en el resto del sitio: caja blanca rounded-sm, escudo object-contain (sin círculo ni recorte). */
 .fjv2 .crest{width:21px;height:21px;border-radius:3px;display:grid;place-items:center;background:#fff;padding:1px}
 .fjv2 .crest img{width:100%;height:100%;object-fit:contain}
-.fjv2 .resu{width:21px;height:2px;border-radius:1px}
+/* Línea de resultado: a TODO el ancho de la columna (incluye el hueco del icono casa/avión), abajo del carril. */
+.fjv2 .resu{position:absolute;left:0;right:0;bottom:0;height:2px;border-radius:1px}
 .fjv2 .res-G{background:var(--e3)} .fjv2 .res-E{background:var(--ink-3)} .fjv2 .res-P{background:var(--e0)}
 .fjv2 .jlabel{font-family:var(--font-display),'Barlow Condensed',sans-serif;font-size:var(--t-sm);font-weight:600;color:var(--ink-2)}
 .fjv2 .col.now .jlabel{color:var(--ink)}
