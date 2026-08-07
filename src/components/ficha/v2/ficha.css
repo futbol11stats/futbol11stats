@@ -103,7 +103,7 @@
 .fjv2 .gutter{flex:none;width:32px;border-right:1px solid var(--line);background:var(--pitch-900);display:flex;flex-direction:column}
 .fjv2 .gutter .g-plot{height:var(--plotH)}
 .fjv2 .gutter .g-lane{height:var(--laneH);display:grid;place-items:center;color:var(--ink-3)}
-.fjv2 .gutter .g-lane-rival{height:48px}   /* == .rival-lane, para no desalinear las filas de abajo */
+.fjv2 .gutter .g-lane-rival{height:54px}   /* == .rival-lane, para no desalinear las filas de abajo */
 .fjv2 .cols{display:flex;padding:0 10px 0 5px;position:relative}
 .fjv2 .col{width:var(--colW);flex:none;display:flex;flex-direction:column;align-items:center}
 .fjv2 .col+.col{margin-left:2px}
@@ -128,7 +128,7 @@
 .fjv2 .mins{font-family:var(--font-display),'Barlow Condensed',sans-serif;font-size:var(--t-cap);font-weight:600;color:var(--ink-3);font-variant-numeric:tabular-nums}
 /* Carril de rival en columna: marcador (coloreado) arriba, escudo+localía en medio, línea de resultado
    pegada al fondo. Más alto para que quepan los tres con aire. Su gemelo en el canalón: .g-lane-rival. */
-.fjv2 .rival-lane{position:relative;height:48px;flex-direction:column;gap:3px}
+.fjv2 .rival-lane{position:relative;height:54px;flex-direction:column;gap:6px}
 /* Marcador al mismo tamaño que la etiqueta de jornada (--t-sm); tabular-nums para que "10-10" no baile. */
 .fjv2 .rival-mk{font-family:var(--font-display),'Barlow Condensed',sans-serif;font-size:var(--t-sm);font-weight:700;line-height:1;font-variant-numeric:tabular-nums;white-space:nowrap}
 .fjv2 .res-t-G{color:var(--e3)} .fjv2 .res-t-E{color:var(--ink-3)} .fjv2 .res-t-P{color:var(--e0)}

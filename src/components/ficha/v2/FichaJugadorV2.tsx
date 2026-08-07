@@ -72,6 +72,10 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
   const minT = sum((c) => c.minutos), p0Sel = sum((c) => c.porterias_cero)
   const media = pj > 0 ? ptsF / pj : null
   const eloSel = etapaPrincipal?.elo_final ?? j.elo_actual ?? null
+  // ELO de CIERRE de la temporada seleccionada para la KpiBar (ámbito = temporada, como PJ/min/goles/media).
+  // Con varias etapas en la misma temporada se toma el elo_final de la ÚLTIMA (carrera va orden_temporada
+  // ASC dentro de la temporada) — criterio original de Fernando. Nivel usa el ELO actual (otro ámbito).
+  const eloCierre = etapas[etapas.length - 1]?.elo_final ?? j.elo_actual ?? null
 
   const [equipoInfo, cortesElo, alerta, comps, partidosTemp, actuaciones, hitosRaw, hayP0, grupoInfo, tarjetas] = await Promise.all([
     inactivo ? Promise.resolve({ copas: [], posicionActual: null }) : getEquipoActualInfo(j.codequipo_actual),
@@ -258,11 +262,11 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
           <div className="v num">{hayP0 ? mil(p0Sel) : mil(golesT)}</div>
           <div className="k">{hayP0 ? 'P. a cero' : 'Goles'}</div>
         </div>
-        {/* Pts F. · Media · ELO son métricas F11S -> el badge (11) del logo. ELO = eloBig (elo_actual),
-            el mismo que muestra Nivel, para que no discrepen. */}
+        {/* Pts F. · Media · ELO son métricas F11S -> el badge (11) del logo. ELO = eloCierre (cierre de la
+            temporada seleccionada), coherente con el resto de la KpiBar; Nivel usa el ELO actual. */}
         <div className="kpi"><div className="kpi-i">{badge11}</div><div className="v num">{mil(Math.round(ptsF))}</div><div className="k">Pts F.</div></div>
         <div className="kpi"><div className="kpi-i">{badge11}</div><div className="v num" style={{ color: cMed(media) }}>{media != null ? med1(media) : '—'}</div><div className="k">Media</div></div>
-        <div className="kpi"><div className="kpi-i">{badge11}</div><div className="v num" style={{ color: cElo(eloBig) }}>{eloBig != null ? mil(Math.round(eloBig)) : '—'}</div><div className="k">ELO</div></div>
+        <div className="kpi"><div className="kpi-i">{badge11}</div><div className="v num" style={{ color: cElo(eloCierre) }}>{eloCierre != null ? mil(Math.round(eloCierre)) : '—'}</div><div className="k">ELO</div></div>
       </div>
 
       {/* SCOPE */}
