@@ -74,10 +74,15 @@ function PartidoFila({ p, portero }: { p: any; portero: boolean }) {
       )}
       {/* GC (solo portero) */}
       {portero && <td className="text-center tabular-nums">{gc > 0 ? <span className="text-chalk-400">{gc}</span> : <span className="text-chalk-700">0</span>}</td>}
-      {/* TA -> amarillas (nº desktop / puntito ámbar móvil; 2ª amarilla marcada) */}
+      {/* TA -> amarillas simples (las dobles van en su propia columna 2A) */}
       <td className="text-center tabular-nums">
-        <span className="hidden sm:inline text-amber-300/90">{ta > 0 ? ta : ''}{da > 0 ? <span className="text-amber-300/70">{ta > 0 ? ' ' : ''}2ª</span> : null}</span>
-        <span className="sm:hidden inline-flex justify-center">{(ta > 0 || da > 0) && <span className="inline-block w-1.5 h-2.5 rounded-[1px] bg-amber-400" />}</span>
+        <span className="hidden sm:inline text-amber-300/90">{ta > 0 ? ta : ''}</span>
+        <span className="sm:hidden inline-flex justify-center">{ta > 0 && <span className="inline-block w-1.5 h-2.5 rounded-[1px] bg-amber-400" />}</span>
+      </td>
+      {/* 2A -> dobles amarillas */}
+      <td className="text-center tabular-nums">
+        <span className="hidden sm:inline text-amber-300/70">{da > 0 ? da : ''}</span>
+        <span className="sm:hidden inline-flex justify-center">{da > 0 && <span className="inline-block w-1.5 h-2.5 rounded-[1px] bg-amber-400/60" />}</span>
       </td>
       {/* TR -> rojas */}
       <td className="text-center tabular-nums">
@@ -95,7 +100,7 @@ function PartidoFila({ p, portero }: { p: any; portero: boolean }) {
 export default function Trayectoria({ carrera, portero, codjugador }: { carrera: Carrera[]; portero: boolean; codjugador: string }) {
   const [abierto, setAbierto] = useState<string | null>(null)
   const [cache, setCache] = useState<Record<string, { loading: boolean; rows: any[] }>>({})
-  const nCols = portero ? 11 : 10
+  const nCols = portero ? 12 : 11
 
   const toggle = async (c: any) => {
     if (!PARTIDOS_HABILITADO) return
@@ -122,6 +127,7 @@ export default function Trayectoria({ carrera, portero, codjugador }: { carrera:
             <th>{portero ? 'P0' : 'G'}</th>
             {portero && <th>GC</th>}
             <th>TA</th>
+            <th>2A</th>
             <th>TR</th>
             <th className="hidden sm:table-cell">Pts</th>
             <th className="text-grass-400">ELO</th>
@@ -165,6 +171,7 @@ export default function Trayectoria({ carrera, portero, codjugador }: { carrera:
                   <td className="text-center font-bold text-white tabular-nums">{portero ? (c.porterias_cero ?? 0) : c.goles}</td>
                   {portero && <td className="text-center text-chalk-400 tabular-nums">{c.goles_encajados ?? 0}</td>}
                   <td className="text-center text-chalk-600 tabular-nums">{c.tarjetas_amarillas ?? 0}</td>
+                  <td className="text-center text-chalk-600 tabular-nums">{c.tarjetas_dobles ?? 0}</td>
                   <td className="text-center text-chalk-600 tabular-nums">{c.tarjetas_rojas ?? 0}</td>
                   <td className="text-center text-chalk-600 tabular-nums hidden sm:table-cell">{c.pts_fantasy != null ? Math.round(c.pts_fantasy) : ''}</td>
                   <td className="text-center text-grass-400 font-medium tabular-nums">{c.elo_final != null ? Math.round(c.elo_final) : ''}</td>

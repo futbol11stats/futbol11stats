@@ -19,6 +19,7 @@ export type PlantillaRow = {
   goles: number | null
   minutos: number | null
   ta: number | null
+  dobles: number | null
   tr: number | null
   pts?: number | null
   elo?: number | null
@@ -48,6 +49,7 @@ export default function Plantilla({
               <th className="hidden sm:table-cell">Min</th>
               <th>G</th>
               <th className="hidden sm:table-cell">TA</th>
+              <th className="hidden sm:table-cell">2A</th>
               <th className="hidden sm:table-cell">TR</th>
               {completa && <th className="text-grass-400">PTS</th>}
               {completa && <th className="text-grass-400">ELO</th>}
@@ -67,6 +69,7 @@ export default function Plantilla({
                 <td className="text-center text-chalk-600 tabular-nums hidden sm:table-cell">{r.minutos != null ? r.minutos.toLocaleString('es-ES') : ''}</td>
                 <td className="text-center text-white font-medium tabular-nums">{r.goles ?? 0}</td>
                 <td className="text-center text-chalk-600 tabular-nums hidden sm:table-cell">{r.ta ?? 0}</td>
+                <td className="text-center text-chalk-600 tabular-nums hidden sm:table-cell">{r.dobles ?? 0}</td>
                 <td className="text-center text-chalk-600 tabular-nums hidden sm:table-cell">{r.tr ?? 0}</td>
                 {completa && <td className="text-center text-grass-400 font-medium tabular-nums">{r.pts != null ? Math.round(r.pts) : ''}</td>}
                 {completa && <td className="text-center text-grass-400 tabular-nums">{r.elo != null ? Math.round(r.elo) : ''}</td>}

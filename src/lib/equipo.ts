@@ -212,7 +212,7 @@ export async function getEquipoActualInfo(codequipo: string | number | null | un
 export const COLS_EQUIPO =
   'codequipo, nombre, escudo, club_root, rama, categoria_nivel, nombre_comp, codgrupo, grupo_nombre, ' +
   'codtemporada, activo, posicion_actual, elo_actual, elo_max, temporada_elo_max, elo_serie, ' +
-  'posicion_juego_limpio, ta_total, tr_total, n_campeonatos, n_ascensos, n_descensos, n_playoffs, ' +
+  'posicion_juego_limpio, ta_total, tr_total, td_total, n_campeonatos, n_ascensos, n_descensos, n_playoffs, ' +
   'pj_total, gf_total, gc_total, temporadas'
 
 export const COLS_EQUIPO_TEMPORADAS =
@@ -225,7 +225,7 @@ export const COLS_EQUIPO_MOV =
 export const COLS_EQUIPO_HITOS = 'tipo_hito, fecha, codtemporada, detalle, valor'
 
 export const COLS_PLANTILLA_JUVENIL =
-  'codjugador, codtemporada, nombre, dorsal_comun, posicion_pastilla, pj, goles, minutos, ta, tr'
+  'codjugador, codtemporada, nombre, dorsal_comun, posicion_pastilla, pj, goles, minutos, ta, td, tr'
 
 // --- Tipos (parciales) ---
 export type EquipoFicha = {
@@ -248,6 +248,7 @@ export type EquipoFicha = {
   posicion_juego_limpio: number | null
   ta_total: number | null
   tr_total: number | null
+  td_total: number | null
   n_campeonatos: number | null
   n_ascensos: number | null
   n_descensos: number | null

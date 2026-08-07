@@ -34,7 +34,7 @@ function Sparkline({ serie }: { serie: Serie[] }) {
 }
 
 export default function MedidoresEquipo({
-  elo, eloMax, tempMax, serie, juegoLimpio, ta, tr,
+  elo, eloMax, tempMax, serie, juegoLimpio, ta, td, tr,
 }: {
   elo: number | null
   eloMax: number | null
@@ -42,6 +42,7 @@ export default function MedidoresEquipo({
   serie: Serie[]
   juegoLimpio: number | null
   ta: number | null
+  td: number | null
   tr: number | null
 }) {
   const hayElo = elo != null
@@ -79,9 +80,13 @@ export default function MedidoresEquipo({
         ) : (
           <div className="mt-1.5 font-display text-2xl font-bold text-chalk-500">—</div>
         )}
-        <div className="mt-2 flex items-center gap-4 text-xs">
+        {/* Amarillas · dobles · rojas por separado: la doble amarilla ya no se suma a las rojas. */}
+        <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
           <span className="flex items-center gap-1.5 text-chalk-500">
             <span className="inline-block w-3 h-4 rounded-[2px] bg-amber-400" /> {ta ?? 0} <span className="text-chalk-600">amarillas</span>
+          </span>
+          <span className="flex items-center gap-1.5 text-chalk-500">
+            <span className="inline-block w-3 h-4 rounded-[2px] bg-amber-400/60 ring-1 ring-inset ring-red-500/40" /> {td ?? 0} <span className="text-chalk-600">dobles</span>
           </span>
           <span className="flex items-center gap-1.5 text-chalk-500">
             <span className="inline-block w-3 h-4 rounded-[2px] bg-red-500" /> {tr ?? 0} <span className="text-chalk-600">rojas</span>

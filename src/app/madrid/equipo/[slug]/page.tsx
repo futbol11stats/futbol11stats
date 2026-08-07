@@ -68,7 +68,7 @@ async function getMiniClasif(codgrupo: string, jornada: number) {
 // codtemporada; las pastillas filtran client-side. Todos los codjugador de carrera están en web_jugador.
 async function getPlantillaAfic(cod: string): Promise<PlantillaRow[]> {
   const { data: car } = await supabase.from('web_jugador_carrera')
-    .select('codjugador, codtemporada, pj, goles, minutos, tarjetas_amarillas, tarjetas_rojas, pts_fantasy, elo_final')
+    .select('codjugador, codtemporada, pj, goles, minutos, tarjetas_amarillas, tarjetas_dobles, tarjetas_rojas, pts_fantasy, elo_final')
     .eq('codequipo', cod)
   const rows = (car || []) as any[]
   const ids = Array.from(new Set(rows.map((r) => String(r.codjugador))))
@@ -89,7 +89,7 @@ async function getPlantillaAfic(cod: string): Promise<PlantillaRow[]> {
         estimada: !!j.posicion_es_estimada,
         nombre: formatNombre(j.nombre),
         href: jugadorHref(r.codjugador, j.nombre),
-        pj: r.pj, goles: r.goles, minutos: r.minutos, ta: r.tarjetas_amarillas, tr: r.tarjetas_rojas,
+        pj: r.pj, goles: r.goles, minutos: r.minutos, ta: r.tarjetas_amarillas, dobles: r.tarjetas_dobles, tr: r.tarjetas_rojas,
         pts: r.pts_fantasy, elo: r.elo_final,
       } as PlantillaRow
     })
@@ -118,7 +118,7 @@ async function getPlantillaJuv(cod: string): Promise<PlantillaRow[]> {
         pos: r.posicion_pastilla ?? null,
         nombre: formatNombre(r.nombre),
         href: c ? jugadorHref(r.codjugador, c) : null,   // con ficha -> enlace; menores -> texto plano
-        pj: r.pj, goles: r.goles, minutos: r.minutos, ta: r.ta, tr: r.tr,
+        pj: r.pj, goles: r.goles, minutos: r.minutos, ta: r.ta, dobles: r.td, tr: r.tr,
       } as PlantillaRow
     })
     .sort((a, b) => (b.minutos || 0) - (a.minutos || 0))
@@ -358,7 +358,7 @@ export default async function FichaEquipo({ params }: { params: Promise<{ slug: 
         <div className="mt-5 lg:mt-0 lg:w-[380px] lg:flex-shrink-0">
           <MedidoresEquipo
             elo={e.elo_actual} eloMax={e.elo_max} tempMax={e.temporada_elo_max} serie={e.elo_serie || []}
-            juegoLimpio={e.posicion_juego_limpio} ta={e.ta_total} tr={e.tr_total}
+            juegoLimpio={e.posicion_juego_limpio} ta={e.ta_total} td={e.td_total} tr={e.tr_total}
           />
         </div>
       </section>
