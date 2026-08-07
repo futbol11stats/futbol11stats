@@ -351,6 +351,15 @@ export default async function FichaJugador({ params }: { params: Promise<{ slug:
         </div>
       </section>
 
+      {carrera.length === 0 ? (
+        /* Incidente temporal: web_jugador_carrera/hitos/actuaciones vacías (re-export del pipeline). El
+           jugador SÍ existe en web_jugador (cabecera ok), pero sin datos históricos. Aviso CONDICIONAL AL
+           DATO -> desaparece solo cuando las tablas se repueblan; sin bandera manual. */
+        <div className="mt-8 rounded-xl border border-pitch-700 bg-pitch-800 px-5 py-8 text-center">
+          <p className="text-sm md:text-base text-chalk-300">Estamos actualizando los datos históricos de este jugador. Vuelve en un rato.</p>
+        </div>
+      ) : (
+      <>
       {/* CUERPO: main (col1) + aside (col2) en desktop; en móvil aside primero (resumen). */}
       <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_300px] lg:gap-8 lg:items-start">
 
@@ -516,6 +525,8 @@ export default async function FichaJugador({ params }: { params: Promise<{ slug:
           )}
         </main>
       </div>
+      </>
+      )}
 
       {/* Aviso de colaboración al FINAL (posición estimada/confirmada): ya se han visto todos los datos.
           Con aire arriba y abajo, pero discreto. (Sin posición, el aviso va arriba y aquí no hay nada.) */}

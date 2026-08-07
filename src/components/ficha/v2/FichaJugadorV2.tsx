@@ -243,6 +243,12 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
         )}
       </div>
 
+      {carrera.length === 0 ? (
+        /* Incidente temporal (re-export del pipeline): sin carrera no hay temporada ni gráfico, aunque el
+           jugador existe en web_jugador. Aviso CONDICIONAL AL DATO -> desaparece solo al repoblarse la
+           tabla, sin bandera manual que haya que acordarse de quitar. */
+        <div className="aviso-datos">Estamos actualizando los datos históricos de este jugador. Vuelve en un rato.</div>
+      ) : (<>
       {/* 2 · KPIs — mismo orden en móvil y desktop; en móvil se oculta Goles/P.a0 (.kpi-goles) por espacio,
           sin reordenar el resto. */}
       <div className="kpis">
@@ -503,6 +509,7 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
           </section>
         </div>
       </div>
+      </>)}
     </div>
   )
 }

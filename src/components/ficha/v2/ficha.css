@@ -53,6 +53,10 @@
 
 /* Móvil: 5 columnas visibles (PJ · Min · Pts F. · Media · ELO); Goles/P.a0 se oculta por espacio sin
    reordenar el resto. Desktop: 6 columnas, Goles/P.a0 reaparece en su sitio (3ª). */
+/* Aviso temporal cuando la carrera viene vacía (re-export del pipeline en curso). Condicional al dato. */
+.fjv2 .aviso-datos{margin:20px var(--pad);padding:24px 18px;border:1px solid var(--line);border-radius:12px;
+  background:rgba(255,255,255,.03);text-align:center;color:var(--ink-2);font-size:var(--t-body);line-height:1.55}
+
 .fjv2 .kpis{display:grid;grid-template-columns:repeat(5,1fr);border-bottom:1px solid var(--line)}
 .fjv2 .kpi{padding:11px 3px 12px;text-align:center;border-right:1px solid var(--line-2)}
 .fjv2 .kpi:last-child{border-right:0}
