@@ -248,7 +248,7 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
         </div></div>
         {comps.length > 0 && <>
           <div className="scope-lbl" style={{ paddingTop: 11 }}>Competición</div>
-          <div className="track"><div className="rail"><CompChips comps={comps.map((c) => ({ label: c.nombre_comp, count: c.jornadas.length }))} /></div></div>
+          <div className="track"><div className="rail"><CompChips comps={comps.map((c) => ({ label: c.nombre_comp, count: c.jornadas.length, sello: <Sello nombreComp={c.nombre_comp} size={18} /> }))} /></div></div>
         </>}
         <div className="scope-note">Las secciones marcadas «Todas las temporadas» no dependen de esta selección.</div>
       </div>
