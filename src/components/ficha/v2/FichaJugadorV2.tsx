@@ -20,7 +20,6 @@ import Echo from '@/components/ficha/v2/Echo'
 import Jornadas from '@/components/ficha/v2/Jornadas'
 import {
   Balon, Reloj, Escudo, Camiseta, CamisetaHueca, TarjetaAmarilla, TarjetaDoble, TarjetaRoja, Guante,
-  Estrella, Marcador, Promocion,
 } from '@/components/iconos'
 import { getEquipoActualInfo, getGrupoInfo, grupoHref } from '@/lib/equipo'
 import { graphLd, breadcrumbLd } from '@/lib/jsonld'
@@ -259,9 +258,11 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
           <div className="v num">{hayP0 ? mil(p0Sel) : mil(golesT)}</div>
           <div className="k">{hayP0 ? 'P. a cero' : 'Goles'}</div>
         </div>
-        <div className="kpi"><div className="kpi-i"><Estrella size={14} /></div><div className="v num">{mil(Math.round(ptsF))}</div><div className="k">Pts F.</div></div>
-        <div className="kpi"><div className="kpi-i"><Marcador size={14} /></div><div className="v num" style={{ color: cMed(media) }}>{media != null ? med1(media) : '—'}</div><div className="k">Media</div></div>
-        <div className="kpi"><div className="kpi-i"><Promocion size={14} /></div><div className="v num" style={{ color: cElo(eloSel) }}>{eloSel != null ? mil(Math.round(eloSel)) : '—'}</div><div className="k">ELO</div></div>
+        {/* Pts F. · Media · ELO son métricas F11S -> el badge (11) del logo. ELO = eloBig (elo_actual),
+            el mismo que muestra Nivel, para que no discrepen. */}
+        <div className="kpi"><div className="kpi-i">{badge11}</div><div className="v num">{mil(Math.round(ptsF))}</div><div className="k">Pts F.</div></div>
+        <div className="kpi"><div className="kpi-i">{badge11}</div><div className="v num" style={{ color: cMed(media) }}>{media != null ? med1(media) : '—'}</div><div className="k">Media</div></div>
+        <div className="kpi"><div className="kpi-i">{badge11}</div><div className="v num" style={{ color: cElo(eloBig) }}>{eloBig != null ? mil(Math.round(eloBig)) : '—'}</div><div className="k">ELO</div></div>
       </div>
 
       {/* SCOPE */}
@@ -299,10 +300,10 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
               {/* Evolución del ELO (cierre por temporada) — mismo sparkline que la ficha actual (Medidores). */}
               <EloSparkline serie={j.elo_serie || []} className="w-full h-9 mt-3" />
               <div style={{ marginTop: 13 }}>
-                {/* Los tres rankings unificados con el badge (11) verde, como en la sección Rankings. */}
+                {/* Cada ranking con su icono: badge (11) F11S, Sello de competición, Pastilla de posición. */}
                 {RankFila(badge11, 'Fútbol11Stats · Madrid', j.rank_general, j.rank_general_total)}
-                {RankFila(badge11, categoriaSel || 'Competición', j.rank_categoria, j.rank_categoria_total)}
-                {RankFila(badge11, j.posicion_pastilla ? (POS_LABEL[j.posicion_pastilla] || j.posicion_pastilla) : 'Posición', j.rank_posicion, j.rank_posicion_total)}
+                {RankFila(categoriaSel ? <Sello nombreComp={categoriaSel} size={18} /> : null, categoriaSel || 'Competición', j.rank_categoria, j.rank_categoria_total)}
+                {RankFila(<Pastilla pos={j.posicion_pastilla} estimada={!!j.posicion_es_estimada} size="mini" />, j.posicion_pastilla ? (POS_LABEL[j.posicion_pastilla] || j.posicion_pastilla) : 'Posición', j.rank_posicion, j.rank_posicion_total)}
               </div>
             </div>
           </section>
