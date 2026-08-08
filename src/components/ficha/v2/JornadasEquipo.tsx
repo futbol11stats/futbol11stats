@@ -75,9 +75,6 @@ export default function JornadasEquipo({ comps, cortes, temporada }: { comps: Co
           ))}
           {comp.rondas.length === 0 && <p style={{ padding: '0 var(--pad)', color: 'var(--ink-3)', fontSize: 'var(--t-sm)' }}>Sin partidos de copa registrados.</p>}
         </div>
-        <div className="legend" style={{ marginTop: 13 }}>
-          <p style={{ margin: 0, fontSize: 'var(--t-sm)', color: 'var(--ink-3)', lineHeight: 1.55 }}>En copa no se calculan puntos fantasy por jornada, así que aquí se muestra el recorrido por rondas en vez del gráfico de barras.</p>
-        </div>
       </>
     )
   }

@@ -158,6 +158,17 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
   ]
   const BADGE_CLS: Record<string, string> = { CAMPEON: 'camp', ASCENSO: 'asc', DESCENSO: 'desc', PLAYOFF: 'po' }
 
+  // Movimientos recientes garantizando que las promociones internas no queden fuera del corte: la ficha
+  // actual las mostraba en su propia categoría, pero al mezclar fichajes+promociones y cortar a 8 por
+  // fecha, un equipo con muchos fichajes recientes se comía todas las promociones. Se reservan hasta 3
+  // huecos para promociones y el resto se llena con los fichajes más recientes; el conjunto se reordena
+  // por fecha para mostrarlo cronológico.
+  const promosMov = movs.filter((m: any) => m.clase === 'PROMOCION_INTERNA')
+  const fichajesMov = movs.filter((m: any) => m.clase !== 'PROMOCION_INTERNA')
+  const nPromo = Math.min(promosMov.length, 3)
+  const movsShown = [...fichajesMov.slice(0, 8 - nPromo), ...promosMov.slice(0, nPromo)]
+    .sort((a: any, b: any) => String(b.fecha || '').localeCompare(String(a.fecha || '')))
+
   // KPIs (temporada seleccionada). Posición/Pts/Media F./ELO salen de la serie de clasificación.
   // GF/GC (y por tanto DG) salen del MISMO origen que el desglose casa/fuera: los resultados. El
   // total es, por construcción, la SUMA de casa+fuera que se muestra en el desglose (gfSel =
@@ -249,7 +260,7 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
               href={grupoUrl} muted={inactivo} />
           )}
           <CopasLinea copas={copas} />
-          {e.temporada_elo_max && <span className="pill n">ELO máx {mil(e.elo_max)} · {tempLabel(e.temporada_elo_max)}</span>}
+          {e.temporada_elo_max && <span className="pill n">{badge11}<span>ELO máx {mil(e.elo_max)} · {tempLabel(e.temporada_elo_max)}</span></span>}
         </div>
       </div>
 
@@ -292,7 +303,7 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
               </div>
               {/* Percentil/batería degradados: web_percentiles no tiene métricas de equipo. */}
               {eloSerie.length > 1 && <EloSparkline serie={eloSerie} className="w-full h-9 mt-3" />}
-              <div className="batt-lbl" style={{ marginTop: 12 }}>El ELO mide la fuerza del equipo; su histórico se ve arriba. Los percentiles por categoría aún no están disponibles para equipos.</div>
+              <div className="batt-lbl" style={{ marginTop: 12 }}>El ELO mide la fuerza del equipo; su histórico se ve arriba.</div>
             </div>
 
             {/* DEPORTIVIDAD */}
@@ -534,7 +545,7 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
             <section id="s-movs">
               <div className="s-head"><div className="s-title">Movimientos</div><div className="s-sub"><span className="allscope">Recientes</span></div></div>
               <div>
-                {movs.slice(0, 8).map((m: any, i: number) => {
+                {movsShown.map((m: any, i: number) => {
                   const prom = m.clase === 'PROMOCION_INTERNA'
                   const alta = !prom && m.direccion === 'entra'
                   const cls = prom ? 'prom' : alta ? 'alta' : 'baja'
@@ -568,12 +579,15 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
                   const texto = cfg ? cfg.label(h) : h.tipo_hito
                   // Contexto = competición del equipo esa temporada (web_equipo_hitos no trae categoría propia).
                   const ctx = temporadas.find((t) => t.codtemporada === h.codtemporada)?.nombre_comp
+                  // fecha (DD/MM/YYYY) -> si no la hay, la temporada; mejor_racha no trae ninguna de las dos
+                  // (una racha no tiene fecha única ni temporada en el pipeline) -> no se pinta línea vacía.
+                  const meta = fechaCortaDMY(h.fecha) || (h.codtemporada ? tempLabel(h.codtemporada) : '')
                   return (
                     <div className="hito" key={i}>
                       <div className="h-dot" />
                       <div>
                         <div className="h-t">{texto}{ctx ? <span style={{ color: 'var(--ink-3)' }}> · {ctx}</span> : ''}</div>
-                        <div className="h-m">{fechaCortaDMY(h.fecha) || (h.codtemporada ? tempLabel(h.codtemporada) : '')}</div>
+                        {meta && <div className="h-m">{meta}</div>}
                       </div>
                     </div>
                   )
