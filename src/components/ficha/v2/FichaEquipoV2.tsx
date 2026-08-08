@@ -15,11 +15,11 @@ import CompartirBtn from '@/components/ficha/v2/CompartirBtn'
 import NavSpy from '@/components/ficha/v2/NavSpy'
 import CompChips from '@/components/ficha/v2/CompChips'
 import JornadasEquipo from '@/components/ficha/v2/JornadasEquipo'
-import { TarjetaAmarilla, TarjetaDoble, TarjetaRoja, FlechaEntra, FlechaSale, Promocion } from '@/components/iconos'
+import { TarjetaAmarilla, TarjetaDoble, TarjetaRoja, FlechaEntra, FlechaSale, Promocion, Escudo, Reloj, Balon, Guante } from '@/components/iconos'
 import { graphLd, breadcrumbLd, sportsTeamLd } from '@/lib/jsonld'
 import { SITE_URL } from '@/lib/seo'
 import { escudoUrl, formatNombre } from '@/lib/supabase'
-import { jugadorHref } from '@/lib/jugador'
+import { jugadorHref, fechaCorta } from '@/lib/jugador'
 import {
   equipoSlug, tempLabel, LIVE_COD, getGrupoInfo, grupoHref, getEquipoActualInfo,
   fechaCortaDMY, fechaCortaYMD, BADGE, HITO_EQUIPO,
@@ -85,8 +85,36 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
     { k: 'MED', nm: 'Centrocampistas', c: '#8cefa5' }, { k: 'DEL', nm: 'Delanteros', c: '#f2a3c0' },
   ] as const
   const topPlantilla = [...plantilla].filter((p) => p.pts != null).sort((a, b) => (b.pts ?? 0) - (a.pts ?? 0)).slice(0, 5)
-  const maxMin = Math.max(1, ...plantilla.map((p) => p.minutos))
   const porLinea = LINEAS.map((L) => ({ ...L, jug: plantilla.filter((p) => p.linea === L.k).sort((a, b) => b.minutos - a.minutos) })).filter((L) => L.jug.length)
+
+  // Desplegable por defecto: 11 con más minutos, garantizando ≥1 portero (política del XI óptimo). Resto oculto.
+  const porMin = [...plantilla].sort((a, b) => b.minutos - a.minutos)
+  let onceIds = porMin.slice(0, 11)
+  if (porMin.length > 11 && !onceIds.some((p) => p.linea === 'POR')) {
+    const topPor = porMin.find((p) => p.linea === 'POR')
+    if (topPor) onceIds = [...porMin.slice(0, 10), topPor]
+  }
+  const starterIds = new Set(onceIds.map((p) => p.codjugador))
+  const hayOcultos = plantilla.length > starterIds.size
+
+  // Color del botón de iniciales por demarcación, como el avatar del hero de la ficha de jugador (AVA_POS).
+  const AVA_POS: Record<string, string> = { POR: '249,115,22', DEF: '59,130,246', MED: '34,160,80', DEL: '239,68,68' }
+  const avaStyle = (pos: string | null) => {
+    const c = AVA_POS[pos || ''] || '100,116,139'
+    return { background: `linear-gradient(to bottom right, rgba(${c},.45), var(--pitch-800))`, border: `1.5px solid rgba(${c},.55)`, color: '#fff' }
+  }
+  // Fila de datos bajo el nombre (mismo lenguaje que Totales de jugador): PJ · Min · Goles (o P.a cero para
+  // porteros), iconos en vez de etiquetas; tarjetas (TA/2TA/TR) solo cuando las hay, para que quepa.
+  const filaDatos = (p: PlantillaEqRow) => (
+    <div className="pl-stats">
+      <span>{mil(p.pj)}<Escudo size={11} /></span>
+      <span>{mil(p.minutos)}<Reloj size={11} /></span>
+      {p.portero ? <span>{mil(p.porteriasCero)}<Guante size={11} /></span> : <span>{mil(p.goles)}<Balon size={11} /></span>}
+      {p.ta > 0 && <span style={{ color: 'var(--card-y)' }}>{p.ta}<TarjetaAmarilla size={10} /></span>}
+      {p.td > 0 && <span style={{ color: 'var(--card-y)' }}>{p.td}<TarjetaDoble size={11} /></span>}
+      {p.tr > 0 && <span style={{ color: 'var(--card-r)' }}>{p.tr}<TarjetaRoja size={10} /></span>}
+    </div>
+  )
 
   // Últimos 3 partidos jugados (de la serie del gráfico, con fantasy de esa jornada).
   const ultimos = jornadas.filter((j) => j.fan != null && j.marcador).slice(-3).reverse()
@@ -134,13 +162,14 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
   ]
 
   const secciones = ([
-    { id: 's-clasif', label: 'Clasificación', aside: true },
     { id: 's-nivel', label: 'Nivel', aside: true },
-    movs.length ? { id: 's-movs', label: 'Movimientos', aside: true } : null,
+    { id: 's-clasif', label: 'Clasificación', aside: true },
+    ultimos.length ? { id: 's-ultimos', label: 'Últimos partidos' } : null,
     jornadas.length ? { id: 's-jornadas', label: 'Jornadas' } : null,
     ana.pj ? { id: 's-analisis', label: 'Análisis' } : null,
     temporadas.length ? { id: 's-temporadas', label: 'Temporadas' } : null,
     plantilla.length ? { id: 's-plantilla', label: 'Plantilla' } : null,
+    movs.length ? { id: 's-movs', label: 'Movimientos' } : null,
     hitos.length ? { id: 's-hitos', label: 'Hitos' } : null,
   ].filter(Boolean)) as { id: string; label: string; aside?: boolean }[]
 
@@ -205,26 +234,6 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
 
       <div className="layout">
         <div className="aside">
-          {/* CLASIFICACIÓN */}
-          <section id="s-clasif">
-            <div className="s-head"><div className="s-title">Clasificación</div><div className="s-sub">{echoTxt}</div></div>
-            {mini.filas.length > 0 ? (
-              <>
-                <div className="mini">
-                  {mini.filas.map((r) => (
-                    <div key={r.codequipo} className={`mini-r${r.me ? ' me' : ''}`}>
-                      <div className="mp">{r.pos}</div>
-                      <EscudoBox escudo={r.escudo} nombre={r.nombre} size={22} radius={4} />
-                      <div className="mn">{r.me ? r.nombre : <NombreEquipo codequipo={r.codequipo} nombre={r.nombre} />}</div>
-                      <div className="mpts num">{r.pts}</div>
-                    </div>
-                  ))}
-                </div>
-                {grupoUrl && <div style={{ padding: '12px var(--pad) 0' }}><Link className="btn" href={grupoUrl}>Ver clasificación completa</Link></div>}
-              </>
-            ) : <p style={{ padding: '0 var(--pad)', color: 'var(--ink-3)', fontSize: 'var(--t-sm)' }}>Sin clasificación en esta temporada.</p>}
-          </section>
-
           {/* NIVEL */}
           <section id="s-nivel">
             <div className="s-head"><div className="s-title">Nivel</div><div className="s-sub"><span className="allscope">Situación actual</span></div></div>
@@ -255,37 +264,51 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
             </div>
           </section>
 
-          {/* MOVIMIENTOS */}
-          {movs.length > 0 && (
-            <section id="s-movs">
-              <div className="s-head"><div className="s-title">Movimientos</div><div className="s-sub"><span className="allscope">Recientes</span></div></div>
+          {/* CLASIFICACIÓN */}
+          <section id="s-clasif">
+            <div className="s-head"><div className="s-title">Clasificación</div><div className="s-sub">{echoTxt}</div></div>
+            {mini.filas.length > 0 ? (
+              <>
+                <div className="mini">
+                  {mini.filas.map((r) => (
+                    <div key={r.codequipo} className={`mini-r${r.me ? ' me' : ''}`}>
+                      <div className="mp">{r.pos}</div>
+                      <EscudoBox escudo={r.escudo} nombre={r.nombre} size={22} radius={4} />
+                      <div className="mn">{r.me ? r.nombre : <NombreEquipo codequipo={r.codequipo} nombre={r.nombre} />}</div>
+                      <div className="mpts num">{r.pts}</div>
+                    </div>
+                  ))}
+                </div>
+                {grupoUrl && <div style={{ padding: '12px var(--pad) 0' }}><Link className="btn" href={grupoUrl}>Ver clasificación completa</Link></div>}
+              </>
+            ) : <p style={{ padding: '0 var(--pad)', color: 'var(--ink-3)', fontSize: 'var(--t-sm)' }}>Sin clasificación en esta temporada.</p>}
+          </section>
+        </div>
+
+        <div className="main">
+          {/* ÚLTIMOS PARTIDOS — mismo patrón que "Mejores actuaciones" de jugador. */}
+          {ultimos.length > 0 && (
+            <section id="s-ultimos">
+              <div className="s-head"><div className="s-title">Últimos partidos</div><div className="s-sub">{echoTxt}</div></div>
               <div>
-                {movs.slice(0, 8).map((m: any, i: number) => {
-                  const prom = m.clase === 'PROMOCION_INTERNA'
-                  const alta = !prom && m.direccion === 'entra'
-                  const cls = prom ? 'prom' : alta ? 'alta' : 'baja'
-                  const ic = prom ? <Promocion size={13} /> : alta ? <FlechaEntra size={13} /> : <FlechaSale size={13} />
-                  const nm = formatNombre(m.nombre)
-                  const fecha = fechaCortaYMD(m.fecha)
-                  const sub = prom ? `Promoción interna${fecha ? ` · ${fecha}` : ''}`
-                    : alta ? `Ficha${m.equipo_rel_nombre ? ` del ${m.equipo_rel_nombre}` : ''}${fecha ? ` · ${fecha}` : ''}`
-                      : `${m.equipo_rel_nombre ? `Al ${m.equipo_rel_nombre}` : 'Baja'}${fecha ? ` · ${fecha}` : ''}`
+                {ultimos.map((m, i) => {
+                  const col = m.signo === 'G' ? 'var(--e3)' : m.signo === 'E' ? 'var(--ink-2)' : 'var(--e0)'
                   return (
-                    <div className="mv" key={i}>
-                      <div className={`mv-ic ${cls}`}>{ic}</div>
-                      <div className="mv-m">
-                        <div className="mv-n">{m.codjugador ? <Link href={jugadorHref(m.codjugador, m.nombre)}>{nm}</Link> : nm}</div>
-                        <div className="mv-sub">{sub}</div>
+                    <div className="match" key={i}>
+                      <div className="m-score" style={{ color: col }}>{m.marcador}</div>
+                      <EscudoBox escudo={m.rivalEscudo} nombre={m.rivalNombre ?? undefined} size={26} radius={4} />
+                      <div className="m-mid">
+                        <div className="m-riv"><NombreEquipo codequipo={null} nombre={m.rivalNombre} /></div>
+                        <div className="m-meta">{m.esLocal != null && <IndicadorLocal esLocal={m.esLocal} />}<span>{m.fecha ? `${fechaCorta(m.fecha)} · ` : ''}J{m.jornada}</span></div>
                       </div>
+                      <div className="m-pts" style={{ background: m.fan != null ? colorFan(m.fan) : 'var(--pitch-700)' }}>{m.fan}</div>
                     </div>
                   )
                 })}
               </div>
             </section>
           )}
-        </div>
 
-        <div className="main">
           {/* JORNADAS */}
           <section id="s-jornadas">
             <div className="s-head"><div className="s-title">Puntos por jornada</div><div className="s-sub">{echoTxt}</div></div>
@@ -305,7 +328,7 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
                       <circle cx="52" cy="52" r={R} fill="none" stroke="rgba(255,255,255,.07)" strokeWidth="14" />
                       {donutArcs.map((a, i) => <circle key={i} cx="52" cy="52" r={R} fill="none" stroke={a.col} strokeWidth="14" strokeDasharray={`${a.dash} ${a.rest}`} strokeDashoffset={a.offset} />)}
                     </svg>
-                    <div className="donut-mid"><div className="donut-pc num">{pc(ana.v)}%</div><div className="donut-lb">VICTORIAS</div></div>
+                    <div className="donut-mid"><div className="donut-pc num">{pc(ana.v)}%</div></div>
                   </div>
                   <div className="ved-lg">
                     {([['Victorias', ana.v, 'var(--e3)'], ['Empates', ana.e, 'var(--ink-3)'], ['Derrotas', ana.d, 'var(--e0)']] as const).map(([nm, n, col]) => (
@@ -376,7 +399,12 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
                     <div className="season" key={`${t.codtemporada}-${i}`}>
                       <div className="accent" style={{ background: colorMedia(media) || 'var(--line)' }} />
                       <div className="s-top"><div className="s-yr">{tempLabel(t.codtemporada)}</div></div>
-                      <div className="s-cat">{t.nombre_comp}{t.grupo_nombre ? ` · ${t.grupo_nombre}` : ''}</div>
+                      <div className="s-cat">
+                        <span className="pill n" style={{ maxWidth: '100%', overflow: 'hidden' }}>
+                          {t.nombre_comp ? <Sello nombreComp={t.nombre_comp} size={14} /> : null}
+                          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.nombre_comp}{t.grupo_nombre ? ` · ${t.grupo_nombre}` : ''}</span>
+                        </span>
+                      </div>
                       <div className="s-duo">
                         <div><div className="d-v" style={{ color: colorMedia(media) }}>{med1(media)}</div><div className="d-k">MEDIA F.</div></div>
                         <div><div className="d-v" style={{ color: colorElo(elo) }}>{mil(elo)}</div><div className="d-k">ELO</div></div>
@@ -390,64 +418,72 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
             </section>
           )}
 
-          {/* PLANTILLA + ÚLTIMOS */}
+          {/* PLANTILLA (Top por fantasy + plantilla por líneas, desplegable) */}
           {plantilla.length > 0 && (
             <section id="s-plantilla">
-              <div className="desk-2col">
-                <div>
-                  <div className="s-head"><div className="s-title">Top de la plantilla</div><div className="s-sub">por puntos fantasy</div></div>
-                  <div>
-                    {topPlantilla.map((p, i) => (
-                      <div className="pl" key={p.codjugador}>
-                        <div className="pl-rk">{i + 1}</div>
-                        <div className="pl-av">{iniciales(p.nombre)}</div>
+              <div className="s-head"><div className="s-title">Top de la plantilla</div><div className="s-sub">por puntos fantasy</div></div>
+              <div>
+                {topPlantilla.map((p, i) => (
+                  <div className="pl" key={p.codjugador}>
+                    <div className="pl-rk">{i + 1}</div>
+                    <div className="pl-av" style={avaStyle(p.pos)}>{iniciales(p.nombre)}</div>
+                    <div className="pl-mid">
+                      <div className="pl-nm"><Link href={jugadorHref(p.codjugador, p.nombre)}>{formatNombre(p.nombre)}</Link></div>
+                      <div className="pl-me">{p.pos && <Pastilla pos={p.pos} size="mini" />}{filaDatos(p)}</div>
+                    </div>
+                    <div className="pl-val" style={{ background: 'var(--e2)' }}>{mil(p.pts)}</div>
+                  </div>
+                ))}
+              </div>
+              <div className="s-head" style={{ paddingTop: 20 }}><div className="s-title">Plantilla</div><div className="s-sub">{echoTxt}</div></div>
+              {/* Desplegable CSS (checkbox): por defecto los 11 con más minutos (≥1 portero); el resto tras el botón. */}
+              <input type="checkbox" id="pl-open-eq" className="pl-open-cb" />
+              <div id="plantilla-eq">
+                {porLinea.map((L) => (
+                  <Fragment key={L.k}>
+                    <div className="line-h"><span className="line-lp" style={{ color: L.c, background: `${L.c}26` }}>{L.k}</span><span className="line-ln">{L.nm}</span><span className="num" style={{ fontSize: 'var(--t-body)', color: 'var(--ink-3)' }}>{L.jug.length}</span></div>
+                    {L.jug.map((p) => (
+                      <div className={`pl${starterIds.has(p.codjugador) ? '' : ' pl-hid'}`} key={p.codjugador}>
+                        <div className="pl-av" style={avaStyle(p.pos)}>{iniciales(p.nombre)}</div>
                         <div className="pl-mid">
                           <div className="pl-nm"><Link href={jugadorHref(p.codjugador, p.nombre)}>{formatNombre(p.nombre)}</Link></div>
-                          <div className="pl-me">{p.pos && <span className="pl-pos"><Pastilla pos={p.pos} size="mini" /></span>}{p.pj} PJ · {p.goles} goles</div>
+                          <div className="pl-me">{filaDatos(p)}</div>
                         </div>
                         <div className="pl-val" style={{ background: 'var(--e2)' }}>{mil(p.pts)}</div>
                       </div>
                     ))}
-                  </div>
-                  <div className="s-head" style={{ paddingTop: 20 }}><div className="s-title">Plantilla</div><div className="s-sub">{echoTxt}</div></div>
-                  <div>
-                    {porLinea.map((L) => (
-                      <Fragment key={L.k}>
-                        <div className="line-h"><span className="line-lp" style={{ color: L.c, background: `${L.c}26` }}>{L.k}</span><span className="line-ln">{L.nm}</span><span className="num" style={{ fontSize: 'var(--t-body)', color: 'var(--ink-3)' }}>{L.jug.length}</span></div>
-                        {L.jug.map((p) => (
-                          <div className="pl" key={p.codjugador}>
-                            <div className="pl-av">{iniciales(p.nombre)}</div>
-                            <div className="pl-mid">
-                              <div className="pl-nm"><Link href={jugadorHref(p.codjugador, p.nombre)}>{formatNombre(p.nombre)}</Link></div>
-                              <div className="pl-me">{p.pj} PJ · {p.goles} goles</div>
-                              <div className="pl-minbar"><span style={{ width: `${p.minutos / maxMin * 100}%`, background: L.c }} /></div>
-                            </div>
-                            <div className="pl-minv num">{mil(p.minutos)}&#39;</div>
-                          </div>
-                        ))}
-                      </Fragment>
-                    ))}
-                  </div>
-                </div>
-                <div>
-                  <div className="s-head"><div className="s-title">Últimos partidos</div><div className="s-sub">{echoTxt}</div></div>
-                  <div>
-                    {ultimos.map((m, i) => {
-                      const col = m.signo === 'G' ? 'var(--e3)' : m.signo === 'E' ? 'var(--ink-2)' : 'var(--e0)'
-                      return (
-                        <div className="pl" key={i}>
-                          <div className="num" style={{ fontSize: 'var(--n-sm)', width: 40, textAlign: 'center', color: col, flex: 'none' }}>{m.marcador}</div>
-                          <div className="pl-mid">
-                            <div className="pl-nm">{m.rivalNombre}</div>
-                            <div className="pl-me" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>{m.esLocal != null && <IndicadorLocal esLocal={m.esLocal} />}J{m.jornada}</div>
-                          </div>
-                          <div className="pl-val" style={{ background: m.fan != null ? colorFan(m.fan) : 'var(--pitch-700)' }}>{m.fan}</div>
-                        </div>
-                      )
-                    })}
-                    {ultimos.length === 0 && <p style={{ padding: '0 var(--pad)', color: 'var(--ink-3)', fontSize: 'var(--t-sm)' }}>Sin partidos recientes.</p>}
-                  </div>
-                </div>
+                  </Fragment>
+                ))}
+              </div>
+              {hayOcultos && <label htmlFor="pl-open-eq" className="btn pl-open-btn" />}
+            </section>
+          )}
+
+          {/* MOVIMIENTOS */}
+          {movs.length > 0 && (
+            <section id="s-movs">
+              <div className="s-head"><div className="s-title">Movimientos</div><div className="s-sub"><span className="allscope">Recientes</span></div></div>
+              <div>
+                {movs.slice(0, 8).map((m: any, i: number) => {
+                  const prom = m.clase === 'PROMOCION_INTERNA'
+                  const alta = !prom && m.direccion === 'entra'
+                  const cls = prom ? 'prom' : alta ? 'alta' : 'baja'
+                  const ic = prom ? <Promocion size={13} /> : alta ? <FlechaEntra size={13} /> : <FlechaSale size={13} />
+                  const nm = formatNombre(m.nombre)
+                  const fecha = fechaCortaYMD(m.fecha)
+                  const sub = prom ? `Promoción interna${fecha ? ` · ${fecha}` : ''}`
+                    : alta ? `Ficha${m.equipo_rel_nombre ? ` del ${m.equipo_rel_nombre}` : ''}${fecha ? ` · ${fecha}` : ''}`
+                      : `${m.equipo_rel_nombre ? `Al ${m.equipo_rel_nombre}` : 'Baja'}${fecha ? ` · ${fecha}` : ''}`
+                  return (
+                    <div className="mv" key={i}>
+                      <div className={`mv-ic ${cls}`}>{ic}</div>
+                      <div className="mv-m">
+                        <div className="mv-n">{m.codjugador ? <Link href={jugadorHref(m.codjugador, m.nombre)}>{nm}</Link> : nm}</div>
+                        <div className="mv-sub">{sub}</div>
+                      </div>
+                    </div>
+                  )
+                })}
               </div>
             </section>
           )}
@@ -460,10 +496,15 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
                 {hitos.slice(0, 8).map((h: any, i: number) => {
                   const cfg = HITO_EQUIPO[h.tipo_hito]
                   const texto = cfg ? cfg.label(h) : h.tipo_hito
+                  // Contexto = competición del equipo esa temporada (web_equipo_hitos no trae categoría propia).
+                  const ctx = temporadas.find((t) => t.codtemporada === h.codtemporada)?.nombre_comp
                   return (
                     <div className="hito" key={i}>
                       <div className="h-dot" />
-                      <div><div className="h-t">{texto}</div><div className="h-m">{fechaCortaDMY(h.fecha) || (h.codtemporada ? tempLabel(h.codtemporada) : '')}</div></div>
+                      <div>
+                        <div className="h-t">{texto}{ctx ? <span style={{ color: 'var(--ink-3)' }}> · {ctx}</span> : ''}</div>
+                        <div className="h-m">{fechaCortaDMY(h.fecha) || (h.codtemporada ? tempLabel(h.codtemporada) : '')}</div>
+                      </div>
                     </div>
                   )
                 })}

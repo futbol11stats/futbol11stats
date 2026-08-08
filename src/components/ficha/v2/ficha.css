@@ -311,6 +311,17 @@
 .fjv2 .pl-minbar span{display:block;height:100%;border-radius:2px}
 .fjv2 .pl-minv{font-size:var(--t-body);font-weight:600;color:var(--ink-3);flex:none}
 .fjv2 .pl-val{font-family:var(--font-display),'Barlow Condensed',sans-serif;font-weight:700;font-size:var(--n-sm);padding:4px 8px;border-radius:5px;color:#08111f;flex:none}
+/* Fila de datos bajo el nombre (PJ · Min · Goles/P.a cero · tarjetas), número + icono. */
+.fjv2 .pl-stats{display:flex;flex-wrap:wrap;align-items:center;gap:4px 9px;font-family:var(--font-display),'Barlow Condensed',sans-serif;font-size:var(--t-cap);font-weight:600;color:var(--ink-3);font-variant-numeric:tabular-nums}
+.fjv2 .pl-stats span{display:inline-flex;align-items:center;gap:2px}
+.fjv2 .pl-stats svg{opacity:.85}
+/* Desplegable de plantilla (checkbox-hack, sin JS): por defecto solo los .pl no ocultos. */
+.fjv2 .pl-open-cb{position:absolute;width:0;height:0;opacity:0;pointer-events:none}
+.fjv2 .pl.pl-hid{display:none}
+.fjv2 .pl-open-cb:checked ~ #plantilla-eq .pl.pl-hid{display:flex}
+.fjv2 label.pl-open-btn{display:block;margin:12px var(--pad) 0;cursor:pointer}
+.fjv2 label.pl-open-btn::after{content:'Ver plantilla completa'}
+.fjv2 .pl-open-cb:checked ~ label.pl-open-btn::after{content:'Ver menos'}
 
 @media(min-width:1000px){
   .fjv2{--t-micro:12px;--t-cap:13px;--t-sm:14px;--t-body:15px;--t-lead:17px;

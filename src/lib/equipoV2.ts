@@ -72,7 +72,7 @@ export type JornadaEquipoDatum = {
   fan: number | null            // puntos fantasy de ESA jornada (diff del acumulado)
   pos: number | null; mov: MovDir
   rivalNombre: string | null; rivalEscudo: string | null
-  marcador: string | null; signo: 'G' | 'E' | 'P' | null; esLocal: boolean | null
+  marcador: string | null; signo: 'G' | 'E' | 'P' | null; esLocal: boolean | null; fecha: string | null
 }
 
 // Cruza la serie de clasificación (fantasy/pos/mov) con los resultados del grupo (marcador/rival/localía).
@@ -94,7 +94,7 @@ export function buildJornadasEquipo(serie: ClasifRow[], resultados: ResultadoRow
       marcador = `${r.goles_local}-${r.goles_visitante}`  // absoluto local-visitante
       rivalNombre = (local ? r.nombre_visitante : r.nombre_local) as string
     }
-    return { jornada: c.jornada, fan, pos: c.pos, mov: parseMov(c.mov), rivalNombre, rivalEscudo, marcador, signo, esLocal }
+    return { jornada: c.jornada, fan, pos: c.pos, mov: parseMov(c.mov), rivalNombre, rivalEscudo, marcador, signo, esLocal, fecha: r?.fecha ?? null }
   })
 }
 
@@ -182,25 +182,29 @@ export async function getFacetasGrupo(codgrupo: string | null, codequipo: string
 // --- Plantilla de la temporada seleccionada (aficionados): por líneas + top por fantasy ---
 export type PlantillaEqRow = {
   codjugador: string; nombre: string; pos: string | null; linea: 'POR' | 'DEF' | 'MED' | 'DEL' | 'OTR'
-  pj: number; goles: number; minutos: number; pts: number | null; elo: number | null
+  portero: boolean; pj: number; goles: number; minutos: number; porteriasCero: number
+  ta: number; td: number; tr: number; pts: number | null; elo: number | null
 }
 const LINEA_DE: Record<string, 'POR' | 'DEF' | 'MED' | 'DEL'> = { POR: 'POR', DEF: 'DEF', MED: 'MED', DEL: 'DEL' }
 export async function getPlantillaEquipoV2(codequipo: string, codtemp: string | null): Promise<PlantillaEqRow[]> {
   if (!codtemp) return []
   const { data: car } = await supabase.from('web_jugador_carrera')
-    .select('codjugador, pj, goles, minutos, pts_fantasy, elo_final').eq('codequipo', String(codequipo)).eq('codtemporada', String(codtemp))
+    .select('codjugador, pj, goles, minutos, pts_fantasy, elo_final, porterias_cero, tarjetas_amarillas, tarjetas_dobles, tarjetas_rojas')
+    .eq('codequipo', String(codequipo)).eq('codtemporada', String(codtemp))
   const rows = (car || []) as any[]
   const ids = Array.from(new Set(rows.map((r) => String(r.codjugador))))
   if (!ids.length) return []
-  const { data: jug } = await supabase.from('web_jugador').select('codjugador, nombre, posicion_pastilla').in('codjugador', ids)
+  const { data: jug } = await supabase.from('web_jugador').select('codjugador, nombre, posicion_pastilla, es_portero').in('codjugador', ids)
   const info = new Map<string, any>((jug || []).map((j: any) => [String(j.codjugador), j]))
   return rows.map((r) => {
     const j = info.get(String(r.codjugador))
     const pos = j?.posicion_pastilla ?? null
     return {
       codjugador: String(r.codjugador), nombre: j?.nombre ?? '', pos,
-      linea: (pos && LINEA_DE[pos]) || 'OTR',
-      pj: r.pj ?? 0, goles: r.goles ?? 0, minutos: r.minutos ?? 0, pts: r.pts_fantasy ?? null, elo: r.elo_final ?? null,
+      linea: (pos && LINEA_DE[pos]) || 'OTR', portero: !!j?.es_portero,
+      pj: r.pj ?? 0, goles: r.goles ?? 0, minutos: r.minutos ?? 0, porteriasCero: r.porterias_cero ?? 0,
+      ta: r.tarjetas_amarillas ?? 0, td: r.tarjetas_dobles ?? 0, tr: r.tarjetas_rojas ?? 0,
+      pts: r.pts_fantasy ?? null, elo: r.elo_final ?? null,
     }
   })
 }
