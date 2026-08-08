@@ -429,6 +429,24 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
                     <div className="ved-r"><span className="ved-dot" style={{ background: 'transparent' }} /><span className="ved-nm">Puntos por partido</span><span className="ved-n num">{(ana.pj ? (ana.v * 3 + ana.e) / ana.pj : 0).toFixed(2).replace('.', ',')}</span><span className="ved-p" /></div>
                   </div>
                 </div>
+                {/* Resultados por contexto: V/E/D en casa y fuera (distinto de los goles, que van abajo). */}
+                <div style={{ marginTop: 12, paddingTop: 11, borderTop: '1px solid var(--line-2)' }}>
+                  <div className="cap" style={{ marginBottom: 5 }}>Por contexto</div>
+                  {([['Casa', ana.casa, true], ['Fuera', ana.fuera, false]] as const).map(([k, s, loc]) => {
+                    const t = s.v + s.e + s.d || 1, p = Math.round((s.v / t) * 100)
+                    return (
+                      <div className="ctx-row" key={k}>
+                        <div className="ctx-cl"><IndicadorLocal esLocal={loc} />{k}</div>
+                        <div className="ctx-bar">
+                          {s.v > 0 && <span style={{ flex: s.v, background: 'var(--e3)' }}>{s.v}</span>}
+                          {s.e > 0 && <span style={{ flex: s.e, background: 'var(--ink-3)', color: '#0a1628' }}>{s.e}</span>}
+                          {s.d > 0 && <span style={{ flex: s.d, background: 'var(--e0)', color: '#0a1628' }}>{s.d}</span>}
+                        </div>
+                        <div className="ctx-pc num" style={{ color: p >= 50 ? 'var(--e3)' : p >= 30 ? 'var(--ink-2)' : 'var(--e0)' }}>{p}%</div>
+                      </div>
+                    )
+                  })}
+                </div>
               </div>
               {/* GOLES — un solo lenguaje visual: barras espejo (encajados a la izquierda en rojo,
                   marcados a la derecha en verde, etiqueta centrada). Total·Casa·Fuera + los 7 tramos,

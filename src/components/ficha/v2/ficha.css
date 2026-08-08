@@ -267,6 +267,13 @@
 .fjv2 .ved-nm{flex:1;font-size:var(--t-sm);color:var(--ink-2)}
 .fjv2 .ved-n{font-size:var(--n-sm);font-weight:700;min-width:24px;text-align:right}
 .fjv2 .ved-p{font-size:var(--t-body);font-weight:600;color:var(--ink-3);min-width:36px;text-align:right;font-family:var(--font-display),'Barlow Condensed',sans-serif;font-variant-numeric:tabular-nums}
+/* Resultados por contexto: V/E/D en casa/fuera (barras). */
+.fjv2 .ctx-row{display:flex;align-items:center;gap:11px;padding:9px 0}
+.fjv2 .ctx-row+.ctx-row{border-top:1px solid var(--line-2)}
+.fjv2 .ctx-cl{width:64px;flex:none;font-size:var(--t-sm);color:var(--ink-2);display:flex;align-items:center;gap:6px}
+.fjv2 .ctx-bar{flex:1;display:flex;height:18px;border-radius:4px;overflow:hidden;gap:2px}
+.fjv2 .ctx-bar span{display:flex;align-items:center;justify-content:center;font-family:var(--font-display),'Barlow Condensed',sans-serif;font-size:var(--t-sm);font-weight:700;color:#08111f;min-width:14px}
+.fjv2 .ctx-pc{width:42px;flex:none;text-align:right;font-size:var(--n-sm);font-weight:700}
 /* Goles como barras espejo (resultado Total/Casa/Fuera + tramos, misma escala). */
 .fjv2 .tramo{display:flex;align-items:center;gap:7px;padding:4px 0}
 .fjv2 .tramo-lbl{font-family:var(--font-display),'Barlow Condensed',sans-serif;font-size:var(--t-body);font-weight:600;color:var(--ink-2);width:52px;text-align:center;flex:none;font-variant-numeric:tabular-nums}
