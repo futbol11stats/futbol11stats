@@ -32,7 +32,7 @@ import { CORTES_FIJOS } from '@/lib/escala'
 import {
   getJugadorV2, getCarreraV2, getAlertaActual, getAmbitoTemporada, getCortesElo, labelToCod,
   getPartidosTemporada, ventanasForma, racha5DePartidos, splitCasaFuera, balanceEquipo,
-  getActuacionesV2, getHitosV2, alertaHumana, tienePorteriaDato, getTarjetasTotales,
+  getActuacionesV2, getHitosV2, alertaHumana, getTarjetasTotales,
   type CarreraRow,
 } from '@/lib/jugadorV2'
 
@@ -77,7 +77,7 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
   // ASC dentro de la temporada) — criterio original de Fernando. Nivel usa el ELO actual (otro ámbito).
   const eloCierre = etapas[etapas.length - 1]?.elo_final ?? j.elo_actual ?? null
 
-  const [equipoInfo, cortesElo, alerta, comps, partidosTemp, actuaciones, hitosRaw, hayP0, grupoInfo, tarjetas] = await Promise.all([
+  const [equipoInfo, cortesElo, alerta, comps, partidosTemp, actuaciones, hitosRaw, grupoInfo, tarjetas] = await Promise.all([
     inactivo ? Promise.resolve({ copas: [], posicionActual: null }) : getEquipoActualInfo(j.codequipo_actual),
     getCortesElo(categoriaSel, tempSel ? Number(tempSel) : null),
     getAlertaActual(cod),
@@ -85,7 +85,6 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
     tempSel ? getPartidosTemporada(cod, tempSel) : Promise.resolve([] as any[]),
     getActuacionesV2(cod),
     getHitosV2(cod),
-    tienePorteriaDato(cod),
     getGrupoInfo(etapaPrincipal?.codgrupo),
     getTarjetasTotales(cod),
   ])
@@ -189,8 +188,11 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
   }
   const badge11 = <span style={{ width: 20, height: 20, borderRadius: '50%', background: '#1a7a3c', display: 'grid', placeItems: 'center', fontFamily: 'var(--font-display), sans-serif', fontWeight: 700, color: '#fff', fontSize: 11, lineHeight: 1 }}>11</span>
 
-  // 3ª casilla: goles (jugador de campo) o porterías a cero (portero, si hay dato de portería).
-  const golesTile: [ReactNode, string, string] = hayP0
+  // 3ª casilla: goles (jugador de campo) o porterías a cero (portero). El criterio es es_portero de
+  // web_jugador (posición federativa / mayoría de apariciones como portero, lo calcula el pipeline), NO
+  // la mera existencia de goles_encajados: un jugador de campo que actuó de portero de emergencia una vez
+  // tiene ese dato y NO debe pasar por portero.
+  const golesTile: [ReactNode, string, string] = portero
     ? [<Guante size={13} key="i" />, mil(j.porterias_cero_total), 'P. a cero']
     : [<Balon size={13} key="i" />, mil(j.goles_total), 'Goles']
   // Dos filas por naturaleza del dato: arriba PARTICIPACIÓN (PJ·Min·Titular·Supl.), abajo EVENTOS
@@ -258,9 +260,9 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
         <div className="kpi"><div className="kpi-i"><Escudo size={14} /></div><div className="v num">{mil(pj)}</div><div className="k">PJ</div></div>
         <div className="kpi"><div className="kpi-i"><Reloj size={14} /></div><div className="v num">{mil(minT)}</div><div className="k">Min</div></div>
         <div className="kpi kpi-goles">
-          <div className="kpi-i">{hayP0 ? <Guante size={14} /> : <Balon size={14} />}</div>
-          <div className="v num">{hayP0 ? mil(p0Sel) : mil(golesT)}</div>
-          <div className="k">{hayP0 ? 'P. a cero' : 'Goles'}</div>
+          <div className="kpi-i">{portero ? <Guante size={14} /> : <Balon size={14} />}</div>
+          <div className="v num">{portero ? mil(p0Sel) : mil(golesT)}</div>
+          <div className="k">{portero ? 'P. a cero' : 'Goles'}</div>
         </div>
         {/* Pts F. · Media · ELO son métricas F11S -> el badge (11) del logo. ELO = eloCierre (cierre de la
             temporada seleccionada), coherente con el resto de la KpiBar; Nivel usa el ELO actual. */}

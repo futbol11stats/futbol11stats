@@ -140,8 +140,8 @@ export default function Jornadas({ comps, cortes }: { comps: CompAmbito[]; corte
         {/* Línea de media: overlay FIJO sobre el área de barras (no scrollea), de extremo a extremo
             (del canalón al borde) a la altura de la media; etiqueta anclada en el canalón izquierdo. */}
         <div className="avg-line" style={{ top: avgTop }} aria-hidden="true" />
-        {/* Etiqueta redondeada al entero (las barras son enteros); la LÍNEA sigue en el valor exacto (avgTop). */}
-        <div className="avg-tag" style={{ top: avgTop }}>{Math.round(media)}</div>
+        {/* Etiqueta con un decimal (3,8); la LÍNEA sigue en el valor exacto (avgTop). */}
+        <div className="avg-tag" style={{ top: avgTop }}>{media.toFixed(1).replace('.', ',')}</div>
         {/* Degradados que indican que hay más gráfico al hacer scroll (solo desktop, ver ficha.css). */}
         <div className="chart-fade chart-fade-l" style={{ opacity: fades.l ? 1 : 0 }} aria-hidden="true" />
         <div className="chart-fade chart-fade-r" style={{ opacity: fades.r ? 1 : 0 }} aria-hidden="true" />
