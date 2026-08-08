@@ -156,12 +156,18 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
   ]
   const BADGE_CLS: Record<string, string> = { CAMPEON: 'camp', ASCENSO: 'asc', DESCENSO: 'desc', PLAYOFF: 'po' }
 
-  // KPIs (temporada seleccionada): de la última fila de la serie de clasificación.
+  // KPIs (temporada seleccionada). Posición/Pts/Media F./ELO salen de la serie de clasificación.
+  // GF/GC (y por tanto DG) salen del MISMO origen que el desglose casa/fuera: los resultados. El
+  // total es, por construcción, la SUMA de casa+fuera que se muestra en el desglose (gfSel =
+  // ana.casa.gf + ana.fuera.gf), así que KpiBar y desglose no pueden contradecirse ni en un render
+  // stale. web_resultados es la única fuente capaz de alimentar ambos (la clasificación no separa
+  // casa/fuera) y reconcilia con la clasificación en todo el sitio. Sin resultados -> «—», coherente
+  // con el desglose vacío (no se cae a una segunda fuente, que es justo lo que se quiere evitar).
   const ult = serie.length ? serie[serie.length - 1] : null
   const posSel = ult?.pos ?? (tempRow?.posicion_final ?? posicionActual ?? null)
   const ptsSel = ult?.pts ?? tempRow?.pts ?? null
-  const gfSel = ult?.gf ?? tempRow?.gf ?? null
-  const gcSel = ult?.gc ?? tempRow?.gc ?? null
+  const gfSel = ana.pj > 0 ? ana.casa.gf + ana.fuera.gf : null
+  const gcSel = ana.pj > 0 ? ana.casa.gc + ana.fuera.gc : null
   const dgSel = gfSel != null && gcSel != null ? gfSel - gcSel : null
   const mediaFan = ult && ult.pts_fantasy != null && ult.pj ? ult.pts_fantasy / ult.pj : null
   const eloCierre = ult?.elo ?? e.elo_actual ?? null   // ELO de cierre de la temporada (KpiBar)
