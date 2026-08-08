@@ -267,14 +267,7 @@
 .fjv2 .ved-nm{flex:1;font-size:var(--t-sm);color:var(--ink-2)}
 .fjv2 .ved-n{font-size:var(--n-sm);font-weight:700;min-width:24px;text-align:right}
 .fjv2 .ved-p{font-size:var(--t-body);font-weight:600;color:var(--ink-3);min-width:36px;text-align:right;font-family:var(--font-display),'Barlow Condensed',sans-serif;font-variant-numeric:tabular-nums}
-/* Contexto casa/fuera (barras). */
-.fjv2 .ctx-row{display:flex;align-items:center;gap:11px;padding:9px 0}
-.fjv2 .ctx-row+.ctx-row{border-top:1px solid var(--line-2)}
-.fjv2 .ctx-cl{width:64px;flex:none;font-size:var(--t-sm);color:var(--ink-2);display:flex;align-items:center;gap:6px}
-.fjv2 .ctx-bar{flex:1;display:flex;height:18px;border-radius:4px;overflow:hidden;gap:2px}
-.fjv2 .ctx-bar span{display:flex;align-items:center;justify-content:center;font-family:var(--font-display),'Barlow Condensed',sans-serif;font-size:var(--t-sm);font-weight:700;color:#08111f;min-width:14px}
-.fjv2 .ctx-pc{width:42px;flex:none;text-align:right;font-size:var(--n-sm);font-weight:700}
-/* Goles por tramos (espejo). */
+/* Goles como barras espejo (resultado Total/Casa/Fuera + tramos, misma escala). */
 .fjv2 .tramo{display:flex;align-items:center;gap:7px;padding:4px 0}
 .fjv2 .tramo-lbl{font-family:var(--font-display),'Barlow Condensed',sans-serif;font-size:var(--t-body);font-weight:600;color:var(--ink-2);width:52px;text-align:center;flex:none;font-variant-numeric:tabular-nums}
 .fjv2 .tramo-side{flex:1;display:flex;align-items:center;height:16px}
@@ -284,25 +277,12 @@
 .fjv2 .tramo-b.gc{background:var(--e0);justify-content:flex-end;color:#fff}
 .fjv2 .tramo-head{display:flex;font-size:var(--t-micro);color:var(--ink-3);letter-spacing:.06em;text-transform:uppercase;padding-bottom:7px;font-weight:600}
 .fjv2 .tramo-head .th{flex:1}.fjv2 .tramo-head .th.r{text-align:right}.fjv2 .tramo-head .th-mid{width:52px}
-/* Split casa/fuera. */
-.fjv2 .split{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin:0 var(--pad) 12px}
-.fjv2 .sp{border:1px solid var(--line);border-radius:9px;padding:11px;background:rgba(255,255,255,.03)}
-.fjv2 .sp-h{display:flex;align-items:center;gap:6px;font-size:var(--t-cap);color:var(--ink-3);letter-spacing:.05em;text-transform:uppercase;font-weight:600}
-.fjv2 .sp-n{display:flex;gap:12px;margin-top:9px}
-.fjv2 .sp-n div{font-size:var(--t-micro);color:var(--ink-3)}
-.fjv2 .sp-n b{font-size:var(--n-sm);font-weight:700;display:block;line-height:1.1;color:var(--ink);margin-bottom:1px}
+/* Ratio por partido detrás del absoluto, menor y atenuado: 26 (1,5). */
+.fjv2 .tramo-b .tb-r{font-size:.82em;font-weight:600;opacity:.62;margin-left:3px}
+/* Filete entre las filas de resultado (Total/Casa/Fuera) y las siete de tramos. */
+.fjv2 .goles-tramos{border-top:1px solid var(--line-2);margin-top:8px;padding-top:8px}
 /* Ranking por faceta: icono encima del número (mismo patrón que .tot). */
 .fjv2 .rk .r-ic{display:flex;justify-content:center;align-items:center;height:16px;color:var(--ink-3);margin-bottom:5px}
-/* Goles: total (rejilla bordeada) + desglose casa/fuera, celdas con icono encima del número. */
-.fjv2 .goles-blk{margin:12px var(--pad) 12px}
-.fjv2 .gc-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--line-2);border:1px solid var(--line-2);border-radius:8px;overflow:hidden}
-.fjv2 .gc-cell{background:var(--pitch-900);padding:9px 3px;text-align:center}
-.fjv2 .gc-ic{display:flex;justify-content:center;align-items:center;height:15px}
-.fjv2 .gc-v{font-family:var(--font-display),'Barlow Condensed',sans-serif;font-size:var(--n-sm);font-weight:700;line-height:1;margin-top:5px;display:block;font-variant-numeric:tabular-nums}
-.fjv2 .gc-k{font-size:var(--t-micro);color:var(--ink-3);margin-top:4px;display:block}
-/* En el desglose casa/fuera las celdas van 2x2, sin borde propio (la tarjeta .sp ya las enmarca). */
-.fjv2 .sp .gc-grid{grid-template-columns:repeat(2,1fr);border:0;background:transparent;gap:8px 6px;margin-top:9px}
-.fjv2 .sp .gc-cell{background:transparent;padding:0}
 /* Leyenda de iconos de la fila de datos de la plantilla. */
 .fjv2 .pl-ley{display:flex;flex-wrap:wrap;gap:6px 13px;padding:11px var(--pad) 0;font-size:var(--t-sm);color:var(--ink-2)}
 /* Desenlace de la tarjeta de temporada (equipo). */

@@ -146,13 +146,15 @@ export function analisisResultados(resultados: ResultadoRow[], nombre: string): 
   return { v, e, d, pj: v + e + d, casa, fuera }
 }
 
-// --- Forma del equipo: media de PUNTOS DE LIGA por partido (G=3/E=1/P=0) en ventanas + racha de 5 ---
-// Equivalente de equipo al bloque Forma de jugador (ventanasForma/racha5DePartidos), sobre la serie de
-// jornadas jugadas (las que tienen signo). Mismo shape que jugador para reutilizar el mismo render.
+// --- Forma del equipo: media de PUNTOS FANTASY por partido en ventanas + racha de 5 ---
+// Equivalente de equipo al bloque Forma de jugador (que también son puntos fantasy). Usa el `fan` de cada
+// jornada (fantasy de esa jornada) para que hable el mismo idioma que el KPI "Media F." y se coloree con
+// los MISMOS cortes (CORTES_EQUIPO.mediaFan). La racha sigue saliendo del signo del resultado.
 export type VentanaEq = { label: string; media: number | null; pj: number; delta: number | null }
 export function formaEquipo(jornadas: JornadaEquipoDatum[]): { ventanas: VentanaEq[]; racha: Array<{ signo: 'G' | 'E' | 'P'; jornada: number; marcador: string | null }> } {
+  const conFan = jornadas.filter((j) => j.fan != null)
+  const pts = conFan.map((j) => j.fan as number)
   const jug = jornadas.filter((j) => j.signo != null)
-  const pts = jug.map((j) => (j.signo === 'G' ? 3 : j.signo === 'E' ? 1 : 0))
   const media = (a: number[]) => (a.length ? a.reduce((s, x) => s + x, 0) / a.length : null)
   const mTemp = media(pts)
   const win = (n: number) => { const s = pts.slice(-n); const m = media(s); return { media: m, pj: s.length, delta: m != null && mTemp != null ? m - mTemp : null } }

@@ -153,7 +153,6 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
       acc += len
       return a
     })
-  const maxTramo = Math.max(1, ...tramos.flatMap((t) => [t.gf, t.gc]))
   const facetaTiles: Array<[number | null, string]> = [
     [facetas.gf, 'GF'], [facetas.gc, 'GC'], [facetas.ptsFan, 'Pts F.'], [e.posicion_juego_limpio ?? null, 'Juego limpio'],
   ]
@@ -189,24 +188,25 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
 
   // Badge (11) del logo F11S para las métricas propias (Media F./ELO), igual que en la ficha de jugador.
   const badge11 = <span style={{ width: 20, height: 20, borderRadius: '50%', background: '#1a7a3c', display: 'grid', placeItems: 'center', fontFamily: 'var(--font-display), sans-serif', fontWeight: 700, color: '#fff', fontSize: 11, lineHeight: 1 }}>11</span>
-  // Forma: color de la media de puntos de liga por partido (0-3) y colores de los chips de racha.
-  const cPuntos = (m: number | null) => (m == null ? undefined : m >= 2 ? 'var(--e3)' : m >= 1.3 ? 'var(--ink-2)' : 'var(--e0)')
+  // Forma: la media de puntos FANTASY por partido se colorea con los mismos cortes que el KPI (colorMedia).
   const RC: Record<'G' | 'E' | 'P', string> = { G: 'var(--e3)', E: 'var(--ink-3)', P: 'var(--e0)' }
 
   // Total de goles (mismo origen que el desglose casa/fuera: la suma de ambos lados). Ver commit de fuente única.
   const golTot = { gf: ana.casa.gf + ana.fuera.gf, gc: ana.casa.gc + ana.fuera.gc, pj: ana.pj }
   const ratio = (n: number, d: number) => (d ? (n / d).toFixed(1).replace('.', ',') : '—')
-  // Iconos de goles: balón verde (a favor) / rojo (en contra); el «/PJ» añade el icono de PJ.
+  // Iconos de goles (balón verde a favor / rojo en contra) para el ranking por faceta.
   const balV = <span style={{ color: 'var(--e3)', display: 'inline-flex' }}><Balon size={13} /></span>
   const balR = <span style={{ color: 'var(--e0)', display: 'inline-flex' }}><Balon size={13} /></span>
-  const balVpj = <span style={{ display: 'inline-flex', alignItems: 'center', gap: 2 }}><span style={{ color: 'var(--e3)', display: 'inline-flex' }}><Balon size={12} /></span><Escudo size={10} /></span>
-  const balRpj = <span style={{ display: 'inline-flex', alignItems: 'center', gap: 2 }}><span style={{ color: 'var(--e0)', display: 'inline-flex' }}><Balon size={12} /></span><Escudo size={10} /></span>
-  const golCells = (g: { gf: number; gc: number; pj: number }) => (
-    <div className="gc-grid">
-      <div className="gc-cell"><div className="gc-ic">{balV}</div><b className="gc-v num">{g.gf}</b><span className="gc-k">GF</span></div>
-      <div className="gc-cell"><div className="gc-ic">{balR}</div><b className="gc-v num">{g.gc}</b><span className="gc-k">GC</span></div>
-      <div className="gc-cell"><div className="gc-ic">{balVpj}</div><b className="gc-v num">{ratio(g.gf, g.pj)}</b><span className="gc-k">GF/PJ</span></div>
-      <div className="gc-cell"><div className="gc-ic">{balRpj}</div><b className="gc-v num">{ratio(g.gc, g.pj)}</b><span className="gc-k">GC/PJ</span></div>
+  // Goles como BARRAS ESPEJO (un solo lenguaje visual, el de los tramos): encajados a la izquierda en
+  // rojo, marcados a la derecha en verde, etiqueta centrada. Total/Casa/Fuera + los 7 tramos comparten
+  // la MISMA escala (maxBar) para ser comparables. El absoluto manda; el ratio por partido va detrás,
+  // menor y atenuado (26 (1,5)). Los tramos no llevan ratio.
+  const maxBar = Math.max(1, golTot.gf, golTot.gc, ...tramos.flatMap((t) => [t.gf, t.gc]))
+  const barGoles = (label: string, gc: number, gf: number, pj: number | null) => (
+    <div className="tramo">
+      <div className="tramo-side gc">{gc > 0 && <div className="tramo-b gc" style={{ width: `${(gc / maxBar) * 100}%` }}>{gc}{pj ? <span className="tb-r">({ratio(gc, pj)})</span> : null}</div>}</div>
+      <div className="tramo-lbl">{label}</div>
+      <div className="tramo-side">{gf > 0 && <div className="tramo-b gf" style={{ width: `${(gf / maxBar) * 100}%` }}>{gf}{pj ? <span className="tb-r">({ratio(gf, pj)})</span> : null}</div>}</div>
     </div>
   )
 
@@ -394,7 +394,7 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
                   return (
                     <div className="win" key={v.label}>
                       <div className="w-k">{v.label}</div>
-                      <div className="w-v" style={{ color: cPuntos(v.media) }}>{v.media != null ? med1(v.media) : '—'}</div>
+                      <div className="w-v" style={{ color: colorMedia(v.media) }}>{v.media != null ? med1(v.media) : '—'}</div>
                       <div className="w-s">{ds}</div>
                     </div>
                   )
@@ -429,49 +429,28 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
                     <div className="ved-r"><span className="ved-dot" style={{ background: 'transparent' }} /><span className="ved-nm">Puntos por partido</span><span className="ved-n num">{(ana.pj ? (ana.v * 3 + ana.e) / ana.pj : 0).toFixed(2).replace('.', ',')}</span><span className="ved-p" /></div>
                   </div>
                 </div>
-                <div style={{ marginTop: 12, paddingTop: 11, borderTop: '1px solid var(--line-2)' }}>
-                  <div className="cap" style={{ marginBottom: 5 }}>Por contexto</div>
-                  {([['Casa', ana.casa, true], ['Fuera', ana.fuera, false]] as const).map(([k, s, loc]) => {
-                    const t = s.v + s.e + s.d || 1, p = Math.round(s.v / t * 100)
-                    return (
-                      <div className="ctx-row" key={k}>
-                        <div className="ctx-cl"><IndicadorLocal esLocal={loc} />{k}</div>
-                        <div className="ctx-bar">
-                          {s.v > 0 && <span style={{ flex: s.v, background: 'var(--e3)' }}>{s.v}</span>}
-                          {s.e > 0 && <span style={{ flex: s.e, background: 'var(--ink-3)', color: '#0a1628' }}>{s.e}</span>}
-                          {s.d > 0 && <span style={{ flex: s.d, background: 'var(--e0)', color: '#0a1628' }}>{s.d}</span>}
-                        </div>
-                        <div className="ctx-pc num" style={{ color: p >= 50 ? 'var(--e3)' : p >= 30 ? 'var(--ink-2)' : 'var(--e0)' }}>{p}%</div>
-                      </div>
-                    )
-                  })}
-                </div>
               </div>
-              {tramos.length > 0 && (
-                <div className="box">
-                  <div className="tramo-head"><div className="th">◀ Encajados</div><div className="th-mid" /><div className="th r">Marcados ▶</div></div>
-                  {tramos.map((t) => (
-                    <div className="tramo" key={t.tramo}>
-                      <div className="tramo-side gc">{t.gc > 0 && <div className="tramo-b gc" style={{ width: `${t.gc / maxTramo * 100}%` }}>{t.gc}</div>}</div>
-                      <div className="tramo-lbl">{t.tramo}{t.tramo !== '90+' ? "'" : ''}</div>
-                      <div className="tramo-side">{t.gf > 0 && <div className="tramo-b gf" style={{ width: `${t.gf / maxTramo * 100}%` }}>{t.gf}</div>}</div>
-                    </div>
-                  ))}
-                </div>
-              )}
-              {/* Goles: TOTAL (encima) + desglose casa/fuera, mismo tratamiento icono-encima. Los números
-                  salen de la fuente única (resultados): el total es la suma de casa+fuera. */}
-              <div className="goles-blk">
-                <div className="cap" style={{ margin: '0 0 8px' }}>Goles · Total</div>
-                {golCells(golTot)}
-                <div className="split" style={{ margin: '10px 0 0' }}>
-                  {([['Casa', ana.casa, true], ['Fuera', ana.fuera, false]] as const).map(([k, s, loc]) => (
-                    <div className="sp" key={k}>
-                      <div className="sp-h"><IndicadorLocal esLocal={loc} />{k}</div>
-                      {golCells(s)}
-                    </div>
-                  ))}
-                </div>
+              {/* GOLES — un solo lenguaje visual: barras espejo (encajados a la izquierda en rojo,
+                  marcados a la derecha en verde, etiqueta centrada). Total·Casa·Fuera + los 7 tramos,
+                  todas a la MISMA escala (maxBar) para ser comparables. El absoluto manda; el ratio por
+                  partido va detrás, menor y atenuado. Los tramos no llevan ratio. */}
+              <div className="box">
+                <div className="cap" style={{ marginBottom: 9 }}>Goles</div>
+                <div className="tramo-head"><div className="th">◀ Encajados</div><div className="th-mid" /><div className="th r">Marcados ▶</div></div>
+                {barGoles('Total', golTot.gc, golTot.gf, golTot.pj)}
+                {barGoles('Casa', ana.casa.gc, ana.casa.gf, ana.casa.pj)}
+                {barGoles('Fuera', ana.fuera.gc, ana.fuera.gf, ana.fuera.pj)}
+                {tramos.length > 0 && (
+                  <div className="goles-tramos">
+                    {tramos.map((t) => (
+                      <div className="tramo" key={t.tramo}>
+                        <div className="tramo-side gc">{t.gc > 0 && <div className="tramo-b gc" style={{ width: `${(t.gc / maxBar) * 100}%` }}>{t.gc}</div>}</div>
+                        <div className="tramo-lbl">{t.tramo}{t.tramo !== '90+' ? "'" : ''}</div>
+                        <div className="tramo-side">{t.gf > 0 && <div className="tramo-b gf" style={{ width: `${(t.gf / maxBar) * 100}%` }}>{t.gf}</div>}</div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
               {facetas.n > 0 && (
                 <div className="box">
