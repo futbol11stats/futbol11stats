@@ -221,6 +221,26 @@
 .fjv2 .foot{padding:var(--pad);display:flex;gap:9px}
 .fjv2 .btn{flex:1;padding:11px;border-radius:9px;text-align:center;font-family:var(--font-display),'Barlow Condensed',sans-serif;font-size:var(--t-lead);font-weight:600;letter-spacing:.04em;border:1px solid var(--line);background:rgba(255,255,255,.04);color:var(--ink-2);cursor:pointer;text-decoration:none}
 
+/* ═══════ Ficha de EQUIPO v2 (comparte .fjv2, tokens y layout con la de jugador) ═══════ */
+/* KpiBar de equipo: 5 columnas fijas (no hereda el repeat(6) de desktop de jugador). */
+.fjv2 .kpis.kpis-eq{grid-template-columns:repeat(5,1fr)}
+/* Mini clasificación (±2, equipo resaltado). */
+.fjv2 .mini{margin:0 var(--pad);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.fjv2 .mini-r{display:flex;align-items:center;gap:9px;padding:9px 10px;border-top:1px solid var(--line-2)}
+.fjv2 .mini-r:first-child{border-top:0}
+.fjv2 .mini-r.me{background:rgba(46,229,107,.09)}
+.fjv2 .mini-r .mp{font-family:var(--font-display),'Barlow Condensed',sans-serif;font-size:var(--t-lead);font-weight:700;width:18px;text-align:center;color:var(--ink-3);flex:none}
+.fjv2 .mini-r.me .mp{color:var(--e3)}
+.fjv2 .mini-r .mn{flex:1;min-width:0;font-family:var(--font-display),'Barlow Condensed',sans-serif;font-size:var(--t-lead);font-weight:500;color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-transform:uppercase}
+.fjv2 .mini-r.me .mn{font-weight:700;color:var(--ink)}
+.fjv2 .mini-r .mpts{font-size:var(--n-sm);font-weight:700;flex:none}
+/* Carriles del gráfico de equipo: marcador · posición+movimiento · rival+localía. */
+.fjv2 .eq-marc{font-family:var(--font-display),'Barlow Condensed',sans-serif;font-size:var(--t-sm);font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
+.fjv2 .eq-posn{font-family:var(--font-display),'Barlow Condensed',sans-serif;font-size:var(--t-sm);font-weight:700;color:var(--ink-2);font-variant-numeric:tabular-nums}
+.fjv2 .eq-mov{font-family:var(--font-display),'Barlow Condensed',sans-serif;font-size:var(--t-micro);font-weight:700;display:inline-flex;align-items:center;gap:1px}
+.fjv2 .eq-rival-lane{position:relative;height:calc(var(--laneH) + 6px);flex-direction:column;gap:2px}
+.fjv2 .eq-rival-top{display:flex;align-items:center;justify-content:center;gap:3px}
+
 @media(min-width:1000px){
   .fjv2{--t-micro:12px;--t-cap:13px;--t-sm:14px;--t-body:15px;--t-lead:17px;
     --n-sm:21px;--n-md:28px;--n-lg:38px;--h-sec:23px;--colW:56px;--pad:22px;

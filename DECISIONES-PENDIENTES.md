@@ -214,3 +214,33 @@ dibujaba un placeholder de algo que YA existe como componente del sitio, se usa 
   categoria=competición con Sello, posicion con Pastilla). `JugadorFicha`/`COLS_JUGADOR` solo tienen
   rank_general/categoria/posicion. No existe un 4º ranking en el dato ni en la ficha actual; la v2 ya
   reproduce esos 3 con sus iconos. Si el pipeline exporta rank_grupo, se añade la 4ª fila.
+
+---
+
+# FICHA DE EQUIPO v2 (rutas paralelas /madrid/equipo/[slug]/v2)
+
+## E1 · Fuente del gráfico: web_clasificacion (fantasy ACUMULADO)
+- `web_clasificacion` tiene una fila por (codgrupo, jornada, codequipo) con pos, mov (string "↑2"/"→"),
+  elo, pj, gf, gc, pg, pe, pp y `pts_fantasy` **ACUMULADO**. El fantasy de UNA jornada = diferencia con
+  la jornada anterior (la 1ª = su valor). Es la fuente de la barra del gráfico, la posición/movimiento,
+  los KPIs (Pos/Pts/DG/Media F.) y la mini-clasificación. El marcador/rival/localía se cruzan con
+  web_resultados por nombre + jornada (getResultadosGrupo).
+
+## E-perc · No existen percentiles de equipo (degradado)
+- `web_percentiles` solo tiene métricas de JUGADOR (elo_jugador, media_partido, puntos_partido). NO hay
+  percentiles de equipo, al contrario de lo indicado en el encargo. Por eso el Nivel de equipo degrada la
+  batería/percentil y "Mejor que el X%": se muestra ELO + sparkline + posición en el grupo, nada inventado.
+- Los cortes de color de equipo (fantasy jornada, media fantasy, ELO) van FIJOS en equipoV2.ts
+  (CORTES_EQUIPO), calibrados como en la maqueta, hasta que el pipeline publique percentiles de equipo.
+  Se validarán con cortesValidos() cuando lleguen.
+
+## E-rank · Rankings de equipo: solo posición en el grupo
+- No existen rankings de equipo por categoría ni por Comunidad. Se usa solo la posición dentro del grupo
+  (web_clasificacion.pos / posicion_actual). Las facetas del Análisis (GF/GC/Pts F./Juego limpio) se
+  rankean DENTRO DEL GRUPO (honesto), no por categoría.
+
+## E-copa · Copa en el gráfico: pendiente
+- El fantasy por jornada solo existe para LIGA (web_clasificacion). La copa no tiene serie de fantasy ni
+  posición. En el primer incremento el ámbito de competición muestra solo la liga. Copa pendiente: o se
+  degrada (marcador/rival sin barra de fantasy) o se documenta que no aplica. Ver al construir el ámbito
+  completo.
