@@ -15,7 +15,7 @@ import CompartirBtn from '@/components/ficha/v2/CompartirBtn'
 import NavSpy from '@/components/ficha/v2/NavSpy'
 import CompChips from '@/components/ficha/v2/CompChips'
 import JornadasEquipo from '@/components/ficha/v2/JornadasEquipo'
-import { TarjetaAmarilla, TarjetaDoble, TarjetaRoja, FlechaEntra, FlechaSale, Promocion, Escudo, Reloj, Balon, Guante } from '@/components/iconos'
+import { TarjetaAmarilla, TarjetaDoble, TarjetaRoja, FlechaEntra, FlechaSale, Promocion, Escudo, Reloj, Balon, Guante, Tabla, Estrella } from '@/components/iconos'
 import { graphLd, breadcrumbLd, sportsTeamLd } from '@/lib/jsonld'
 import { SITE_URL } from '@/lib/seo'
 import { escudoUrl, formatNombre } from '@/lib/supabase'
@@ -128,7 +128,9 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
     <div className="pl-stats">
       <span>{mil(p.pj)}<Escudo size={11} /></span>
       <span>{mil(p.minutos)}<Reloj size={11} /></span>
-      {p.portero ? <span>{mil(p.porteriasCero)}<Guante size={11} /></span> : <span>{mil(p.goles)}<Balon size={11} /></span>}
+      {p.portero
+        ? <span>{mil(p.porteriasCero)}<span style={{ color: 'var(--amber)', display: 'inline-flex' }}><Guante size={11} /></span></span>
+        : <span>{mil(p.goles)}<span style={{ color: 'var(--e3)', display: 'inline-flex' }}><Balon size={11} /></span></span>}
       {p.ta > 0 && <span style={{ color: 'var(--card-y)' }}>{p.ta}<TarjetaAmarilla size={10} /></span>}
       {p.td > 0 && <span style={{ color: 'var(--card-y)' }}>{p.td}<TarjetaDoble size={11} /></span>}
       {p.tr > 0 && <span style={{ color: 'var(--card-r)' }}>{p.tr}<TarjetaRoja size={10} /></span>}
@@ -172,6 +174,26 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
   const mediaFan = ult && ult.pts_fantasy != null && ult.pj ? ult.pts_fantasy / ult.pj : null
   const eloCierre = ult?.elo ?? e.elo_actual ?? null   // ELO de cierre de la temporada (KpiBar)
   const eloActual = e.elo_actual ?? eloCierre           // ELO actual (Nivel)
+
+  // Badge (11) del logo F11S para las métricas propias (Media F./ELO), igual que en la ficha de jugador.
+  const badge11 = <span style={{ width: 20, height: 20, borderRadius: '50%', background: '#1a7a3c', display: 'grid', placeItems: 'center', fontFamily: 'var(--font-display), sans-serif', fontWeight: 700, color: '#fff', fontSize: 11, lineHeight: 1 }}>11</span>
+
+  // Total de goles (mismo origen que el desglose casa/fuera: la suma de ambos lados). Ver commit de fuente única.
+  const golTot = { gf: ana.casa.gf + ana.fuera.gf, gc: ana.casa.gc + ana.fuera.gc, pj: ana.pj }
+  const ratio = (n: number, d: number) => (d ? (n / d).toFixed(1).replace('.', ',') : '—')
+  // Iconos de goles: balón verde (a favor) / rojo (en contra); el «/PJ» añade el icono de PJ.
+  const balV = <span style={{ color: 'var(--e3)', display: 'inline-flex' }}><Balon size={13} /></span>
+  const balR = <span style={{ color: 'var(--e0)', display: 'inline-flex' }}><Balon size={13} /></span>
+  const balVpj = <span style={{ display: 'inline-flex', alignItems: 'center', gap: 2 }}><span style={{ color: 'var(--e3)', display: 'inline-flex' }}><Balon size={12} /></span><Escudo size={10} /></span>
+  const balRpj = <span style={{ display: 'inline-flex', alignItems: 'center', gap: 2 }}><span style={{ color: 'var(--e0)', display: 'inline-flex' }}><Balon size={12} /></span><Escudo size={10} /></span>
+  const golCells = (g: { gf: number; gc: number; pj: number }) => (
+    <div className="gc-grid">
+      <div className="gc-cell"><div className="gc-ic">{balV}</div><b className="gc-v num">{g.gf}</b><span className="gc-k">GF</span></div>
+      <div className="gc-cell"><div className="gc-ic">{balR}</div><b className="gc-v num">{g.gc}</b><span className="gc-k">GC</span></div>
+      <div className="gc-cell"><div className="gc-ic">{balVpj}</div><b className="gc-v num">{ratio(g.gf, g.pj)}</b><span className="gc-k">GF/PJ</span></div>
+      <div className="gc-cell"><div className="gc-ic">{balRpj}</div><b className="gc-v num">{ratio(g.gc, g.pj)}</b><span className="gc-k">GC/PJ</span></div>
+    </div>
+  )
 
   const tempTxt = tempSel ? tempLabel(tempSel) : ''
   const echoTxt = [tempTxt, nombreComp].filter(Boolean).join(' · ')
@@ -231,13 +253,14 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
         </div>
       </div>
 
-      {/* KPIs — 5 columnas fijas (Pos·Pts·DG·Media F.·ELO). */}
+      {/* KPIs — 5 columnas fijas (Pos·Pts·DG·Media F.·ELO). Icono encima del número, como en jugador:
+          Pos/Pts/DG con icono del dato; Media F./ELO (métricas F11S) con el badge (11). */}
       <div className="kpis kpis-eq">
-        <div className="kpi"><div className="v num">{posSel != null ? `${posSel}º` : '—'}</div><div className="k">Pos</div></div>
-        <div className="kpi"><div className="v num">{mil(ptsSel)}</div><div className="k">Pts</div></div>
-        <div className="kpi"><div className="v num">{dgSel != null ? conSigno(dgSel) : '—'}</div><div className="k">DG</div></div>
-        <div className="kpi"><div className="v num" style={{ color: colorMedia(mediaFan) }}>{med1(mediaFan)}</div><div className="k">Media F.</div></div>
-        <div className="kpi"><div className="v num" style={{ color: colorElo(eloCierre) }}>{mil(eloCierre)}</div><div className="k">ELO</div></div>
+        <div className="kpi"><div className="kpi-i"><Tabla size={14} /></div><div className="v num">{posSel != null ? `${posSel}º` : '—'}</div><div className="k">Pos</div></div>
+        <div className="kpi"><div className="kpi-i"><Estrella size={14} /></div><div className="v num">{mil(ptsSel)}</div><div className="k">Pts</div></div>
+        <div className="kpi"><div className="kpi-i"><Balon size={14} /></div><div className="v num">{dgSel != null ? conSigno(dgSel) : '—'}</div><div className="k">DG</div></div>
+        <div className="kpi"><div className="kpi-i">{badge11}</div><div className="v num" style={{ color: colorMedia(mediaFan) }}>{med1(mediaFan)}</div><div className="k">Media F.</div></div>
+        <div className="kpi"><div className="kpi-i">{badge11}</div><div className="v num" style={{ color: colorElo(eloCierre) }}>{mil(eloCierre)}</div><div className="k">ELO</div></div>
       </div>
 
       {/* SCOPE */}
@@ -394,19 +417,29 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
                   ))}
                 </div>
               )}
-              <div className="split">
-                {([['Casa', ana.casa, true], ['Fuera', ana.fuera, false]] as const).map(([k, s, loc]) => (
-                  <div className="sp" key={k}>
-                    <div className="sp-h"><IndicadorLocal esLocal={loc} />{k}</div>
-                    <div className="sp-n"><div><b className="num">{s.gf}</b>GF</div><div><b className="num">{s.gc}</b>GC</div><div><b className="num">{s.pj ? (s.gf / s.pj).toFixed(1).replace('.', ',') : '—'}</b>GF/PJ</div></div>
-                  </div>
-                ))}
+              {/* Goles: TOTAL (encima) + desglose casa/fuera, mismo tratamiento icono-encima. Los números
+                  salen de la fuente única (resultados): el total es la suma de casa+fuera. */}
+              <div className="goles-blk">
+                <div className="cap" style={{ margin: '0 0 8px' }}>Goles · Total</div>
+                {golCells(golTot)}
+                <div className="split" style={{ margin: '10px 0 0' }}>
+                  {([['Casa', ana.casa, true], ['Fuera', ana.fuera, false]] as const).map(([k, s, loc]) => (
+                    <div className="sp" key={k}>
+                      <div className="sp-h"><IndicadorLocal esLocal={loc} />{k}</div>
+                      {golCells(s)}
+                    </div>
+                  ))}
+                </div>
               </div>
               {facetas.n > 0 && (
                 <div className="box">
                   <div className="cap" style={{ marginBottom: 9 }}>Ranking por faceta · en su grupo</div>
                   <div className="ranks" style={{ marginTop: 0, gridTemplateColumns: 'repeat(4,1fr)' }}>
-                    {facetaTiles.map(([v, k]) => <div className="rk" key={k}><div className="r-v">{v != null ? `${v}º` : '—'}</div><div className="r-k">{k}</div></div>)}
+                    {facetaTiles.map(([v, k]) => {
+                      const ic = k === 'GF' ? balV : k === 'GC' ? balR : k === 'Pts F.' ? badge11
+                        : <span style={{ color: 'var(--card-y)', display: 'inline-flex' }}><TarjetaAmarilla size={12} /></span>
+                      return <div className="rk" key={k}><div className="r-ic">{ic}</div><div className="r-v">{v != null ? `${v}º` : '—'}</div><div className="r-k">{k}</div></div>
+                    })}
                   </div>
                 </div>
               )}
@@ -483,6 +516,16 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
                 ))}
               </div>
               {hayOcultos && <label htmlFor="pl-open-eq" className="btn pl-open-btn" />}
+              {/* Leyenda de los iconos de la fila de datos de cada jugador. */}
+              <div className="pl-ley">
+                <span className="lg-item"><Escudo size={11} />PJ</span>
+                <span className="lg-item"><Reloj size={11} />Min</span>
+                <span className="lg-item"><span style={{ color: 'var(--e3)', display: 'inline-flex' }}><Balon size={11} /></span>Goles</span>
+                <span className="lg-item"><span style={{ color: 'var(--amber)', display: 'inline-flex' }}><Guante size={11} /></span>P. a cero</span>
+                <span className="lg-item"><span style={{ color: 'var(--card-y)', display: 'inline-flex' }}><TarjetaAmarilla size={10} /></span>Amarillas</span>
+                <span className="lg-item"><span style={{ color: 'var(--card-y)', display: 'inline-flex' }}><TarjetaDoble size={11} /></span>Dobles</span>
+                <span className="lg-item"><span style={{ color: 'var(--card-r)', display: 'inline-flex' }}><TarjetaRoja size={10} /></span>Rojas</span>
+              </div>
             </section>
           )}
 

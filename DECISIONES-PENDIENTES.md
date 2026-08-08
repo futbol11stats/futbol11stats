@@ -244,3 +244,23 @@ dibujaba un placeholder de algo que YA existe como componente del sitio, se usa 
   posición. En el primer incremento el ámbito de competición muestra solo la liga. Copa pendiente: o se
   degrada (marcador/rival sin barra de fantasy) o se documenta que no aplica. Ver al construir el ámbito
   completo.
+
+## E-reval · Revalidación on-demand de fichas (pendiente — va con el ciclo nocturno)
+- **Estado:** NO implementado. Decisión explícita: se monta JUNTO con la activación del ciclo nocturno del
+  pipeline, no antes. Son la misma pieza (el pipeline actualiza los datos y avisa a la web para refrescar);
+  montar el endpoint sin el nocturno corriendo es media solución.
+- **Diseño propuesto:**
+  - Endpoint de revalidación en la web (route handler, p.ej. `/api/revalidate`) **protegido por un secreto**
+    (header o query con un token en variable de entorno; rechazar si no coincide).
+  - El endpoint hace `revalidatePath` de **las fichas tocadas** en ese export (equipo y jugador afectados,
+    y sus variantes /v2 y [temporada]/v2), no un rebuild global. Alternativa: `revalidateTag` si se etiquetan
+    los fetch por entidad.
+  - La **llamada** sale del propio export del pipeline (`C:\rffm-pipeline`) al terminar cada tanda: envía la
+    lista de fichas cambiadas al endpoint con el secreto.
+  - Fallback opcional: un Vercel Deploy Hook post-export (reconstruye todo) para cuando el cambio sea masivo.
+- **RIESGO si no se monta (con todas las letras):** hoy no hay revalidación on-demand (ni ruta, ni
+  `revalidatePath`, ni webhook). Los datos viven en Supabase, desacoplados del deploy, así que actualizar
+  datos NO refresca la página cacheada. Con `revalidate = 2592000` (30 días) y sin `generateStaticParams`,
+  **una ficha ya visitada puede servirse hasta 30 días desactualizada tras una jornada nueva.** Ahora mismo
+  solo lo enmascaran los deploys frecuentes de desarrollo (cada deploy resetea el caché ISR); en cuanto el
+  ritmo de deploys baje, el problema aflora. Ver memoria `isr-sin-revalidacion-ondemand`.
