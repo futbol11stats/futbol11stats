@@ -127,4 +127,107 @@ export async function getMiniClasif(codgrupo: string | null, codequipo: string):
   return { filas, jornada }
 }
 
+// --- Análisis: balance V/E/D + casa/fuera + goles, todo desde los resultados del grupo ---
+export type LadoEq = { v: number; e: number; d: number; gf: number; gc: number; pj: number }
+export function analisisResultados(resultados: ResultadoRow[], nombre: string): { v: number; e: number; d: number; pj: number; casa: LadoEq; fuera: LadoEq } {
+  const zero = (): LadoEq => ({ v: 0, e: 0, d: 0, gf: 0, gc: 0, pj: 0 })
+  const casa = zero(), fuera = zero()
+  let v = 0, e = 0, d = 0
+  for (const r of resultados) {
+    if (r.goles_local == null || r.goles_visitante == null) continue
+    const local = r.nombre_local === nombre
+    const gf = (local ? r.goles_local : r.goles_visitante) as number
+    const gc = (local ? r.goles_visitante : r.goles_local) as number
+    const s = gf > gc ? 'v' : gf < gc ? 'd' : 'e'
+    if (s === 'v') v++; else if (s === 'd') d++; else e++
+    const b = local ? casa : fuera
+    b.pj++; b.gf += gf; b.gc += gc; b[s]++
+  }
+  return { v, e, d, pj: v + e + d, casa, fuera }
+}
+
+// --- Goles por tramos (7 tramos, incluido 90+). Filtra por grupo (que es propio de la temporada). ---
+export type TramoRow = { tramo: string; gf: number; gc: number }
+const TRAMOS_ORDEN = ['0-15', '16-30', '31-45', '46-60', '61-75', '76-90', '90+']
+export async function getTramos(codequipo: string, codgrupo: string | null): Promise<TramoRow[]> {
+  if (!codgrupo) return []
+  const { data } = await supabase.from('web_goles_tramos').select('tramo, gf, gc')
+    .eq('codequipo', String(codequipo)).eq('codgrupo', String(codgrupo))
+  const rows = (data || []) as any[]
+  if (!rows.length) return []
+  return TRAMOS_ORDEN.map((t) => { const r = rows.find((x) => x.tramo === t); return { tramo: t, gf: r?.gf ?? 0, gc: r?.gc ?? 0 } })
+}
+
+// --- Facetas: ranking del equipo DENTRO DE SU GRUPO en gf, gc (menos es mejor), pts_fantasy. ---
+export type Facetas = { gf: number | null; gc: number | null; ptsFan: number | null; n: number }
+export async function getFacetasGrupo(codgrupo: string | null, codequipo: string): Promise<Facetas> {
+  if (!codgrupo) return { gf: null, gc: null, ptsFan: null, n: 0 }
+  const { data: jr } = await supabase.from('web_clasificacion').select('jornada')
+    .eq('codgrupo', String(codgrupo)).order('jornada', { ascending: false }).limit(1)
+  const jornada = (jr && jr[0]?.jornada) ?? null
+  if (jornada == null) return { gf: null, gc: null, ptsFan: null, n: 0 }
+  const { data } = await supabase.from('web_clasificacion').select('codequipo, gf, gc, pts_fantasy')
+    .eq('codgrupo', String(codgrupo)).eq('jornada', jornada)
+  const rows = (data || []) as any[]
+  const n = rows.length
+  const rank = (key: string, desc: boolean) => {
+    const me = rows.find((r) => String(r.codequipo) === String(codequipo))
+    if (!me || me[key] == null) return null
+    const mv = me[key] as number
+    return 1 + rows.filter((r) => r[key] != null && (desc ? r[key] > mv : r[key] < mv)).length
+  }
+  return { gf: rank('gf', true), gc: rank('gc', false), ptsFan: rank('pts_fantasy', true), n }
+}
+
+// --- Plantilla de la temporada seleccionada (aficionados): por líneas + top por fantasy ---
+export type PlantillaEqRow = {
+  codjugador: string; nombre: string; pos: string | null; linea: 'POR' | 'DEF' | 'MED' | 'DEL' | 'OTR'
+  pj: number; goles: number; minutos: number; pts: number | null; elo: number | null
+}
+const LINEA_DE: Record<string, 'POR' | 'DEF' | 'MED' | 'DEL'> = { POR: 'POR', DEF: 'DEF', MED: 'MED', DEL: 'DEL' }
+export async function getPlantillaEquipoV2(codequipo: string, codtemp: string | null): Promise<PlantillaEqRow[]> {
+  if (!codtemp) return []
+  const { data: car } = await supabase.from('web_jugador_carrera')
+    .select('codjugador, pj, goles, minutos, pts_fantasy, elo_final').eq('codequipo', String(codequipo)).eq('codtemporada', String(codtemp))
+  const rows = (car || []) as any[]
+  const ids = Array.from(new Set(rows.map((r) => String(r.codjugador))))
+  if (!ids.length) return []
+  const { data: jug } = await supabase.from('web_jugador').select('codjugador, nombre, posicion_pastilla').in('codjugador', ids)
+  const info = new Map<string, any>((jug || []).map((j: any) => [String(j.codjugador), j]))
+  return rows.map((r) => {
+    const j = info.get(String(r.codjugador))
+    const pos = j?.posicion_pastilla ?? null
+    return {
+      codjugador: String(r.codjugador), nombre: j?.nombre ?? '', pos,
+      linea: (pos && LINEA_DE[pos]) || 'OTR',
+      pj: r.pj ?? 0, goles: r.goles ?? 0, minutos: r.minutos ?? 0, pts: r.pts_fantasy ?? null, elo: r.elo_final ?? null,
+    }
+  })
+}
+
+// --- Movimientos (altas/bajas/promociones) e hitos del club ---
+export async function getMovimientosEquipo(cod: string) {
+  const cols = 'codtemporada, fecha, clase, direccion, codjugador, nombre, equipo_rel_nombre, equipo_rel_escudo'
+  const { data } = await supabase.from('web_equipo_movimientos').select(cols).eq('codequipo', String(cod))
+  return ((data || []) as any[]).sort((a, b) => String(b.fecha || b.codtemporada || '').localeCompare(String(a.fecha || a.codtemporada || '')))
+}
+export async function getHitosEquipo(cod: string) {
+  const { data } = await supabase.from('web_equipo_hitos').select('tipo_hito, fecha, codtemporada, detalle, valor').eq('codequipo', String(cod))
+  return (data || []) as any[]
+}
+
+// Media de fantasy y ELO de cierre POR temporada (para las tarjetas de Temporadas). Una query: todas las
+// filas de clasificación del equipo; en JS se toma la de mayor jornada de cada temporada.
+export async function getMediasPorTemporada(codequipo: string): Promise<Record<string, { media: number | null; elo: number | null }>> {
+  const { data } = await supabase.from('web_clasificacion').select('codtemporada, jornada, pts_fantasy, pj, elo')
+    .eq('codequipo', String(codequipo)).order('jornada', { ascending: true })
+  const last = new Map<string, any>()
+  for (const r of ((data || []) as any[])) last.set(String(r.codtemporada), r)  // la última jornada gana
+  const out: Record<string, { media: number | null; elo: number | null }> = {}
+  for (const [t, r] of Array.from(last.entries())) {
+    out[t] = { media: r.pts_fantasy != null && r.pj ? r.pts_fantasy / r.pj : null, elo: r.elo ?? null }
+  }
+  return out
+}
+
 export { getResultadosGrupo }

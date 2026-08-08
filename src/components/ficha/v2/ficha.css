@@ -241,6 +241,77 @@
 .fjv2 .eq-rival-lane{position:relative;height:calc(var(--laneH) + 6px);flex-direction:column;gap:2px}
 .fjv2 .eq-rival-top{display:flex;align-items:center;justify-content:center;gap:3px}
 
+/* Movimientos (altas/bajas/promociones). */
+.fjv2 .mv{display:flex;align-items:center;gap:10px;padding:10px var(--pad);border-top:1px solid var(--line-2)}
+.fjv2 .mv-ic{width:26px;height:26px;border-radius:7px;display:grid;place-items:center;flex:none}
+.fjv2 .mv-ic.alta{background:rgba(46,229,107,.18);color:#a8f2bd}
+.fjv2 .mv-ic.baja{background:rgba(224,72,63,.18);color:#f5aeae}
+.fjv2 .mv-ic.prom{background:rgba(240,180,41,.18);color:var(--amber)}
+.fjv2 .mv-m{flex:1;min-width:0}
+.fjv2 .mv-n{font-family:var(--font-display),'Barlow Condensed',sans-serif;font-size:var(--t-lead);font-weight:600;text-transform:uppercase}
+.fjv2 .mv-sub{font-size:var(--t-cap);color:var(--ink-3);margin-top:2px;line-height:1.4}
+
+/* Análisis: donut V/E/D. */
+.fjv2 .donut-row{display:flex;align-items:center;gap:16px}
+.fjv2 .donut{position:relative;flex:none;width:112px;height:112px}
+.fjv2 .donut-mid{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.fjv2 .donut-pc{font-size:34px;font-weight:700;line-height:.95;color:var(--e3)}
+.fjv2 .donut-lb{font-size:var(--t-micro);letter-spacing:.08em;color:var(--ink-3);font-weight:600;margin-top:3px}
+.fjv2 .ved-lg{flex:1;min-width:0}
+.fjv2 .ved-r{display:flex;align-items:center;gap:9px;padding:6px 0}
+.fjv2 .ved-r+.ved-r{border-top:1px solid var(--line-2)}
+.fjv2 .ved-dot{width:9px;height:9px;border-radius:2px;flex:none}
+.fjv2 .ved-nm{flex:1;font-size:var(--t-sm);color:var(--ink-2)}
+.fjv2 .ved-n{font-size:var(--n-sm);font-weight:700;min-width:24px;text-align:right}
+.fjv2 .ved-p{font-size:var(--t-body);font-weight:600;color:var(--ink-3);min-width:36px;text-align:right;font-family:var(--font-display),'Barlow Condensed',sans-serif;font-variant-numeric:tabular-nums}
+/* Contexto casa/fuera (barras). */
+.fjv2 .ctx-row{display:flex;align-items:center;gap:11px;padding:9px 0}
+.fjv2 .ctx-row+.ctx-row{border-top:1px solid var(--line-2)}
+.fjv2 .ctx-cl{width:64px;flex:none;font-size:var(--t-sm);color:var(--ink-2);display:flex;align-items:center;gap:6px}
+.fjv2 .ctx-bar{flex:1;display:flex;height:18px;border-radius:4px;overflow:hidden;gap:2px}
+.fjv2 .ctx-bar span{display:flex;align-items:center;justify-content:center;font-family:var(--font-display),'Barlow Condensed',sans-serif;font-size:var(--t-sm);font-weight:700;color:#08111f;min-width:14px}
+.fjv2 .ctx-pc{width:42px;flex:none;text-align:right;font-size:var(--n-sm);font-weight:700}
+/* Goles por tramos (espejo). */
+.fjv2 .tramo{display:flex;align-items:center;gap:7px;padding:4px 0}
+.fjv2 .tramo-lbl{font-family:var(--font-display),'Barlow Condensed',sans-serif;font-size:var(--t-body);font-weight:600;color:var(--ink-2);width:52px;text-align:center;flex:none;font-variant-numeric:tabular-nums}
+.fjv2 .tramo-side{flex:1;display:flex;align-items:center;height:16px}
+.fjv2 .tramo-side.gc{justify-content:flex-end}
+.fjv2 .tramo-b{height:15px;border-radius:2px;display:flex;align-items:center;padding:0 5px;font-family:var(--font-display),'Barlow Condensed',sans-serif;font-size:var(--t-sm);font-weight:700;color:#08111f}
+.fjv2 .tramo-b.gf{background:var(--e3)}
+.fjv2 .tramo-b.gc{background:var(--e0);justify-content:flex-end;color:#fff}
+.fjv2 .tramo-head{display:flex;font-size:var(--t-micro);color:var(--ink-3);letter-spacing:.06em;text-transform:uppercase;padding-bottom:7px;font-weight:600}
+.fjv2 .tramo-head .th{flex:1}.fjv2 .tramo-head .th.r{text-align:right}.fjv2 .tramo-head .th-mid{width:52px}
+/* Split casa/fuera. */
+.fjv2 .split{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin:0 var(--pad) 12px}
+.fjv2 .sp{border:1px solid var(--line);border-radius:9px;padding:11px;background:rgba(255,255,255,.03)}
+.fjv2 .sp-h{display:flex;align-items:center;gap:6px;font-size:var(--t-cap);color:var(--ink-3);letter-spacing:.05em;text-transform:uppercase;font-weight:600}
+.fjv2 .sp-n{display:flex;gap:12px;margin-top:9px}
+.fjv2 .sp-n div{font-size:var(--t-micro);color:var(--ink-3)}
+.fjv2 .sp-n b{font-size:var(--n-sm);font-weight:700;display:block;line-height:1.1;color:var(--ink);margin-bottom:1px}
+/* Desenlace de la tarjeta de temporada (equipo). */
+.fjv2 .season .s-final{margin-top:auto;padding-top:10px}
+.fjv2 .badge{display:flex;align-items:center;justify-content:center;gap:5px;width:100%;font-family:var(--font-display),'Barlow Condensed',sans-serif;font-size:var(--t-sm);font-weight:700;letter-spacing:.06em;padding:5px 6px;border-radius:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fjv2 .badge.asc{background:rgba(46,229,107,.18);color:#a8f2bd;border:1px solid rgba(46,229,107,.3)}
+.fjv2 .badge.desc{background:rgba(224,72,63,.18);color:#f5aeae;border:1px solid rgba(224,72,63,.3)}
+.fjv2 .badge.po{background:rgba(79,159,224,.18);color:#a8cef5;border:1px solid rgba(79,159,224,.3)}
+.fjv2 .badge.camp{background:rgba(240,180,41,.18);color:#f7d78a;border:1px solid rgba(240,180,41,.32)}
+.fjv2 .badge.neu{background:rgba(255,255,255,.05);color:var(--ink-3);border:1px solid var(--line)}
+/* Plantilla: cabecera de línea + filas con barra de minutos. */
+.fjv2 .line-h{display:flex;align-items:center;gap:8px;padding:11px var(--pad) 7px;border-top:1px solid var(--line);background:rgba(255,255,255,.02)}
+.fjv2 .line-lp{font-family:var(--font-display),'Barlow Condensed',sans-serif;font-size:var(--t-sm);font-weight:700;letter-spacing:.06em;padding:2px 7px;border-radius:4px}
+.fjv2 .line-ln{flex:1;font-size:var(--t-cap);color:var(--ink-3);letter-spacing:.05em;text-transform:uppercase;font-weight:600}
+.fjv2 .pl{display:flex;align-items:center;gap:10px;padding:9px var(--pad)}
+.fjv2 .pl+.pl{border-top:1px solid var(--line-2)}
+.fjv2 .pl-rk{font-family:var(--font-display),'Barlow Condensed',sans-serif;font-size:var(--t-body);font-weight:700;color:var(--ink-3);width:14px;text-align:center;flex:none}
+.fjv2 .pl-av{width:34px;height:34px;border-radius:8px;display:grid;place-items:center;flex:none;font-family:var(--font-display),'Barlow Condensed',sans-serif;font-size:var(--t-sm);font-weight:700;background:var(--pitch-700);border:1px solid var(--line);color:var(--ink-2)}
+.fjv2 .pl-mid{flex:1;min-width:0}
+.fjv2 .pl-nm{font-family:var(--font-display),'Barlow Condensed',sans-serif;font-size:var(--t-lead);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-transform:uppercase}
+.fjv2 .pl-me{font-size:var(--t-cap);color:var(--ink-3);margin-top:2px;display:flex;align-items:center;gap:5px;flex-wrap:wrap}
+.fjv2 .pl-minbar{height:4px;border-radius:2px;background:rgba(255,255,255,.09);margin-top:6px;overflow:hidden}
+.fjv2 .pl-minbar span{display:block;height:100%;border-radius:2px}
+.fjv2 .pl-minv{font-size:var(--t-body);font-weight:600;color:var(--ink-3);flex:none}
+.fjv2 .pl-val{font-family:var(--font-display),'Barlow Condensed',sans-serif;font-weight:700;font-size:var(--n-sm);padding:4px 8px;border-radius:5px;color:#08111f;flex:none}
+
 @media(min-width:1000px){
   .fjv2{--t-micro:12px;--t-cap:13px;--t-sm:14px;--t-body:15px;--t-lead:17px;
     --n-sm:21px;--n-md:28px;--n-lg:38px;--h-sec:23px;--colW:56px;--pad:22px;
@@ -258,6 +329,8 @@
   .fjv2 .main{min-width:0}
   .fjv2 .track{overflow:visible} .fjv2 .rail{flex-wrap:wrap}
   .fjv2 #seasons.rail{gap:11px} .fjv2 .season{width:calc(20% - 9px)}
+  .fjv2 .desk-2col{display:grid;grid-template-columns:1fr 1fr}
+  .fjv2 .desk-2col > div + div{border-left:1px solid var(--line-2)}
   .fjv2 .nav .rail{flex-wrap:nowrap;padding:0 22px}
   .fjv2 .chart-wrap .track{overflow-x:auto}
   .fjv2 .chart-fade{display:block}
