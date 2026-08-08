@@ -26,7 +26,7 @@ import { graphLd, breadcrumbLd } from '@/lib/jsonld'
 import { SITE_URL } from '@/lib/seo'
 import {
   formatNombre, tempLabel, jugadorSlug, jugadorHref, curarHitos, HITO_CONFIG, fechaCorta,
-  marcadorLocalVisitante, POS_LABEL, LIVE_COD, type HitoRow, type CompaneroTop,
+  marcadorLocalVisitante, POS_LABEL, LIVE_COD, companerosActivos, type HitoRow, type CompaneroTop,
 } from '@/lib/jugador'
 import { CORTES_FIJOS } from '@/lib/escala'
 import {
@@ -107,7 +107,9 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
   }
   const pcWin = (o: { pg: number; pj: number }) => (o.pj ? Math.round((o.pg / o.pj) * 100) : 0)
   const { curados } = curarHitos(hitosRaw)
-  const companeros = (j.companeros_top || []).slice(0, 6)
+  // Solo compañeros activos en la temporada actual o la anterior; se filtra la lista completa y luego se
+  // recorta a 6 (el pipeline solo exporta ~5-6, así que puede quedar por debajo de 6: ver companerosActivos).
+  const companeros = (await companerosActivos(j.companeros_top || [])).slice(0, 6)
   const compNames = comps.map((c) => c.nombre_comp)
   const ligaCod = comps[0]?.codgrupo
 

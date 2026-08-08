@@ -146,6 +146,25 @@ export function analisisResultados(resultados: ResultadoRow[], nombre: string): 
   return { v, e, d, pj: v + e + d, casa, fuera }
 }
 
+// --- Forma del equipo: media de PUNTOS DE LIGA por partido (G=3/E=1/P=0) en ventanas + racha de 5 ---
+// Equivalente de equipo al bloque Forma de jugador (ventanasForma/racha5DePartidos), sobre la serie de
+// jornadas jugadas (las que tienen signo). Mismo shape que jugador para reutilizar el mismo render.
+export type VentanaEq = { label: string; media: number | null; pj: number; delta: number | null }
+export function formaEquipo(jornadas: JornadaEquipoDatum[]): { ventanas: VentanaEq[]; racha: Array<{ signo: 'G' | 'E' | 'P'; jornada: number; marcador: string | null }> } {
+  const jug = jornadas.filter((j) => j.signo != null)
+  const pts = jug.map((j) => (j.signo === 'G' ? 3 : j.signo === 'E' ? 1 : 0))
+  const media = (a: number[]) => (a.length ? a.reduce((s, x) => s + x, 0) / a.length : null)
+  const mTemp = media(pts)
+  const win = (n: number) => { const s = pts.slice(-n); const m = media(s); return { media: m, pj: s.length, delta: m != null && mTemp != null ? m - mTemp : null } }
+  const ventanas: VentanaEq[] = [
+    { label: 'Últimas 5', ...win(5) },
+    { label: 'Últimas 10', ...win(10) },
+    { label: 'Temporada', media: mTemp, pj: pts.length, delta: null },
+  ]
+  const racha = jug.slice(-5).map((j) => ({ signo: j.signo as 'G' | 'E' | 'P', jornada: j.jornada, marcador: j.marcador }))
+  return { ventanas, racha }
+}
+
 // --- Goles por tramos (7 tramos, incluido 90+). Filtra por grupo (que es propio de la temporada). ---
 export type TramoRow = { tramo: string; gf: number; gc: number }
 const TRAMOS_ORDEN = ['0-15', '16-30', '31-45', '46-60', '61-75', '76-90', '90+']

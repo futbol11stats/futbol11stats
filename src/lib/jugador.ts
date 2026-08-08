@@ -152,6 +152,28 @@ export type CompaneroTop = {
   elo: number | null
 }
 
+// "Ha jugado con": deja solo compañeros ACTIVOS en la temporada actual o la anterior (codtemporada_ultima
+// >= actual-1); descarta a quien lleva dos o más temporadas inactivo. La temporada actual = el máximo
+// codtemporada_ultima del sistema (codtemporada es TEXT de 2 dígitos "17".."21", así que el orden lexical
+// coincide con el numérico). NOTA: web_jugador.companeros_top viene capado (~5-6) por el pipeline, así que
+// tras filtrar puede quedar por debajo de 6 y NO hay pool para "coger el siguiente que cumpla"; para
+// rellenar hasta 6 el pipeline tendría que exportar una lista más larga (idealmente con codtemporada_ultima).
+export async function companerosActivos(companeros: CompaneroTop[]): Promise<CompaneroTop[]> {
+  if (!companeros.length) return []
+  const ids = companeros.map((c) => c.codjugador)
+  const [lastRes, maxRes] = await Promise.all([
+    supabase.from('web_jugador').select('codjugador, codtemporada_ultima').in('codjugador', ids),
+    supabase.from('web_jugador').select('codtemporada_ultima').order('codtemporada_ultima', { ascending: false }).limit(1),
+  ])
+  const ult = new Map<string, number>(((lastRes.data || []) as any[]).map((r) => [String(r.codjugador), parseInt(r.codtemporada_ultima, 10)]))
+  const actual = maxRes.data?.[0] ? parseInt((maxRes.data[0] as any).codtemporada_ultima, 10) : 0
+  if (!actual) return companeros // sin referencia de temporada -> no filtrar (mejor mostrar que ocultar)
+  return companeros.filter((c) => {
+    const u = ult.get(String(c.codjugador))
+    return u != null && u >= actual - 1
+  })
+}
+
 export type HitoRow = {
   tipo_hito: string
   ambito: string

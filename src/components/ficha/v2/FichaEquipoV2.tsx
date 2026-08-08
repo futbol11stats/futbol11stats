@@ -28,7 +28,7 @@ import {
   getEquipoV2, getTemporadasEquipo, getSerieLiga, getResultadosGrupo, buildJornadasEquipo,
   escudosPorNombre, getMiniClasif, colorMedia, colorElo, colorFan, CORTES_EQUIPO,
   analisisResultados, getTramos, getFacetasGrupo, getPlantillaEquipoV2, getMovimientosEquipo,
-  getHitosEquipo, getMediasPorTemporada, getCopasAmbito, type PlantillaEqRow,
+  getHitosEquipo, getMediasPorTemporada, getCopasAmbito, formaEquipo, type PlantillaEqRow,
 } from '@/lib/equipoV2'
 import type { CompEquipo } from '@/components/ficha/v2/JornadasEquipo'
 
@@ -94,6 +94,7 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
     ...copasAmbito.map((c) => ({ label: c.label, titulo: c.titulo, count: c.rondas.length, sello: <Sello nombreComp={c.competicion} size={18} /> })),
   ]
   const ana = analisisResultados(resultados, e.nombre)
+  const forma = formaEquipo(jornadas)
   const anaTot = ana.pj || 1
   const pc = (n: number) => Math.round((n / anaTot) * 100)
 
@@ -188,6 +189,9 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
 
   // Badge (11) del logo F11S para las métricas propias (Media F./ELO), igual que en la ficha de jugador.
   const badge11 = <span style={{ width: 20, height: 20, borderRadius: '50%', background: '#1a7a3c', display: 'grid', placeItems: 'center', fontFamily: 'var(--font-display), sans-serif', fontWeight: 700, color: '#fff', fontSize: 11, lineHeight: 1 }}>11</span>
+  // Forma: color de la media de puntos de liga por partido (0-3) y colores de los chips de racha.
+  const cPuntos = (m: number | null) => (m == null ? undefined : m >= 2 ? 'var(--e3)' : m >= 1.3 ? 'var(--ink-2)' : 'var(--e0)')
+  const RC: Record<'G' | 'E' | 'P', string> = { G: 'var(--e3)', E: 'var(--ink-3)', P: 'var(--e0)' }
 
   // Total de goles (mismo origen que el desglose casa/fuera: la suma de ambos lados). Ver commit de fuente única.
   const golTot = { gf: ana.casa.gf + ana.fuera.gf, gc: ana.casa.gc + ana.fuera.gc, pj: ana.pj }
@@ -224,6 +228,7 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
     { id: 's-clasif', label: 'Clasificación', aside: true },
     ultimos.length ? { id: 's-ultimos', label: 'Últimos partidos' } : null,
     jornadas.length ? { id: 's-jornadas', label: 'Jornadas' } : null,
+    forma.racha.length ? { id: 's-forma', label: 'Forma' } : null,
     ana.pj ? { id: 's-analisis', label: 'Análisis' } : null,
     temporadas.length ? { id: 's-temporadas', label: 'Temporadas' } : null,
     plantilla.length ? { id: 's-plantilla', label: 'Plantilla' } : null,
@@ -377,6 +382,32 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
                 <p style={{ padding: '0 var(--pad)', color: 'var(--ink-3)', fontSize: 'var(--t-sm)' }}>Sin partidos en esta temporada.</p>
               </>}
           </section>
+
+          {/* FORMA — media de puntos de liga por partido (ventanas) + racha de 5, como en jugador. */}
+          {forma.racha.length > 0 && (
+            <section id="s-forma">
+              <div className="s-head"><div className="s-title">Forma</div><div className="s-sub">media de puntos por partido</div></div>
+              <div className="windows">
+                {forma.ventanas.map((v) => {
+                  const d = v.delta
+                  const ds = d == null ? '—' : `${d > 0 ? '+' : ''}${med1(d)}`
+                  return (
+                    <div className="win" key={v.label}>
+                      <div className="w-k">{v.label}</div>
+                      <div className="w-v" style={{ color: cPuntos(v.media) }}>{v.media != null ? med1(v.media) : '—'}</div>
+                      <div className="w-s">{ds}</div>
+                    </div>
+                  )
+                })}
+              </div>
+              <div style={{ padding: '12px var(--pad) 2px', display: 'flex', gap: 5, alignItems: 'center' }}>
+                <span style={{ fontSize: 'var(--t-cap)', color: 'var(--ink-3)', marginRight: 5 }}>Racha</span>
+                {forma.racha.map((r, i) => (
+                  <span key={i} className="num" style={{ width: 22, height: 22, borderRadius: 6, display: 'grid', placeItems: 'center', fontSize: 'var(--t-sm)', color: '#0a1628', background: RC[r.signo] }}>{r.signo}</span>
+                ))}
+              </div>
+            </section>
+          )}
 
           {/* ANÁLISIS */}
           {ana.pj > 0 && (
