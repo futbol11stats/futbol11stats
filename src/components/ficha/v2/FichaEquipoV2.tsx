@@ -161,7 +161,7 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
             ? <EscudoBox escudo={e.escudo} nombre={e.nombre} size={70} radius={14} />
             : <div className="avatar" style={{ background: 'var(--pitch-700)', color: 'var(--ink-2)' }}>{(e.nombre || '').slice(0, 3).toUpperCase()}</div>}
           <div className="hero-name">
-            {e.club_root && e.club_root !== e.nombre && <div className="first">{e.club_root}</div>}
+            {/* club_root en el dato es un CÓDIGO interno ("C:00..."), no un nombre de club legible -> no se muestra. */}
             <div className="last">{e.nombre}</div>
           </div>
           <CompartirBtn titulo={`${e.nombre} · Fútbol11Stats`} variant="icon" />
@@ -215,7 +215,7 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
                     <div key={r.codequipo} className={`mini-r${r.me ? ' me' : ''}`}>
                       <div className="mp">{r.pos}</div>
                       <EscudoBox escudo={r.escudo} nombre={r.nombre} size={22} radius={4} />
-                      <div className="mn">{r.nombre}</div>
+                      <div className="mn">{r.me ? r.nombre : <NombreEquipo codequipo={r.codequipo} nombre={r.nombre} />}</div>
                       <div className="mpts num">{r.pts}</div>
                     </div>
                   ))}
