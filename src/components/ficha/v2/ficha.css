@@ -71,6 +71,9 @@
 .fjv2 .scope a{flex:none;padding:6px 11px;border-radius:7px;text-decoration:none;background:rgba(255,255,255,.04);
   border:1px solid var(--line);color:var(--ink-2);font-family:var(--font-display),'Barlow Condensed',sans-serif;font-size:var(--t-body);font-weight:600;white-space:nowrap;cursor:pointer}
 .fjv2 .scope a.on{background:var(--pitch-700);color:var(--ink);border-color:rgba(140,239,165,.45)}
+/* La etiqueta se trunca con elipsis para que un nombre largo no ensanche el raíl; el nombre completo va en el title. */
+.fjv2 .scope a{max-width:220px}
+.fjv2 .scope a .cc-label{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
 .fjv2 .scope-note{font-size:var(--t-micro);color:var(--ink-3);padding:10px var(--pad) 0;line-height:1.5}
 .fjv2 .allscope{font-family:var(--font-display),'Barlow Condensed',sans-serif;font-size:var(--t-cap);font-weight:600;letter-spacing:.05em;color:var(--ink-3);border:1px solid var(--line);border-radius:4px;padding:1px 6px}
 

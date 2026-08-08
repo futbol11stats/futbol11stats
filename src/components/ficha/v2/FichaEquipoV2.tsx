@@ -87,6 +87,12 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
     { label: nombreComp || 'Liga', tipo: 'liga', jornadas },
     ...copasAmbito.map((c) => ({ label: c.label, tipo: 'copa' as const, rondas: c.rondas })),
   ]
+  // Chips de ámbito: etiqueta corta visible + nombre completo en `titulo` (tooltip). El sello se calcula
+  // con el nombre completo de la competición, no con la etiqueta abreviada.
+  const chipComps = [
+    { label: nombreComp || 'Liga', titulo: nombreComp || 'Liga', count: jornadas.length, sello: <Sello nombreComp={nombreComp || 'Liga'} size={18} /> },
+    ...copasAmbito.map((c) => ({ label: c.label, titulo: c.titulo, count: c.rondas.length, sello: <Sello nombreComp={c.competicion} size={18} /> })),
+  ]
   const ana = analisisResultados(resultados, e.nombre)
   const anaTot = ana.pj || 1
   const pc = (n: number) => Math.round((n / anaTot) * 100)
@@ -238,7 +244,7 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
         </div></div>
         {chartComps.length > 0 && <>
           <div className="scope-lbl" style={{ paddingTop: 11 }}>Competición</div>
-          <div className="track"><div className="rail"><CompChips comps={chartComps.map((c) => ({ label: c.label, count: c.tipo === 'liga' ? c.jornadas.length : c.rondas.length, sello: <Sello nombreComp={c.label} size={18} /> }))} /></div></div>
+          <div className="track"><div className="rail"><CompChips comps={chipComps} /></div></div>
         </>}
         <div className="scope-note">Las secciones marcadas «Todas las temporadas» no dependen de esta selección.</div>
       </div>

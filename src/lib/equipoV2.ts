@@ -241,7 +241,13 @@ export type RondaDatum = {
   marcador: string; signo: 'G' | 'E' | 'P'; rivalNombre: string | null; rivalEscudo: string | null
   esLocal: boolean; fecha: string | null; ronda: string
 }
-export type CopaComp = { label: string; competicion: string; rondas: RondaDatum[] }
+export type CopaComp = { label: string; titulo: string; competicion: string; rondas: RondaDatum[] }
+// Etiqueta corta del chip a partir de campos SEPARADOS (regla general, no recorte de string): tipo de
+// competición abreviado + ronda alcanzada. "Final Copa 1ª Autonómica" + "Final" -> "Copa · Final".
+function etiquetaCopa(competicion: string, rondaLabel: string | null): string {
+  const tipo = /copa/i.test(competicion) ? 'Copa' : (competicion.split(/\s+/)[0] || 'Copa')
+  return rondaLabel ? `${tipo} · ${rondaLabel}` : tipo
+}
 export async function getCopasAmbito(codequipo: string, tempSel: string | null, nombre: string): Promise<CopaComp[]> {
   if (!tempSel) return []
   const { data } = await supabase.from('web_equipo').select('copas').eq('codequipo', String(codequipo)).limit(1).maybeSingle()
@@ -262,7 +268,7 @@ export async function getCopasAmbito(codequipo: string, tempSel: string | null, 
         esLocal: local, fecha: r.fecha, ronda: c.ronda_label || 'Ronda',
       }
     })
-    if (rondas.length) out.push({ label: c.competicion, competicion: c.competicion, rondas })
+    if (rondas.length) out.push({ label: etiquetaCopa(c.competicion, c.ronda_label), titulo: c.competicion, competicion: c.competicion, rondas })
   }
   return out
 }
