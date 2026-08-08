@@ -234,4 +234,37 @@ export async function getMediasPorTemporada(codequipo: string): Promise<Record<s
   return out
 }
 
+// --- Copa: tira de rondas (opción A). No hay pts_fantasy por jornada en copa, así que NO se pintan
+// barras: solo el/los partido(s) de la ronda, con el patrón de "Últimos partidos". web_equipo.copas
+// registra la ronda alcanzada por competición; se sacan sus partidos de web_resultados por su codgrupo. ---
+export type RondaDatum = {
+  marcador: string; signo: 'G' | 'E' | 'P'; rivalNombre: string | null; rivalEscudo: string | null
+  esLocal: boolean; fecha: string | null; ronda: string
+}
+export type CopaComp = { label: string; competicion: string; rondas: RondaDatum[] }
+export async function getCopasAmbito(codequipo: string, tempSel: string | null, nombre: string): Promise<CopaComp[]> {
+  if (!tempSel) return []
+  const { data } = await supabase.from('web_equipo').select('copas').eq('codequipo', String(codequipo)).limit(1).maybeSingle()
+  const raw = (data as { copas?: unknown } | null)?.copas
+  if (!Array.isArray(raw)) return []
+  const delTemp = (raw as any[]).filter((c) => String(c.codtemporada) === String(tempSel) && c.codgrupo)
+  const out: CopaComp[] = []
+  for (const c of delTemp) {
+    const res = await getResultadosGrupo(nombre, String(c.codgrupo))
+    const jugados = res.filter((r) => r.goles_local != null && r.goles_visitante != null).sort((a, b) => a.jornada - b.jornada)
+    const rondas: RondaDatum[] = jugados.map((r) => {
+      const local = r.nombre_local === nombre
+      const gf = (local ? r.goles_local : r.goles_visitante) as number
+      const gc = (local ? r.goles_visitante : r.goles_local) as number
+      return {
+        marcador: `${r.goles_local}-${r.goles_visitante}`, signo: gf > gc ? 'G' : gf < gc ? 'P' : 'E',
+        rivalNombre: (local ? r.nombre_visitante : r.nombre_local) as string, rivalEscudo: null,
+        esLocal: local, fecha: r.fecha, ronda: c.ronda_label || 'Ronda',
+      }
+    })
+    if (rondas.length) out.push({ label: c.competicion, competicion: c.competicion, rondas })
+  }
+  return out
+}
+
 export { getResultadosGrupo }

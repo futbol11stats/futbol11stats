@@ -28,8 +28,9 @@ import {
   getEquipoV2, getTemporadasEquipo, getSerieLiga, getResultadosGrupo, buildJornadasEquipo,
   escudosPorNombre, getMiniClasif, colorMedia, colorElo, colorFan, CORTES_EQUIPO,
   analisisResultados, getTramos, getFacetasGrupo, getPlantillaEquipoV2, getMovimientosEquipo,
-  getHitosEquipo, getMediasPorTemporada, type PlantillaEqRow,
+  getHitosEquipo, getMediasPorTemporada, getCopasAmbito, type PlantillaEqRow,
 } from '@/lib/equipoV2'
+import type { CompEquipo } from '@/components/ficha/v2/JornadasEquipo'
 
 const mil = (n: number | null | undefined) => (n == null ? '—' : Math.round(Number(n)).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.'))
 const med1 = (v: number | null) => (v == null ? '—' : v.toFixed(1).replace('.', ','))
@@ -66,14 +67,26 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
 
   const mini = await getMiniClasif(codgrupoSel, e.codequipo)
 
-  const [tramos, facetas, plantilla, movs, hitos, mediasTemp] = await Promise.all([
+  const [tramos, facetas, plantilla, movs, hitos, mediasTemp, copasAmbito] = await Promise.all([
     getTramos(e.codequipo, codgrupoSel),
     getFacetasGrupo(codgrupoSel, e.codequipo),
     getPlantillaEquipoV2(e.codequipo, tempSel),
     getMovimientosEquipo(cod),
     getHitosEquipo(cod),
     getMediasPorTemporada(e.codequipo),
+    getCopasAmbito(e.codequipo, tempSel, e.nombre),
   ])
+  // Escudos de los rivales de copa (por nombre, como en el gráfico de liga).
+  const copaNombres = copasAmbito.flatMap((c) => c.rondas.map((r) => r.rivalNombre || '')).filter(Boolean)
+  if (copaNombres.length) {
+    const copaEsc = await escudosPorNombre(copaNombres)
+    for (const c of copasAmbito) for (const r of c.rondas) if (r.rivalNombre) r.rivalEscudo = copaEsc.get(r.rivalNombre) ?? null
+  }
+  // Ámbito de competición: liga (barras) + copas (tira de rondas). Alimenta CompChips y el gráfico.
+  const chartComps: CompEquipo[] = [
+    { label: nombreComp || 'Liga', tipo: 'liga', jornadas },
+    ...copasAmbito.map((c) => ({ label: c.label, tipo: 'copa' as const, rondas: c.rondas })),
+  ]
   const ana = analisisResultados(resultados, e.nombre)
   const anaTot = ana.pj || 1
   const pc = (n: number) => Math.round((n / anaTot) * 100)
@@ -223,9 +236,9 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
             <Link key={t.codtemporada} href={`/madrid/equipo/${slug}/${tempLabel(t.codtemporada)}/v2`} className={t.codtemporada === tempSel ? 'on' : ''}>{tempLabel(t.codtemporada)}</Link>
           ))}
         </div></div>
-        {nombreComp && <>
+        {chartComps.length > 0 && <>
           <div className="scope-lbl" style={{ paddingTop: 11 }}>Competición</div>
-          <div className="track"><div className="rail"><CompChips comps={[{ label: nombreComp, count: serie.length, sello: <Sello nombreComp={nombreComp} size={18} /> }]} /></div></div>
+          <div className="track"><div className="rail"><CompChips comps={chartComps.map((c) => ({ label: c.label, count: c.tipo === 'liga' ? c.jornadas.length : c.rondas.length, sello: <Sello nombreComp={c.label} size={18} /> }))} /></div></div>
         </>}
         <div className="scope-note">Las secciones marcadas «Todas las temporadas» no dependen de esta selección.</div>
       </div>
@@ -309,12 +322,14 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
             </section>
           )}
 
-          {/* JORNADAS */}
+          {/* JORNADAS (liga: barras · copa: tira de rondas) — la cabecera la pinta el componente (reactiva). */}
           <section id="s-jornadas">
-            <div className="s-head"><div className="s-title">Puntos por jornada</div><div className="s-sub">{echoTxt}</div></div>
-            {jornadas.length > 0
-              ? <JornadasEquipo comps={[{ label: nombreComp || 'Liga', jornadas }]} cortes={CORTES_EQUIPO.fanJornada} />
-              : <p style={{ padding: '0 var(--pad)', color: 'var(--ink-3)', fontSize: 'var(--t-sm)' }}>Sin partidos en esta temporada.</p>}
+            {jornadas.length > 0 || copasAmbito.length > 0
+              ? <JornadasEquipo comps={chartComps} cortes={CORTES_EQUIPO.fanJornada} temporada={tempTxt} />
+              : <>
+                <div className="s-head"><div className="s-title">Puntos por jornada</div><div className="s-sub">{echoTxt}</div></div>
+                <p style={{ padding: '0 var(--pad)', color: 'var(--ink-3)', fontSize: 'var(--t-sm)' }}>Sin partidos en esta temporada.</p>
+              </>}
           </section>
 
           {/* ANÁLISIS */}

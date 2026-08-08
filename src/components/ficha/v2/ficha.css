@@ -322,6 +322,8 @@
 .fjv2 label.pl-open-btn{display:block;margin:12px var(--pad) 0;cursor:pointer}
 .fjv2 label.pl-open-btn::after{content:'Ver plantilla completa'}
 .fjv2 .pl-open-cb:checked ~ label.pl-open-btn::after{content:'Ver menos'}
+/* Copa: chip de ronda en la tira de resultados (donde en liga va el chip de fantasy). */
+.fjv2 .copa-ronda{font-family:var(--font-display),'Barlow Condensed',sans-serif;font-weight:700;font-size:var(--t-cap);letter-spacing:.03em;padding:4px 9px;border-radius:6px;background:var(--pitch-700);border:1px solid var(--line);color:var(--ink-2);flex:none;white-space:nowrap}
 
 @media(min-width:1000px){
   .fjv2{--t-micro:12px;--t-cap:13px;--t-sm:14px;--t-body:15px;--t-lead:17px;

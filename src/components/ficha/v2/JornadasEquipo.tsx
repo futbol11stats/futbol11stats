@@ -5,8 +5,9 @@ import { ChevronLeft, ChevronRight } from 'lucide-react'
 import IndicadorLocal from '@/components/IndicadorLocal'
 import EscudoBox from '@/components/ficha/v2/EscudoBox'
 import { Marcador, Tabla, Escudo, TrianguloArriba, TrianguloAbajo, Guion } from '@/components/iconos'
+import { fechaCorta } from '@/lib/jugador'
 import { useComp } from './compStore'
-import type { JornadaEquipoDatum } from '@/lib/equipoV2'
+import type { JornadaEquipoDatum, RondaDatum } from '@/lib/equipoV2'
 
 const PAL = ['#f87171', '#94a3b8', '#22a050', '#2ee56b', '#8cf0a2']
 function escFan(v: number, c: readonly [number, number, number, number]) {
@@ -15,12 +16,17 @@ function escFan(v: number, c: readonly [number, number, number, number]) {
   return 1
 }
 const cFan = (v: number, c: readonly [number, number, number, number]) => PAL[escFan(v, c)]
+const colRes = (s: string | null) => (s === 'G' ? 'var(--e3)' : s === 'E' ? 'var(--ink-2)' : 'var(--e0)')
 
-export type CompEquipo = { label: string; jornadas: JornadaEquipoDatum[] }
+// Una competición del ámbito: liga (barras de fantasy por jornada) o copa (tira de rondas, sin barras
+// porque en copa no hay pts_fantasy por jornada — ver DECISIONES E-copa).
+export type CompEquipo =
+  | { label: string; tipo: 'liga'; jornadas: JornadaEquipoDatum[] }
+  | { label: string; tipo: 'copa'; rondas: RondaDatum[] }
 
 const POS_H = 86
 
-export default function JornadasEquipo({ comps, cortes }: { comps: CompEquipo[]; cortes: readonly [number, number, number, number] }) {
+export default function JornadasEquipo({ comps, cortes, temporada }: { comps: CompEquipo[]; cortes: readonly [number, number, number, number]; temporada: string }) {
   const trackRef = useRef<HTMLDivElement>(null)
   const sel = Math.min(useComp(), comps.length - 1)
   const comp = comps[sel]
@@ -37,12 +43,46 @@ export default function JornadasEquipo({ comps, cortes }: { comps: CompEquipo[];
   }
   useEffect(() => {
     const el = trackRef.current
-    if (!el) return
+    if (!el || comp?.tipo !== 'liga') return
     el.scrollLeft = 99999
     onScroll()
-  }, [sel])
+  }, [sel, comp?.tipo])
   if (!comp) return null
 
+  const head = (
+    <div className="s-head">
+      <div className="s-title">{comp.tipo === 'copa' ? 'Recorrido en copa' : 'Puntos por jornada'}</div>
+      <div className="s-sub">{[temporada, comp.label].filter(Boolean).join(' · ')}</div>
+    </div>
+  )
+
+  // ── COPA: tira de rondas (patrón de "Últimos partidos"), sin barras de fantasy ──
+  if (comp.tipo === 'copa') {
+    return (
+      <>
+        {head}
+        <div>
+          {comp.rondas.map((r, i) => (
+            <div className="match" key={i}>
+              <div className="m-score" style={{ color: colRes(r.signo) }}>{r.marcador}</div>
+              <EscudoBox escudo={r.rivalEscudo} nombre={r.rivalNombre ?? undefined} size={26} radius={4} />
+              <div className="m-mid">
+                <div className="m-riv">{r.rivalNombre}</div>
+                <div className="m-meta">{r.esLocal != null && <IndicadorLocal esLocal={r.esLocal} />}<span>{r.fecha ? fechaCorta(r.fecha) : ''}</span></div>
+              </div>
+              <div className="copa-ronda">{r.ronda}</div>
+            </div>
+          ))}
+          {comp.rondas.length === 0 && <p style={{ padding: '0 var(--pad)', color: 'var(--ink-3)', fontSize: 'var(--t-sm)' }}>Sin partidos de copa registrados.</p>}
+        </div>
+        <div className="legend" style={{ marginTop: 13 }}>
+          <p style={{ margin: 0, fontSize: 'var(--t-sm)', color: 'var(--ink-3)', lineHeight: 1.55 }}>En copa no se calculan puntos fantasy por jornada, así que aquí se muestra el recorrido por rondas en vez del gráfico de barras.</p>
+        </div>
+      </>
+    )
+  }
+
+  // ── LIGA: gráfico de barras ──
   const jug = comp.jornadas.filter((x) => x.fan != null) as Array<JornadaEquipoDatum & { fan: number }>
   const vals = jug.map((x) => x.fan)
   const maxF = Math.max(...vals, 1)
@@ -55,8 +95,6 @@ export default function JornadasEquipo({ comps, cortes }: { comps: CompEquipo[];
     const col = cFan(d.fan, cortes)
     return (<><div className="pos"><div className="chip" style={{ background: col }}>{d.fan}</div><div className="bar" style={{ height: h, background: col }} /></div><div className="neg" /></>)
   }
-
-  // Carril posición + movimiento (↑/↓/→ como en la clasificación).
   function posMov(d: JornadaEquipoDatum) {
     const m = d.mov
     const glifo = m == null ? <span style={{ color: 'var(--ink-4)' }}>·</span>
@@ -68,6 +106,7 @@ export default function JornadasEquipo({ comps, cortes }: { comps: CompEquipo[];
 
   return (
     <>
+      {head}
       <div className="chart-wrap">
         <div className="gutter">
           <div className="g-plot" />
@@ -113,7 +152,6 @@ export default function JornadasEquipo({ comps, cortes }: { comps: CompEquipo[];
         </button>
       </div>
 
-      {/* Leyenda: enseña a leer los símbolos, en el orden de los carriles. */}
       <div className="legend">
         <h4>Cómo se lee</h4>
         <div className="lg-row">
