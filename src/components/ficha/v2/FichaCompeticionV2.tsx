@@ -23,6 +23,7 @@ import {
   getDestacadosV2, getEquiposFormaV2, getTopTemporadaV2, getXiJornadaV2, getXiTemporadaV2, colorMediaJug,
   getResultadosV2, getEquiposMapV2, type ResultadoCompRow, getCarreraV2,
   getLideresV2, getCifrasV2, type CifrasComp, getSuspendidosV2, getPartidosJornadaV2, getTramosCompeticionV2,
+  golesEquipoJornada, type GolEquipoRow,
 } from '@/lib/competicionV2'
 
 const mil = (n: number | null | undefined) => (n == null ? '—' : Math.round(Number(n)).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.'))
@@ -183,6 +184,7 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
   // Datos de la pestaña activa (tab-gated).
   let mvpJ: any[] = [], equiposForma: any[] = [], xi: any[] = [], golJ: any[] = [], tarjJ: any[] = [], suspendidos: any[] = []
   let resultados: ResultadoCompRow[] = [], equiposMap = new Map<string, string>()
+  let golesEquipo: GolEquipoRow[] = []
   let partMap = new Map<string, any>()
   let tramosComp: { tramo: string; gf: number }[] = []
   let topTemp: { goleadores: any[]; porteros: any[]; fantasy: any[]; elo: any[] } | null = null
@@ -192,7 +194,12 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
       getEquiposMapV2(grupo.codgrupo, codtemporada),
     ])
   } else if (tabEf === 'goleadores-jornada') {
-    golJ = await getDestacadosV2(grupo.codgrupo, codtemporada, jornadaNum, 'goleadores_jornada')
+    const [gj, res, em] = await Promise.all([
+      getDestacadosV2(grupo.codgrupo, codtemporada, jornadaNum, 'goleadores_jornada'),
+      getResultadosV2(grupo.codgrupo, codtemporada, jornadaNum),
+      getEquiposMapV2(grupo.codgrupo, codtemporada),
+    ])
+    golJ = gj; equiposMap = em; golesEquipo = golesEquipoJornada(res, em)
     partMap = await getPartidosJornadaV2(grupo.codgrupo, codtemporada, jornadaNum, golJ.map((j: any) => String(j.codjugador)))
   } else if (tabEf === 'tarjetas-jornada') {
     const [tj, susp] = await Promise.all([
@@ -511,6 +518,12 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
                   })} />
                   : <p className="vacio">Sin goleadores en esta jornada.</p>}
               </section>
+              {golesEquipo.length > 0 && (
+                <section>
+                  <div className="s-head"><div className="s-title">Goles de equipo</div><div className="s-sub">jornada {jornadaNum}</div></div>
+                  <RankingComp barColor="var(--e4)" items={golesEquipo.map((e, i) => ({ rank: i + 1, codequipo: e.codequipo, nombre: e.nombre, escudo: e.escudo, nombreEquipo: e.nombre, valor: e.goles, valorColor: 'var(--e4)' }))} />
+                </section>
+              )}
             </>
           )}
 
