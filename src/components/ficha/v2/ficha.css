@@ -439,3 +439,12 @@
 .fjv2 .rr .rv{font-family:var(--font-display),'Barlow Condensed',sans-serif;font-size:var(--n-sm);font-weight:700;padding:4px 9px;border-radius:6px;color:#08111f;flex:none;font-variant-numeric:tabular-nums}
 .fjv2 .rr .rbar{height:4px;border-radius:2px;background:rgba(255,255,255,.09);margin-top:6px;overflow:hidden}
 .fjv2 .rr .rbar span{display:block;height:100%;border-radius:2px}
+
+/* XI Óptimo sobre campo (competición). */
+.fjv2 .pitch{position:relative;margin:0 var(--pad);border-radius:12px;height:430px;background:linear-gradient(180deg,#0e3d2a,#0a2c1e);border:1px solid rgba(255,255,255,.14);overflow:hidden}
+.fjv2 .pitch .ln{position:absolute;border:1px solid rgba(255,255,255,.15)}
+.fjv2 .xi-p{position:absolute;transform:translate(-50%,-50%);width:70px;text-align:center}
+.fjv2 .xi-p .av{width:34px;height:34px;border-radius:50%;margin:0 auto;display:grid;place-items:center;font-family:var(--font-display),'Barlow Condensed',sans-serif;font-size:var(--t-sm);font-weight:700;color:#08111f;border:2px solid rgba(255,255,255,.5)}
+.fjv2 .xi-p .nm{font-family:var(--font-display),'Barlow Condensed',sans-serif;font-size:var(--t-cap);font-weight:600;margin-top:4px;line-height:1.15;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.85)}
+.fjv2 .xi-p .vv{font-family:var(--font-display),'Barlow Condensed',sans-serif;font-size:var(--t-cap);font-weight:700;margin-top:1px}
+@media (min-width:1000px){ .fjv2 .pitch{height:520px} }

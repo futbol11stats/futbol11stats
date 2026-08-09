@@ -13,6 +13,7 @@ const iniciales = (n: string) => (n || '').split(/\s+/).map((w) => w[0]).filter(
 
 export type RankItem = {
   rank: number | string
+  rankColor?: string                // color del número/etiqueta de rango (p. ej. la posición en el XI)
   codjugador?: string | null        // presente -> fila de JUGADOR (avatar de iniciales + escudo en la línea extra)
   nombre: string
   pos?: string | null
@@ -36,7 +37,7 @@ export default function RankingComp({ items, fichas, barColor }: {
         const esJugador = r.codjugador != null
         return (
           <div className={`rr${i === 0 ? ' top' : ''}`} key={i}>
-            <div className="rp">{r.rank}</div>
+            <div className="rp" style={r.rankColor ? { color: r.rankColor, fontSize: 'var(--t-cap)' } : undefined}>{r.rank}</div>
             {esJugador
               ? <div className="rav" style={avaStyle(r.pos)}>{iniciales(r.nombre)}</div>
               : <EscudoBox escudo={r.escudo ?? null} nombre={r.nombreEquipo ?? r.nombre} size={34} radius={9} />}

@@ -17,7 +17,7 @@ import RankingComp, { type RankItem } from '@/components/ficha/v2/RankingComp'
 import {
   TEMPORADA_MAP, COD_TO_LABEL, TEMPORADAS_ORD, getGrupoV2, getVariantesV2, getGruposHermanos,
   getClasifV2, kpisDeClasif, zonaColor, RACHA_COL, type ClasifCompRow,
-  getDestacadosV2, getEquiposFormaV2, getTopTemporadaV2,
+  getDestacadosV2, getEquiposFormaV2, getTopTemporadaV2, getXiJornadaV2, getXiTemporadaV2,
 } from '@/lib/competicionV2'
 
 const mil = (n: number | null | undefined) => (n == null ? '—' : Math.round(Number(n)).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.'))
@@ -49,6 +49,40 @@ const TEMP_IDS = new Set<string>([...TABS_TEMP_LIGA, ...TABS_TEMP_COPA].map((t) 
 
 const badge11 = <span style={{ width: 20, height: 20, borderRadius: '50%', background: '#1a7a3c', display: 'grid', placeItems: 'center', fontFamily: 'var(--font-display), sans-serif', fontWeight: 700, color: '#fff', fontSize: 11, lineHeight: 1 }}>11</span>
 
+// XI Óptimo sobre campo: colores por demarcación (maqueta) + formación deducida contando posiciones.
+const POSC: Record<string, string> = { POR: '#f0b429', DEF: '#9ac4f1', MED: '#8cefa5', DEL: '#f2a3c0' }
+const LINE_Y: Record<string, number> = { POR: 88, DEF: 70, MED: 48, DEL: 24 }
+const iniXI = (n: string) => (n || '').split(/\s+/).map((w) => w[0]).filter(Boolean).slice(0, 2).join('').toUpperCase()
+function campoXI(players: { posicion: string; nombre: string; valor: number | string }[]) {
+  const byLine: Record<string, typeof players> = { POR: [], DEF: [], MED: [], DEL: [] }
+  players.forEach((p) => { (byLine[p.posicion] || byLine.MED).push(p) })
+  const dots: ReactNode[] = []
+  ;(['POR', 'DEF', 'MED', 'DEL'] as const).forEach((line) => {
+    const arr = byLine[line], k = arr.length
+    arr.forEach((p, i) => {
+      const x = k === 1 ? 50 : ((i + 1) / (k + 1)) * 100
+      const col = POSC[line] || '#9ac4f1'
+      dots.push(
+        <div className="xi-p" style={{ left: `${x}%`, top: `${LINE_Y[line]}%` }} key={`${line}-${i}`}>
+          <div className="av" style={{ background: col }}>{iniXI(p.nombre)}</div>
+          <div className="nm">{(p.nombre || '').split(/\s+/).slice(-1)[0]}</div>
+          <div className="vv" style={{ color: col }}>{p.valor}</div>
+        </div>,
+      )
+    })
+  })
+  return (
+    <div className="pitch">
+      <div className="ln" style={{ left: '5%', right: '5%', top: '2%', bottom: '2%', borderRadius: 6 }} />
+      <div className="ln" style={{ left: '5%', right: '5%', top: '50%', height: 0 }} />
+      <div className="ln" style={{ left: '28%', width: '44%', top: '2%', height: '14%' }} />
+      <div className="ln" style={{ left: '28%', width: '44%', bottom: '2%', height: '14%' }} />
+      <div className="ln" style={{ left: '36%', width: '28%', top: '39%', height: '22%', borderRadius: '50%' }} />
+      {dots}
+    </div>
+  )
+}
+
 export default async function FichaCompeticionV2({ categoria, slugComp, slugGrupo, temporada, jornadaSeg, tab }: {
   categoria: string; slugComp: string; slugGrupo: string; temporada: string; jornadaSeg: string; tab: string
 }) {
@@ -75,14 +109,16 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
   const kpis = kpisDeClasif(clasif)
 
   // Datos de la pestaña activa (tab-gated).
-  let mvpJ: any[] = [], equiposForma: any[] = []
+  let mvpJ: any[] = [], equiposForma: any[] = [], xi: any[] = []
   let topTemp: { goleadores: any[]; porteros: any[]; fantasy: any[]; elo: any[] } | null = null
   if (tabEf === 'top5-jugadores-jornada') mvpJ = await getDestacadosV2(grupo.codgrupo, codtemporada, jornadaNum, 'mvp_jornada')
   else if (tabEf === 'top5-equipos-jornada') equiposForma = await getEquiposFormaV2(grupo.codgrupo, codtemporada, jornadaNum)
+  else if (tabEf === 'once-optimo-jornada') xi = await getXiJornadaV2(grupo.codgrupo, codtemporada, jornadaNum, isCopa)
+  else if (tabEf === 'once-optimo-temporada') xi = await getXiTemporadaV2(grupo.codgrupo, codtemporada, jornadaNum)
   else if (tabEf === 'top10-goleadores-temporada' || tabEf === 'top10-porteros-temporada' || tabEf === 'top10-elo-jugadores-temporada' || tabEf === 'top10-fantasy-temporada')
     topTemp = await getTopTemporadaV2(grupo.codgrupo, codtemporada, jornadaNum)
 
-  const codjugs = [...mvpJ, ...(topTemp ? [...topTemp.goleadores, ...topTemp.porteros, ...topTemp.elo, ...topTemp.fantasy] : [])].map((j: any) => j.codjugador)
+  const codjugs = [...mvpJ, ...xi, ...(topTemp ? [...topTemp.goleadores, ...topTemp.porteros, ...topTemp.elo, ...topTemp.fantasy] : [])].map((j: any) => j.codjugador)
   const fichas = await fichasInfo(codjugs)
 
   const [variantes, hermanos] = await Promise.all([
@@ -157,6 +193,27 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
         extra: <span>máx <b className="num">{j.elo_max != null ? Math.round(j.elo_max) : '—'}</b> · mín <b className="num">{j.elo_min != null ? Math.round(j.elo_min) : '—'}</b>{j.elo_var != null ? <> · <b className="num" style={{ color: j.elo_var > 0 ? 'var(--e3)' : j.elo_var < 0 ? 'var(--e0)' : 'var(--ink-3)' }}>{j.elo_var > 0 ? '+' : ''}{j.elo_var}</b> últ.</> : null}</span>,
       })),
       leyenda: <><b>ELO</b> rating de rendimiento del jugador · <b>máx/mín</b> techo y suelo de la temporada · <b>últ.</b> variación en la última jornada.</>,
+    }
+  }
+
+  // XI Óptimo (jornada o temporada): campo + listado idéntico a los rankings.
+  type XiView = { title: string; sub: string; players: { posicion: string; nombre: string; valor: number | string }[]; items: RankItem[]; leyenda: ReactNode }
+  let xiView: XiView | null = null
+  if (xi.length && (tabEf === 'once-optimo-jornada' || tabEf === 'once-optimo-temporada')) {
+    const esTemp = tabEf === 'once-optimo-temporada'
+    const valOf = (j: any) => Math.round((esTemp ? j.pts_totales : (j.pts_fantasy ?? j.pts_jornada)) ?? 0)
+    xiView = {
+      title: esTemp ? 'XI Óptimo de la temporada' : 'XI Óptimo de la jornada',
+      sub: esTemp ? acum : (rondaSel?.label ?? `jornada ${jornadaNum}`),
+      players: xi.map((j) => ({ posicion: j.posicion, nombre: j.nombre, valor: valOf(j) })),
+      items: xi.map((j) => ({
+        rank: j.posicion, rankColor: POSC[j.posicion], codjugador: j.codjugador, nombre: j.nombre, pos: j.posicion,
+        escudo: j.escudo, nombreEquipo: j.nombre_equipo, valor: valOf(j), valorColor: POSC[j.posicion] ?? 'var(--e3)',
+        extra: <span><b className="num">{j.goles ?? 0}</b> {(j.goles ?? 0) === 1 ? 'gol' : 'goles'}{esTemp && j.racha_5p != null ? <> · racha <b className="num">{j.racha_5p}</b></> : null}{esTemp && j.power_ranking != null ? <> · power <b className="num">{j.power_ranking}</b></> : null}</span>,
+      })),
+      leyenda: esTemp
+        ? <><b>Pos</b> posición en el campo · <b>Pts Fantasy</b> acumulados · <b>Goles</b> en la temporada · <b>Racha 5p</b> suma fantasy de las últimas 5 jornadas · <b>Power Ranking</b> índice combinado.</>
+        : <><b>Pos</b> posición en el campo · <b>Pts Fantasy</b> puntos en la jornada · <b>Goles</b> en la jornada.</>,
     }
   }
 
@@ -299,6 +356,18 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
                   {rankView.leyenda && <div className="leyenda">{rankView.leyenda}</div>}
                 </>
               ) : <p className="vacio">Sin datos en esta {modo === 'temporada' ? 'temporada' : 'jornada'}.</p>}
+            </section>
+          ) : xiView ? (
+            <section>
+              <div className="s-head"><div className="s-title">{xiView.title}</div><div className="s-sub">{xiView.sub}</div></div>
+              {campoXI(xiView.players)}
+              <div style={{ marginTop: 14 }}><RankingComp items={xiView.items} fichas={fichas} /></div>
+              <div className="leyenda">{xiView.leyenda}</div>
+            </section>
+          ) : (tabEf === 'once-optimo-jornada' || tabEf === 'once-optimo-temporada') ? (
+            <section>
+              <div className="s-head"><div className="s-title">{tabsActivas.find((t) => t[0] === tabEf)?.[1]}</div></div>
+              <p className="vacio">Sin XI Óptimo en esta {modo === 'temporada' ? 'temporada' : 'jornada'}.</p>
             </section>
           ) : (
             <section>
