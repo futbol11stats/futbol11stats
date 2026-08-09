@@ -17,6 +17,7 @@ import { type Ronda } from '@/lib/competiciones'
 import RankingComp, { type RankItem } from '@/components/ficha/v2/RankingComp'
 import CarreraPosiciones from '@/components/ficha/v2/CarreraPosiciones'
 import { inicialesJugador } from '@/components/ficha/v2/jugadorFila'
+import { FilaEspejo, EspejoHead } from '@/components/ficha/v2/barrasGoles'
 import {
   TEMPORADA_MAP, COD_TO_LABEL, TEMPORADAS_ORD, getGrupoV2, getVariantesV2, getGruposHermanos,
   getClasifV2, kpisDeClasif, zonaColor, FORMA_COL, type ClasifCompRow,
@@ -570,15 +571,9 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
                 return (
                   <div className="statbox">
                     <div className="cap" style={{ marginBottom: 9 }}>Goles por equipo · en orden de clasificación</div>
-                    <div className="tramo-head"><div className="th-gn" /><div className="th">◀ Encajados</div><div className="th-mid" /><div className="th r">Marcados ▶</div><div className="th-gn" /></div>
+                    <EspejoHead />
                     {clasif.map((r) => (
-                      <div className="tramo" key={r.codequipo}>
-                        <span className="gnum gc" style={{ color: 'var(--e0)' }}>{mil(r.gc)}</span>
-                        <div className="tramo-side gc">{r.gc > 0 && <div className="tramo-b gc" style={{ width: `${(r.gc / maxG) * 100}%` }} />}</div>
-                        <span className="tramo-lbl"><EscudoBox escudo={r.escudo} nombre={r.nombre_equipo} size={22} radius={5} /></span>
-                        <div className="tramo-side">{r.gf > 0 && <div className="tramo-b gf" style={{ width: `${(r.gf / maxG) * 100}%` }} />}</div>
-                        <span className="gnum gf" style={{ color: 'var(--e3)' }}>{mil(r.gf)}</span>
-                      </div>
+                      <FilaEspejo key={r.codequipo} center={<EscudoBox escudo={r.escudo} nombre={r.nombre_equipo} size={22} radius={5} />} gc={r.gc} gf={r.gf} maxBar={maxG} />
                     ))}
                   </div>
                 )
@@ -589,13 +584,7 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
                   <div className="statbox">
                     <div className="cap" style={{ marginBottom: 9 }}>Goles por tramo del partido · toda la competición</div>
                     {tramosComp.map((t) => (
-                      <div className="tramo" key={t.tramo}>
-                        <span className="gnum gc" />
-                        <div className="tramo-side gc" />
-                        <span className="tramo-lbl">{t.tramo}{t.tramo !== '90+' ? "'" : ''}</span>
-                        <div className="tramo-side">{t.gf > 0 && <div className="tramo-b gf" style={{ width: `${(t.gf / maxT) * 100}%` }} />}</div>
-                        <span className="gnum gf" style={{ color: 'var(--e3)' }}>{mil(t.gf)}</span>
-                      </div>
+                      <FilaEspejo key={t.tramo} center={`${t.tramo}${t.tramo !== '90+' ? "'" : ''}`} gc={0} gf={t.gf} maxBar={maxT} soloGf />
                     ))}
                   </div>
                 )

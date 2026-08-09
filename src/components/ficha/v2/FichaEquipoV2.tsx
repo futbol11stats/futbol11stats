@@ -15,6 +15,7 @@ import CompartirBtn from '@/components/ficha/v2/CompartirBtn'
 import NavSpy from '@/components/ficha/v2/NavSpy'
 import CompChips from '@/components/ficha/v2/CompChips'
 import JornadasEquipo from '@/components/ficha/v2/JornadasEquipo'
+import { FilaEspejo } from '@/components/ficha/v2/barrasGoles'
 import { TarjetaAmarilla, TarjetaDoble, TarjetaRoja, FlechaEntra, FlechaSale, Promocion, Escudo, Reloj, Balon, Guante, Tabla, Estrella } from '@/components/iconos'
 import { graphLd, breadcrumbLd, sportsTeamLd } from '@/lib/jsonld'
 import { SITE_URL } from '@/lib/seo'
@@ -196,7 +197,6 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
 
   // Total de goles (mismo origen que el desglose casa/fuera: la suma de ambos lados). Ver commit de fuente única.
   const golTot = { gf: ana.casa.gf + ana.fuera.gf, gc: ana.casa.gc + ana.fuera.gc, pj: ana.pj }
-  const ratio = (n: number, d: number) => (d ? (n / d).toFixed(1).replace('.', ',') : '—')
   // Iconos de goles (balón verde a favor / rojo en contra) para el ranking por faceta.
   const balV = <span style={{ color: 'var(--e3)', display: 'inline-flex' }}><Balon size={13} /></span>
   const balR = <span style={{ color: 'var(--e0)', display: 'inline-flex' }}><Balon size={13} /></span>
@@ -205,26 +205,10 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
   // la MISMA escala (maxBar) para ser comparables. El absoluto manda; el ratio por partido va detrás,
   // menor y atenuado (26 (1,5)). Los tramos no llevan ratio.
   const maxBar = Math.max(1, golTot.gf, golTot.gc, ...tramos.flatMap((t) => [t.gf, t.gc]))
-  // Barra espejo: la barra es SOLO el indicador proporcional; el número va SIEMPRE fuera, al final de su
-  // lado y alineado en columna (rojo a la izquierda = encajados · verde a la derecha = marcados). Todas
-  // las filas iguales, sin lógica dentro/fuera, y el texto siempre legible (sobre el fondo, no sobre la
-  // barra de color). El ratio por partido va detrás del absoluto, menor y atenuado: 26 (1,5).
-  const gNum = (val: number, rat: string, col: string, side: 'gc' | 'gf') =>
-    val > 0
-      ? <span className={`gnum ${side}`} style={{ color: col }}>{val}{rat ? <span className="tb-r">{rat}</span> : null}</span>
-      : <span className={`gnum ${side}`} />
-  const filaGoles = (label: ReactNode, gc: number, gf: number, pj: number | null, ratioOn: boolean) => {
-    const rat = (v: number) => (ratioOn && pj ? `(${ratio(v, pj)})` : '')
-    return (
-      <div className="tramo">
-        {gNum(gc, rat(gc), 'var(--e0)', 'gc')}
-        <div className="tramo-side gc">{gc > 0 && <div className="tramo-b gc" style={{ width: `${(gc / maxBar) * 100}%` }} />}</div>
-        <div className="tramo-lbl">{label}</div>
-        <div className="tramo-side">{gf > 0 && <div className="tramo-b gf" style={{ width: `${(gf / maxBar) * 100}%` }} />}</div>
-        {gNum(gf, rat(gf), 'var(--e3)', 'gf')}
-      </div>
-    )
-  }
+  // Barra espejo compartida (FilaEspejo): número siempre fuera de la barra. Ratio (pj) solo en las filas
+  // de resultado; los tramos no llevan ratio.
+  const filaGoles = (label: ReactNode, gc: number, gf: number, pj: number | null, ratioOn: boolean) =>
+    <FilaEspejo center={label} gc={gc} gf={gf} maxBar={maxBar} pj={ratioOn ? pj : null} />
 
   const tempTxt = tempSel ? tempLabel(tempSel) : ''
   const echoTxt = [tempTxt, nombreComp].filter(Boolean).join(' · ')
