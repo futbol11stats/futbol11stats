@@ -481,3 +481,13 @@
 .fjv2 .zrow .zt2{font-family:var(--font-display),'Barlow Condensed',sans-serif;font-size:var(--t-cap);font-weight:700;letter-spacing:.05em;padding:2px 7px;border-radius:4px;flex:none;border:1px solid;background:rgba(255,255,255,.03)}
 .fjv2 .zrow .zpts{font-family:var(--font-display),'Barlow Condensed',sans-serif;font-size:var(--n-sm);font-weight:700;flex:none;width:30px;text-align:right;font-variant-numeric:tabular-nums}
 .fjv2 .hueco{padding:6px var(--pad) 6px 22px;border-top:1px solid var(--line-2);font-size:var(--t-cap);color:var(--ink-4);font-style:italic}
+
+/* Carrera de posiciones (gráfico protagonista). */
+.fjv2 .carrera .cwrap{display:flex}
+.fjv2 .carrera .cyaxis{flex:none;width:26px;position:relative}
+.fjv2 .carrera .cyaxis span{position:absolute;right:5px;transform:translateY(-50%);font-family:var(--font-display),'Barlow Condensed',sans-serif;font-size:var(--t-micro);font-weight:600;color:var(--ink-3)}
+.fjv2 .cchips{display:flex;flex-wrap:wrap;gap:6px;padding:11px var(--pad) 0}
+.fjv2 .chip-eq{display:inline-flex;align-items:center;gap:6px;padding:4px 9px;border-radius:7px;border:1px solid var(--line);background:rgba(255,255,255,.03);cursor:pointer;font-family:var(--font-display),'Barlow Condensed',sans-serif;font-size:var(--t-sm);font-weight:600;color:var(--ink-3)}
+.fjv2 .chip-eq.on{color:var(--ink);background:var(--pitch-700)}
+.fjv2 .chip-eq i{width:10px;height:10px;border-radius:50%;flex:none;opacity:.35}
+.fjv2 .chip-eq.on i{opacity:1}

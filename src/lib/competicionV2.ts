@@ -229,3 +229,37 @@ export async function getGlobalClasifV2(codgrupos: string[], codtemporada: numbe
     .in('codgrupo', codgrupos).eq('codtemporada', codtemporada).eq('jornada', jornada).order('pos')
   return (data || []) as any[]
 }
+
+// --- Carrera de posiciones: posición por jornada de cada equipo + bandas de zona (de la última jornada). ---
+const CARRERA_PAL = ['#d94f4f', '#2f9e6d', '#e0a53f', '#6b8fd6', '#5b6fa8', '#c93f6f', '#9e7a3f', '#7a9e3f', '#3fb0a5', '#8a4fd6', '#3f9ed6', '#a04fd6', '#4fae7a', '#d67a3f', '#6b5fd6', '#8a9ab8', '#5b8fa8', '#b0863f', '#5fae9e', '#c96f9e']
+const iniEq = (n: string) => (n || '').replace(/['"]/g, '').split(/\s+/).filter((w) => w.length > 2).slice(0, 1).join('').slice(0, 3).toUpperCase() || (n || '').slice(0, 3).toUpperCase()
+export type CarreraSerie = { codequipo: string; nombre: string; ini: string; color: string; pos: number[] }
+export type CarreraBand = { from: number; to: number; color: string }
+export async function getCarreraV2(codgrupo: string, codtemporada: number): Promise<{ series: CarreraSerie[]; jornadas: number[]; bands: CarreraBand[] }> {
+  const { data } = await supabase.from('web_clasificacion').select('jornada, codequipo, nombre_equipo, pos, zona')
+    .eq('codgrupo', codgrupo).eq('codtemporada', codtemporada).order('jornada').order('pos')
+  const rows = (data || []) as any[]
+  if (!rows.length) return { series: [], jornadas: [], bands: [] }
+  const jornadas = Array.from(new Set(rows.map((r) => Number(r.jornada)))).sort((a, b) => a - b)
+  const maxJ = jornadas[jornadas.length - 1]
+  const last = rows.filter((r) => Number(r.jornada) === maxJ).sort((a, b) => a.pos - b.pos)
+  const byTeam = new Map<string, Map<number, number>>()
+  for (const r of rows) { const k = String(r.codequipo); if (!byTeam.has(k)) byTeam.set(k, new Map()); byTeam.get(k)!.set(Number(r.jornada), r.pos) }
+  const series: CarreraSerie[] = last.map((t, idx) => {
+    const m = byTeam.get(String(t.codequipo))!
+    let prev = m.get(jornadas[0]) ?? t.pos
+    const pos = jornadas.map((j) => { const p = m.get(j); if (p != null) prev = p; return prev })
+    return { codequipo: String(t.codequipo), nombre: t.nombre_equipo, ini: iniEq(t.nombre_equipo), color: CARRERA_PAL[idx % CARRERA_PAL.length], pos }
+  })
+  // Bandas por posición desde la última jornada (zona real), fusionando posiciones consecutivas de la misma familia.
+  const famByPos = new Map<number, ZonaFam>()
+  for (const r of last) { const f = zonaFamilia(r.zona); if (f) famByPos.set(r.pos, f) }
+  const raw: { from: number; to: number; fam: ZonaFam }[] = []
+  for (let p = 1; p <= last.length; p++) {
+    const f = famByPos.get(p); if (!f) continue
+    const prev = raw[raw.length - 1]
+    if (prev && prev.fam === f && prev.to === p - 1) prev.to = p
+    else raw.push({ from: p, to: p, fam: f })
+  }
+  return { series, jornadas, bands: raw.map((b) => ({ from: b.from, to: b.to, color: ZONA_FAM_COL[b.fam] })) }
+}

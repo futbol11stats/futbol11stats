@@ -14,11 +14,12 @@ import { fichasInfo } from '@/lib/jugador'
 import { ZONA_BG, ZONA_LEYENDA, ARRASTRE_TIPOS } from '@/components/tablas'
 import { type Ronda } from '@/lib/competiciones'
 import RankingComp, { type RankItem } from '@/components/ficha/v2/RankingComp'
+import CarreraPosiciones from '@/components/ficha/v2/CarreraPosiciones'
 import {
   TEMPORADA_MAP, COD_TO_LABEL, TEMPORADAS_ORD, getGrupoV2, getVariantesV2, getGruposHermanos,
   getClasifV2, kpisDeClasif, zonaColor, RACHA_COL, type ClasifCompRow,
   getDestacadosV2, getEquiposFormaV2, getTopTemporadaV2, getXiJornadaV2, getXiTemporadaV2, colorMediaJug,
-  getResultadosV2, getEquiposMapV2, type ResultadoCompRow,
+  getResultadosV2, getEquiposMapV2, type ResultadoCompRow, getCarreraV2,
 } from '@/lib/competicionV2'
 
 const mil = (n: number | null | undefined) => (n == null ? '—' : Math.round(Number(n)).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.'))
@@ -108,6 +109,10 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
   // Clasificación alimenta KPIs + panel; siempre se pide (salvo copa, sin clasificación).
   const clasif: ClasifCompRow[] = isCopa ? [] : await getClasifV2(grupo.codgrupo, codtemporada, jornadaNum)
   const kpis = kpisDeClasif(clasif)
+  // Carrera de posiciones (gráfico protagonista) — solo en la pestaña Clasificación.
+  const carrera = !isCopa && tabEf === 'clasificacion'
+    ? await getCarreraV2(grupo.codgrupo, codtemporada)
+    : { series: [], jornadas: [], bands: [] }
 
   // Datos de la pestaña activa (tab-gated).
   let mvpJ: any[] = [], equiposForma: any[] = [], xi: any[] = []
@@ -365,6 +370,14 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
                   )}
                 </>
               ) : <p className="vacio">Sin clasificación en esta jornada.</p>}
+            </section>
+          )}
+
+          {/* CARRERA DE POSICIONES — gráfico protagonista, bajo la clasificación. */}
+          {tabEf === 'clasificacion' && carrera.series.length > 0 && (
+            <section>
+              <div className="s-head"><div className="s-title">Carrera de posiciones</div><div className="s-sub">jornada a jornada</div></div>
+              <CarreraPosiciones series={carrera.series} jornadas={carrera.jornadas} bands={carrera.bands} />
             </section>
           )}
 
