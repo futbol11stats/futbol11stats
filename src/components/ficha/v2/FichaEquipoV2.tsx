@@ -188,6 +188,9 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
 
   // Badge (11) del logo F11S para las métricas propias (Media F./ELO), igual que en la ficha de jugador.
   const badge11 = <span style={{ width: 20, height: 20, borderRadius: '50%', background: '#1a7a3c', display: 'grid', placeItems: 'center', fontFamily: 'var(--font-display), sans-serif', fontWeight: 700, color: '#fff', fontSize: 11, lineHeight: 1 }}>11</span>
+  // Badge grande (26px), del mismo tamaño que el sello de las pastillas de competición (LigaPastilla), para
+  // la pastilla de ELO máx de la cabecera.
+  const badge11Sello = <span style={{ width: 26, height: 26, borderRadius: '50%', background: '#1a7a3c', display: 'grid', placeItems: 'center', fontFamily: 'var(--font-display), sans-serif', fontWeight: 700, color: '#fff', fontSize: 14, lineHeight: 1, flex: 'none' }}>11</span>
   // Forma: la media de puntos FANTASY por partido se colorea con los mismos cortes que el KPI (colorMedia).
   const RC: Record<'G' | 'E' | 'P', string> = { G: 'var(--e3)', E: 'var(--ink-3)', P: 'var(--e0)' }
 
@@ -202,11 +205,31 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
   // la MISMA escala (maxBar) para ser comparables. El absoluto manda; el ratio por partido va detrás,
   // menor y atenuado (26 (1,5)). Los tramos no llevan ratio.
   const maxBar = Math.max(1, golTot.gf, golTot.gc, ...tramos.flatMap((t) => [t.gf, t.gc]))
-  const barGoles = (label: string, gc: number, gf: number, pj: number | null) => (
+  // Un lado de la barra espejo. El número va DENTRO de la barra si cabe; si la barra (proporcional) es más
+  // estrecha que el texto, se saca FUERA, junto a ella y en su color. Umbral por MEDIDA (no por valor):
+  // se estima el ancho del texto (nº de caracteres) y el de la barra en el caso más estrecho (móvil, carril
+  // ~140px) — decisión única de SSR válida para móvil y desktop (en desktop hay más sitio, así que lo que
+  // cabe en móvil cabe, y lo que sale fuera se lee igual). El ratio en paréntesis va con el número.
+  const SIDE_PX = 140, CHAR_W = 7, RCHAR_W = 5.6, PAD_IN = 12
+  const sideBar = (val: number, pj: number | null, kind: 'gc' | 'gf', ratioOn: boolean) => {
+    if (val <= 0) return <div className={kind === 'gc' ? 'tramo-side gc' : 'tramo-side'} />
+    const rat = ratioOn && pj ? `(${ratio(val, pj)})` : ''
+    const pct = (val / maxBar) * 100
+    const textW = String(val).length * CHAR_W + (rat ? (rat.length + 1) * RCHAR_W : 0)
+    const dentro = (pct / 100) * SIDE_PX >= textW + PAD_IN
+    const col = kind === 'gc' ? 'var(--e0)' : 'var(--e3)'
+    const num = <>{val}{rat ? <span className="tb-r">{` ${rat}`}</span> : null}</>
+    const bar = <div className={`tramo-b ${kind}${dentro ? '' : ' empty'}`} style={{ width: `${pct}%` }}>{dentro ? num : null}</div>
+    const fuera = dentro ? null : <span className="tb-out" style={{ color: col }}>{num}</span>
+    return kind === 'gc'
+      ? <div className="tramo-side gc">{fuera}{bar}</div>
+      : <div className="tramo-side">{bar}{fuera}</div>
+  }
+  const filaGoles = (label: ReactNode, gc: number, gf: number, pj: number | null, ratioOn: boolean) => (
     <div className="tramo">
-      <div className="tramo-side gc">{gc > 0 && <div className="tramo-b gc" style={{ width: `${(gc / maxBar) * 100}%` }}>{gc}{pj ? <span className="tb-r">({ratio(gc, pj)})</span> : null}</div>}</div>
+      {sideBar(gc, pj, 'gc', ratioOn)}
       <div className="tramo-lbl">{label}</div>
-      <div className="tramo-side">{gf > 0 && <div className="tramo-b gf" style={{ width: `${(gf / maxBar) * 100}%` }}>{gf}{pj ? <span className="tb-r">({ratio(gf, pj)})</span> : null}</div>}</div>
+      {sideBar(gf, pj, 'gf', ratioOn)}
     </div>
   )
 
@@ -265,7 +288,7 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
               href={grupoUrl} muted={inactivo} />
           )}
           <CopasLinea copas={copas} />
-          {e.temporada_elo_max && <span className="pill n">{badge11}<span>ELO máx {mil(e.elo_max)} · {tempLabel(e.temporada_elo_max)}</span></span>}
+          {e.temporada_elo_max && <span className="pill n">{badge11Sello}<span>ELO máx {mil(e.elo_max)} · {tempLabel(e.temporada_elo_max)}</span></span>}
         </div>
       </div>
 
@@ -455,17 +478,13 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
               <div className="box">
                 <div className="cap" style={{ marginBottom: 9 }}>Goles</div>
                 <div className="tramo-head"><div className="th">◀ Encajados</div><div className="th-mid" /><div className="th r">Marcados ▶</div></div>
-                {barGoles('Total', golTot.gc, golTot.gf, golTot.pj)}
-                {barGoles('Casa', ana.casa.gc, ana.casa.gf, ana.casa.pj)}
-                {barGoles('Fuera', ana.fuera.gc, ana.fuera.gf, ana.fuera.pj)}
+                {filaGoles('Total', golTot.gc, golTot.gf, golTot.pj, true)}
+                {filaGoles(<><IndicadorLocal esLocal={true} />Casa</>, ana.casa.gc, ana.casa.gf, ana.casa.pj, true)}
+                {filaGoles(<><IndicadorLocal esLocal={false} />Fuera</>, ana.fuera.gc, ana.fuera.gf, ana.fuera.pj, true)}
                 {tramos.length > 0 && (
                   <div className="goles-tramos">
                     {tramos.map((t) => (
-                      <div className="tramo" key={t.tramo}>
-                        <div className="tramo-side gc">{t.gc > 0 && <div className="tramo-b gc" style={{ width: `${(t.gc / maxBar) * 100}%` }}>{t.gc}</div>}</div>
-                        <div className="tramo-lbl">{t.tramo}{t.tramo !== '90+' ? "'" : ''}</div>
-                        <div className="tramo-side">{t.gf > 0 && <div className="tramo-b gf" style={{ width: `${(t.gf / maxBar) * 100}%` }}>{t.gf}</div>}</div>
-                      </div>
+                      <Fragment key={t.tramo}>{filaGoles(`${t.tramo}${t.tramo !== '90+' ? "'" : ''}`, t.gc, t.gf, null, false)}</Fragment>
                     ))}
                   </div>
                 )}
