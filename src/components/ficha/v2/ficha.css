@@ -519,3 +519,4 @@
 /* Fila de datos completa (Top 5): chips icono+valor dentro de la linea de contexto del ranking. */
 .fjv2 .rr .re .cfj{display:flex;flex-wrap:wrap;gap:4px 10px;align-items:center}
 .fjv2 .rr .re .cfj>span{display:inline-flex;align-items:center;gap:3px}
+.fjv2 .rr .re .cfj-none{color:var(--ink-4);font-style:italic}

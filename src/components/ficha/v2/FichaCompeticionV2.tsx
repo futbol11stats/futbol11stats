@@ -90,17 +90,17 @@ function campoXI(players: { posicion: string; nombre: string; valor: number | st
 }
 
 // Fila de datos COMPLETA de un jugador en una jornada (web_jugador_partidos), estilo Top de la plantilla:
-// titular/suplente · minutos · goles (o portería a cero si POR) · tarjetas. Iconos con su color propio.
-function filaJornada(p: any, pos: string | null) {
+// titular/suplente · minutos · goles (o portería a cero si actuó de portero) · tarjetas. Con color propio.
+// "Actuó de portero" = goles_encajados != null (mismo criterio que la ficha de jugador), no la demarcación.
+function filaJornada(p: any) {
   if (!p) return null
-  const esPor = pos === 'POR'
-  const p0 = esPor && p.jugado && (p.goles_encajados === 0) ? 1 : 0
+  const esPor = p.goles_encajados != null
   return (
     <span className="cfj">
       <span>{p.titular ? <Camiseta size={11} /> : <CamisetaHueca size={11} />}{p.titular ? 'Titular' : 'Supl.'}</span>
       <span><b className="num">{p.minutos ?? 0}</b><Reloj size={11} /></span>
       {esPor
-        ? <span><b className="num">{p0}</b><span style={{ color: 'var(--amber)', display: 'inline-flex' }}><Guante size={11} /></span></span>
+        ? <span><b className="num">{p.goles_encajados === 0 ? 1 : 0}</b><span style={{ color: 'var(--amber)', display: 'inline-flex' }}><Guante size={11} /></span></span>
         : <span><b className="num">{p.goles ?? 0}</b><span style={{ color: 'var(--e3)', display: 'inline-flex' }}><Balon size={11} /></span></span>}
       {p.amarillas > 0 && <span style={{ color: 'var(--card-y)' }}>{p.amarillas}<TarjetaAmarilla size={10} /></span>}
       {p.dobles_amarilla > 0 && <span style={{ color: 'var(--card-y)' }}><TarjetaDoble size={11} /></span>}
@@ -199,6 +199,7 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
       getEquiposMapV2(grupo.codgrupo, codtemporada),
     ])
     golJ = gj; equiposMap = em; golesEquipo = golesEquipoJornada(res, em)
+    partMap = await getPartidosJornadaV2(grupo.codgrupo, codtemporada, jornadaNum, golJ.map((j: any) => String(j.codjugador)))
   } else if (tabEf === 'tarjetas-jornada') {
     const [tj, susp] = await Promise.all([
       getDestacadosV2(grupo.codgrupo, codtemporada, jornadaNum, 'tarjetas_jornada'),
@@ -210,7 +211,10 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
     partMap = await getPartidosJornadaV2(grupo.codgrupo, codtemporada, jornadaNum, mvpJ.map((j: any) => String(j.codjugador)))
   }
   else if (tabEf === 'top5-equipos-jornada') equiposForma = await getEquiposFormaV2(grupo.codgrupo, codtemporada, jornadaNum)
-  else if (tabEf === 'once-optimo-jornada') xi = await getXiJornadaV2(grupo.codgrupo, codtemporada, jornadaNum, isCopa)
+  else if (tabEf === 'once-optimo-jornada') {
+    xi = await getXiJornadaV2(grupo.codgrupo, codtemporada, jornadaNum, isCopa)
+    partMap = await getPartidosJornadaV2(grupo.codgrupo, codtemporada, jornadaNum, xi.map((j: any) => String(j.codjugador)))
+  }
   else if (tabEf === 'once-optimo-temporada') xi = await getXiTemporadaV2(grupo.codgrupo, codtemporada, jornadaNum)
   else if (tabEf === 'top10-goleadores-temporada' || tabEf === 'top10-porteros-temporada' || tabEf === 'top10-elo-jugadores-temporada' || tabEf === 'top10-fantasy-temporada')
     topTemp = await getTopTemporadaV2(grupo.codgrupo, codtemporada, jornadaNum)
@@ -249,7 +253,7 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
         return {
           rank: j.rank, codjugador: j.codjugador, nombre: j.nombre, pos: j.posicion, escudo: j.escudo, nombreEquipo: j.nombre_equipo,
           valor: Math.round((p?.puntos ?? j.pts_fantasy) ?? 0), valorColor: 'var(--e3)',
-          extra: filaJornada(p, j.posicion),
+          extra: p ? filaJornada(p) : <span className="cfj-none">Sin datos del partido</span>,
         }
       }),
       leyenda: <><b>Titular/Supl.</b> · minutos · goles (o portería a cero, portero) · tarjetas · el chip verde son los <b>puntos fantasy</b> de la jornada.</>,
@@ -321,11 +325,16 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
       title: esTemp ? 'XI Óptimo de la temporada' : 'XI Óptimo de la jornada',
       sub: esTemp ? acum : (rondaSel?.label ?? `jornada ${jornadaNum}`),
       players: xi.map((j) => ({ posicion: j.posicion, nombre: j.nombre, valor: valOf(j) })),
-      items: xi.map((j) => ({
-        rank: j.posicion, rankColor: POSC[j.posicion], codjugador: j.codjugador, nombre: j.nombre, pos: j.posicion,
-        escudo: j.escudo, nombreEquipo: j.nombre_equipo, valor: valOf(j), valorColor: POSC[j.posicion] ?? 'var(--e3)',
-        extra: <span><b className="num">{j.goles ?? 0}</b> {(j.goles ?? 0) === 1 ? 'gol' : 'goles'}{esTemp && j.racha_5p != null ? <> · racha <b className="num">{j.racha_5p}</b></> : null}{esTemp && j.power_ranking != null ? <> · power <b className="num">{j.power_ranking}</b></> : null}</span>,
-      })),
+      items: xi.map((j) => {
+        const p = esTemp ? null : partMap.get(String(j.codjugador))
+        const extra = esTemp
+          ? <span><b className="num">{j.goles ?? 0}</b> {(j.goles ?? 0) === 1 ? 'gol' : 'goles'}{j.racha_5p != null ? <> · racha <b className="num">{j.racha_5p}</b></> : null}{j.power_ranking != null ? <> · power <b className="num">{j.power_ranking}</b></> : null}</span>
+          : (p ? filaJornada(p) : <span className="cfj-none">Sin datos del partido</span>)
+        return {
+          rank: j.posicion, rankColor: POSC[j.posicion], codjugador: j.codjugador, nombre: j.nombre, pos: j.posicion,
+          escudo: j.escudo, nombreEquipo: j.nombre_equipo, valor: valOf(j), valorColor: POSC[j.posicion] ?? 'var(--e3)', extra,
+        }
+      }),
       leyenda: esTemp
         ? <><b>Pos</b> posición en el campo · <b>Pts Fantasy</b> acumulados · <b>Goles</b> en la temporada · <b>Racha 5p</b> suma fantasy de las últimas 5 jornadas · <b>Power Ranking</b> índice combinado.</>
         : <><b>Pos</b> posición en el campo · <b>Pts Fantasy</b> puntos en la jornada · <b>Goles</b> en la jornada.</>,
@@ -501,7 +510,10 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
               <section>
                 <div className="s-head"><div className="s-title">Goleadores de la jornada</div><div className="s-sub">{esFamilia ? (rondaSel?.label ?? `jornada ${jornadaNum}`) : `jornada ${jornadaNum}`}</div></div>
                 {golJ.length > 0
-                  ? <RankingComp fichas={fichas} barColor="var(--e4)" items={golJ.map((j) => ({ rank: j.rank, codjugador: j.codjugador, nombre: j.nombre, pos: j.posicion, escudo: j.escudo, nombreEquipo: j.nombre_equipo, valor: j.goles, valorColor: 'var(--e4)', extra: <span><b className="num">{j.goles}</b> {j.goles === 1 ? 'gol' : 'goles'} en la jornada</span> }))} />
+                  ? <RankingComp fichas={fichas} barColor="var(--e4)" items={golJ.map((j) => {
+                    const p = partMap.get(String(j.codjugador))
+                    return { rank: j.rank, codjugador: j.codjugador, nombre: j.nombre, pos: j.posicion, escudo: j.escudo, nombreEquipo: j.nombre_equipo, valor: (p?.goles ?? j.goles) ?? 0, valorColor: 'var(--e4)', extra: p ? filaJornada(p) : <span className="cfj-none">Sin datos del partido</span> }
+                  })} />
                   : <p className="vacio">Sin goleadores en esta jornada.</p>}
               </section>
               {golesEquipo.length > 0 && (

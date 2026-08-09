@@ -360,7 +360,7 @@ export async function getPartidosJornadaV2(codgrupo: string, codtemporada: numbe
   if (!codjugadores.length) return m
   const { data } = await supabase.from('web_jugador_partidos')
     .select('codjugador, titular, minutos, goles, amarillas, dobles_amarilla, rojas, puntos, goles_encajados, jugado')
-    .eq('codgrupo', codgrupo).eq('codtemporada', codtemporada).eq('jornada', jornada).in('codjugador', codjugadores)
+    .eq('codgrupo', codgrupo).eq('codtemporada', codtemporada).eq('jornada', jornada).eq('jugado', true).in('codjugador', codjugadores)
   for (const r of (data || []) as any[]) if (!m.has(String(r.codjugador))) m.set(String(r.codjugador), r)
   return m
 }
