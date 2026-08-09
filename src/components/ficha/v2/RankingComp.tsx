@@ -2,14 +2,9 @@ import type { ReactNode } from 'react'
 import EscudoBox from '@/components/ficha/v2/EscudoBox'
 import NombreJugador from '@/components/NombreJugador'
 import NombreEquipo from '@/components/NombreEquipo'
+import { inicialesJugador, avaStyle } from '@/components/ficha/v2/jugadorFila'
 
-// Avatar de iniciales por demarcación, como el Top de la plantilla de equipo v2 (AVA_POS).
-const AVA_POS: Record<string, string> = { POR: '249,115,22', DEF: '59,130,246', MED: '34,160,80', DEL: '239,68,68' }
-const avaStyle = (pos?: string | null) => {
-  const c = AVA_POS[pos || ''] || '100,116,139'
-  return { background: `linear-gradient(to bottom right, rgba(${c},.45), var(--pitch-800))`, border: `1.5px solid rgba(${c},.55)`, color: '#fff' }
-}
-const iniciales = (n: string) => (n || '').split(/\s+/).map((w) => w[0]).filter(Boolean).slice(0, 2).join('').toUpperCase()
+const iniciales = inicialesJugador
 
 export type RankItem = {
   rank: number | string

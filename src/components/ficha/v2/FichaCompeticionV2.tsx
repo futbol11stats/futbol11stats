@@ -6,7 +6,7 @@ import Sello from '@/components/Sello'
 import EscudoBox from '@/components/ficha/v2/EscudoBox'
 import NombreEquipo from '@/components/NombreEquipo'
 import NombreJugador from '@/components/NombreJugador'
-import { Escudo, Calendario, Balon, Guante, Casa, Avion, TarjetaAmarilla, TarjetaDoble, TarjetaRoja, Guion } from '@/components/iconos'
+import { Escudo, Calendario, Balon, Guante, Casa, Avion, TarjetaAmarilla, TarjetaDoble, TarjetaRoja, Guion, Camiseta, CamisetaHueca, Reloj } from '@/components/iconos'
 import { nombreOficial, denominacion, familiaSello } from '@/lib/sellos'
 import { ensureMadrid } from '@/lib/seo'
 import { LIVE_COD, fechaCortaDMY } from '@/lib/equipo'
@@ -16,12 +16,14 @@ import { ZONA_BG, ZONA_LEYENDA, ARRASTRE_TIPOS } from '@/components/tablas'
 import { type Ronda } from '@/lib/competiciones'
 import RankingComp, { type RankItem } from '@/components/ficha/v2/RankingComp'
 import CarreraPosiciones from '@/components/ficha/v2/CarreraPosiciones'
+import { inicialesJugador } from '@/components/ficha/v2/jugadorFila'
 import {
   TEMPORADA_MAP, COD_TO_LABEL, TEMPORADAS_ORD, getGrupoV2, getVariantesV2, getGruposHermanos,
   getClasifV2, kpisDeClasif, zonaColor, FORMA_COL, type ClasifCompRow,
   getDestacadosV2, getEquiposFormaV2, getTopTemporadaV2, getXiJornadaV2, getXiTemporadaV2, colorMediaJug,
   getResultadosV2, getEquiposMapV2, type ResultadoCompRow, getCarreraV2,
   getLideresV2, getCifrasV2, type CifrasComp, golesEquipoJornada, type GolEquipoRow, getSuspendidosV2,
+  getPartidosJornadaV2,
 } from '@/lib/competicionV2'
 
 const mil = (n: number | null | undefined) => (n == null ? '—' : Math.round(Number(n)).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.'))
@@ -56,7 +58,7 @@ const badge11 = <span style={{ width: 20, height: 20, borderRadius: '50%', backg
 // XI Óptimo sobre campo: colores por demarcación (maqueta) + formación deducida contando posiciones.
 const POSC: Record<string, string> = { POR: '#f0b429', DEF: '#9ac4f1', MED: '#8cefa5', DEL: '#f2a3c0' }
 const LINE_Y: Record<string, number> = { POR: 88, DEF: 70, MED: 48, DEL: 24 }
-const iniXI = (n: string) => (n || '').split(/\s+/).map((w) => w[0]).filter(Boolean).slice(0, 2).join('').toUpperCase()
+const iniXI = inicialesJugador
 function campoXI(players: { posicion: string; nombre: string; valor: number | string }[]) {
   const byLine: Record<string, typeof players> = { POR: [], DEF: [], MED: [], DEL: [] }
   players.forEach((p) => { (byLine[p.posicion] || byLine.MED).push(p) })
@@ -84,6 +86,26 @@ function campoXI(players: { posicion: string; nombre: string; valor: number | st
       <div className="ln" style={{ left: '36%', width: '28%', top: '39%', height: '22%', borderRadius: '50%' }} />
       {dots}
     </div>
+  )
+}
+
+// Fila de datos COMPLETA de un jugador en una jornada (web_jugador_partidos), estilo Top de la plantilla:
+// titular/suplente · minutos · goles (o portería a cero si POR) · tarjetas. Iconos con su color propio.
+function filaJornada(p: any, pos: string | null) {
+  if (!p) return null
+  const esPor = pos === 'POR'
+  const p0 = esPor && p.jugado && (p.goles_encajados === 0) ? 1 : 0
+  return (
+    <span className="cfj">
+      <span>{p.titular ? <Camiseta size={11} /> : <CamisetaHueca size={11} />}{p.titular ? 'Titular' : 'Supl.'}</span>
+      <span><b className="num">{p.minutos ?? 0}</b><Reloj size={11} /></span>
+      {esPor
+        ? <span><b className="num">{p0}</b><span style={{ color: 'var(--amber)', display: 'inline-flex' }}><Guante size={11} /></span></span>
+        : <span><b className="num">{p.goles ?? 0}</b><span style={{ color: 'var(--e3)', display: 'inline-flex' }}><Balon size={11} /></span></span>}
+      {p.amarillas > 0 && <span style={{ color: 'var(--card-y)' }}>{p.amarillas}<TarjetaAmarilla size={10} /></span>}
+      {p.dobles_amarilla > 0 && <span style={{ color: 'var(--card-y)' }}><TarjetaDoble size={11} /></span>}
+      {p.rojas > 0 && <span style={{ color: 'var(--card-r)' }}><TarjetaRoja size={10} /></span>}
+    </span>
   )
 }
 
@@ -115,10 +137,9 @@ function lidCard(label: string, icon: ReactNode, color: string, val: ReactNode, 
       <div className="lv"><span className="big" style={{ color }}>{val}</span><span className="u">{unit}</span></div>
       <div className="lb">
         <div className="lav">{iniXI(j.nombre)}</div>
-        <EscudoBox escudo={j.escudo} nombre={j.nombre_equipo} size={22} radius={5} />
-        <div style={{ minWidth: 0 }}>
+        <div className="lbm">
           <div className="lnm"><NombreJugador codjugador={j.codjugador} nombre={j.nombre} fichas={fichas} /></div>
-          <div className="leqn">{j.nombre_equipo}</div>
+          <div className="leqn"><EscudoBox escudo={j.escudo} nombre={j.nombre_equipo} size={14} radius={4} /><span>{j.nombre_equipo}</span></div>
         </div>
       </div>
     </div>
@@ -164,6 +185,7 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
   let mvpJ: any[] = [], equiposForma: any[] = [], xi: any[] = [], golJ: any[] = [], tarjJ: any[] = [], suspendidos: any[] = []
   let resultados: ResultadoCompRow[] = [], equiposMap = new Map<string, string>()
   let golesEquipo: GolEquipoRow[] = []
+  let partMap = new Map<string, any>()
   let topTemp: { goleadores: any[]; porteros: any[]; fantasy: any[]; elo: any[] } | null = null
   if (tabEf === 'resultados') {
     [resultados, equiposMap] = await Promise.all([
@@ -183,14 +205,17 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
       getSuspendidosV2(grupo.codgrupo, codtemporada, jornadaNum + 1),
     ])
     tarjJ = tj; suspendidos = susp
-  } else if (tabEf === 'top5-jugadores-jornada') mvpJ = await getDestacadosV2(grupo.codgrupo, codtemporada, jornadaNum, 'mvp_jornada')
+  } else if (tabEf === 'top5-jugadores-jornada') {
+    mvpJ = await getDestacadosV2(grupo.codgrupo, codtemporada, jornadaNum, 'mvp_jornada')
+    partMap = await getPartidosJornadaV2(grupo.codgrupo, codtemporada, jornadaNum, mvpJ.map((j: any) => String(j.codjugador)))
+  }
   else if (tabEf === 'top5-equipos-jornada') equiposForma = await getEquiposFormaV2(grupo.codgrupo, codtemporada, jornadaNum)
   else if (tabEf === 'once-optimo-jornada') xi = await getXiJornadaV2(grupo.codgrupo, codtemporada, jornadaNum, isCopa)
   else if (tabEf === 'once-optimo-temporada') xi = await getXiTemporadaV2(grupo.codgrupo, codtemporada, jornadaNum)
   else if (tabEf === 'top10-goleadores-temporada' || tabEf === 'top10-porteros-temporada' || tabEf === 'top10-elo-jugadores-temporada' || tabEf === 'top10-fantasy-temporada')
     topTemp = await getTopTemporadaV2(grupo.codgrupo, codtemporada, jornadaNum)
 
-  const lidJugs = lideres ? [lideres.goleador, lideres.portero, lideres.elo].filter(Boolean) : []
+  const lidJugs = lideres ? [lideres.goleador, lideres.portero, lideres.elo, lideres.tarjetas].filter(Boolean) : []
   const codjugs = [...mvpJ, ...xi, ...golJ, ...tarjJ, ...suspendidos, ...lidJugs, ...(topTemp ? [...topTemp.goleadores, ...topTemp.porteros, ...topTemp.elo, ...topTemp.fantasy] : [])].map((j: any) => j.codjugador)
   const fichas = await fichasInfo(codjugs)
 
@@ -219,12 +244,15 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
   if (tabEf === 'top5-jugadores-jornada') {
     rankView = {
       title: '5 mejores jugadores', sub: `puntos fantasy · jornada ${jornadaNum}`,
-      items: mvpJ.map((j) => ({
-        rank: j.rank, codjugador: j.codjugador, nombre: j.nombre, pos: j.posicion, escudo: j.escudo, nombreEquipo: j.nombre_equipo,
-        valor: Math.round(j.pts_fantasy ?? 0), valorColor: 'var(--e3)',
-        extra: <span><b className="num">{j.goles ?? 0}</b> {(j.goles ?? 0) === 1 ? 'gol' : 'goles'} en la jornada</span>,
-      })),
-      leyenda: <><b>Pts Fantasy</b> puntos en la jornada · <b>Goles</b> goles en la jornada.</>,
+      items: mvpJ.map((j) => {
+        const p = partMap.get(String(j.codjugador))
+        return {
+          rank: j.rank, codjugador: j.codjugador, nombre: j.nombre, pos: j.posicion, escudo: j.escudo, nombreEquipo: j.nombre_equipo,
+          valor: Math.round((p?.puntos ?? j.pts_fantasy) ?? 0), valorColor: 'var(--e3)',
+          extra: filaJornada(p, j.posicion),
+        }
+      }),
+      leyenda: <><b>Titular/Supl.</b> · minutos · goles (o portería a cero, portero) · tarjetas · el chip verde son los <b>puntos fantasy</b> de la jornada.</>,
     }
   } else if (tabEf === 'top5-equipos-jornada') {
     rankView = {
@@ -542,13 +570,14 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
           {/* LÍDERES — tarjeta por líder: valor grande + unidad arriba, y bajo un filete el jugador
               (avatar, nombre, equipo + escudo). El tercero (más tarjetas) se omite: no hay ranking de
               tarjetas por jugador de temporada en el dato (ver DECISIONES). */}
-          {lideres && (lideres.goleador || lideres.portero || lideres.elo) && (
+          {lideres && (lideres.goleador || lideres.portero || lideres.elo || lideres.tarjetas) && (
             <section>
               <div className="s-head"><div className="s-title">Líderes</div><div className="s-sub">{temporada}{grupo.nombre_grupo ? ` · ${grupo.nombre_grupo}` : ''}</div></div>
               <div className="track"><div className="rail lideres">
                 {lidCard('Goleador', <Balon size={14} />, 'var(--e4)', lideres.goleador?.goles, 'goles', lideres.goleador, fichas)}
                 {lidCard('Portero', <Guante size={14} />, 'var(--amber)', lideres.portero?.goles, 'P0', lideres.portero, fichas)}
                 {lidCard('Mejor ELO', <Escudo size={14} />, 'var(--e3)', lideres.elo?.elo != null ? mil(lideres.elo.elo) : null, 'ELO', lideres.elo, fichas)}
+                {lidCard('Más tarjetas', <TarjetaAmarilla size={13} />, 'var(--card-y)', lideres.tarjetas?.amarillas, 'amarillas', lideres.tarjetas, fichas)}
               </div></div>
             </section>
           )}

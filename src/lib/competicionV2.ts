@@ -280,13 +280,24 @@ export async function getCarreraV2(codgrupo: string, codtemporada: number): Prom
 
 // --- Aside: líderes (goleador/portero/mejor ELO) y cifras de la competición. ---
 export async function getLideresV2(codgrupo: string, codtemporada: number) {
-  const { data } = await supabase.from('web_top_jugadores')
-    .select('tipo, jornada, codjugador, nombre, posicion, codequipo, nombre_equipo, escudo, goles, elo')
-    .eq('codgrupo', codgrupo).eq('codtemporada', codtemporada)
-    .in('tipo', ['goleadores_temp', 'porteros_temp', 'elo_temp']).eq('rank', 1)
-  const rows = (data || []) as any[]
+  const [top, al] = await Promise.all([
+    supabase.from('web_top_jugadores')
+      .select('tipo, jornada, codjugador, nombre, posicion, codequipo, nombre_equipo, escudo, goles, elo')
+      .eq('codgrupo', codgrupo).eq('codtemporada', codtemporada)
+      .in('tipo', ['goleadores_temp', 'porteros_temp', 'elo_temp']).eq('rank', 1),
+    // "Más tarjetas": no hay ranking de tarjetas por jugador de temporada; se usa la mejor fuente
+    // disponible, web_alertas_tarjetas (amarillas de ciclo + simples). Cubre solo a los que tienen
+    // registro disciplinario, así que es aproximado (ver DECISIONES C-lideres).
+    supabase.from('web_alertas_tarjetas')
+      .select('codjugador, nombre, posicion, codequipo, nombre_equipo, escudo, amarillas_ciclo, amarillas_simples')
+      .eq('codgrupo', codgrupo).eq('codtemporada', codtemporada),
+  ])
+  const rows = (top.data || []) as any[]
   const pick = (t: string) => rows.filter((r) => r.tipo === t).sort((a, b) => (Number(b.jornada) || 0) - (Number(a.jornada) || 0))[0] || null
-  return { goleador: pick('goleadores_temp'), portero: pick('porteros_temp'), elo: pick('elo_temp') }
+  const tarj = ((al.data || []) as any[])
+    .map((r) => ({ ...r, amarillas: (r.amarillas_ciclo || 0) + (r.amarillas_simples || 0) }))
+    .sort((a, b) => b.amarillas - a.amarillas)[0] || null
+  return { goleador: pick('goleadores_temp'), portero: pick('porteros_temp'), elo: pick('elo_temp'), tarjetas: tarj }
 }
 
 export type CifrasComp = {
@@ -340,4 +351,16 @@ export async function getSuspendidosV2(codgrupo: string, codtemporada: number, j
     .select('codjugador, nombre, posicion, codequipo, nombre_equipo, escudo, motivo')
     .eq('codgrupo', codgrupo).eq('codtemporada', codtemporada).eq('jornada', jornadaSiguiente).order('nombre_equipo')
   return (data || []) as any[]
+}
+
+// Datos por partido de UNA jornada para unos jugadores (web_jugador_partidos): titular, minutos, goles,
+// tarjetas, puntos, goles encajados. Para la fila completa del Top 5 (web_top_jugadores no los expone).
+export async function getPartidosJornadaV2(codgrupo: string, codtemporada: number, jornada: number, codjugadores: string[]) {
+  const m = new Map<string, any>()
+  if (!codjugadores.length) return m
+  const { data } = await supabase.from('web_jugador_partidos')
+    .select('codjugador, titular, minutos, goles, amarillas, dobles_amarilla, rojas, puntos, goles_encajados, jugado')
+    .eq('codgrupo', codgrupo).eq('codtemporada', codtemporada).eq('jornada', jornada).in('codjugador', codjugadores)
+  for (const r of (data || []) as any[]) if (!m.has(String(r.codjugador))) m.set(String(r.codjugador), r)
+  return m
 }
