@@ -22,8 +22,7 @@ import {
   getClasifV2, kpisDeClasif, zonaColor, FORMA_COL, type ClasifCompRow,
   getDestacadosV2, getEquiposFormaV2, getTopTemporadaV2, getXiJornadaV2, getXiTemporadaV2, colorMediaJug,
   getResultadosV2, getEquiposMapV2, type ResultadoCompRow, getCarreraV2,
-  getLideresV2, getCifrasV2, type CifrasComp, golesEquipoJornada, type GolEquipoRow, getSuspendidosV2,
-  getPartidosJornadaV2,
+  getLideresV2, getCifrasV2, type CifrasComp, getSuspendidosV2, getPartidosJornadaV2, getTramosCompeticionV2,
 } from '@/lib/competicionV2'
 
 const mil = (n: number | null | undefined) => (n == null ? '—' : Math.round(Number(n)).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.'))
@@ -184,8 +183,8 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
   // Datos de la pestaña activa (tab-gated).
   let mvpJ: any[] = [], equiposForma: any[] = [], xi: any[] = [], golJ: any[] = [], tarjJ: any[] = [], suspendidos: any[] = []
   let resultados: ResultadoCompRow[] = [], equiposMap = new Map<string, string>()
-  let golesEquipo: GolEquipoRow[] = []
   let partMap = new Map<string, any>()
+  let tramosComp: { tramo: string; gf: number }[] = []
   let topTemp: { goleadores: any[]; porteros: any[]; fantasy: any[]; elo: any[] } | null = null
   if (tabEf === 'resultados') {
     [resultados, equiposMap] = await Promise.all([
@@ -193,12 +192,7 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
       getEquiposMapV2(grupo.codgrupo, codtemporada),
     ])
   } else if (tabEf === 'goleadores-jornada') {
-    const [gj, res, em] = await Promise.all([
-      getDestacadosV2(grupo.codgrupo, codtemporada, jornadaNum, 'goleadores_jornada'),
-      getResultadosV2(grupo.codgrupo, codtemporada, jornadaNum),
-      getEquiposMapV2(grupo.codgrupo, codtemporada),
-    ])
-    golJ = gj; equiposMap = em; golesEquipo = golesEquipoJornada(res, em)
+    golJ = await getDestacadosV2(grupo.codgrupo, codtemporada, jornadaNum, 'goleadores_jornada')
     partMap = await getPartidosJornadaV2(grupo.codgrupo, codtemporada, jornadaNum, golJ.map((j: any) => String(j.codjugador)))
   } else if (tabEf === 'tarjetas-jornada') {
     const [tj, susp] = await Promise.all([
@@ -216,6 +210,7 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
     partMap = await getPartidosJornadaV2(grupo.codgrupo, codtemporada, jornadaNum, xi.map((j: any) => String(j.codjugador)))
   }
   else if (tabEf === 'once-optimo-temporada') xi = await getXiTemporadaV2(grupo.codgrupo, codtemporada, jornadaNum)
+  else if (tabEf === 'estadisticas') tramosComp = await getTramosCompeticionV2(grupo.codgrupo, codtemporada)
   else if (tabEf === 'top10-goleadores-temporada' || tabEf === 'top10-porteros-temporada' || tabEf === 'top10-elo-jugadores-temporada' || tabEf === 'top10-fantasy-temporada')
     topTemp = await getTopTemporadaV2(grupo.codgrupo, codtemporada, jornadaNum)
 
@@ -516,12 +511,6 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
                   })} />
                   : <p className="vacio">Sin goleadores en esta jornada.</p>}
               </section>
-              {golesEquipo.length > 0 && (
-                <section>
-                  <div className="s-head"><div className="s-title">Goles de equipo</div><div className="s-sub">jornada {jornadaNum}</div></div>
-                  <RankingComp barColor="var(--e4)" items={golesEquipo.map((e, i) => ({ rank: i + 1, codequipo: e.codequipo, nombre: e.nombre, escudo: e.escudo, nombreEquipo: e.nombre, valor: e.goles, valorColor: 'var(--e4)' }))} />
-                </section>
-              )}
             </>
           )}
 
@@ -548,7 +537,61 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
             </>
           )}
 
-          {tabEf !== 'clasificacion' && tabEf !== 'resultados' && tabEf !== 'goleadores-jornada' && tabEf !== 'tarjetas-jornada' && (rankView ? (
+          {/* ESTADÍSTICAS — reparto V/E/D + goles por equipo (espejo) + goles por tramo (solo verde). */}
+          {tabEf === 'estadisticas' && (
+            <section>
+              <div className="s-head"><div className="s-title">Estadísticas</div><div className="s-sub">acumulado hasta J{jornadaNum}</div></div>
+              {cifras && (
+                <div className="statbox">
+                  <div className="cap" style={{ marginBottom: 9 }}>Reparto de resultados</div>
+                  <div className="reparto">
+                    {cifras.vLocalPct > 0 && <span style={{ flex: cifras.vLocalPct, background: 'var(--e3)', color: '#08111f' }}>{cifras.vLocalPct}%</span>}
+                    {cifras.empPct > 0 && <span style={{ flex: cifras.empPct, background: 'var(--e1)', color: '#0a1628' }}>{cifras.empPct}%</span>}
+                    {cifras.vVisitPct > 0 && <span style={{ flex: cifras.vVisitPct, background: 'var(--e0)', color: '#0a1628' }}>{cifras.vVisitPct}%</span>}
+                  </div>
+                  <div className="reparto-lbl"><span>Gana local</span><span style={{ textAlign: 'center' }}>Empate</span><span style={{ textAlign: 'right' }}>Gana visitante</span></div>
+                </div>
+              )}
+              {clasif.length > 0 && (() => {
+                const maxG = Math.max(1, ...clasif.flatMap((r) => [r.gf, r.gc]))
+                return (
+                  <div className="statbox">
+                    <div className="cap" style={{ marginBottom: 9 }}>Goles por equipo · en orden de clasificación</div>
+                    <div className="tramo-head"><div className="th-gn" /><div className="th">◀ Encajados</div><div className="th-mid" /><div className="th r">Marcados ▶</div><div className="th-gn" /></div>
+                    {clasif.map((r) => (
+                      <div className="tramo" key={r.codequipo}>
+                        <span className="gnum gc" style={{ color: 'var(--e0)' }}>{mil(r.gc)}</span>
+                        <div className="tramo-side gc">{r.gc > 0 && <div className="tramo-b gc" style={{ width: `${(r.gc / maxG) * 100}%` }} />}</div>
+                        <span className="tramo-lbl"><EscudoBox escudo={r.escudo} nombre={r.nombre_equipo} size={22} radius={5} /></span>
+                        <div className="tramo-side">{r.gf > 0 && <div className="tramo-b gf" style={{ width: `${(r.gf / maxG) * 100}%` }} />}</div>
+                        <span className="gnum gf" style={{ color: 'var(--e3)' }}>{mil(r.gf)}</span>
+                      </div>
+                    ))}
+                  </div>
+                )
+              })()}
+              {tramosComp.some((t) => t.gf > 0) && (() => {
+                const maxT = Math.max(1, ...tramosComp.map((t) => t.gf))
+                return (
+                  <div className="statbox">
+                    <div className="cap" style={{ marginBottom: 9 }}>Goles por tramo del partido · toda la competición</div>
+                    {tramosComp.map((t) => (
+                      <div className="tramo" key={t.tramo}>
+                        <span className="gnum gc" />
+                        <div className="tramo-side gc" />
+                        <span className="tramo-lbl">{t.tramo}{t.tramo !== '90+' ? "'" : ''}</span>
+                        <div className="tramo-side">{t.gf > 0 && <div className="tramo-b gf" style={{ width: `${(t.gf / maxT) * 100}%` }} />}</div>
+                        <span className="gnum gf" style={{ color: 'var(--e3)' }}>{mil(t.gf)}</span>
+                      </div>
+                    ))}
+                  </div>
+                )
+              })()}
+              <div className="leyenda">Goles por equipo a la misma escala: <b style={{ color: 'var(--e0)' }}>encajados</b> a la izquierda, <b style={{ color: 'var(--e3)' }}>marcados</b> a la derecha. Abajo, los goles de la competición por tramo del partido.</div>
+            </section>
+          )}
+
+          {tabEf !== 'clasificacion' && tabEf !== 'resultados' && tabEf !== 'goleadores-jornada' && tabEf !== 'tarjetas-jornada' && tabEf !== 'estadisticas' && (rankView ? (
             <section>
               <div className="s-head"><div className="s-title">{rankView.title}</div><div className="s-sub">{rankView.sub}</div></div>
               {rankView.items.length > 0 ? (

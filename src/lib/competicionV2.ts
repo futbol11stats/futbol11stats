@@ -364,3 +364,13 @@ export async function getPartidosJornadaV2(codgrupo: string, codtemporada: numbe
   for (const r of (data || []) as any[]) if (!m.has(String(r.codjugador))) m.set(String(r.codjugador), r)
   return m
 }
+
+// Goles marcados por tramo del partido en TODA la competición (suma de web_goles_tramos de sus equipos).
+const TRAMOS_ORDEN = ['0-15', '16-30', '31-45', '46-60', '61-75', '76-90', '90+']
+export async function getTramosCompeticionV2(codgrupo: string, codtemporada: number) {
+  const { data } = await supabase.from('web_goles_tramos').select('tramo, gf')
+    .eq('codgrupo', codgrupo).eq('codtemporada', codtemporada)
+  const m = new Map<string, number>()
+  for (const r of (data || []) as any[]) m.set(r.tramo, (m.get(r.tramo) || 0) + (r.gf || 0))
+  return TRAMOS_ORDEN.map((t) => ({ tramo: t, gf: m.get(t) || 0 }))
+}
