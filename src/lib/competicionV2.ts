@@ -322,3 +322,14 @@ export async function getCifrasV2(codgrupo: string, codtemporada: number, jornad
     p0,
   }
 }
+
+// Goles por equipo en UNA jornada, derivados de web_resultados (no hay tabla). Cada equipo juega una vez.
+export type GolEquipoRow = { nombre: string; escudo: string | null; codequipo: string | null; goles: number }
+export function golesEquipoJornada(res: ResultadoCompRow[], equiposMap: Map<string, string>): GolEquipoRow[] {
+  const out: GolEquipoRow[] = []
+  for (const r of res) {
+    if (r.goles_local != null) out.push({ nombre: r.nombre_local, escudo: r.escudo_local, codequipo: equiposMap.get(r.nombre_local) ?? null, goles: r.goles_local })
+    if (r.goles_visitante != null) out.push({ nombre: r.nombre_visitante, escudo: r.escudo_visitante, codequipo: equiposMap.get(r.nombre_visitante) ?? null, goles: r.goles_visitante })
+  }
+  return out.filter((g) => g.goles > 0).sort((a, b) => b.goles - a.goles)
+}

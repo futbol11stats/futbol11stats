@@ -341,3 +341,8 @@ dibujaba un placeholder de algo que YA existe como componente del sitio, se usa 
   jornada). web_alertas_tarjetas solo lista SANCIONADOS (ciclos/expulsiones), no el recuento de amarillas de
   todos. Se muestran 3 tarjetas (Goleador/Portero/Mejor ELO) y se omite "Más tarjetas" hasta que el pipeline
   publique un tarjetas_temp de jugador. Estado degradado, no dato falso.
+
+## C-mov · Columna "mov" de clasificación vacía (aparcado)
+- web_clasificacion.mov (variación de puestos entre jornadas) viene vacía en el dato. La ficha v2 no la
+  pinta (no bloquea; hay pendientes mayores). Cuando el pipeline la pueble, se añade una columna Mov a la
+  clasificación como en la ficha actual. Aparcado por decisión de Fernando (2026-08).

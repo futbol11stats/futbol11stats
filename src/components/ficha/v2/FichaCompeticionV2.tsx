@@ -21,7 +21,7 @@ import {
   getClasifV2, kpisDeClasif, zonaColor, FORMA_COL, type ClasifCompRow,
   getDestacadosV2, getEquiposFormaV2, getTopTemporadaV2, getXiJornadaV2, getXiTemporadaV2, colorMediaJug,
   getResultadosV2, getEquiposMapV2, type ResultadoCompRow, getCarreraV2,
-  getLideresV2, getCifrasV2, type CifrasComp,
+  getLideresV2, getCifrasV2, type CifrasComp, golesEquipoJornada, type GolEquipoRow,
 } from '@/lib/competicionV2'
 
 const mil = (n: number | null | undefined) => (n == null ? '—' : Math.round(Number(n)).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.'))
@@ -143,14 +143,22 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
   ])
 
   // Datos de la pestaña activa (tab-gated).
-  let mvpJ: any[] = [], equiposForma: any[] = [], xi: any[] = []
+  let mvpJ: any[] = [], equiposForma: any[] = [], xi: any[] = [], golJ: any[] = []
   let resultados: ResultadoCompRow[] = [], equiposMap = new Map<string, string>()
+  let golesEquipo: GolEquipoRow[] = []
   let topTemp: { goleadores: any[]; porteros: any[]; fantasy: any[]; elo: any[] } | null = null
   if (tabEf === 'resultados') {
     [resultados, equiposMap] = await Promise.all([
       getResultadosV2(grupo.codgrupo, codtemporada, jornadaNum),
       getEquiposMapV2(grupo.codgrupo, codtemporada),
     ])
+  } else if (tabEf === 'goleadores-jornada') {
+    const [gj, res, em] = await Promise.all([
+      getDestacadosV2(grupo.codgrupo, codtemporada, jornadaNum, 'goleadores_jornada'),
+      getResultadosV2(grupo.codgrupo, codtemporada, jornadaNum),
+      getEquiposMapV2(grupo.codgrupo, codtemporada),
+    ])
+    golJ = gj; equiposMap = em; golesEquipo = golesEquipoJornada(res, em)
   } else if (tabEf === 'top5-jugadores-jornada') mvpJ = await getDestacadosV2(grupo.codgrupo, codtemporada, jornadaNum, 'mvp_jornada')
   else if (tabEf === 'top5-equipos-jornada') equiposForma = await getEquiposFormaV2(grupo.codgrupo, codtemporada, jornadaNum)
   else if (tabEf === 'once-optimo-jornada') xi = await getXiJornadaV2(grupo.codgrupo, codtemporada, jornadaNum, isCopa)
@@ -159,7 +167,7 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
     topTemp = await getTopTemporadaV2(grupo.codgrupo, codtemporada, jornadaNum)
 
   const lidJugs = lideres ? [lideres.goleador, lideres.portero, lideres.elo].filter(Boolean) : []
-  const codjugs = [...mvpJ, ...xi, ...lidJugs, ...(topTemp ? [...topTemp.goleadores, ...topTemp.porteros, ...topTemp.elo, ...topTemp.fantasy] : [])].map((j: any) => j.codjugador)
+  const codjugs = [...mvpJ, ...xi, ...golJ, ...lidJugs, ...(topTemp ? [...topTemp.goleadores, ...topTemp.porteros, ...topTemp.elo, ...topTemp.fantasy] : [])].map((j: any) => j.codjugador)
   const fichas = await fichasInfo(codjugs)
 
   const [variantes, hermanos] = await Promise.all([
@@ -435,7 +443,25 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
             </section>
           )}
 
-          {tabEf !== 'clasificacion' && tabEf !== 'resultados' && (rankView ? (
+          {/* GOLEADORES (jornada) + Goles de equipo. */}
+          {tabEf === 'goleadores-jornada' && (
+            <>
+              <section>
+                <div className="s-head"><div className="s-title">Goleadores de la jornada</div><div className="s-sub">{esFamilia ? (rondaSel?.label ?? `jornada ${jornadaNum}`) : `jornada ${jornadaNum}`}</div></div>
+                {golJ.length > 0
+                  ? <RankingComp fichas={fichas} barColor="var(--e4)" items={golJ.map((j) => ({ rank: j.rank, codjugador: j.codjugador, nombre: j.nombre, pos: j.posicion, escudo: j.escudo, nombreEquipo: j.nombre_equipo, valor: j.goles, valorColor: 'var(--e4)', extra: <span><b className="num">{j.goles}</b> {j.goles === 1 ? 'gol' : 'goles'} en la jornada</span> }))} />
+                  : <p className="vacio">Sin goleadores en esta jornada.</p>}
+              </section>
+              {golesEquipo.length > 0 && (
+                <section>
+                  <div className="s-head"><div className="s-title">Goles de equipo</div><div className="s-sub">jornada {jornadaNum}</div></div>
+                  <RankingComp barColor="var(--e4)" items={golesEquipo.map((e, i) => ({ rank: i + 1, codequipo: e.codequipo, nombre: e.nombre, escudo: e.escudo, nombreEquipo: e.nombre, valor: e.goles, valorColor: 'var(--e4)' }))} />
+                </section>
+              )}
+            </>
+          )}
+
+          {tabEf !== 'clasificacion' && tabEf !== 'resultados' && tabEf !== 'goleadores-jornada' && (rankView ? (
             <section>
               <div className="s-head"><div className="s-title">{rankView.title}</div><div className="s-sub">{rankView.sub}</div></div>
               {rankView.items.length > 0 ? (
