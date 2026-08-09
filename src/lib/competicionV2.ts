@@ -374,3 +374,36 @@ export async function getTramosCompeticionV2(codgrupo: string, codtemporada: num
   for (const r of (data || []) as any[]) m.set(r.tramo, (m.get(r.tramo) || 0) + (r.gf || 0))
   return TRAMOS_ORDEN.map((t) => ({ tramo: t, gf: m.get(t) || 0 }))
 }
+
+// --- GLOBAL: rankings de JUGADOR agregando los grupos de la categoria. NO se suman puntos de equipo ni
+// se ordena por puntos globales (los grupos no juegan entre si). Solo se fusionan rankings individuales
+// (goleadores/porteros/fantasy/elo) por su valor. ---
+export async function getGlobalTopTemporadaV2(codgrupos: string[], codtemporada: number, jornada: number) {
+  if (!codgrupos.length) return { goleadores: [], porteros: [], fantasy: [], elo: [] }
+  const [snap, elo] = await Promise.all([
+    supabase.from('web_top_jugadores').select(COLS_TOP_JUGADORES)
+      .in('codgrupo', codgrupos).eq('codtemporada', codtemporada)
+      .in('tipo', ['goleadores_temp', 'porteros_temp', 'fantasy_temp']).eq('jornada', jornada),
+    supabase.from('web_top_jugadores').select(COLS_TOP_JUGADORES)
+      .in('codgrupo', codgrupos).eq('codtemporada', codtemporada).eq('tipo', 'elo_temp').is('jornada', null),
+  ])
+  const all = [...((snap.data || []) as any[]), ...((elo.data || []) as any[])]
+  const top = (tipo: string, key: string) => all.filter((j) => j.tipo === tipo)
+    .sort((a, b) => (Number(b[key]) || 0) - (Number(a[key]) || 0)).slice(0, 10)
+    .map((j, i) => ({ ...j, rank: i + 1 }))
+  return { goleadores: top('goleadores_temp', 'goles'), porteros: top('porteros_temp', 'goles'), fantasy: top('fantasy_temp', 'pts_fantasy'), elo: top('elo_temp', 'elo') }
+}
+
+// GLOBAL: destacados de jornada agregando grupos (mvp / equipos en forma). Top 5 por valor.
+export async function getGlobalMvpV2(codgrupos: string[], codtemporada: number, jornada: number) {
+  if (!codgrupos.length) return [] as any[]
+  const { data } = await supabase.from('web_top_jugadores').select(COLS_TOP_JUGADORES)
+    .in('codgrupo', codgrupos).eq('codtemporada', codtemporada).eq('tipo', 'mvp_jornada').eq('jornada', jornada)
+  return ((data || []) as any[]).sort((a, b) => (Number(b.pts_fantasy) || 0) - (Number(a.pts_fantasy) || 0)).slice(0, 5).map((j, i) => ({ ...j, rank: i + 1 }))
+}
+export async function getGlobalEquiposFormaV2(codgrupos: string[], codtemporada: number, jornada: number) {
+  if (!codgrupos.length) return [] as any[]
+  const { data } = await supabase.from('web_equipos_forma').select(COLS_EQUIPOS_FORMA)
+    .in('codgrupo', codgrupos).eq('codtemporada', codtemporada).eq('jornada', jornada)
+  return ((data || []) as any[]).sort((a, b) => (Number(b.pts_fantasy) || 0) - (Number(a.pts_fantasy) || 0)).slice(0, 5).map((e, i) => ({ ...e, rank: i + 1 }))
+}
