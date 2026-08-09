@@ -95,11 +95,28 @@ export function kpisDeClasif(rows: ClasifCompRow[]): KpisComp {
   }
 }
 
-// Colores de zona (asc/playoff/descenso) desde web_clasificacion.zona — NO se cablean posiciones.
-export const ZONA_COL: Record<string, string> = {
-  ascenso: 'var(--e3)', playoff: 'var(--zona-po)', descenso: 'var(--e0)',
+// web_clasificacion.zona trae valores GRANULARES: ascenso_directo, playoff_ascenso, ascenso_arrastre,
+// descenso_directo, descenso_coeficiente, descenso_arrastre, filial_bloqueado, "" (media tabla). Se
+// agrupan en familias para el color/etiqueta. Playoff = ÁMBAR (regla del sitio, no azul de la maqueta).
+export type ZonaFam = 'ascenso' | 'playoff' | 'descenso' | 'filial'
+export function zonaFamilia(zona: string | null): ZonaFam | null {
+  if (!zona) return null
+  if (zona === 'ascenso_directo') return 'ascenso'
+  if (zona.startsWith('playoff') || zona === 'ascenso_arrastre') return 'playoff'
+  if (zona.startsWith('filial')) return 'filial'
+  if (zona.startsWith('descenso')) return 'descenso'
+  return null
 }
-export const zonaColor = (zona: string | null): string => (zona ? ZONA_COL[zona] ?? 'transparent' : 'transparent')
+export const ZONA_FAM_COL: Record<ZonaFam, string> = {
+  ascenso: 'var(--e3)', playoff: 'var(--amber)', descenso: 'var(--e0)', filial: 'var(--zona-po)',
+}
+export const ZONA_FAM_LABEL: Record<ZonaFam, string> = {
+  ascenso: 'ASCENSO', playoff: 'PLAYOFF', descenso: 'DESCENSO', filial: 'FILIAL',
+}
+export const zonaColor = (zona: string | null): string => {
+  const f = zonaFamilia(zona)
+  return f ? ZONA_FAM_COL[f] : 'transparent'
+}
 // Chips de racha G/E/P (mismo criterio que jugador/equipo).
 export const RACHA_COL: Record<string, string> = { G: 'var(--e3)', E: 'var(--ink-3)', P: 'var(--e0)' }
 
@@ -167,4 +184,27 @@ export async function getXiJornadaV2(codgrupo: string, codtemporada: number, jor
     return (data || []) as any[]
   }
   return getDestacadosV2(codgrupo, codtemporada, jornada, 'xi_jornada')
+}
+
+// --- Resultados de una jornada (web_resultados). campo ya poblado; fecha/hora pueden venir NULL. ---
+export type ResultadoCompRow = {
+  codacta: string | null
+  nombre_local: string; escudo_local: string | null; goles_local: number | null
+  nombre_visitante: string; escudo_visitante: string | null; goles_visitante: number | null
+  fecha: string | null; hora: string | null; campo: string | null
+}
+export async function getResultadosV2(codgrupo: string, codtemporada: number, jornada: number): Promise<ResultadoCompRow[]> {
+  const { data } = await supabase.from('web_resultados')
+    .select('codacta, nombre_local, escudo_local, goles_local, goles_visitante, nombre_visitante, escudo_visitante, fecha, hora, campo')
+    .eq('codgrupo', codgrupo).eq('codtemporada', codtemporada).eq('jornada', jornada).order('fecha').order('hora')
+  return (data || []) as unknown as ResultadoCompRow[]
+}
+
+// nombre_equipo -> codequipo (para enlazar equipos en Resultados; web_resultados no trae codequipo).
+export async function getEquiposMapV2(codgrupo: string, codtemporada: number): Promise<Map<string, string>> {
+  const { data } = await supabase.from('web_clasificacion').select('codequipo, nombre_equipo')
+    .eq('codgrupo', codgrupo).eq('codtemporada', codtemporada).eq('jornada', 1)
+  const m = new Map<string, string>()
+  for (const r of (data || []) as any[]) m.set(r.nombre_equipo, String(r.codequipo))
+  return m
 }

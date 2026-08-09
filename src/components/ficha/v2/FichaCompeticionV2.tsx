@@ -8,7 +8,7 @@ import NombreEquipo from '@/components/NombreEquipo'
 import { Escudo, Calendario, Balon, Guante } from '@/components/iconos'
 import { nombreOficial, denominacion, familiaSello } from '@/lib/sellos'
 import { ensureMadrid } from '@/lib/seo'
-import { LIVE_COD } from '@/lib/equipo'
+import { LIVE_COD, fechaCortaDMY } from '@/lib/equipo'
 import { colorElo } from '@/lib/equipoV2'
 import { fichasInfo } from '@/lib/jugador'
 import { ZONA_BG, ZONA_LEYENDA, ARRASTRE_TIPOS } from '@/components/tablas'
@@ -18,6 +18,7 @@ import {
   TEMPORADA_MAP, COD_TO_LABEL, TEMPORADAS_ORD, getGrupoV2, getVariantesV2, getGruposHermanos,
   getClasifV2, kpisDeClasif, zonaColor, RACHA_COL, type ClasifCompRow,
   getDestacadosV2, getEquiposFormaV2, getTopTemporadaV2, getXiJornadaV2, getXiTemporadaV2, colorMediaJug,
+  getResultadosV2, getEquiposMapV2, type ResultadoCompRow,
 } from '@/lib/competicionV2'
 
 const mil = (n: number | null | undefined) => (n == null ? '—' : Math.round(Number(n)).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.'))
@@ -110,8 +111,14 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
 
   // Datos de la pestaña activa (tab-gated).
   let mvpJ: any[] = [], equiposForma: any[] = [], xi: any[] = []
+  let resultados: ResultadoCompRow[] = [], equiposMap = new Map<string, string>()
   let topTemp: { goleadores: any[]; porteros: any[]; fantasy: any[]; elo: any[] } | null = null
-  if (tabEf === 'top5-jugadores-jornada') mvpJ = await getDestacadosV2(grupo.codgrupo, codtemporada, jornadaNum, 'mvp_jornada')
+  if (tabEf === 'resultados') {
+    [resultados, equiposMap] = await Promise.all([
+      getResultadosV2(grupo.codgrupo, codtemporada, jornadaNum),
+      getEquiposMapV2(grupo.codgrupo, codtemporada),
+    ])
+  } else if (tabEf === 'top5-jugadores-jornada') mvpJ = await getDestacadosV2(grupo.codgrupo, codtemporada, jornadaNum, 'mvp_jornada')
   else if (tabEf === 'top5-equipos-jornada') equiposForma = await getEquiposFormaV2(grupo.codgrupo, codtemporada, jornadaNum)
   else if (tabEf === 'once-optimo-jornada') xi = await getXiJornadaV2(grupo.codgrupo, codtemporada, jornadaNum, isCopa)
   else if (tabEf === 'once-optimo-temporada') xi = await getXiTemporadaV2(grupo.codgrupo, codtemporada, jornadaNum)
@@ -361,7 +368,34 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
             </section>
           )}
 
-          {tabEf !== 'clasificacion' && (rankView ? (
+          {/* RESULTADOS — marcador + escudos; campo/fecha/hora en la meta, omitiendo lo que falte. */}
+          {tabEf === 'resultados' && (
+            <section>
+              <div className="s-head"><div className="s-title">Resultados</div><div className="s-sub">{esFamilia ? (rondaSel?.label ?? `jornada ${jornadaNum}`) : `jornada ${jornadaNum}`}</div></div>
+              {resultados.length > 0 ? resultados.map((r, i) => {
+                const jugado = r.goles_local != null && r.goles_visitante != null
+                const meta = [r.fecha ? fechaCortaDMY(r.fecha) : null, r.hora || null, r.campo || null].filter(Boolean).join(' · ')
+                return (
+                  <div className="rmatch-wrap" key={r.codacta ?? i}>
+                    <div className="rmatch">
+                      <div className="rside">
+                        <EscudoBox escudo={r.escudo_local} nombre={r.nombre_local} size={26} radius={5} />
+                        <span className={`rnm${jugado && (r.goles_local as number) > (r.goles_visitante as number) ? ' w' : ''}`}><NombreEquipo codequipo={equiposMap.get(r.nombre_local) ?? null} nombre={r.nombre_local} /></span>
+                      </div>
+                      <div className="rsc">{jugado ? `${r.goles_local}-${r.goles_visitante}` : 'vs'}</div>
+                      <div className="rside v">
+                        <EscudoBox escudo={r.escudo_visitante} nombre={r.nombre_visitante} size={26} radius={5} />
+                        <span className={`rnm${jugado && (r.goles_visitante as number) > (r.goles_local as number) ? ' w' : ''}`}><NombreEquipo codequipo={equiposMap.get(r.nombre_visitante) ?? null} nombre={r.nombre_visitante} /></span>
+                      </div>
+                    </div>
+                    {meta && <div className="rmeta">{meta}</div>}
+                  </div>
+                )
+              }) : <p className="vacio">Sin resultados en esta jornada.</p>}
+            </section>
+          )}
+
+          {tabEf !== 'clasificacion' && tabEf !== 'resultados' && (rankView ? (
             <section>
               <div className="s-head"><div className="s-title">{rankView.title}</div><div className="s-sub">{rankView.sub}</div></div>
               {rankView.items.length > 0 ? (
