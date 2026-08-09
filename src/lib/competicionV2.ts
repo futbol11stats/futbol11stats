@@ -3,7 +3,18 @@
 
 import { supabase } from '@/lib/supabase'
 import { COLS_CLASIFICACION, COLS_TOP_JUGADORES, COLS_EQUIPOS_FORMA, COLS_XI_OPTIMO } from '@/lib/columns'
+import { CORTES_FIJOS } from '@/lib/escala'
 import { type Ronda } from '@/lib/competiciones'
+
+// Color de la MEDIA de puntos fantasy de un jugador (por partido), con los cortes fijos de la escala
+// (mediaPartido) — misma semántica que la ficha de jugador. Sin ámbar como escalón.
+const PAL_JUG = ['#f87171', '#94a3b8', '#22a050', '#2ee56b', '#8cf0a2']
+function escFijo(v: number, c: readonly number[]) {
+  if (v < c[0]) return 0
+  for (let i = c.length - 1; i >= 0; i--) if (v > c[i]) return i + 1
+  return 1
+}
+export const colorMediaJug = (v: number | null | undefined) => (v == null ? '' : PAL_JUG[escFijo(v, CORTES_FIJOS.mediaPartido)])
 
 export const TEMPORADA_MAP: Record<string, number> = {
   '2021-22': 17, '2022-23': 18, '2023-24': 19, '2024-25': 20, '2025-26': 21,

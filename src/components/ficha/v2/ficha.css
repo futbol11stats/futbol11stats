@@ -448,3 +448,5 @@
 .fjv2 .xi-p .nm{font-family:var(--font-display),'Barlow Condensed',sans-serif;font-size:var(--t-cap);font-weight:600;margin-top:4px;line-height:1.15;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.85)}
 .fjv2 .xi-p .vv{font-family:var(--font-display),'Barlow Condensed',sans-serif;font-size:var(--t-cap);font-weight:700;margin-top:1px}
 @media (min-width:1000px){ .fjv2 .pitch{height:520px} }
+/* Media fantasy destacada (pastilla coloreada por rendimiento) en el ranking Fantasy. */
+.fjv2 .rr .re .mediabadge{font-family:var(--font-display),'Barlow Condensed',sans-serif;font-weight:700;font-size:var(--t-sm);padding:1px 6px;border-radius:5px;border:1px solid;background:rgba(255,255,255,.03);flex:none;font-variant-numeric:tabular-nums}

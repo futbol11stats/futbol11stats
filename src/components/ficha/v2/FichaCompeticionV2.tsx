@@ -17,7 +17,7 @@ import RankingComp, { type RankItem } from '@/components/ficha/v2/RankingComp'
 import {
   TEMPORADA_MAP, COD_TO_LABEL, TEMPORADAS_ORD, getGrupoV2, getVariantesV2, getGruposHermanos,
   getClasifV2, kpisDeClasif, zonaColor, RACHA_COL, type ClasifCompRow,
-  getDestacadosV2, getEquiposFormaV2, getTopTemporadaV2, getXiJornadaV2, getXiTemporadaV2,
+  getDestacadosV2, getEquiposFormaV2, getTopTemporadaV2, getXiJornadaV2, getXiTemporadaV2, colorMediaJug,
 } from '@/lib/competicionV2'
 
 const mil = (n: number | null | undefined) => (n == null ? '—' : Math.round(Number(n)).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.'))
@@ -193,6 +193,20 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
         extra: <span>máx <b className="num">{j.elo_max != null ? Math.round(j.elo_max) : '—'}</b> · mín <b className="num">{j.elo_min != null ? Math.round(j.elo_min) : '—'}</b>{j.elo_var != null ? <> · <b className="num" style={{ color: j.elo_var > 0 ? 'var(--e3)' : j.elo_var < 0 ? 'var(--e0)' : 'var(--ink-3)' }}>{j.elo_var > 0 ? '+' : ''}{j.elo_var}</b> últ.</> : null}</span>,
       })),
       leyenda: <><b>ELO</b> rating de rendimiento del jugador · <b>máx/mín</b> techo y suelo de la temporada · <b>últ.</b> variación en la última jornada.</>,
+    }
+  } else if (topTemp && tabEf === 'top10-fantasy-temporada') {
+    const max = Math.max(1, ...topTemp.fantasy.map((j) => Math.round(j.pts_fantasy ?? 0)))
+    rankView = {
+      title: 'Ranking fantasy', sub: acum, barColor: 'var(--e3)',
+      items: topTemp.fantasy.map((j) => ({
+        rank: j.rank, codjugador: j.codjugador, nombre: j.nombre, pos: j.posicion, escudo: j.escudo, nombreEquipo: j.nombre_equipo,
+        valor: Math.round(j.pts_fantasy ?? 0), valorColor: 'var(--e3)', barPct: (Math.round(j.pts_fantasy ?? 0) / max) * 100,
+        extra: <>
+          <span className="mediabadge" style={{ color: colorMediaJug(j.media_fantasy) || 'var(--ink-2)', borderColor: colorMediaJug(j.media_fantasy) || 'var(--line)' }}>⌀ {med1(j.media_fantasy)}</span>
+          <span><b className="num">{j.pj}</b> PJ{j.goles != null ? <> · <b className="num">{j.goles}</b> {j.goles === 1 ? 'gol' : 'goles'}</> : null}</span>
+        </>,
+      })),
+      leyenda: <><b>Pts Fantasy</b> puntos acumulados (ordenan el ranking) · <b>⌀</b> media de puntos por partido, resaltada y coloreada por rendimiento (rojo→verde) · <b>PJ</b> partidos jugados.</>,
     }
   }
 
