@@ -5,7 +5,8 @@ import { notFound } from 'next/navigation'
 import Sello from '@/components/Sello'
 import EscudoBox from '@/components/ficha/v2/EscudoBox'
 import NombreEquipo from '@/components/NombreEquipo'
-import { Escudo, Calendario, Balon, Guante } from '@/components/iconos'
+import NombreJugador from '@/components/NombreJugador'
+import { Escudo, Calendario, Balon, Guante, Casa, Avion, TarjetaAmarilla, TarjetaDoble, TarjetaRoja, Guion } from '@/components/iconos'
 import { nombreOficial, denominacion, familiaSello } from '@/lib/sellos'
 import { ensureMadrid } from '@/lib/seo'
 import { LIVE_COD, fechaCortaDMY } from '@/lib/equipo'
@@ -20,6 +21,7 @@ import {
   getClasifV2, kpisDeClasif, zonaColor, FORMA_COL, type ClasifCompRow,
   getDestacadosV2, getEquiposFormaV2, getTopTemporadaV2, getXiJornadaV2, getXiTemporadaV2, colorMediaJug,
   getResultadosV2, getEquiposMapV2, type ResultadoCompRow, getCarreraV2,
+  getLideresV2, getCifrasV2, type CifrasComp,
 } from '@/lib/competicionV2'
 
 const mil = (n: number | null | undefined) => (n == null ? '—' : Math.round(Number(n)).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.'))
@@ -85,6 +87,26 @@ function campoXI(players: { posicion: string; nombre: string; valor: number | st
   )
 }
 
+// Tarjeta de líder (dos plantas): valor grande + unidad arriba; bajo un filete, el jugador con avatar,
+// escudo del equipo, nombre (enlazado) y equipo. Así un "1.284" no compite con el nombre.
+function lidCard(label: string, icon: ReactNode, color: string, val: ReactNode, unit: string, j: any, fichas: { has(k: string): boolean } | null) {
+  if (!j || val == null) return null
+  return (
+    <div className="lider" key={label}>
+      <div className="lh"><span style={{ color, display: 'flex' }}>{icon}</span>{label}</div>
+      <div className="lv"><span className="big" style={{ color }}>{val}</span><span className="u">{unit}</span></div>
+      <div className="lb">
+        <div className="lav">{iniXI(j.nombre)}</div>
+        <EscudoBox escudo={j.escudo} nombre={j.nombre_equipo} size={22} radius={5} />
+        <div style={{ minWidth: 0 }}>
+          <div className="lnm"><NombreJugador codjugador={j.codjugador} nombre={j.nombre} fichas={fichas} /></div>
+          <div className="leqn">{j.nombre_equipo}</div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default async function FichaCompeticionV2({ categoria, slugComp, slugGrupo, temporada, jornadaSeg, tab }: {
   categoria: string; slugComp: string; slugGrupo: string; temporada: string; jornadaSeg: string; tab: string
 }) {
@@ -114,6 +136,12 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
     ? await getCarreraV2(grupo.codgrupo, codtemporada)
     : { series: [], jornadas: [], bands: [] }
 
+  // Aside (siempre): líderes + cifras. En copa (sin clasificación) se degradan a null.
+  const [lideres, cifras] = await Promise.all([
+    isCopa ? Promise.resolve(null) : getLideresV2(grupo.codgrupo, codtemporada),
+    isCopa ? Promise.resolve<CifrasComp | null>(null) : getCifrasV2(grupo.codgrupo, codtemporada, jornadaNum, clasif, grupo.total_jornadas),
+  ])
+
   // Datos de la pestaña activa (tab-gated).
   let mvpJ: any[] = [], equiposForma: any[] = [], xi: any[] = []
   let resultados: ResultadoCompRow[] = [], equiposMap = new Map<string, string>()
@@ -130,7 +158,8 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
   else if (tabEf === 'top10-goleadores-temporada' || tabEf === 'top10-porteros-temporada' || tabEf === 'top10-elo-jugadores-temporada' || tabEf === 'top10-fantasy-temporada')
     topTemp = await getTopTemporadaV2(grupo.codgrupo, codtemporada, jornadaNum)
 
-  const codjugs = [...mvpJ, ...xi, ...(topTemp ? [...topTemp.goleadores, ...topTemp.porteros, ...topTemp.elo, ...topTemp.fantasy] : [])].map((j: any) => j.codjugador)
+  const lidJugs = lideres ? [lideres.goleador, lideres.portero, lideres.elo].filter(Boolean) : []
+  const codjugs = [...mvpJ, ...xi, ...lidJugs, ...(topTemp ? [...topTemp.goleadores, ...topTemp.porteros, ...topTemp.elo, ...topTemp.fantasy] : [])].map((j: any) => j.codjugador)
   const fichas = await fichasInfo(codjugs)
 
   const [variantes, hermanos] = await Promise.all([
@@ -437,13 +466,37 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
         </div>
 
         <div className="aside">
+          {/* LÍDERES — tarjeta por líder: valor grande + unidad arriba, y bajo un filete el jugador
+              (avatar, nombre, equipo + escudo). El tercero (más tarjetas) se omite: no hay ranking de
+              tarjetas por jugador de temporada en el dato (ver DECISIONES). */}
+          {lideres && (lideres.goleador || lideres.portero || lideres.elo) && (
+            <section>
+              <div className="s-head"><div className="s-title">Líderes</div><div className="s-sub">{temporada}{grupo.nombre_grupo ? ` · ${grupo.nombre_grupo}` : ''}</div></div>
+              <div className="track"><div className="rail lideres">
+                {lidCard('Goleador', <Balon size={14} />, 'var(--e4)', lideres.goleador?.goles, 'goles', lideres.goleador, fichas)}
+                {lidCard('Portero', <Guante size={14} />, 'var(--amber)', lideres.portero?.goles, 'P0', lideres.portero, fichas)}
+                {lidCard('Mejor ELO', <Escudo size={14} />, 'var(--e3)', lideres.elo?.elo != null ? mil(lideres.elo.elo) : null, 'ELO', lideres.elo, fichas)}
+              </div></div>
+            </section>
+          )}
+
           <section style={{ borderBottom: 0 }}>
             <div className="s-head"><div className="s-title">La competición en cifras</div><div className="s-sub">tras J{jornadaNum}</div></div>
             <div style={{ padding: '0 var(--pad)' }}>
-              <div className="cifra"><span className="ci"><Escudo size={13} /></span><span className="ck">Equipos</span><span className="cv num">{kpis.equipos || '—'}</span></div>
-              <div className="cifra"><span className="ci"><Calendario size={13} /></span><span className="ck">Partidos disputados</span><span className="cv num">{mil(kpis.partidos)}</span></div>
-              <div className="cifra"><span className="ci" style={{ color: 'var(--e4)' }}><Balon size={13} /></span><span className="ck">Goles marcados</span><span className="cv num">{mil(kpis.goles)}</span></div>
-              <div className="cifra"><span className="ci" style={{ color: 'var(--e4)' }}><Balon size={13} /></span><span className="ck">Media de goles</span><span className="cv num">{med1(kpis.golesPj)}</span></div>
+              {cifras ? (
+                <>
+                  <div className="cifra"><span className="ci"><Calendario size={13} /></span><span className="ck">Partidos jugados</span><span className="cv num">{mil(cifras.disputados)} de {mil(cifras.totalPartidos)}</span></div>
+                  <div className="cifra"><span className="ci" style={{ color: 'var(--e4)' }}><Balon size={13} /></span><span className="ck">Goles marcados</span><span className="cv num">{mil(cifras.goles)}</span></div>
+                  <div className="cifra"><span className="ci" style={{ color: 'var(--e4)' }}><Balon size={13} /></span><span className="ck">Media de goles</span><span className="cv num">{med1(cifras.mediaGoles)} por partido</span></div>
+                  <div className="cifra"><span className="ci" style={{ color: 'var(--e3)' }}><Casa size={13} /></span><span className="ck">Victoria local</span><span className="cv num">{cifras.vLocalPct} %</span></div>
+                  <div className="cifra"><span className="ci"><Guion size={13} /></span><span className="ck">Empates</span><span className="cv num">{cifras.empPct} %</span></div>
+                  <div className="cifra"><span className="ci" style={{ color: 'var(--e1)' }}><Avion size={13} /></span><span className="ck">Victoria visitante</span><span className="cv num">{cifras.vVisitPct} %</span></div>
+                  <div className="cifra"><span className="ci" style={{ color: 'var(--card-y)' }}><TarjetaAmarilla size={12} /></span><span className="ck">Amarillas</span><span className="cv num">{mil(cifras.amarillas)}</span></div>
+                  <div className="cifra"><span className="ci" style={{ color: 'var(--card-y)' }}><TarjetaDoble size={13} /></span><span className="ck">Dobles amarillas</span><span className="cv num">{mil(cifras.dobles)}</span></div>
+                  <div className="cifra"><span className="ci" style={{ color: 'var(--card-r)' }}><TarjetaRoja size={12} /></span><span className="ck">Rojas</span><span className="cv num">{mil(cifras.rojas)}</span></div>
+                  <div className="cifra"><span className="ci" style={{ color: 'var(--amber)' }}><Guante size={13} /></span><span className="ck">Porterías a cero</span><span className="cv num">{mil(cifras.p0)}</span></div>
+                </>
+              ) : <p className="vacio">Sin cifras en esta temporada.</p>}
             </div>
           </section>
         </div>

@@ -277,3 +277,48 @@ export async function getCarreraV2(codgrupo: string, codtemporada: number): Prom
   }
   return { series, jornadas, bands: raw.map((b) => ({ from: b.from, to: b.to, color: ZONA_FAM_COL[b.fam] })) }
 }
+
+// --- Aside: líderes (goleador/portero/mejor ELO) y cifras de la competición. ---
+export async function getLideresV2(codgrupo: string, codtemporada: number) {
+  const { data } = await supabase.from('web_top_jugadores')
+    .select('tipo, jornada, codjugador, nombre, posicion, codequipo, nombre_equipo, escudo, goles, elo')
+    .eq('codgrupo', codgrupo).eq('codtemporada', codtemporada)
+    .in('tipo', ['goleadores_temp', 'porteros_temp', 'elo_temp']).eq('rank', 1)
+  const rows = (data || []) as any[]
+  const pick = (t: string) => rows.filter((r) => r.tipo === t).sort((a, b) => (Number(b.jornada) || 0) - (Number(a.jornada) || 0))[0] || null
+  return { goleador: pick('goleadores_temp'), portero: pick('porteros_temp'), elo: pick('elo_temp') }
+}
+
+export type CifrasComp = {
+  disputados: number; totalPartidos: number; goles: number; mediaGoles: number | null
+  vLocalPct: number; empPct: number; vVisitPct: number
+  amarillas: number; dobles: number; rojas: number; p0: number
+}
+export async function getCifrasV2(codgrupo: string, codtemporada: number, jornada: number, clasif: ClasifCompRow[], totalJornadas: number): Promise<CifrasComp> {
+  const equipos = clasif.length
+  const disputados = Math.round(clasif.reduce((s, r) => s + (r.pj || 0), 0) / 2)
+  const goles = clasif.reduce((s, r) => s + (r.gf || 0), 0)
+  const p0 = clasif.reduce((s, r) => s + (r.p0 || 0), 0)
+  const totalPartidos = totalJornadas && equipos ? Math.round((totalJornadas * equipos) / 2) : disputados
+  const [{ data: res }, jl] = await Promise.all([
+    supabase.from('web_resultados').select('goles_local, goles_visitante').eq('codgrupo', codgrupo).eq('codtemporada', codtemporada),
+    fetchSnapshot((q: any) => q.from('web_juego_limpio').select('amarillas, dobles, rojas, jornada').eq('codgrupo', codgrupo).eq('codtemporada', codtemporada), jornada),
+  ])
+  let vl = 0, em = 0, vv = 0
+  for (const m of (res || []) as any[]) {
+    if (m.goles_local == null || m.goles_visitante == null) continue
+    if (m.goles_local > m.goles_visitante) vl++
+    else if (m.goles_local < m.goles_visitante) vv++
+    else em++
+  }
+  const tot = vl + em + vv || 1
+  const jlRows = jl as any[]
+  return {
+    disputados, totalPartidos, goles, mediaGoles: disputados ? goles / disputados : null,
+    vLocalPct: Math.round((vl / tot) * 100), empPct: Math.round((em / tot) * 100), vVisitPct: Math.round((vv / tot) * 100),
+    amarillas: jlRows.reduce((s, r) => s + (r.amarillas || 0), 0),
+    dobles: jlRows.reduce((s, r) => s + (r.dobles || 0), 0),
+    rojas: jlRows.reduce((s, r) => s + (r.rojas || 0), 0),
+    p0,
+  }
+}

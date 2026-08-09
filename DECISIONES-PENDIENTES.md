@@ -334,3 +334,10 @@ dibujaba un placeholder de algo que YA existe como componente del sitio, se usa 
 - **Gap Top5/Fantasy**: web_top_jugadores NO trae minutos/titular/tarjetas -> la fila de datos degrada a
   los campos existentes (goles/P0, pts fantasy, posición). web_equipos_forma solo pts_fantasy+forma
   (sin "jugadores que puntuaron" ni eventos de jornada) -> Top5 Equipos degrada.
+
+## C-lideres · Líder "Más tarjetas" degradado
+- La maqueta pone 4 tarjetas de líder (goleador, portero, mejor ELO, más tarjetas). web_top_jugadores NO
+  tiene ranking de tarjetas por jugador de temporada (tipos: goleadores/porteros/fantasy/elo_temp + los de
+  jornada). web_alertas_tarjetas solo lista SANCIONADOS (ciclos/expulsiones), no el recuento de amarillas de
+  todos. Se muestran 3 tarjetas (Goleador/Portero/Mejor ELO) y se omite "Más tarjetas" hasta que el pipeline
+  publique un tarjetas_temp de jugador. Estado degradado, no dato falso.
