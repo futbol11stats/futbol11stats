@@ -287,8 +287,9 @@
 .fjv2 .tb-out{font-family:var(--font-display),'Barlow Condensed',sans-serif;font-size:var(--t-sm);font-weight:700;line-height:1;white-space:nowrap;font-variant-numeric:tabular-nums}
 .fjv2 .tramo-head{display:flex;font-size:var(--t-micro);color:var(--ink-3);letter-spacing:.06em;text-transform:uppercase;padding-bottom:7px;font-weight:600}
 .fjv2 .tramo-head .th{flex:1}.fjv2 .tramo-head .th.r{text-align:right}.fjv2 .tramo-head .th-mid{width:52px}
-/* Ratio por partido detrás del absoluto, menor y atenuado: 26 (1,5). Vale dentro y fuera de la barra. */
-.fjv2 .tb-r{font-size:.82em;font-weight:600;opacity:.62}
+/* Ratio por partido detrás del absoluto, menor y atenuado: 26 (1,5). Vale dentro y fuera de la barra.
+   El margen crea el espacio "26 (1,5)": un espacio de texto se colapsa al ser el span un flex item. */
+.fjv2 .tb-r{font-size:.82em;font-weight:600;opacity:.62;margin-left:4px}
 /* Filete entre las filas de resultado (Total/Casa/Fuera) y las siete de tramos. */
 .fjv2 .goles-tramos{border-top:1px solid var(--line-2);margin-top:8px;padding-top:8px}
 /* Ranking por faceta: icono encima del número (mismo patrón que .tot). */

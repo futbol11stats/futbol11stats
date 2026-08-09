@@ -179,6 +179,7 @@ export default function Jornadas({ comps, cortes }: { comps: CompAmbito[]; corte
         <div className="lg-row" style={{ marginTop: 6 }}>
           <span className="lg-item"><span className="gl"><IndicadorLocal esLocal={true} /></span>Casa</span>
           <span className="lg-item"><span className="gl"><IndicadorLocal esLocal={false} /></span>Fuera</span>
+          <span className="lg-item">Línea bajo el escudo: <b style={{ color: 'var(--e3)' }}>ganó</b> · <b style={{ color: 'var(--ink-3)' }}>empató</b> · <b style={{ color: 'var(--e0)' }}>perdió</b></span>
         </div>
       </div>
     </>
