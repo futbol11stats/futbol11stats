@@ -322,3 +322,15 @@ dibujaba un placeholder de algo que YA existe como componente del sitio, se usa 
 - Estadísticas: "goles por tramos de toda la competición" — ¿existe una tabla agregada por grupo o hay
   que sumar web_goles_tramos de todos los equipos del grupo? Verificar al llegar a Estadísticas.
 - Fantasy: integración de "media destacada" — propuesta al construir la pestaña.
+
+## C-dudas RESUELTAS por el pipeline (2026-08)
+- **Resultados** (campo/fecha/hora): se AÑADEN a web_resultados como TEXT (aún NULL). Consumo tolerante:
+  fecha en 99,9%, hora falta en 22% (aplazados/sin designar), campo en 8%. Si falta un dato, se OMITE
+  (ni hueco ni placeholder). Escrito para no romper mientras vengan NULL.
+- **Goles por equipo y jornada**: no hay tabla; se deriva de web_resultados (goles_local/goles_visitante +
+  codequipo_local/codequipo_visitante).
+- **Suspendidos**: tabla web_suspendidos (codtemporada, codgrupo, jornada, codjugador, nombre, codequipo,
+  equipo, motivo, partidos_sancion). Filtrar por la jornada SIGUIENTE a la seleccionada.
+- **Gap Top5/Fantasy**: web_top_jugadores NO trae minutos/titular/tarjetas -> la fila de datos degrada a
+  los campos existentes (goles/P0, pts fantasy, posición). web_equipos_forma solo pts_fantasy+forma
+  (sin "jugadores que puntuaron" ni eventos de jornada) -> Top5 Equipos degrada.

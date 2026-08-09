@@ -424,3 +424,18 @@
   .fjv2 .cfix{width:280px}.fjv2 .cc{width:42px}.fjv2 .cc.pts{width:52px}.fjv2 .cracha{width:96px}
   .fjv2 .cracha i{width:13px;height:13px}
 }
+
+/* Rankings de competición (.rr) — escudo real + avatar por demarcación. */
+.fjv2 .rank{border-top:1px solid var(--line)}
+.fjv2 .rr{display:flex;align-items:center;gap:10px;padding:10px var(--pad);border-bottom:1px solid var(--line-2)}
+.fjv2 .rr .rp{font-family:var(--font-display),'Barlow Condensed',sans-serif;font-size:var(--t-lead);font-weight:700;color:var(--ink-3);width:24px;text-align:center;flex:none;font-variant-numeric:tabular-nums}
+.fjv2 .rr.top .rp{color:var(--ink)}
+.fjv2 .rr .rav{width:34px;height:34px;border-radius:9px;flex:none;display:grid;place-items:center;font-family:var(--font-display),'Barlow Condensed',sans-serif;font-size:var(--t-sm);font-weight:700}
+.fjv2 .rr .rm{flex:1;min-width:0}
+.fjv2 .rr .rn{font-family:var(--font-display),'Barlow Condensed',sans-serif;font-size:var(--t-lead);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fjv2 .rr .rn a{color:inherit;text-decoration:none}
+.fjv2 .rr .re{font-size:var(--t-cap);color:var(--ink-3);margin-top:2px;display:flex;align-items:center;gap:6px;min-width:0}
+.fjv2 .rr .re .num{color:var(--ink-2)}
+.fjv2 .rr .rv{font-family:var(--font-display),'Barlow Condensed',sans-serif;font-size:var(--n-sm);font-weight:700;padding:4px 9px;border-radius:6px;color:#08111f;flex:none;font-variant-numeric:tabular-nums}
+.fjv2 .rr .rbar{height:4px;border-radius:2px;background:rgba(255,255,255,.09);margin-top:6px;overflow:hidden}
+.fjv2 .rr .rbar span{display:block;height:100%;border-radius:2px}

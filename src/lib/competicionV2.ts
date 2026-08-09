@@ -2,7 +2,7 @@
 // actuales ni sus componentes. Reutiliza el sistema de color de equipo v2 y las tablas del pipeline.
 
 import { supabase } from '@/lib/supabase'
-import { COLS_CLASIFICACION } from '@/lib/columns'
+import { COLS_CLASIFICACION, COLS_TOP_JUGADORES, COLS_EQUIPOS_FORMA, COLS_XI_OPTIMO } from '@/lib/columns'
 import { type Ronda } from '@/lib/competiciones'
 
 export const TEMPORADA_MAP: Record<string, number> = {
@@ -91,3 +91,69 @@ export const ZONA_COL: Record<string, string> = {
 export const zonaColor = (zona: string | null): string => (zona ? ZONA_COL[zona] ?? 'transparent' : 'transparent')
 // Chips de racha G/E/P (mismo criterio que jugador/equipo).
 export const RACHA_COL: Record<string, string> = { G: 'var(--e3)', E: 'var(--ink-3)', P: 'var(--e0)' }
+
+// --- Time-machine (foto por jornada -> foto-final -> jornada más cercana), como la ruta actual. ---
+async function fetchSnapshot(build: (q: any) => any, jornada: number) {
+  const exact = await build(supabase).eq('jornada', jornada)
+  if (exact.data && exact.data.length > 0) return exact.data
+  const foto = await build(supabase).is('jornada', null)
+  if (foto.data && foto.data.length > 0) return foto.data
+  const todos = await build(supabase).not('jornada', 'is', null)
+  const rows = (todos.data || []) as any[]
+  if (rows.length === 0) return []
+  const jornadas = Array.from(new Set(rows.map((r) => Number(r.jornada))))
+  const objetivo = jornadas.reduce((mejor, j) => {
+    const d = Math.abs(j - jornada), dm = Math.abs(mejor - jornada)
+    return d < dm || (d === dm && j < mejor) ? j : mejor
+  }, jornadas[0])
+  return rows.filter((r) => Number(r.jornada) === objetivo)
+}
+
+// Destacados de UNA jornada (web_top_jugadores por tipo): mvp_jornada, goleadores_jornada, xi_jornada…
+export async function getDestacadosV2(codgrupo: string, codtemporada: number, jornada: number, tipo: string) {
+  const { data } = await supabase.from('web_top_jugadores').select(COLS_TOP_JUGADORES)
+    .eq('codgrupo', codgrupo).eq('codtemporada', codtemporada).eq('jornada', jornada).eq('tipo', tipo).order('rank')
+  return (data || []) as any[]
+}
+
+// Equipos en forma de UNA jornada (web_equipos_forma).
+export async function getEquiposFormaV2(codgrupo: string, codtemporada: number, jornada: number) {
+  const { data } = await supabase.from('web_equipos_forma').select(COLS_EQUIPOS_FORMA)
+    .eq('codgrupo', codgrupo).eq('codtemporada', codtemporada).eq('jornada', jornada).order('rank')
+  return (data || []) as any[]
+}
+
+// Rankings de TEMPORADA (acumulado hasta la jornada): goleadores/porteros/fantasy rebobinan (snapshot);
+// elo_temp es foto-final (no rebobina), como en la ruta actual.
+export async function getTopTemporadaV2(codgrupo: string, codtemporada: number, jornada: number) {
+  const [snap, elo] = await Promise.all([
+    fetchSnapshot((q: any) => q.from('web_top_jugadores').select(COLS_TOP_JUGADORES)
+      .eq('codgrupo', codgrupo).eq('codtemporada', codtemporada)
+      .in('tipo', ['goleadores_temp', 'fantasy_temp', 'porteros_temp']).order('rank'), jornada),
+    supabase.from('web_top_jugadores').select(COLS_TOP_JUGADORES)
+      .eq('codgrupo', codgrupo).eq('codtemporada', codtemporada).eq('tipo', 'elo_temp').is('jornada', null).order('rank'),
+  ])
+  const all = [...snap, ...((elo.data || []) as any[])]
+  return {
+    goleadores: all.filter((j) => j.tipo === 'goleadores_temp'),
+    porteros: all.filter((j) => j.tipo === 'porteros_temp'),
+    fantasy: all.filter((j) => j.tipo === 'fantasy_temp'),
+    elo: all.filter((j) => j.tipo === 'elo_temp'),
+  }
+}
+
+// XI Óptimo de temporada (web_xi_optimo tipo temporada, acumulado por jornada).
+export async function getXiTemporadaV2(codgrupo: string, codtemporada: number, jornada: number) {
+  return fetchSnapshot((q: any) => q.from('web_xi_optimo').select(COLS_XI_OPTIMO)
+    .eq('tipo', 'temporada').eq('codgrupo', codgrupo).eq('codtemporada', codtemporada).order('pos_orden'), jornada) as Promise<any[]>
+}
+
+// XI Óptimo de UNA jornada: en copa vive en web_xi_optimo (tipo jornada); en liga, en web_top_jugadores (xi_jornada).
+export async function getXiJornadaV2(codgrupo: string, codtemporada: number, jornada: number, isCopa: boolean) {
+  if (isCopa) {
+    const { data } = await supabase.from('web_xi_optimo').select(COLS_XI_OPTIMO)
+      .eq('codgrupo', codgrupo).eq('codtemporada', codtemporada).eq('tipo', 'jornada').eq('jornada', jornada).order('pos_orden')
+    return (data || []) as any[]
+  }
+  return getDestacadosV2(codgrupo, codtemporada, jornada, 'xi_jornada')
+}

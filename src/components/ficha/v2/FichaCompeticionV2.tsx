@@ -1,23 +1,28 @@
 import './ficha.css'
+import type { ReactNode } from 'react'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import Sello from '@/components/Sello'
 import EscudoBox from '@/components/ficha/v2/EscudoBox'
 import NombreEquipo from '@/components/NombreEquipo'
-import { Escudo, Calendario, Balon } from '@/components/iconos'
+import { Escudo, Calendario, Balon, Guante } from '@/components/iconos'
 import { nombreOficial, denominacion, familiaSello } from '@/lib/sellos'
 import { ensureMadrid } from '@/lib/seo'
 import { LIVE_COD } from '@/lib/equipo'
 import { colorElo } from '@/lib/equipoV2'
+import { fichasInfo } from '@/lib/jugador'
 import { ZONA_BG, ZONA_LEYENDA, ARRASTRE_TIPOS } from '@/components/tablas'
 import { type Ronda } from '@/lib/competiciones'
+import RankingComp, { type RankItem } from '@/components/ficha/v2/RankingComp'
 import {
   TEMPORADA_MAP, COD_TO_LABEL, TEMPORADAS_ORD, getGrupoV2, getVariantesV2, getGruposHermanos,
   getClasifV2, kpisDeClasif, zonaColor, RACHA_COL, type ClasifCompRow,
+  getDestacadosV2, getEquiposFormaV2, getTopTemporadaV2,
 } from '@/lib/competicionV2'
 
 const mil = (n: number | null | undefined) => (n == null ? '—' : Math.round(Number(n)).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.'))
 const med1 = (v: number | null) => (v == null ? '—' : v.toFixed(1).replace('.', ','))
+const fmt2 = (v: number | null | undefined) => (v == null ? '—' : Number(v).toFixed(2).replace('.', ','))
 
 // Pestañas por modo (ids de URL heredados). Copa degrada (sin clasificación ni Top-5 Equipos).
 const TABS_JORNADA_LIGA = [
@@ -65,9 +70,20 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
   const tabsActivas = modo === 'temporada' ? tabsT : tabsJ
   const tabEf = tabsActivas.some((t) => t[0] === tab) ? tab : tabsActivas[0][0]
 
-  // Datos del increment 1: clasificación (alimenta KPIs + panel). Resto de pestañas: placeholder.
+  // Clasificación alimenta KPIs + panel; siempre se pide (salvo copa, sin clasificación).
   const clasif: ClasifCompRow[] = isCopa ? [] : await getClasifV2(grupo.codgrupo, codtemporada, jornadaNum)
   const kpis = kpisDeClasif(clasif)
+
+  // Datos de la pestaña activa (tab-gated).
+  let mvpJ: any[] = [], equiposForma: any[] = []
+  let topTemp: { goleadores: any[]; porteros: any[]; fantasy: any[]; elo: any[] } | null = null
+  if (tabEf === 'top5-jugadores-jornada') mvpJ = await getDestacadosV2(grupo.codgrupo, codtemporada, jornadaNum, 'mvp_jornada')
+  else if (tabEf === 'top5-equipos-jornada') equiposForma = await getEquiposFormaV2(grupo.codgrupo, codtemporada, jornadaNum)
+  else if (tabEf === 'top10-goleadores-temporada' || tabEf === 'top10-porteros-temporada' || tabEf === 'top10-elo-jugadores-temporada' || tabEf === 'top10-fantasy-temporada')
+    topTemp = await getTopTemporadaV2(grupo.codgrupo, codtemporada, jornadaNum)
+
+  const codjugs = [...mvpJ, ...(topTemp ? [...topTemp.goleadores, ...topTemp.porteros, ...topTemp.elo, ...topTemp.fantasy] : [])].map((j: any) => j.codjugador)
+  const fichas = await fichasInfo(codjugs)
 
   const [variantes, hermanos] = await Promise.all([
     getVariantesV2(categoria, grupo.slug_comp, grupo.slug_grupo),
@@ -86,6 +102,63 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
   const zonaEf = (z: string | null) => (z && (!mostrarArrastre && ARRASTRE_TIPOS.has(z)) ? '' : (z || ''))
   const zonasPresentes = new Set(clasif.map((r) => zonaEf(r.zona)).filter(Boolean))
   const leyendaZ = ZONA_LEYENDA.filter((z) => zonasPresentes.has(z.tipo))
+
+  // Vista de ranking (.rr) para las pestañas soportadas en este incremento. Escudo real en todas.
+  type RankView = { title: string; sub: string; items: RankItem[]; leyenda?: ReactNode; barColor?: string }
+  const acum = `acumulado hasta J${jornadaNum}`
+  let rankView: RankView | null = null
+  if (tabEf === 'top5-jugadores-jornada') {
+    rankView = {
+      title: '5 mejores jugadores', sub: `puntos fantasy · jornada ${jornadaNum}`,
+      items: mvpJ.map((j) => ({
+        rank: j.rank, codjugador: j.codjugador, nombre: j.nombre, pos: j.posicion, escudo: j.escudo, nombreEquipo: j.nombre_equipo,
+        valor: Math.round(j.pts_fantasy ?? 0), valorColor: 'var(--e3)',
+        extra: <span><b className="num">{j.goles ?? 0}</b> {(j.goles ?? 0) === 1 ? 'gol' : 'goles'} en la jornada</span>,
+      })),
+      leyenda: <><b>Pts Fantasy</b> puntos en la jornada · <b>Goles</b> goles en la jornada.</>,
+    }
+  } else if (tabEf === 'top5-equipos-jornada') {
+    rankView = {
+      title: '5 equipos más en forma', sub: `puntos fantasy · jornada ${jornadaNum}`,
+      items: equiposForma.map((e) => ({
+        rank: e.rank, codequipo: e.codequipo, nombre: e.nombre_equipo, escudo: e.escudo, nombreEquipo: e.nombre_equipo,
+        valor: Math.round(e.pts_fantasy ?? 0), valorColor: 'var(--e3)',
+      })),
+      leyenda: <><b>Pts Fantasy</b> suma fantasy de los jugadores del equipo en la jornada.</>,
+    }
+  } else if (topTemp && tabEf === 'top10-goleadores-temporada') {
+    const max = Math.max(1, ...topTemp.goleadores.map((j) => j.goles ?? 0))
+    rankView = {
+      title: 'Goleadores', sub: acum, barColor: 'var(--e4)',
+      items: topTemp.goleadores.map((j) => ({
+        rank: j.rank, codjugador: j.codjugador, nombre: j.nombre, pos: j.posicion, escudo: j.escudo, nombreEquipo: j.nombre_equipo,
+        valor: j.goles, valorColor: 'var(--e4)', barPct: ((j.goles ?? 0) / max) * 100,
+        extra: <span><b className="num">{j.pj}</b> PJ · <b className="num">{fmt2(j.goles_pj)}</b> g/PJ · <b className="num">{j.partidos_con_gol ?? '—'}</b> con gol{j.min_gol != null ? <> · <b className="num">{j.min_gol}</b>′/gol</> : null}</span>,
+      })),
+      leyenda: <><b>Goles</b> marcados · <b>PJ</b> partidos jugados · <b>g/PJ</b> goles por partido · <b>con gol</b> partidos en que marcó · <b>′/gol</b> minutos por gol.</>,
+    }
+  } else if (topTemp && tabEf === 'top10-porteros-temporada') {
+    const max = Math.max(1, ...topTemp.porteros.map((j) => j.goles ?? 0))
+    rankView = {
+      title: 'Porterías a cero', sub: `${acum} · umbral proporcional`, barColor: 'var(--amber)',
+      items: topTemp.porteros.map((j) => ({
+        rank: j.rank, codjugador: j.codjugador, nombre: j.nombre, pos: j.posicion, escudo: j.escudo, nombreEquipo: j.nombre_equipo,
+        valor: j.goles, valorColor: 'var(--amber)', barPct: ((j.goles ?? 0) / max) * 100,
+        extra: <span><b className="num">{j.pj}</b> PJ · <b className="num">{j.goles_enc}</b> enc. · <b className="num">{fmt2(j.goles_pj)}</b> enc./PJ{j.p0_pct != null ? <> · <b className="num">{j.p0_pct}</b>% P0</> : null}</span>,
+      })),
+      leyenda: <><b>P0</b> porterías a cero · <b>enc.</b> goles encajados · <b>enc./PJ</b> goles encajados por partido · <b>P0%</b> porcentaje de porterías a cero. Elegibles desde la J3 (≥65 % de jornadas, media ≥60′).</>,
+    }
+  } else if (topTemp && tabEf === 'top10-elo-jugadores-temporada') {
+    rankView = {
+      title: 'ELO jugadores', sub: `tras J${jornadaNum}`,
+      items: topTemp.elo.map((j, i) => ({
+        rank: j.rank ?? i + 1, codjugador: j.codjugador, nombre: j.nombre, pos: j.posicion, escudo: j.escudo, nombreEquipo: j.nombre_equipo,
+        valor: j.elo != null ? Math.round(j.elo) : '—', valorColor: colorElo(j.elo) || 'var(--e1)',
+        extra: <span>máx <b className="num">{j.elo_max != null ? Math.round(j.elo_max) : '—'}</b> · mín <b className="num">{j.elo_min != null ? Math.round(j.elo_min) : '—'}</b>{j.elo_var != null ? <> · <b className="num" style={{ color: j.elo_var > 0 ? 'var(--e3)' : j.elo_var < 0 ? 'var(--e0)' : 'var(--ink-3)' }}>{j.elo_var > 0 ? '+' : ''}{j.elo_var}</b> últ.</> : null}</span>,
+      })),
+      leyenda: <><b>ELO</b> rating de rendimiento del jugador · <b>máx/mín</b> techo y suelo de la temporada · <b>últ.</b> variación en la última jornada.</>,
+    }
+  }
 
   return (
     <div className="fjv2 fcv2">
@@ -217,12 +290,22 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
             </section>
           )}
 
-          {tabEf !== 'clasificacion' && (
+          {tabEf !== 'clasificacion' && (rankView ? (
+            <section>
+              <div className="s-head"><div className="s-title">{rankView.title}</div><div className="s-sub">{rankView.sub}</div></div>
+              {rankView.items.length > 0 ? (
+                <>
+                  <RankingComp items={rankView.items} fichas={fichas} barColor={rankView.barColor} />
+                  {rankView.leyenda && <div className="leyenda">{rankView.leyenda}</div>}
+                </>
+              ) : <p className="vacio">Sin datos en esta {modo === 'temporada' ? 'temporada' : 'jornada'}.</p>}
+            </section>
+          ) : (
             <section>
               <div className="s-head"><div className="s-title">{tabsActivas.find((t) => t[0] === tabEf)?.[1]}</div></div>
               <p className="vacio">Próximamente en la ficha v2.</p>
             </section>
-          )}
+          ))}
         </div>
 
         <div className="aside">
