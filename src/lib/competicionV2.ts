@@ -333,3 +333,11 @@ export function golesEquipoJornada(res: ResultadoCompRow[], equiposMap: Map<stri
   }
   return out.filter((g) => g.goles > 0).sort((a, b) => b.goles - a.goles)
 }
+
+// Suspendidos para la jornada SIGUIENTE a la seleccionada (web_suspendidos).
+export async function getSuspendidosV2(codgrupo: string, codtemporada: number, jornadaSiguiente: number) {
+  const { data } = await supabase.from('web_suspendidos')
+    .select('codjugador, nombre, posicion, codequipo, nombre_equipo, escudo, motivo')
+    .eq('codgrupo', codgrupo).eq('codtemporada', codtemporada).eq('jornada', jornadaSiguiente).order('nombre_equipo')
+  return (data || []) as any[]
+}

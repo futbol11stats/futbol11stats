@@ -21,7 +21,7 @@ import {
   getClasifV2, kpisDeClasif, zonaColor, FORMA_COL, type ClasifCompRow,
   getDestacadosV2, getEquiposFormaV2, getTopTemporadaV2, getXiJornadaV2, getXiTemporadaV2, colorMediaJug,
   getResultadosV2, getEquiposMapV2, type ResultadoCompRow, getCarreraV2,
-  getLideresV2, getCifrasV2, type CifrasComp, golesEquipoJornada, type GolEquipoRow,
+  getLideresV2, getCifrasV2, type CifrasComp, golesEquipoJornada, type GolEquipoRow, getSuspendidosV2,
 } from '@/lib/competicionV2'
 
 const mil = (n: number | null | undefined) => (n == null ? '—' : Math.round(Number(n)).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.'))
@@ -87,6 +87,24 @@ function campoXI(players: { posicion: string; nombre: string; valor: number | st
   )
 }
 
+// Iconos de tarjeta presentes en una jornada (una por tipo). Sin fondo de chip (valorColor transparente).
+function cardsSpan(ta: number, dob: number, rj: number) {
+  return (
+    <span style={{ display: 'inline-flex', gap: 4, alignItems: 'center' }}>
+      {ta > 0 && <span style={{ color: 'var(--card-y)', display: 'inline-flex' }}><TarjetaAmarilla size={13} /></span>}
+      {dob > 0 && <span style={{ color: 'var(--card-y)', display: 'inline-flex' }}><TarjetaDoble size={14} /></span>}
+      {rj > 0 && <span style={{ color: 'var(--card-r)', display: 'inline-flex' }}><TarjetaRoja size={13} /></span>}
+    </span>
+  )
+}
+// Icono de tarjeta según el motivo de la suspensión (texto de web_suspendidos).
+function motivoCard(motivo: string | null) {
+  if (!motivo) return null
+  if (/roja/i.test(motivo)) return <span style={{ color: 'var(--card-r)', display: 'inline-flex' }}><TarjetaRoja size={13} /></span>
+  if (/doble/i.test(motivo)) return <span style={{ color: 'var(--card-y)', display: 'inline-flex' }}><TarjetaDoble size={14} /></span>
+  return <span style={{ color: 'var(--card-y)', display: 'inline-flex' }}><TarjetaAmarilla size={13} /></span>
+}
+
 // Tarjeta de líder (dos plantas): valor grande + unidad arriba; bajo un filete, el jugador con avatar,
 // escudo del equipo, nombre (enlazado) y equipo. Así un "1.284" no compite con el nombre.
 function lidCard(label: string, icon: ReactNode, color: string, val: ReactNode, unit: string, j: any, fichas: { has(k: string): boolean } | null) {
@@ -143,7 +161,7 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
   ])
 
   // Datos de la pestaña activa (tab-gated).
-  let mvpJ: any[] = [], equiposForma: any[] = [], xi: any[] = [], golJ: any[] = []
+  let mvpJ: any[] = [], equiposForma: any[] = [], xi: any[] = [], golJ: any[] = [], tarjJ: any[] = [], suspendidos: any[] = []
   let resultados: ResultadoCompRow[] = [], equiposMap = new Map<string, string>()
   let golesEquipo: GolEquipoRow[] = []
   let topTemp: { goleadores: any[]; porteros: any[]; fantasy: any[]; elo: any[] } | null = null
@@ -159,6 +177,12 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
       getEquiposMapV2(grupo.codgrupo, codtemporada),
     ])
     golJ = gj; equiposMap = em; golesEquipo = golesEquipoJornada(res, em)
+  } else if (tabEf === 'tarjetas-jornada') {
+    const [tj, susp] = await Promise.all([
+      getDestacadosV2(grupo.codgrupo, codtemporada, jornadaNum, 'tarjetas_jornada'),
+      getSuspendidosV2(grupo.codgrupo, codtemporada, jornadaNum + 1),
+    ])
+    tarjJ = tj; suspendidos = susp
   } else if (tabEf === 'top5-jugadores-jornada') mvpJ = await getDestacadosV2(grupo.codgrupo, codtemporada, jornadaNum, 'mvp_jornada')
   else if (tabEf === 'top5-equipos-jornada') equiposForma = await getEquiposFormaV2(grupo.codgrupo, codtemporada, jornadaNum)
   else if (tabEf === 'once-optimo-jornada') xi = await getXiJornadaV2(grupo.codgrupo, codtemporada, jornadaNum, isCopa)
@@ -167,7 +191,7 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
     topTemp = await getTopTemporadaV2(grupo.codgrupo, codtemporada, jornadaNum)
 
   const lidJugs = lideres ? [lideres.goleador, lideres.portero, lideres.elo].filter(Boolean) : []
-  const codjugs = [...mvpJ, ...xi, ...golJ, ...lidJugs, ...(topTemp ? [...topTemp.goleadores, ...topTemp.porteros, ...topTemp.elo, ...topTemp.fantasy] : [])].map((j: any) => j.codjugador)
+  const codjugs = [...mvpJ, ...xi, ...golJ, ...tarjJ, ...suspendidos, ...lidJugs, ...(topTemp ? [...topTemp.goleadores, ...topTemp.porteros, ...topTemp.elo, ...topTemp.fantasy] : [])].map((j: any) => j.codjugador)
   const fichas = await fichasInfo(codjugs)
 
   const [variantes, hermanos] = await Promise.all([
@@ -461,7 +485,30 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
             </>
           )}
 
-          {tabEf !== 'clasificacion' && tabEf !== 'resultados' && tabEf !== 'goleadores-jornada' && (rankView ? (
+          {/* TARJETAS (jornada) + Suspendidos (jornada siguiente). */}
+          {tabEf === 'tarjetas-jornada' && (
+            <>
+              <section>
+                <div className="s-head"><div className="s-title">Tarjetas de la jornada</div><div className="s-sub">{esFamilia ? (rondaSel?.label ?? `jornada ${jornadaNum}`) : `jornada ${jornadaNum}`}</div></div>
+                {tarjJ.length > 0
+                  ? <RankingComp fichas={fichas} items={tarjJ.map((j) => {
+                    const ta = j.goles || 0, dob = j.goles_enc || 0, rj = j.racha_5p || 0
+                    return { rank: j.rank, codjugador: j.codjugador, nombre: j.nombre, pos: j.posicion, escudo: j.escudo, nombreEquipo: j.nombre_equipo, valor: cardsSpan(ta, dob, rj), valorColor: 'transparent', extra: <span>{rj > 0 ? 'roja directa' : dob > 0 ? 'doble amarilla' : 'amarilla'}</span> }
+                  })} />
+                  : <p className="vacio">Sin tarjetas en esta jornada.</p>}
+                <div className="leyenda"><b>Amarilla</b> · <b>doble amarilla</b> (expulsión) · <b>roja directa</b>.</div>
+              </section>
+              <section>
+                <div className="s-head"><div className="s-title">Se pierden la próxima jornada</div><div className="s-sub">jornada {jornadaNum + 1}</div></div>
+                {suspendidos.length > 0
+                  ? <RankingComp fichas={fichas} items={suspendidos.map((s, i) => ({ rank: i + 1, codjugador: s.codjugador, nombre: s.nombre, pos: s.posicion, escudo: s.escudo, nombreEquipo: s.nombre_equipo, valor: motivoCard(s.motivo), valorColor: 'transparent', extra: <span>{s.motivo}</span> }))} />
+                  : <p className="vacio">Ningún jugador sancionado para la próxima jornada.</p>}
+                <div className="leyenda">Sanciones por tarjetas (ciclo de {isCopa ? 3 : 5} amarillas, doble amarilla o roja directa); no incluye sanciones adicionales del Comité de Competición.</div>
+              </section>
+            </>
+          )}
+
+          {tabEf !== 'clasificacion' && tabEf !== 'resultados' && tabEf !== 'goleadores-jornada' && tabEf !== 'tarjetas-jornada' && (rankView ? (
             <section>
               <div className="s-head"><div className="s-title">{rankView.title}</div><div className="s-sub">{rankView.sub}</div></div>
               {rankView.items.length > 0 ? (
