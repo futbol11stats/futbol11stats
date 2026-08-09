@@ -277,16 +277,18 @@
 /* Goles como barras espejo (resultado Total/Casa/Fuera + tramos, misma escala). */
 .fjv2 .tramo{display:flex;align-items:center;gap:7px;padding:4px 0}
 .fjv2 .tramo-lbl{font-family:var(--font-display),'Barlow Condensed',sans-serif;font-size:var(--t-body);font-weight:600;color:var(--ink-2);width:52px;display:flex;align-items:center;justify-content:center;gap:3px;flex:none;font-variant-numeric:tabular-nums}
-.fjv2 .tramo-side{flex:1;display:flex;align-items:center;height:16px;gap:4px}
+.fjv2 .tramo-side{flex:1;display:flex;align-items:center;height:16px}
 .fjv2 .tramo-side.gc{justify-content:flex-end}
-.fjv2 .tramo-b{height:15px;border-radius:2px;display:flex;align-items:center;padding:0 5px;font-family:var(--font-display),'Barlow Condensed',sans-serif;font-size:var(--t-sm);font-weight:700;color:#08111f}
+/* La barra es solo el indicador proporcional (sin texto dentro); el número va en .gnum, fuera. */
+.fjv2 .tramo-b{height:15px;border-radius:2px;min-width:3px}
 .fjv2 .tramo-b.gf{background:var(--e3)}
-.fjv2 .tramo-b.gc{background:var(--e0);justify-content:flex-end;color:#fff}
-/* Barra "vacía": el número no cabía dentro, se muestra fuera (.tb-out) y la barra queda como nub proporcional. */
-.fjv2 .tramo-b.empty{padding:0;min-width:4px}
-.fjv2 .tb-out{font-family:var(--font-display),'Barlow Condensed',sans-serif;font-size:var(--t-sm);font-weight:700;line-height:1;white-space:nowrap;font-variant-numeric:tabular-nums}
-.fjv2 .tramo-head{display:flex;font-size:var(--t-micro);color:var(--ink-3);letter-spacing:.06em;text-transform:uppercase;padding-bottom:7px;font-weight:600}
-.fjv2 .tramo-head .th{flex:1}.fjv2 .tramo-head .th.r{text-align:right}.fjv2 .tramo-head .th-mid{width:52px}
+.fjv2 .tramo-b.gc{background:var(--e0)}
+/* Número del gol SIEMPRE fuera de la barra, al final del lado y alineado en columna, en el color de la barra. */
+.fjv2 .gnum{flex:none;width:54px;font-family:var(--font-display),'Barlow Condensed',sans-serif;font-size:var(--t-sm);font-weight:700;line-height:1;white-space:nowrap;font-variant-numeric:tabular-nums}
+.fjv2 .gnum.gc{text-align:right}
+.fjv2 .gnum.gf{text-align:left}
+.fjv2 .tramo-head{display:flex;gap:7px;font-size:var(--t-micro);color:var(--ink-3);letter-spacing:.06em;text-transform:uppercase;padding-bottom:7px;font-weight:600}
+.fjv2 .tramo-head .th{flex:1}.fjv2 .tramo-head .th.r{text-align:right}.fjv2 .tramo-head .th-mid{width:52px;flex:none}.fjv2 .tramo-head .th-gn{width:54px;flex:none}
 /* Ratio por partido detrás del absoluto, menor y atenuado: 26 (1,5). Vale dentro y fuera de la barra.
    El margen crea el espacio "26 (1,5)": un espacio de texto se colapsa al ser el span un flex item. */
 .fjv2 .tb-r{font-size:.82em;font-weight:600;opacity:.62;margin-left:4px}

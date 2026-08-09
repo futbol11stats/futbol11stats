@@ -205,33 +205,26 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
   // la MISMA escala (maxBar) para ser comparables. El absoluto manda; el ratio por partido va detrás,
   // menor y atenuado (26 (1,5)). Los tramos no llevan ratio.
   const maxBar = Math.max(1, golTot.gf, golTot.gc, ...tramos.flatMap((t) => [t.gf, t.gc]))
-  // Un lado de la barra espejo. El número va DENTRO de la barra si cabe; si la barra (proporcional) es más
-  // estrecha que el texto, se saca FUERA, junto a ella y en su color. Umbral por MEDIDA (no por valor):
-  // se estima el ancho del texto (nº de caracteres) y el de la barra en el caso más estrecho (móvil, carril
-  // ~140px) — decisión única de SSR válida para móvil y desktop (en desktop hay más sitio, así que lo que
-  // cabe en móvil cabe, y lo que sale fuera se lee igual). El ratio en paréntesis va con el número.
-  const SIDE_PX = 140, CHAR_W = 7, RCHAR_W = 5.6, PAD_IN = 12
-  const sideBar = (val: number, pj: number | null, kind: 'gc' | 'gf', ratioOn: boolean) => {
-    if (val <= 0) return <div className={kind === 'gc' ? 'tramo-side gc' : 'tramo-side'} />
-    const rat = ratioOn && pj ? `(${ratio(val, pj)})` : ''
-    const pct = (val / maxBar) * 100
-    const textW = String(val).length * CHAR_W + (rat ? (rat.length + 1) * RCHAR_W : 0)
-    const dentro = (pct / 100) * SIDE_PX >= textW + PAD_IN
-    const col = kind === 'gc' ? 'var(--e0)' : 'var(--e3)'
-    const num = <>{val}{rat ? <span className="tb-r">{` ${rat}`}</span> : null}</>
-    const bar = <div className={`tramo-b ${kind}${dentro ? '' : ' empty'}`} style={{ width: `${pct}%` }}>{dentro ? num : null}</div>
-    const fuera = dentro ? null : <span className="tb-out" style={{ color: col }}>{num}</span>
-    return kind === 'gc'
-      ? <div className="tramo-side gc">{fuera}{bar}</div>
-      : <div className="tramo-side">{bar}{fuera}</div>
+  // Barra espejo: la barra es SOLO el indicador proporcional; el número va SIEMPRE fuera, al final de su
+  // lado y alineado en columna (rojo a la izquierda = encajados · verde a la derecha = marcados). Todas
+  // las filas iguales, sin lógica dentro/fuera, y el texto siempre legible (sobre el fondo, no sobre la
+  // barra de color). El ratio por partido va detrás del absoluto, menor y atenuado: 26 (1,5).
+  const gNum = (val: number, rat: string, col: string, side: 'gc' | 'gf') =>
+    val > 0
+      ? <span className={`gnum ${side}`} style={{ color: col }}>{val}{rat ? <span className="tb-r">{rat}</span> : null}</span>
+      : <span className={`gnum ${side}`} />
+  const filaGoles = (label: ReactNode, gc: number, gf: number, pj: number | null, ratioOn: boolean) => {
+    const rat = (v: number) => (ratioOn && pj ? `(${ratio(v, pj)})` : '')
+    return (
+      <div className="tramo">
+        {gNum(gc, rat(gc), 'var(--e0)', 'gc')}
+        <div className="tramo-side gc">{gc > 0 && <div className="tramo-b gc" style={{ width: `${(gc / maxBar) * 100}%` }} />}</div>
+        <div className="tramo-lbl">{label}</div>
+        <div className="tramo-side">{gf > 0 && <div className="tramo-b gf" style={{ width: `${(gf / maxBar) * 100}%` }} />}</div>
+        {gNum(gf, rat(gf), 'var(--e3)', 'gf')}
+      </div>
+    )
   }
-  const filaGoles = (label: ReactNode, gc: number, gf: number, pj: number | null, ratioOn: boolean) => (
-    <div className="tramo">
-      {sideBar(gc, pj, 'gc', ratioOn)}
-      <div className="tramo-lbl">{label}</div>
-      {sideBar(gf, pj, 'gf', ratioOn)}
-    </div>
-  )
 
   const tempTxt = tempSel ? tempLabel(tempSel) : ''
   const echoTxt = [tempTxt, nombreComp].filter(Boolean).join(' · ')
@@ -477,7 +470,7 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
                   partido va detrás, menor y atenuado. Los tramos no llevan ratio. */}
               <div className="box">
                 <div className="cap" style={{ marginBottom: 9 }}>Goles</div>
-                <div className="tramo-head"><div className="th">◀ Encajados</div><div className="th-mid" /><div className="th r">Marcados ▶</div></div>
+                <div className="tramo-head"><div className="th-gn" /><div className="th">◀ Encajados</div><div className="th-mid" /><div className="th r">Marcados ▶</div><div className="th-gn" /></div>
                 {filaGoles('Total', golTot.gc, golTot.gf, golTot.pj, true)}
                 {filaGoles(<><IndicadorLocal esLocal={true} />Casa</>, ana.casa.gc, ana.casa.gf, ana.casa.pj, true)}
                 {filaGoles(<><IndicadorLocal esLocal={false} />Fuera</>, ana.fuera.gc, ana.fuera.gf, ana.fuera.pj, true)}
