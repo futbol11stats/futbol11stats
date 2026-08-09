@@ -264,3 +264,61 @@ dibujaba un placeholder de algo que YA existe como componente del sitio, se usa 
   **una ficha ya visitada puede servirse hasta 30 días desactualizada tras una jornada nueva.** Ahora mismo
   solo lo enmascaran los deploys frecuentes de desarrollo (cada deploy resetea el caché ISR); en cuanto el
   ritmo de deploys baje, el problema aflora. Ver memoria `isr-sin-revalidacion-ondemand`.
+
+---
+
+# FICHA DE COMPETICIÓN v2 (rutas paralelas con sufijo /v2)
+
+## Inventario de las rutas actuales (para comprobar al terminar)
+- **Rutas:** `[categoria]/[slug_comp]/[slug_grupo]/[temporada]/[jornada]/[tab]/page.tsx` (grupo) y
+  `.../[slug_comp]/global/[temporada]/[jornada]/[tab]/page.tsx` (global). Las /v2 cuelgan con sufijo al
+  final: `.../[tab]/v2/page.tsx` (patrón de jugador/equipo).
+- **Componentes de pestaña (`@/components/tablas.tsx`):** ClasificacionTab, ResultadosTab, JugadoresTab,
+  EloTemporadaTab, PorterosTemporadaTab, TarjetasTemporadaTab, XiOptimoTemporadaTab, GoleadoresJornadaTab,
+  TarjetasJornadaTab, Top5JugadoresTab, Top5EquiposTab, XiOptimoJornadaTab, SuspendidosTab. Más
+  JornadaSelector, TabScroller, Sello, JsonLd. NINGUNO se toca (la /v2 crea los suyos).
+- **Datos (funciones en la propia page):** getGrupoBySlug, getVariantesPorTemporada, getGruposCompeticion,
+  getClasificacion (web_clasificacion), getResultados (web_resultados), getEquiposMap, getDestacadosJornada
+  (web_top_jugadores por tipo), getEquiposForma (web_equipos_forma), getTopJugadores (temp), fetchSnapshot
+  (time-machine), getAlertasTarjetas (web_alertas_tarjetas), getJuegoLimpio (web_juego_limpio),
+  getXiOptimoTemporada (web_xi_optimo), getSuspendidosJornada (web_suspendidos).
+- **IDs de tab (URL, se conservan):** jornada = clasificacion · resultados · goleadores-jornada ·
+  tarjetas-jornada · top5-jugadores-jornada · top5-equipos-jornada · once-optimo-jornada. Temporada =
+  top10-goleadores-temporada · top10-porteros-temporada · top10-tarjetas-temporada · top10-fantasy-temporada ·
+  top10-elo-jugadores-temporada · once-optimo-temporada. Copa degrada tabs (sin clasificación ni Top-5 Equipos).
+
+## C1 · Dos barras vs zonasw de la maqueta
+- La maqueta usa un toggle (zonasw) Jornada/Temporada + un solo raíl que cambia. La orden pide "Dos barras".
+  Se resuelve así: se pinta el toggle (dos botones-enlace, modo activo = el del tab actual) y DEBAJO el raíl
+  del modo activo (pestañas = rutas reales). El rótulo del selector de jornada cambia: "Jornada" (modo
+  jornada) / "Acumulado hasta" (modo temporada). Coherente con la maqueta y con "tabs = rutas".
+
+## C2 · Selector de jornada como ruta
+- El segmento [jornada] es ruta. En liga = `jornada-N`; en copa (familia) = slug de ronda. El raíl de
+  jornadas enlaza a `.../jornada-N/[tab]/v2` conservando tab y modo.
+
+## C3 · Sistema de diseño reutilizado
+- Se reutiliza `ficha.css` (.fjv2) de jugador/equipo (tokens, hero, kpis, scope, s-head, .tramo espejo,
+  .rr rankings, .pitch XI, etc.). La maqueta de competición usa las MISMAS clases base (kpis, scope, hero,
+  pill) que ya existen en .fjv2. Se añaden clases específicas de competición prefijadas .fjv2.
+
+## C4 · Clasificación: base la actual, no la maqueta
+- Se parte de ClasificacionTab actual (conserva comentario de forma web_clasificacion.forma y marcas de
+  zona por web_clasificacion.zona — NO se cablean posiciones). Se añade del diseño nuevo: columna fija
+  sticky + scroll horizontal de columnas numéricas. Racha desde web_clasificacion.racha.
+
+## C5 · Escudos reales en jugadores (todas las pestañas)
+- La maqueta usa iniciales de color. El SITIO manda: EscudoBox del equipo del jugador en TODOS los sitios
+  donde se pinta un jugador (rankings, Top-5, XI, etc.), como en equipo v2. El avatar de iniciales por
+  demarcación (AVA_POS) se mantiene donde la maqueta pone avatar de posición (XI).
+
+## C6 · Construcción incremental
+- Increment 1: data module (competicionV2.ts) + rutas /v2 (grupo + global) + shell (hero · KpiBar con
+  iconos · scope · toggle+raíl de tabs · jbar · aside Líderes+cifras) + Clasificación. Resto de paneles:
+  placeholder "Próximamente" que se rellena en commits siguientes, uno por pestaña.
+
+## C-dudas pendientes (a confirmar con datos al construir cada pestaña)
+- Resultados: campo/fecha/hora — ¿en qué columnas de web_resultados? (degradar si faltan).
+- Estadísticas: "goles por tramos de toda la competición" — ¿existe una tabla agregada por grupo o hay
+  que sumar web_goles_tramos de todos los equipos del grupo? Verificar al llegar a Estadísticas.
+- Fantasy: integración de "media destacada" — propuesta al construir la pestaña.
