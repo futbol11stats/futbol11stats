@@ -208,3 +208,24 @@ export async function getEquiposMapV2(codgrupo: string, codtemporada: number): P
   for (const r of (data || []) as any[]) m.set(r.nombre_equipo, String(r.codequipo))
   return m
 }
+
+// --- GLOBAL: grupos de la competición + clasificación de todos para la vista por zonas. ---
+export async function getGlobalGruposV2(categoria: string, slugComp: string, codtemporada: number) {
+  let q = supabase.from('web_grupos')
+    .select('codgrupo, nombre_grupo, slug_grupo, slug_comp, nombre_comp, jornada_actual, total_jornadas, tipo')
+    .eq('slug_comp', slugComp).eq('codtemporada', codtemporada)
+  const cat = CATEGORIA_MAP[categoria]
+  if (cat) q = q.eq('categoria', cat)
+  const { data } = await q
+  return ((data || []) as any[]).filter((g) => !g.tipo || g.tipo === 'LIGA')
+    .sort((a, b) => (parseInt(a.nombre_grupo?.replace(/\D/g, '') || '0') || 0) - (parseInt(b.nombre_grupo?.replace(/\D/g, '') || '0') || 0))
+}
+// Clasificación de TODOS los grupos a una jornada (para KPIs agregados + vista por zonas). Trae pj/gf/elo
+// para reutilizar kpisDeClasif y pos/zona para el bloque por zonas.
+export async function getGlobalClasifV2(codgrupos: string[], codtemporada: number, jornada: number) {
+  if (!codgrupos.length) return [] as any[]
+  const { data } = await supabase.from('web_clasificacion')
+    .select('codgrupo, pos, codequipo, nombre_equipo, escudo, pj, gf, pts, elo, zona')
+    .in('codgrupo', codgrupos).eq('codtemporada', codtemporada).eq('jornada', jornada).order('pos')
+  return (data || []) as any[]
+}

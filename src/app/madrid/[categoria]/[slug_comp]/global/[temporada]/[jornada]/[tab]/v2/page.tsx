@@ -1,21 +1,24 @@
 export const revalidate = 2592000
 
 import type { Metadata } from 'next'
+import FichaCompeticionGlobalV2 from '@/components/ficha/v2/FichaCompeticionGlobalV2'
 
 type Params = Promise<{ categoria: string; slug_comp: string; temporada: string; jornada: string; tab: string }>
 
-// Vista GLOBAL v2: se construye en el último incremento (clasificación por grupos, líderes de grupo…).
-// De momento placeholder para que la ruta exista sin romper el build. noindex mientras tanto.
+// v2 en construcción: noindex mientras se levanta (evita duplicar con la ruta actual).
 export async function generateMetadata(): Promise<Metadata> {
   return { title: 'Competición · Global · Fútbol11Stats', robots: { index: false, follow: false } }
 }
 
 export default async function Page({ params }: { params: Params }) {
-  await params
+  const { categoria, slug_comp, temporada, jornada, tab } = await params
   return (
-    <div className="fjv2 fcv2">
-      <div className="hero"><div className="hero-name"><div className="comp">Global</div></div></div>
-      <p className="vacio">La vista global v2 se está construyendo.</p>
-    </div>
+    <FichaCompeticionGlobalV2
+      categoria={categoria}
+      slugComp={slug_comp}
+      temporada={temporada}
+      jornada={jornada}
+      tab={tab}
+    />
   )
 }
