@@ -12,8 +12,18 @@ export default function CarreraPosiciones({ series, jornadas, bands }: {
 }) {
   const nT = series.length
   const NJ = jornadas.length
-  // Por defecto, resaltar el top 4 de la última jornada (series ya viene en orden final).
-  const [sel, setSel] = useState<Set<string>>(() => new Set(series.slice(0, 4).map((s) => s.codequipo)))
+  // Selección por defecto: líder (pos 1 final), último, y el de MAYOR RECORRIDO (más puestos ganados o
+  // perdidos entre la 1ª jornada y la última) — la remontada o el hundimiento, la historia que la tabla
+  // no cuenta. (El componente se remonta al cambiar de grupo vía key, así que esto se recalcula.)
+  const [sel, setSel] = useState<Set<string>>(() => {
+    if (!series.length) return new Set<string>()
+    let mejor = series[0], mejorD = -1
+    for (const s of series) {
+      const d = Math.abs((s.pos[0] ?? 0) - (s.pos[s.pos.length - 1] ?? 0))
+      if (d > mejorD) { mejorD = d; mejor = s }
+    }
+    return new Set([series[0].codequipo, series[series.length - 1].codequipo, mejor.codequipo])
+  })
   const toggle = (c: string) => setSel((prev) => { const n = new Set(prev); n.has(c) ? n.delete(c) : n.add(c); return n })
   if (!nT || !NJ) return <p className="vacio">Sin snapshots por jornada para dibujar la carrera.</p>
 

@@ -119,6 +119,10 @@ export const zonaColor = (zona: string | null): string => {
 }
 // Chips de racha G/E/P (mismo criterio que jugador/equipo).
 export const RACHA_COL: Record<string, string> = { G: 'var(--e3)', E: 'var(--ink-3)', P: 'var(--e0)' }
+// web_clasificacion.forma viene como 5 emojis: 🟢 victoria, 🟡 empate, 🔴 derrota. Color por resultado
+// (empate en gris; ámbar reservado). Se recorre con [...forma] para separar por code point (los emojis
+// ocupan más de un char y split('') los rompería).
+export const FORMA_COL: Record<string, string> = { '🟢': 'var(--e3)', '🟡': 'var(--ink-3)', '🔴': 'var(--e0)' }
 
 // --- Time-machine (foto por jornada -> foto-final -> jornada más cercana), como la ruta actual. ---
 async function fetchSnapshot(build: (q: any) => any, jornada: number) {
@@ -236,13 +240,23 @@ const iniEq = (n: string) => (n || '').replace(/['"]/g, '').split(/\s+/).filter(
 export type CarreraSerie = { codequipo: string; nombre: string; ini: string; color: string; pos: number[] }
 export type CarreraBand = { from: number; to: number; color: string }
 export async function getCarreraV2(codgrupo: string, codtemporada: number): Promise<{ series: CarreraSerie[]; jornadas: number[]; bands: CarreraBand[] }> {
-  const { data } = await supabase.from('web_clasificacion').select('jornada, codequipo, nombre_equipo, pos, zona')
-    .eq('codgrupo', codgrupo).eq('codtemporada', codtemporada).order('jornada').order('pos')
+  // 1) Última jornada: define los equipos de la carrera (orden final + zona para las bandas). Evita traer
+  //    series de equipos que no están en la tabla final (retirados, filas sueltas).
+  const { data: jr } = await supabase.from('web_clasificacion').select('jornada')
+    .eq('codgrupo', codgrupo).eq('codtemporada', codtemporada).order('jornada', { ascending: false }).limit(1)
+  const maxJ = jr && jr[0] ? Number(jr[0].jornada) : null
+  if (maxJ == null) return { series: [], jornadas: [], bands: [] }
+  const { data: lastData } = await supabase.from('web_clasificacion').select('codequipo, nombre_equipo, pos, zona')
+    .eq('codgrupo', codgrupo).eq('codtemporada', codtemporada).eq('jornada', maxJ).order('pos')
+  const last = (lastData || []) as any[]
+  if (!last.length) return { series: [], jornadas: [], bands: [] }
+  const codequipos = last.map((t) => String(t.codequipo))
+  // 2) Serie de posición por jornada, SOLO de esos equipos.
+  const { data } = await supabase.from('web_clasificacion').select('jornada, codequipo, pos')
+    .eq('codgrupo', codgrupo).eq('codtemporada', codtemporada).in('codequipo', codequipos).order('jornada').order('pos')
   const rows = (data || []) as any[]
   if (!rows.length) return { series: [], jornadas: [], bands: [] }
   const jornadas = Array.from(new Set(rows.map((r) => Number(r.jornada)))).sort((a, b) => a - b)
-  const maxJ = jornadas[jornadas.length - 1]
-  const last = rows.filter((r) => Number(r.jornada) === maxJ).sort((a, b) => a.pos - b.pos)
   const byTeam = new Map<string, Map<number, number>>()
   for (const r of rows) { const k = String(r.codequipo); if (!byTeam.has(k)) byTeam.set(k, new Map()); byTeam.get(k)!.set(Number(r.jornada), r.pos) }
   const series: CarreraSerie[] = last.map((t, idx) => {

@@ -17,7 +17,7 @@ import RankingComp, { type RankItem } from '@/components/ficha/v2/RankingComp'
 import CarreraPosiciones from '@/components/ficha/v2/CarreraPosiciones'
 import {
   TEMPORADA_MAP, COD_TO_LABEL, TEMPORADAS_ORD, getGrupoV2, getVariantesV2, getGruposHermanos,
-  getClasifV2, kpisDeClasif, zonaColor, RACHA_COL, type ClasifCompRow,
+  getClasifV2, kpisDeClasif, zonaColor, FORMA_COL, type ClasifCompRow,
   getDestacadosV2, getEquiposFormaV2, getTopTemporadaV2, getXiJornadaV2, getXiTemporadaV2, colorMediaJug,
   getResultadosV2, getEquiposMapV2, type ResultadoCompRow, getCarreraV2,
 } from '@/lib/competicionV2'
@@ -334,7 +334,8 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
                       <div className="cfix"><span className="czona" /><span className="cpos">#</span><span style={{ width: 24, flex: 'none' }} /><span className="ceq">Equipo</span></div>
                       {['PJ', 'G', 'E', 'P', 'GF', 'GC', 'DG', 'ELO', 'PF', 'P0'].map((c) => <span key={c} className={`cc${c === 'DG' ? ' dg' : ''}`}>{c}</span>)}
                       <span className="cc pts">Pts</span>
-                      <span className="cracha">Racha</span>
+                      <span className="cracha">Forma</span>
+                      <span className="ccom">Racha</span>
                     </div>
                     {clasif.map((r) => {
                       const z = zonaEf(r.zona)
@@ -353,7 +354,8 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
                           <span className="cc">{r.pts_fantasy != null ? Math.round(r.pts_fantasy) : ''}</span>
                           <span className="cc">{r.p0 ?? ''}</span>
                           <span className="cc pts">{r.pts}</span>
-                          <span className="cracha">{(r.racha || '').split('').slice(-5).map((x, i) => <i key={i} style={{ background: RACHA_COL[x] || 'var(--line)' }} />)}</span>
+                          <span className="cracha">{Array.from(r.forma || '').slice(-5).map((x, i) => <i key={i} style={{ background: FORMA_COL[x] || 'var(--line)' }} />)}</span>
+                          <span className="ccom">{r.racha || ''}</span>
                         </div>
                       )
                     })}
@@ -363,11 +365,7 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
                       {leyendaZ.map((z) => <span key={z.tipo}><i style={ZONA_BG[z.tipo]} />{z.label}</span>)}
                     </div>
                   )}
-                  {clasif.some((r) => r.forma) && (
-                    <div className="leyenda" style={{ paddingTop: 10 }}>
-                      <b>Forma:</b> {clasif.filter((r) => r.forma).slice(0, 3).map((r) => `${r.nombre_equipo} — ${r.forma}`).join(' · ')}
-                    </div>
-                  )}
+                  <div className="leyenda" style={{ paddingTop: 10 }}><b>Forma</b> últimos 5: <b style={{ color: 'var(--e3)' }}>ganó</b> · <b style={{ color: 'var(--ink-3)' }}>empató</b> · <b style={{ color: 'var(--e0)' }}>perdió</b> · <b>Racha</b> racha actual del equipo.</div>
                 </>
               ) : <p className="vacio">Sin clasificación en esta jornada.</p>}
             </section>
@@ -377,7 +375,7 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
           {tabEf === 'clasificacion' && carrera.series.length > 0 && (
             <section>
               <div className="s-head"><div className="s-title">Carrera de posiciones</div><div className="s-sub">jornada a jornada</div></div>
-              <CarreraPosiciones series={carrera.series} jornadas={carrera.jornadas} bands={carrera.bands} />
+              <CarreraPosiciones key={grupo.codgrupo} series={carrera.series} jornadas={carrera.jornadas} bands={carrera.bands} />
             </section>
           )}
 
