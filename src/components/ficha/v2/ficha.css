@@ -596,3 +596,11 @@
 /* Escudo + nombre de equipo al inicio de la línea de datos (añadido de competición sobre la fila .pl). */
 .fjv2 .pl-eq{display:inline-flex;align-items:center;gap:4px;max-width:168px;color:var(--ink-3)}
 .fjv2 .pl-eq>span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* XI Óptimo: campo a la izquierda + listado (FilaJugador) a la derecha en desktop; apilado en móvil. */
+.fcv2 .xi-wrap{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px;align-items:start;padding:0 var(--pad)}
+.fcv2 .xi-campo{min-width:0}
+.fcv2 .xi-lista{min-width:0}
+.fcv2 .xi-lista .pl{padding-left:0;padding-right:0}
+@media(max-width:900px){ .fcv2 .xi-wrap{grid-template-columns:1fr;gap:14px} }
+.fcv2 .xi-campo .pitch{margin:0}

@@ -264,8 +264,10 @@ export default async function FichaCompeticionGlobalV2({ categoria, slugComp, te
             <div className="s-head"><div className="s-title">{xiG.title}</div><div className="s-sub">{xiG.sub}</div></div>
             {xiG.items.length > 0 ? (
               <>
-                {campoXI(xiG.players)}
-                <div style={{ marginTop: 14 }}><RankingComp items={xiG.items} fichas={fichas} /></div>
+                <div className="xi-wrap">
+                  <div className="xi-campo">{campoXI(xiG.players)}</div>
+                  <div className="xi-lista"><RankingComp items={xiG.items} fichas={fichas} /></div>
+                </div>
                 <div className="leyenda">{xiG.leyenda}</div>
               </>
             ) : <p className="vacio">Sin XI Óptimo global en esta {modo === 'temporada' ? 'temporada' : 'jornada'}.</p>}

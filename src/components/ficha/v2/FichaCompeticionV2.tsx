@@ -564,8 +564,10 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
           ) : xiView ? (
             <section>
               <div className="s-head"><div className="s-title">{xiView.title}</div><div className="s-sub">{xiView.sub}</div></div>
-              {campoXI(xiView.players)}
-              <div style={{ marginTop: 14 }}><RankingComp items={xiView.items} fichas={fichas} /></div>
+              <div className="xi-wrap">
+                <div className="xi-campo">{campoXI(xiView.players)}</div>
+                <div className="xi-lista"><RankingComp items={xiView.items} fichas={fichas} /></div>
+              </div>
               <div className="leyenda">{xiView.leyenda}</div>
             </section>
           ) : (tabEf === 'once-optimo-jornada' || tabEf === 'once-optimo-temporada') ? (
