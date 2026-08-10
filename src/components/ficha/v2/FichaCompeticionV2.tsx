@@ -5,8 +5,7 @@ import { notFound } from 'next/navigation'
 import Sello from '@/components/Sello'
 import EscudoBox from '@/components/ficha/v2/EscudoBox'
 import NombreEquipo from '@/components/NombreEquipo'
-import NombreJugador from '@/components/NombreJugador'
-import { Escudo, Calendario, Balon, Guante, Casa, Avion, TarjetaAmarilla, TarjetaDoble, TarjetaRoja, Guion, Camiseta, CamisetaHueca, Reloj } from '@/components/iconos'
+import { Escudo, Balon, Guante, TarjetaAmarilla, TarjetaDoble, TarjetaRoja, Camiseta, CamisetaHueca, Reloj } from '@/components/iconos'
 import { nombreOficial, denominacion, familiaSello } from '@/lib/sellos'
 import { ensureMadrid } from '@/lib/seo'
 import { LIVE_COD, fechaCortaDMY } from '@/lib/equipo'
@@ -16,10 +15,10 @@ import { ZONA_BG, ZONA_LEYENDA, ARRASTRE_TIPOS } from '@/components/tablas'
 import { type Ronda } from '@/lib/competiciones'
 import RankingComp, { type RankItem } from '@/components/ficha/v2/RankingComp'
 import CarreraPosiciones from '@/components/ficha/v2/CarreraPosiciones'
-import { inicialesJugador } from '@/components/ficha/v2/jugadorFila'
 import { FilaEspejo, EspejoHead } from '@/components/ficha/v2/barrasGoles'
 import { campoXI, POSC } from '@/components/ficha/v2/campoXI'
 import TarjetasTemporadaV2 from '@/components/ficha/v2/TarjetasTemporadaV2'
+import Panorama from '@/components/ficha/v2/Panorama'
 import {
   TEMPORADA_MAP, COD_TO_LABEL, TEMPORADAS_ORD, getGrupoV2, getVariantesV2, getGruposHermanos,
   getClasifV2, kpisDeClasif, zonaColor, FORMA_COL, type ClasifCompRow,
@@ -56,8 +55,6 @@ const TABS_TEMP_COPA = [
 ] as const
 const TEMP_IDS = new Set<string>([...TABS_TEMP_LIGA, ...TABS_TEMP_COPA].map((t) => t[0]))
 
-const badge11 = <span style={{ width: 20, height: 20, borderRadius: '50%', background: '#1a7a3c', display: 'grid', placeItems: 'center', fontFamily: 'var(--font-display), sans-serif', fontWeight: 700, color: '#fff', fontSize: 11, lineHeight: 1 }}>11</span>
-const iniXI = inicialesJugador
 
 
 // Fila de datos COMPLETA de un jugador en una jornada (web_jugador_partidos), estilo Top de la plantilla:
@@ -96,25 +93,6 @@ function motivoCard(motivo: string | null) {
   if (/roja/i.test(motivo)) return <span style={{ color: 'var(--card-r)', display: 'inline-flex' }}><TarjetaRoja size={13} /></span>
   if (/doble/i.test(motivo)) return <span style={{ color: 'var(--card-y)', display: 'inline-flex' }}><TarjetaDoble size={14} /></span>
   return <span style={{ color: 'var(--card-y)', display: 'inline-flex' }}><TarjetaAmarilla size={13} /></span>
-}
-
-// Tarjeta de líder (dos plantas): valor grande + unidad arriba; bajo un filete, el jugador con avatar,
-// escudo del equipo, nombre (enlazado) y equipo. Así un "1.284" no compite con el nombre.
-function lidCard(label: string, icon: ReactNode, color: string, val: ReactNode, unit: string, j: any, fichas: { has(k: string): boolean } | null) {
-  if (!j || val == null) return null
-  return (
-    <div className="lider" key={label}>
-      <div className="lh"><span style={{ color, display: 'flex' }}>{icon}</span>{label}</div>
-      <div className="lv"><span className="big" style={{ color }}>{val}</span><span className="u">{unit}</span></div>
-      <div className="lb">
-        <div className="lav">{iniXI(j.nombre)}</div>
-        <div className="lbm">
-          <div className="lnm"><NombreJugador codjugador={j.codjugador} nombre={j.nombre} fichas={fichas} /></div>
-          <div className="leqn"><EscudoBox escudo={j.escudo} nombre={j.nombre_equipo} size={14} radius={4} /><span>{j.nombre_equipo}</span></div>
-        </div>
-      </div>
-    </div>
-  )
 }
 
 export default async function FichaCompeticionV2({ categoria, slugComp, slugGrupo, temporada, jornadaSeg, tab }: {
@@ -324,83 +302,81 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
 
   return (
     <div className="fjv2 fcv2">
-      {/* HERO */}
-      <div className="hero">
-        <div className="hero-top">
-          <span className="comp-sello"><Sello nombreComp={grupo.nombre_comp} src={esFamilia ? familiaSello(grupo.slug_comp, grupo.nombre_comp) : undefined} size={56} /></span>
-          <div className="hero-name">
+      {/* IDENTIDAD + SELECTORES (columna de rótulos a la izquierda) */}
+      <div className="ident">
+        <div className="ident-top">
+          <span className="comp-sello"><Sello nombreComp={grupo.nombre_comp} src={esFamilia ? familiaSello(grupo.slug_comp, grupo.nombre_comp) : undefined} size={52} /></span>
+          <div className="ident-name">
             <div className="over">RFFM · MADRID</div>
-            <div className="comp">{tituloGrupo}</div>
+            <div className="h1">{tituloGrupo}</div>
+            <div className="ident-meta">
+              {enJuego
+                ? <span className="pill live">EN JUEGO · J{grupo.jornada_actual} DE {grupo.total_jornadas}</span>
+                : <span className="pill n">Finalizada · {grupo.total_jornadas} jornadas</span>}
+              {kpis.equipos > 0 && <span className="pill n">{kpis.equipos} equipos</span>}
+              <span className="pill n">{temporada}</span>
+            </div>
           </div>
         </div>
-        <div className="hero-pills">
-          {enJuego
-            ? <span className="pill live">EN JUEGO · J{grupo.jornada_actual} DE {grupo.total_jornadas}</span>
-            : <span className="pill n">Finalizada · {grupo.total_jornadas} jornadas</span>}
-          {kpis.equipos > 0 && <span className="pill n">{kpis.equipos} equipos</span>}
-          <span className="pill n">Temporada {temporada}</span>
+        <div className="selrow">
+          <div className="sel-lbl">Temporada</div>
+          <div className="track"><div className="sel-rail">
+            {TEMPORADAS_ORD.map((cod) => {
+              const v = variantes[cod], label = COD_TO_LABEL[cod]
+              if (!v) return <span key={cod} className="off" title="Sin datos en esta temporada">{label}</span>
+              return <Link key={cod} href={`/madrid/${categoria}/${v.slug_comp}/${v.slug_grupo}/${label}/${v.seg}/${tab}/v2`} className={codtemporada === cod ? 'on' : ''}>{label}</Link>
+            })}
+          </div></div>
+        </div>
+        {!isCopa && hermanos.length > 0 && (
+          <div className="selrow" style={{ paddingBottom: 16 }}>
+            <div className="sel-lbl">Grupo</div>
+            <div className="track"><div className="sel-rail">
+              <Link href={`/madrid/${categoria}/${slugComp}/global/${temporada}/jornada-${jornadaNum}/${modo === 'temporada' ? tab : 'clasificacion'}/v2`} className="glob">Global</Link>
+              {hermanos.map((g) => (
+                <Link key={g.codgrupo} href={`/madrid/${categoria}/${g.slug_comp}/${g.slug_grupo}/${temporada}/jornada-${jornadaNum}/${tab}/v2`}
+                  className={String(g.codgrupo) === String(grupo.codgrupo) ? 'on' : ''}>{g.nombre_grupo}</Link>
+              ))}
+            </div></div>
+          </div>
+        )}
+      </div>
+
+      {/* PANORAMA — líderes + cifras a ancho completo, dependen del ámbito */}
+      {!isCopa && (
+        <Panorama lideres={lideres} cifras={cifras} kpis={kpis} fichas={fichas}
+          subLideres={`${temporada}${grupo.nombre_grupo ? ` · ${grupo.nombre_grupo}` : ''}`} subCifras={`tras la jornada ${jornadaNum}`} />
+      )}
+
+      {/* PESTAÑAS sticky: Reportes de (pastilla) · Jornada (pastilla) · Ver (subrayado) */}
+      <div className="tabs">
+        <div className="modo">
+          <div className="sel-lbl">Reportes de</div>
+          <Link href={`${baseTab}/${tabsJ[0][0]}/v2`} className={modo === 'jornada' ? 'on' : ''}>Jornada</Link>
+          <Link href={`${base}/jornada-${jornadaNum}/${tabsT[0][0]}/v2`} className={modo === 'temporada' ? 'on' : ''}>Temporada</Link>
+        </div>
+        <div className="jrow">
+          <div className="sel-lbl">{jlbl}</div>
+          <div className="track" style={{ flex: 1 }}><div className="jbar-rail">
+            {esFamilia
+              ? rondas.map((r) => <Link key={r.slug} href={`${base}/${r.slug}/${tab}/v2`} className={r.idx === jornadaNum ? 'on' : ''}>{r.label}</Link>)
+              : Array.from({ length: grupo.total_jornadas || 0 }, (_, i) => i + 1).map((j) => (
+                <Link key={j} href={`${base}/jornada-${j}/${tab}/v2`} className={j === jornadaNum ? 'on' : ''}>J{j}</Link>
+              ))}
+          </div></div>
+        </div>
+        <div className="verrow">
+          <div className="sel-lbl">Ver</div>
+          <div className="track" style={{ flex: 1 }}><div className="verrail">
+            {tabsActivas.map(([id, label]) => {
+              const href = modo === 'temporada' ? `${base}/jornada-${jornadaNum}/${id}/v2` : `${baseTab}/${id}/v2`
+              return <Link key={id} href={href} className={id === tabEf ? 'on' : ''}>{label}</Link>
+            })}
+          </div></div>
         </div>
       </div>
 
-      {/* KPIs — icono encima del número, como en equipo */}
-      <div className="kpis kpis-comp">
-        <div className="kpi"><div className="kpi-i"><Escudo size={14} /></div><div className="v num">{kpis.equipos || '—'}</div><div className="k">Equipos</div></div>
-        <div className="kpi"><div className="kpi-i"><Calendario size={14} /></div><div className="v num">{mil(kpis.partidos)}</div><div className="k">Partidos</div></div>
-        <div className="kpi"><div className="kpi-i"><Balon size={14} /></div><div className="v num">{mil(kpis.goles)}</div><div className="k">Goles</div></div>
-        <div className="kpi"><div className="kpi-i"><Balon size={14} /></div><div className="v num">{med1(kpis.golesPj)}</div><div className="k">Goles/PJ</div></div>
-        <div className="kpi"><div className="kpi-i">{badge11}</div><div className="v num" style={{ color: colorElo(kpis.eloMedio) }}>{mil(kpis.eloMedio)}</div><div className="k">ELO medio</div></div>
-      </div>
-
-      {/* SCOPE — temporada + grupo */}
-      <div className="scope">
-        <div className="scope-lbl">Temporada</div>
-        <div className="track"><div className="rail">
-          {TEMPORADAS_ORD.map((cod) => {
-            const v = variantes[cod], label = COD_TO_LABEL[cod]
-            if (!v) return <span key={cod} className="off" title="Sin datos en esta temporada">{label}</span>
-            return <Link key={cod} href={`/madrid/${categoria}/${v.slug_comp}/${v.slug_grupo}/${label}/${v.seg}/${tab}/v2`} className={codtemporada === cod ? 'on' : ''}>{label}</Link>
-          })}
-        </div></div>
-        {!isCopa && hermanos.length > 0 && <>
-          <div className="scope-lbl" style={{ paddingTop: 11 }}>Grupo</div>
-          <div className="track"><div className="rail">
-            <Link href={`/madrid/${categoria}/${slugComp}/global/${temporada}/jornada-${jornadaNum}/${modo === 'temporada' ? tab : 'clasificacion'}/v2`} className="glob">Global</Link>
-            {hermanos.map((g) => (
-              <Link key={g.codgrupo} href={`/madrid/${categoria}/${g.slug_comp}/${g.slug_grupo}/${temporada}/jornada-${jornadaNum}/${tab}/v2`}
-                className={String(g.codgrupo) === String(grupo.codgrupo) ? 'on' : ''}>{g.nombre_grupo}</Link>
-            ))}
-          </div></div>
-        </>}
-        <div className="scope-note">Los reportes de <b>Temporada</b> son acumulados hasta la jornada seleccionada, no el total.</div>
-      </div>
-
-      {/* TABS — toggle de modo + raíl del modo activo */}
-      <div className="tabs-comp">
-        <div className="zonasw"><div className="zsw">
-          <Link href={`${baseTab}/${tabsJ[0][0]}/v2`} className={modo === 'jornada' ? 'on' : ''}>Jornada</Link>
-          <Link href={`${base}/jornada-${jornadaNum}/${tabsT[0][0]}/v2`} className={modo === 'temporada' ? 'on' : ''}>Temporada</Link>
-        </div></div>
-        <div className="track"><div className="rail tabrail">
-          {tabsActivas.map(([id, label]) => {
-            const href = modo === 'temporada' ? `${base}/jornada-${jornadaNum}/${id}/v2` : `${baseTab}/${id}/v2`
-            return <Link key={id} href={href} className={id === tabEf ? 'on' : ''}>{label}</Link>
-          })}
-        </div></div>
-      </div>
-
-      {/* JBAR — selector de jornada/ronda con rótulo variable */}
-      <div className="jbar">
-        <div className="jlbl">{jlbl}</div>
-        <div className="track"><div className="rail jrail">
-          {esFamilia
-            ? rondas.map((r) => <Link key={r.slug} href={`${base}/${r.slug}/${tab}/v2`} className={r.idx === jornadaNum ? 'on' : ''}>{r.label}</Link>)
-            : Array.from({ length: grupo.total_jornadas || 0 }, (_, i) => i + 1).map((j) => (
-              <Link key={j} href={`${base}/jornada-${j}/${tab}/v2`} className={j === jornadaNum ? 'on' : ''}>J{j}</Link>
-            ))}
-        </div></div>
-      </div>
-
-      <div className="layout">
+      <div className="full">
         <div className="main">
           {/* CLASIFICACIÓN (increment 1) */}
           {tabEf === 'clasificacion' && (
@@ -603,43 +579,6 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
               <p className="vacio">Próximamente en la ficha v2.</p>
             </section>
           ))}
-        </div>
-
-        <div className="aside">
-          {/* LÍDERES — tarjeta por líder: valor grande + unidad arriba, y bajo un filete el jugador
-              (avatar, nombre, equipo + escudo). El tercero (más tarjetas) se omite: no hay ranking de
-              tarjetas por jugador de temporada en el dato (ver DECISIONES). */}
-          {lideres && (lideres.goleador || lideres.portero || lideres.elo || lideres.tarjetas) && (
-            <section>
-              <div className="s-head"><div className="s-title">Líderes</div><div className="s-sub">{temporada}{grupo.nombre_grupo ? ` · ${grupo.nombre_grupo}` : ''}</div></div>
-              <div className="track"><div className="rail lideres">
-                {lidCard('Goleador', <Balon size={14} />, 'var(--e4)', lideres.goleador?.goles, 'goles', lideres.goleador, fichas)}
-                {lidCard('Portero', <Guante size={14} />, 'var(--amber)', lideres.portero?.goles, 'P0', lideres.portero, fichas)}
-                {lidCard('Mejor ELO', <Escudo size={14} />, 'var(--e3)', lideres.elo?.elo != null ? mil(lideres.elo.elo) : null, 'ELO', lideres.elo, fichas)}
-                {lidCard('Más tarjetas', <TarjetaAmarilla size={13} />, 'var(--card-y)', lideres.tarjetas?.amarillas, 'amarillas', lideres.tarjetas, fichas)}
-              </div></div>
-            </section>
-          )}
-
-          <section style={{ borderBottom: 0 }}>
-            <div className="s-head"><div className="s-title">La competición en cifras</div><div className="s-sub">tras J{jornadaNum}</div></div>
-            <div style={{ padding: '0 var(--pad)' }}>
-              {cifras ? (
-                <>
-                  <div className="cifra"><span className="ci"><Calendario size={13} /></span><span className="ck">Partidos jugados</span><span className="cv num">{mil(cifras.disputados)} de {mil(cifras.totalPartidos)}</span></div>
-                  <div className="cifra"><span className="ci" style={{ color: 'var(--e4)' }}><Balon size={13} /></span><span className="ck">Goles marcados</span><span className="cv num">{mil(cifras.goles)}</span></div>
-                  <div className="cifra"><span className="ci" style={{ color: 'var(--e4)' }}><Balon size={13} /></span><span className="ck">Media de goles</span><span className="cv num">{med1(cifras.mediaGoles)} por partido</span></div>
-                  <div className="cifra"><span className="ci" style={{ color: 'var(--e3)' }}><Casa size={13} /></span><span className="ck">Victoria local</span><span className="cv num">{cifras.vLocalPct} %</span></div>
-                  <div className="cifra"><span className="ci"><Guion size={13} /></span><span className="ck">Empates</span><span className="cv num">{cifras.empPct} %</span></div>
-                  <div className="cifra"><span className="ci" style={{ color: 'var(--e1)' }}><Avion size={13} /></span><span className="ck">Victoria visitante</span><span className="cv num">{cifras.vVisitPct} %</span></div>
-                  <div className="cifra"><span className="ci" style={{ color: 'var(--card-y)' }}><TarjetaAmarilla size={12} /></span><span className="ck">Amarillas</span><span className="cv num">{mil(cifras.amarillas)}</span></div>
-                  <div className="cifra"><span className="ci" style={{ color: 'var(--card-y)' }}><TarjetaDoble size={13} /></span><span className="ck">Dobles amarillas</span><span className="cv num">{mil(cifras.dobles)}</span></div>
-                  <div className="cifra"><span className="ci" style={{ color: 'var(--card-r)' }}><TarjetaRoja size={12} /></span><span className="ck">Rojas</span><span className="cv num">{mil(cifras.rojas)}</span></div>
-                  <div className="cifra"><span className="ci" style={{ color: 'var(--amber)' }}><Guante size={13} /></span><span className="ck">Porterías a cero</span><span className="cv num">{mil(cifras.p0)}</span></div>
-                </>
-              ) : <p className="vacio">Sin cifras en esta temporada.</p>}
-            </div>
-          </section>
         </div>
       </div>
     </div>

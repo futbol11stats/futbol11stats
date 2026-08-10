@@ -479,3 +479,52 @@ export async function getGlobalTramosV2(codgrupos: string[], codtemporada: numbe
   for (const r of (data || []) as any[]) m.set(r.tramo, (m.get(r.tramo) || 0) + (r.gf || 0))
   return TRAMOS_ORDEN.map((t) => ({ tramo: t, gf: m.get(t) || 0 }))
 }
+
+// --- GLOBAL: Panorama (líderes + cifras) de toda la categoría, para el mismo componente Panorama. ---
+// Líderes: top-1 de cada ranking individual agregado + "más tarjetas" (aprox, web_alertas).
+export async function getGlobalLideresV2(codgrupos: string[], codtemporada: number, jornada: number) {
+  const [top, al] = await Promise.all([
+    getGlobalTopTemporadaV2(codgrupos, codtemporada, jornada),
+    getAlertasV2(codgrupos, codtemporada),
+  ])
+  const tarjetas = (al as any[])
+    .map((r) => ({ ...r, amarillas: (r.amarillas_ciclo || 0) + (r.amarillas_simples || 0) }))
+    .sort((a, b) => b.amarillas - a.amarillas)[0] || null
+  return { goleador: top.goleadores[0] || null, portero: top.porteros[0] || null, elo: top.elo[0] || null, tarjetas }
+}
+
+// Cifras completas de la categoría (agrega los grupos; cuenta partidos, NO suma puntos).
+export async function getGlobalCifrasFullV2(grupos: any[], codtemporada: number, jornada: number): Promise<CifrasComp> {
+  const codgrupos = grupos.map((g) => String(g.codgrupo))
+  if (!codgrupos.length) return { disputados: 0, totalPartidos: 0, goles: 0, mediaGoles: null, vLocalPct: 0, empPct: 0, vVisitPct: 0, amarillas: 0, dobles: 0, rojas: 0, p0: 0 }
+  const [clasRes, resRes, jl] = await Promise.all([
+    supabase.from('web_clasificacion').select('codgrupo, pj, gf, p0').in('codgrupo', codgrupos).eq('codtemporada', codtemporada).eq('jornada', jornada),
+    supabase.from('web_resultados').select('goles_local, goles_visitante').in('codgrupo', codgrupos).eq('codtemporada', codtemporada),
+    getJuegoLimpioV2(codgrupos, codtemporada, jornada),
+  ])
+  const clas = (clasRes.data || []) as any[]
+  const disputados = Math.round(clas.reduce((s, r) => s + (r.pj || 0), 0) / 2)
+  const goles = clas.reduce((s, r) => s + (r.gf || 0), 0)
+  const p0 = clas.reduce((s, r) => s + (r.p0 || 0), 0)
+  const eqPorGrupo = new Map<string, number>()
+  for (const r of clas) eqPorGrupo.set(String(r.codgrupo), (eqPorGrupo.get(String(r.codgrupo)) || 0) + 1)
+  let totalPartidos = 0
+  for (const g of grupos) totalPartidos += Math.round(((g.total_jornadas || 0) * (eqPorGrupo.get(String(g.codgrupo)) || 0)) / 2)
+  if (!totalPartidos) totalPartidos = disputados
+  let vl = 0, em = 0, vv = 0
+  for (const m of (resRes.data || []) as any[]) {
+    if (m.goles_local == null || m.goles_visitante == null) continue
+    if (m.goles_local > m.goles_visitante) vl++
+    else if (m.goles_local < m.goles_visitante) vv++
+    else em++
+  }
+  const tot = vl + em + vv || 1
+  return {
+    disputados, totalPartidos, goles, mediaGoles: disputados ? goles / disputados : null,
+    vLocalPct: Math.round((vl / tot) * 100), empPct: Math.round((em / tot) * 100), vVisitPct: Math.round((vv / tot) * 100),
+    amarillas: jl.reduce((s, r) => s + (r.amarillas || 0), 0),
+    dobles: jl.reduce((s, r) => s + (r.dobles || 0), 0),
+    rojas: jl.reduce((s, r) => s + (r.rojas || 0), 0),
+    p0,
+  }
+}
