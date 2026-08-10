@@ -19,6 +19,7 @@ import { FilaEspejo, EspejoHead } from '@/components/ficha/v2/barrasGoles'
 import { campoXI, POSC } from '@/components/ficha/v2/campoXI'
 import TarjetasTemporadaV2 from '@/components/ficha/v2/TarjetasTemporadaV2'
 import Panorama from '@/components/ficha/v2/Panorama'
+import ScrollRail from '@/components/ficha/v2/ScrollRail'
 import {
   datosGoleadorTemp, datosPorteroTemp, datosFantasyTemp, datosEloTemp, datosXiTemp,
   leyGoleadorTemp, leyPorteroTemp, leyFantasyTemp, leyEloTemp, leyXiTemp, leyJornada,
@@ -316,24 +317,24 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
         </div>
         <div className="selrow">
           <div className="sel-lbl">Temporada</div>
-          <div className="track"><div className="sel-rail">
+          <ScrollRail><div className="sel-rail">
             {TEMPORADAS_ORD.map((cod) => {
               const v = variantes[cod], label = COD_TO_LABEL[cod]
               if (!v) return <span key={cod} className="off" title="Sin datos en esta temporada">{label}</span>
               return <Link key={cod} href={`/madrid/${categoria}/${v.slug_comp}/${v.slug_grupo}/${label}/${v.seg}/${tab}/v2`} className={codtemporada === cod ? 'on' : ''}>{label}</Link>
             })}
-          </div></div>
+          </div></ScrollRail>
         </div>
         {!isCopa && hermanos.length > 0 && (
           <div className="selrow" style={{ paddingBottom: 16 }}>
             <div className="sel-lbl">Grupo</div>
-            <div className="track"><div className="sel-rail">
+            <ScrollRail><div className="sel-rail">
               <Link href={`/madrid/${categoria}/${slugComp}/global/${temporada}/jornada-${jornadaNum}/${modo === 'temporada' ? tab : 'clasificacion'}/v2`} className="glob">Global</Link>
               {hermanos.map((g) => (
                 <Link key={g.codgrupo} href={`/madrid/${categoria}/${g.slug_comp}/${g.slug_grupo}/${temporada}/jornada-${jornadaNum}/${tab}/v2`}
                   className={String(g.codgrupo) === String(grupo.codgrupo) ? 'on' : ''}>{g.nombre_grupo}</Link>
               ))}
-            </div></div>
+            </div></ScrollRail>
           </div>
         )}
       </div>
@@ -353,22 +354,22 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
         </div>
         <div className="jrow">
           <div className="sel-lbl">{jlbl}</div>
-          <div className="track" style={{ flex: 1 }}><div className="jbar-rail">
+          <ScrollRail><div className="jbar-rail">
             {esFamilia
               ? rondas.map((r) => <Link key={r.slug} href={`${base}/${r.slug}/${tab}/v2`} className={r.idx === jornadaNum ? 'on' : ''}>{r.label}</Link>)
               : Array.from({ length: grupo.total_jornadas || 0 }, (_, i) => i + 1).map((j) => (
                 <Link key={j} href={`${base}/jornada-${j}/${tab}/v2`} className={j === jornadaNum ? 'on' : ''}>J{j}</Link>
               ))}
-          </div></div>
+          </div></ScrollRail>
         </div>
         <div className="verrow">
           <div className="sel-lbl">Ver</div>
-          <div className="track" style={{ flex: 1 }}><div className="verrail">
+          <ScrollRail><div className="verrail">
             {tabsActivas.map(([id, label]) => {
               const href = modo === 'temporada' ? `${base}/jornada-${jornadaNum}/${id}/v2` : `${baseTab}/${id}/v2`
               return <Link key={id} href={href} className={id === tabEf ? 'on' : ''}>{label}</Link>
             })}
-          </div></div>
+          </div></ScrollRail>
         </div>
       </div>
 
@@ -380,7 +381,7 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
               <div className="s-head"><div className="s-title">Clasificación</div><div className="s-sub">tras la jornada {jornadaNum}</div></div>
               {clasif.length > 0 ? (
                 <>
-                  <div className="ctabla"><div className="ctw">
+                  <div className="ctabla"><ScrollRail className="ctw" wrapClassName="srail-tabla">
                     <div className="ctr head">
                       <div className="cfix"><span className="czona" /><span className="cpos">#</span><span style={{ width: 24, flex: 'none' }} /><span className="ceq">Equipo</span></div>
                       {['PJ', 'G', 'E', 'P', 'GF', 'GC', 'DG', 'ELO', 'PF', 'P0'].map((c) => <span key={c} className={`cc${c === 'DG' ? ' dg' : ''}`}>{c}</span>)}
@@ -410,7 +411,7 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
                         </div>
                       )
                     })}
-                  </div></div>
+                  </ScrollRail></div>
                   {leyendaZ.length > 0 && (
                     <div className="leyenda-z">
                       {leyendaZ.map((z) => <span key={z.tipo}><i style={ZONA_BG[z.tipo]} />{z.label}</span>)}

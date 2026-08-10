@@ -600,3 +600,23 @@
 .fcv2 .xi-lista .pl{padding-left:0;padding-right:0}
 @media(max-width:900px){ .fcv2 .xi-wrap{grid-template-columns:1fr;gap:14px} }
 .fcv2 .xi-campo .pitch{margin:0}
+
+/* ScrollRail: carril horizontal con degradado + flechas superpuestas (solo desktop, solo si hay recorrido). */
+.fjv2 .srail-wrap{position:relative;min-width:0;flex:1}
+.fjv2 .srail{overflow-x:auto;scrollbar-width:none}
+.fjv2 .srail::-webkit-scrollbar{display:none}
+.fjv2 .srail-fade{display:none;position:absolute;top:0;bottom:0;width:36px;z-index:3;pointer-events:none;transition:opacity .18s ease}
+.fjv2 .srail-fade-l{left:0;background:linear-gradient(90deg,var(--pitch-900) 22%,transparent)}
+.fjv2 .srail-fade-r{right:0;background:linear-gradient(270deg,var(--pitch-900) 22%,transparent)}
+.fjv2 .srail-nav{display:none;position:absolute;top:50%;transform:translateY(-50%);z-index:4;width:30px;height:30px;
+  border-radius:50%;border:1px solid var(--line);background:var(--pitch-800);color:var(--ink);cursor:pointer;
+  align-items:center;justify-content:center;transition:opacity .18s ease}
+.fjv2 .srail-nav:hover{border-color:rgba(255,255,255,.28);background:var(--pitch-700)}
+.fjv2 .srail-nav-l{left:2px}
+.fjv2 .srail-nav-r{right:4px}
+@media(min-width:1000px){ .fjv2 .srail-fade{display:block} .fjv2 .srail-nav{display:flex} }
+/* En la tabla de clasificación, el degradado y la flecha izquierdos arrancan tras la columna fija (sticky). */
+@media(min-width:1000px){
+  .fjv2 .srail-tabla .srail-fade-l{left:280px}
+  .fjv2 .srail-tabla .srail-nav-l{left:284px}
+}

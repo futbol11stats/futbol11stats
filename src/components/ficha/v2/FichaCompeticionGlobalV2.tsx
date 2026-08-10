@@ -15,6 +15,7 @@ import { campoXI, POSC } from '@/components/ficha/v2/campoXI'
 import { FilaEspejo, EspejoHead } from '@/components/ficha/v2/barrasGoles'
 import TarjetasTemporadaV2 from '@/components/ficha/v2/TarjetasTemporadaV2'
 import Panorama from '@/components/ficha/v2/Panorama'
+import ScrollRail from '@/components/ficha/v2/ScrollRail'
 import {
   datosGoleadorTemp, datosPorteroTemp, datosFantasyTemp, datosEloTemp, datosXiTemp,
   leyGoleadorTemp, leyPorteroTemp, leyFantasyTemp, leyEloTemp, leyXiTemp,
@@ -159,20 +160,20 @@ export default async function FichaCompeticionGlobalV2({ categoria, slugComp, te
         </div>
         <div className="selrow">
           <div className="sel-lbl">Temporada</div>
-          <div className="track"><div className="sel-rail">
+          <ScrollRail><div className="sel-rail">
             {TEMPORADAS_ORD.map((cod) => (
               <Link key={cod} href={`/madrid/${categoria}/${slugComp}/global/${COD_TO_LABEL[cod]}/jornada-${jornadaNum}/${tab}/v2`} className={codtemporada === cod ? 'on' : ''}>{COD_TO_LABEL[cod]}</Link>
             ))}
-          </div></div>
+          </div></ScrollRail>
         </div>
         <div className="selrow" style={{ paddingBottom: 16 }}>
           <div className="sel-lbl">Grupo</div>
-          <div className="track"><div className="sel-rail">
+          <ScrollRail><div className="sel-rail">
             <span className="glob" style={{ background: 'var(--pitch-700)', borderColor: 'rgba(240,180,41,.55)' }}>Global</span>
             {grupos.map((g) => (
               <Link key={g.codgrupo} href={`${base}/${g.slug_grupo}/${temporada}/jornada-${jornadaNum}/clasificacion/v2`}>{g.nombre_grupo}</Link>
             ))}
-          </div></div>
+          </div></ScrollRail>
         </div>
       </div>
 
@@ -189,17 +190,17 @@ export default async function FichaCompeticionGlobalV2({ categoria, slugComp, te
         </div>
         <div className="jrow">
           <div className="sel-lbl">{modo === 'temporada' ? 'Acumulado hasta' : 'Jornada'}</div>
-          <div className="track" style={{ flex: 1 }}><div className="jbar-rail">
+          <ScrollRail><div className="jbar-rail">
             {Array.from({ length: totalJornadas }, (_, i) => i + 1).map((j) => (
               <Link key={j} href={`${base}/global/${temporada}/jornada-${j}/${tabEf}/v2`} className={j === jornadaNum ? 'on' : ''}>J{j}</Link>
             ))}
-          </div></div>
+          </div></ScrollRail>
         </div>
         <div className="verrow">
           <div className="sel-lbl">Ver</div>
-          <div className="track" style={{ flex: 1 }}><div className="verrail">
+          <ScrollRail><div className="verrail">
             {tabsA.map(([id, label]) => <Link key={id} href={`${base}/global/${temporada}/jornada-${jornadaNum}/${id}/v2`} className={id === tabEf ? 'on' : ''}>{label}</Link>)}
-          </div></div>
+          </div></ScrollRail>
         </div>
       </div>
 
@@ -209,7 +210,7 @@ export default async function FichaCompeticionGlobalV2({ categoria, slugComp, te
           <div className="s-head"><div className="s-title">Clasificación global</div><div className="s-sub">{nombre} · {grupos.length} grupos · tras J{jornadaNum}</div></div>
 
           <div className="cap" style={{ padding: '0 var(--pad) 8px' }}>Líderes de grupo</div>
-          <div className="track"><div className="lideres-g">
+          <ScrollRail><div className="lideres-g">
             {porGrupo.map(({ grupo, lider }) => lider && (
               <div className="lg-card" key={grupo.codgrupo}>
                 <div className="lg-g">{grupo.nombre_grupo}</div>
@@ -217,7 +218,7 @@ export default async function FichaCompeticionGlobalV2({ categoria, slugComp, te
                 <div className="lg-nm">{lider.nombre_equipo}</div>
               </div>
             ))}
-          </div></div>
+          </div></ScrollRail>
 
           {porGrupo.map(({ grupo, zonas }) => {
             if (!zonas.length) return null
