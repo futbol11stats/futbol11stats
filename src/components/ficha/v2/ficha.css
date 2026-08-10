@@ -592,3 +592,7 @@
 
 @media(max-width:1100px){ .fcv2 .cifras{grid-template-columns:repeat(2,1fr)} .fcv2 .lid-grid{grid-template-columns:repeat(2,1fr)} }
 @media(max-width:640px){ .fcv2 .cifras,.fcv2 .lid-grid{grid-template-columns:1fr} .fcv2 .sel-lbl{width:72px} .fcv2 .ident-name .h1{font-size:23px} }
+
+/* Escudo + nombre de equipo al inicio de la línea de datos (añadido de competición sobre la fila .pl). */
+.fjv2 .pl-eq{display:inline-flex;align-items:center;gap:4px;max-width:168px;color:var(--ink-3)}
+.fjv2 .pl-eq>span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
