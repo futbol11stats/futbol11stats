@@ -18,13 +18,15 @@ import RankingComp, { type RankItem } from '@/components/ficha/v2/RankingComp'
 import CarreraPosiciones from '@/components/ficha/v2/CarreraPosiciones'
 import { inicialesJugador } from '@/components/ficha/v2/jugadorFila'
 import { FilaEspejo, EspejoHead } from '@/components/ficha/v2/barrasGoles'
+import { campoXI, POSC } from '@/components/ficha/v2/campoXI'
+import TarjetasTemporadaV2 from '@/components/ficha/v2/TarjetasTemporadaV2'
 import {
   TEMPORADA_MAP, COD_TO_LABEL, TEMPORADAS_ORD, getGrupoV2, getVariantesV2, getGruposHermanos,
   getClasifV2, kpisDeClasif, zonaColor, FORMA_COL, type ClasifCompRow,
   getDestacadosV2, getEquiposFormaV2, getTopTemporadaV2, getXiJornadaV2, getXiTemporadaV2, colorMediaJug,
   getResultadosV2, getEquiposMapV2, type ResultadoCompRow, getCarreraV2,
   getLideresV2, getCifrasV2, type CifrasComp, getSuspendidosV2, getPartidosJornadaV2, getTramosCompeticionV2,
-  golesEquipoJornada, type GolEquipoRow,
+  golesEquipoJornada, type GolEquipoRow, getJuegoLimpioV2, getAlertasV2,
 } from '@/lib/competicionV2'
 
 const mil = (n: number | null | undefined) => (n == null ? '—' : Math.round(Number(n)).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.'))
@@ -55,40 +57,8 @@ const TABS_TEMP_COPA = [
 const TEMP_IDS = new Set<string>([...TABS_TEMP_LIGA, ...TABS_TEMP_COPA].map((t) => t[0]))
 
 const badge11 = <span style={{ width: 20, height: 20, borderRadius: '50%', background: '#1a7a3c', display: 'grid', placeItems: 'center', fontFamily: 'var(--font-display), sans-serif', fontWeight: 700, color: '#fff', fontSize: 11, lineHeight: 1 }}>11</span>
-
-// XI Óptimo sobre campo: colores por demarcación (maqueta) + formación deducida contando posiciones.
-const POSC: Record<string, string> = { POR: '#f0b429', DEF: '#9ac4f1', MED: '#8cefa5', DEL: '#f2a3c0' }
-const LINE_Y: Record<string, number> = { POR: 88, DEF: 70, MED: 48, DEL: 24 }
 const iniXI = inicialesJugador
-function campoXI(players: { posicion: string; nombre: string; valor: number | string }[]) {
-  const byLine: Record<string, typeof players> = { POR: [], DEF: [], MED: [], DEL: [] }
-  players.forEach((p) => { (byLine[p.posicion] || byLine.MED).push(p) })
-  const dots: ReactNode[] = []
-  ;(['POR', 'DEF', 'MED', 'DEL'] as const).forEach((line) => {
-    const arr = byLine[line], k = arr.length
-    arr.forEach((p, i) => {
-      const x = k === 1 ? 50 : ((i + 1) / (k + 1)) * 100
-      const col = POSC[line] || '#9ac4f1'
-      dots.push(
-        <div className="xi-p" style={{ left: `${x}%`, top: `${LINE_Y[line]}%` }} key={`${line}-${i}`}>
-          <div className="av" style={{ background: col }}>{iniXI(p.nombre)}</div>
-          <div className="nm">{(p.nombre || '').split(/\s+/).slice(-1)[0]}</div>
-          <div className="vv" style={{ color: col }}>{p.valor}</div>
-        </div>,
-      )
-    })
-  })
-  return (
-    <div className="pitch">
-      <div className="ln" style={{ left: '5%', right: '5%', top: '2%', bottom: '2%', borderRadius: 6 }} />
-      <div className="ln" style={{ left: '5%', right: '5%', top: '50%', height: 0 }} />
-      <div className="ln" style={{ left: '28%', width: '44%', top: '2%', height: '14%' }} />
-      <div className="ln" style={{ left: '28%', width: '44%', bottom: '2%', height: '14%' }} />
-      <div className="ln" style={{ left: '36%', width: '28%', top: '39%', height: '22%', borderRadius: '50%' }} />
-      {dots}
-    </div>
-  )
-}
+
 
 // Fila de datos COMPLETA de un jugador en una jornada (web_jugador_partidos), estilo Top de la plantilla:
 // titular/suplente · minutos · goles (o portería a cero si actuó de portero) · tarjetas. Con color propio.
@@ -189,6 +159,8 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
   let partMap = new Map<string, any>()
   let tramosComp: { tramo: string; gf: number }[] = []
   let topTemp: { goleadores: any[]; porteros: any[]; fantasy: any[]; elo: any[] } | null = null
+  let juegoLimpio: any[] = []
+  let alertas: any[] = []
   if (tabEf === 'resultados') {
     [resultados, equiposMap] = await Promise.all([
       getResultadosV2(grupo.codgrupo, codtemporada, jornadaNum),
@@ -218,12 +190,18 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
     partMap = await getPartidosJornadaV2(grupo.codgrupo, codtemporada, jornadaNum, xi.map((j: any) => String(j.codjugador)))
   }
   else if (tabEf === 'once-optimo-temporada') xi = await getXiTemporadaV2(grupo.codgrupo, codtemporada, jornadaNum)
+  else if (tabEf === 'top10-tarjetas-temporada') {
+    [juegoLimpio, alertas] = await Promise.all([
+      getJuegoLimpioV2([grupo.codgrupo], codtemporada, jornadaNum),
+      getAlertasV2([grupo.codgrupo], codtemporada),
+    ])
+  }
   else if (tabEf === 'estadisticas') tramosComp = await getTramosCompeticionV2(grupo.codgrupo, codtemporada)
   else if (tabEf === 'top10-goleadores-temporada' || tabEf === 'top10-porteros-temporada' || tabEf === 'top10-elo-jugadores-temporada' || tabEf === 'top10-fantasy-temporada')
     topTemp = await getTopTemporadaV2(grupo.codgrupo, codtemporada, jornadaNum)
 
   const lidJugs = lideres ? [lideres.goleador, lideres.portero, lideres.elo, lideres.tarjetas].filter(Boolean) : []
-  const codjugs = [...mvpJ, ...xi, ...golJ, ...tarjJ, ...suspendidos, ...lidJugs, ...(topTemp ? [...topTemp.goleadores, ...topTemp.porteros, ...topTemp.elo, ...topTemp.fantasy] : [])].map((j: any) => j.codjugador)
+  const codjugs = [...mvpJ, ...xi, ...golJ, ...tarjJ, ...suspendidos, ...alertas, ...lidJugs, ...(topTemp ? [...topTemp.goleadores, ...topTemp.porteros, ...topTemp.elo, ...topTemp.fantasy] : [])].map((j: any) => j.codjugador)
   const fichas = await fichasInfo(codjugs)
 
   const [variantes, hermanos] = await Promise.all([
@@ -593,7 +571,11 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
             </section>
           )}
 
-          {tabEf !== 'clasificacion' && tabEf !== 'resultados' && tabEf !== 'goleadores-jornada' && tabEf !== 'tarjetas-jornada' && tabEf !== 'estadisticas' && (rankView ? (
+          {tabEf === 'top10-tarjetas-temporada' && (
+            <TarjetasTemporadaV2 equipos={juegoLimpio} jugadores={alertas} fichas={fichas} ambito={`${nombre}${grupo.nombre_grupo ? ` · ${grupo.nombre_grupo}` : ''}`} />
+          )}
+
+          {tabEf !== 'clasificacion' && tabEf !== 'resultados' && tabEf !== 'goleadores-jornada' && tabEf !== 'tarjetas-jornada' && tabEf !== 'estadisticas' && tabEf !== 'top10-tarjetas-temporada' && (rankView ? (
             <section>
               <div className="s-head"><div className="s-title">{rankView.title}</div><div className="s-sub">{rankView.sub}</div></div>
               {rankView.items.length > 0 ? (
