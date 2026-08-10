@@ -15,7 +15,7 @@ export const COLS_RESULTADOS =
 // web_top_jugadores: goleadores/fantasy/elo/porteros (temporada) + destacados de jornada (goleadores/
 // tarjetas/mvp/xi). tipo -> split; codgrupo -> badge global. Cubre goles_enc y racha_5p (TarjetasJornadaTab).
 export const COLS_TOP_JUGADORES =
-  'codgrupo, jornada, tipo, rank, codjugador, codequipo, nombre, posicion, nombre_equipo, escudo, goles, pj, goles_pj, min_gol, pts_fantasy, media_fantasy, elo, goles_enc, p0_pct, racha_5p, partidos_con_gol'
+  'codgrupo, jornada, tipo, rank, codjugador, codequipo, nombre, posicion, nombre_equipo, escudo, goles, pj, goles_pj, min_gol, pts_fantasy, media_fantasy, elo, elo_max, elo_min, goles_enc, p0_pct, racha_5p, partidos_con_gol'
 
 // web_alertas_tarjetas (sancionados): NO se usan estado/amarillas_ciclo/amarillas_simples -> fuera.
 export const COLS_ALERTAS =

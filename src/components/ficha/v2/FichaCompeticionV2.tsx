@@ -20,17 +20,18 @@ import { campoXI, POSC } from '@/components/ficha/v2/campoXI'
 import TarjetasTemporadaV2 from '@/components/ficha/v2/TarjetasTemporadaV2'
 import Panorama from '@/components/ficha/v2/Panorama'
 import {
+  datosGoleadorTemp, datosPorteroTemp, datosFantasyTemp, datosEloTemp, datosXiTemp,
+  leyGoleadorTemp, leyPorteroTemp, leyFantasyTemp, leyEloTemp, leyXiTemp, leyJornada,
+} from '@/components/ficha/v2/lineasComp'
+import {
   TEMPORADA_MAP, COD_TO_LABEL, TEMPORADAS_ORD, getGrupoV2, getVariantesV2, getGruposHermanos,
   getClasifV2, kpisDeClasif, zonaColor, FORMA_COL, type ClasifCompRow,
-  getDestacadosV2, getEquiposFormaV2, getTopTemporadaV2, getXiJornadaV2, getXiTemporadaV2, colorMediaJug,
+  getDestacadosV2, getEquiposFormaV2, getTopTemporadaV2, getXiJornadaV2, getXiTemporadaV2,
   getResultadosV2, getEquiposMapV2, type ResultadoCompRow, getCarreraV2,
   getLideresV2, getCifrasV2, type CifrasComp, getSuspendidosV2, getPartidosJornadaV2, getTramosCompeticionV2,
   golesEquipoJornada, type GolEquipoRow, getJuegoLimpioV2, getAlertasV2,
 } from '@/lib/competicionV2'
 
-const mil = (n: number | null | undefined) => (n == null ? '—' : Math.round(Number(n)).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.'))
-const med1 = (v: number | null) => (v == null ? '—' : v.toFixed(1).replace('.', ','))
-const fmt2 = (v: number | null | undefined) => (v == null ? '—' : Number(v).toFixed(2).replace('.', ','))
 
 // Pestañas por modo (ids de URL heredados). Copa degrada (sin clasificación ni Top-5 Equipos).
 const TABS_JORNADA_LIGA = [
@@ -215,7 +216,7 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
           extra: p ? filaJornada(p) : <span className="cfj-none">Sin datos del partido</span>,
         }
       }),
-      leyenda: <><b>Titular/Supl.</b> · minutos · goles (o portería a cero, portero) · tarjetas · el chip verde son los <b>puntos fantasy</b> de la jornada.</>,
+      leyenda: leyJornada,
     }
   } else if (tabEf === 'top5-equipos-jornada') {
     rankView = {
@@ -233,9 +234,9 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
       items: topTemp.goleadores.map((j) => ({
         rank: j.rank, codjugador: j.codjugador, nombre: j.nombre, pos: j.posicion, escudo: j.escudo, nombreEquipo: j.nombre_equipo,
         valor: j.goles, valorColor: 'var(--e4)', barPct: ((j.goles ?? 0) / max) * 100,
-        extra: <span><b className="num">{j.pj}</b> PJ · <b className="num">{fmt2(j.goles_pj)}</b> g/PJ · <b className="num">{j.partidos_con_gol ?? '—'}</b> con gol{j.min_gol != null ? <> · <b className="num">{j.min_gol}</b>′/gol</> : null}</span>,
+        extra: datosGoleadorTemp(j),
       })),
-      leyenda: <><b>Goles</b> marcados · <b>PJ</b> partidos jugados · <b>g/PJ</b> goles por partido · <b>con gol</b> partidos en que marcó · <b>′/gol</b> minutos por gol.</>,
+      leyenda: leyGoleadorTemp,
     }
   } else if (topTemp && tabEf === 'top10-porteros-temporada') {
     const max = Math.max(1, ...topTemp.porteros.map((j) => j.goles ?? 0))
@@ -244,9 +245,9 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
       items: topTemp.porteros.map((j) => ({
         rank: j.rank, codjugador: j.codjugador, nombre: j.nombre, pos: j.posicion, escudo: j.escudo, nombreEquipo: j.nombre_equipo,
         valor: j.goles, valorColor: 'var(--amber)', barPct: ((j.goles ?? 0) / max) * 100,
-        extra: <span><b className="num">{j.pj}</b> PJ · <b className="num">{j.goles_enc}</b> enc. · <b className="num">{fmt2(j.goles_pj)}</b> enc./PJ{j.p0_pct != null ? <> · <b className="num">{j.p0_pct}</b>% P0</> : null}</span>,
+        extra: datosPorteroTemp(j),
       })),
-      leyenda: <><b>P0</b> porterías a cero · <b>enc.</b> goles encajados · <b>enc./PJ</b> goles encajados por partido · <b>P0%</b> porcentaje de porterías a cero. Elegibles desde la J3 (≥65 % de jornadas, media ≥60′).</>,
+      leyenda: <>{leyPorteroTemp} Elegibles desde la J3 (≥65 % de jornadas, media ≥60′).</>,
     }
   } else if (topTemp && tabEf === 'top10-elo-jugadores-temporada') {
     rankView = {
@@ -254,9 +255,9 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
       items: topTemp.elo.map((j, i) => ({
         rank: j.rank ?? i + 1, codjugador: j.codjugador, nombre: j.nombre, pos: j.posicion, escudo: j.escudo, nombreEquipo: j.nombre_equipo,
         valor: j.elo != null ? Math.round(j.elo) : '—', valorColor: colorElo(j.elo) || 'var(--e1)',
-        extra: <span>máx <b className="num">{j.elo_max != null ? Math.round(j.elo_max) : '—'}</b> · mín <b className="num">{j.elo_min != null ? Math.round(j.elo_min) : '—'}</b>{j.elo_var != null ? <> · <b className="num" style={{ color: j.elo_var > 0 ? 'var(--e3)' : j.elo_var < 0 ? 'var(--e0)' : 'var(--ink-3)' }}>{j.elo_var > 0 ? '+' : ''}{j.elo_var}</b> últ.</> : null}</span>,
+        extra: datosEloTemp(j),
       })),
-      leyenda: <><b>ELO</b> rating de rendimiento del jugador · <b>máx/mín</b> techo y suelo de la temporada · <b>últ.</b> variación en la última jornada.</>,
+      leyenda: leyEloTemp,
     }
   } else if (topTemp && tabEf === 'top10-fantasy-temporada') {
     const max = Math.max(1, ...topTemp.fantasy.map((j) => Math.round(j.pts_fantasy ?? 0)))
@@ -265,12 +266,9 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
       items: topTemp.fantasy.map((j) => ({
         rank: j.rank, codjugador: j.codjugador, nombre: j.nombre, pos: j.posicion, escudo: j.escudo, nombreEquipo: j.nombre_equipo,
         valor: Math.round(j.pts_fantasy ?? 0), valorColor: 'var(--e3)', barPct: (Math.round(j.pts_fantasy ?? 0) / max) * 100,
-        extra: <>
-          <span className="mediabadge" style={{ color: colorMediaJug(j.media_fantasy) || 'var(--ink-2)', borderColor: colorMediaJug(j.media_fantasy) || 'var(--line)' }}>⌀ {med1(j.media_fantasy)}</span>
-          <span><b className="num">{j.pj}</b> PJ{j.goles != null ? <> · <b className="num">{j.goles}</b> {j.goles === 1 ? 'gol' : 'goles'}</> : null}</span>
-        </>,
+        extra: datosFantasyTemp(j),
       })),
-      leyenda: <><b>Pts Fantasy</b> puntos acumulados (ordenan el ranking) · <b>⌀</b> media de puntos por partido, resaltada y coloreada por rendimiento (rojo→verde) · <b>PJ</b> partidos jugados.</>,
+      leyenda: leyFantasyTemp,
     }
   }
 
@@ -287,16 +285,14 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
       items: xi.map((j) => {
         const p = esTemp ? null : partMap.get(String(j.codjugador))
         const extra = esTemp
-          ? <span><b className="num">{j.goles ?? 0}</b> {(j.goles ?? 0) === 1 ? 'gol' : 'goles'}{j.racha_5p != null ? <> · racha <b className="num">{j.racha_5p}</b></> : null}{j.power_ranking != null ? <> · power <b className="num">{j.power_ranking}</b></> : null}</span>
+          ? datosXiTemp(j)
           : (p ? filaJornada(p) : <span className="cfj-none">Sin datos del partido</span>)
         return {
           rank: j.posicion, rankColor: POSC[j.posicion], codjugador: j.codjugador, nombre: j.nombre, pos: j.posicion,
           escudo: j.escudo, nombreEquipo: j.nombre_equipo, valor: valOf(j), valorColor: POSC[j.posicion] ?? 'var(--e3)', extra,
         }
       }),
-      leyenda: esTemp
-        ? <><b>Pos</b> posición en el campo · <b>Pts Fantasy</b> acumulados · <b>Goles</b> en la temporada · <b>Racha 5p</b> suma fantasy de las últimas 5 jornadas · <b>Power Ranking</b> índice combinado.</>
-        : <><b>Pos</b> posición en el campo · <b>Pts Fantasy</b> puntos en la jornada · <b>Goles</b> en la jornada.</>,
+      leyenda: esTemp ? leyXiTemp : leyJornada,
     }
   }
 
@@ -472,6 +468,7 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
                     return { rank: j.rank, codjugador: j.codjugador, nombre: j.nombre, pos: j.posicion, escudo: j.escudo, nombreEquipo: j.nombre_equipo, valor: (p?.goles ?? j.goles) ?? 0, valorColor: 'var(--e4)', extra: p ? filaJornada(p) : <span className="cfj-none">Sin datos del partido</span> }
                   })} />
                   : <p className="vacio">Sin goleadores en esta jornada.</p>}
+                {golJ.length > 0 && <div className="leyenda">{leyJornada}</div>}
               </section>
               {golesEquipo.length > 0 && (
                 <section>

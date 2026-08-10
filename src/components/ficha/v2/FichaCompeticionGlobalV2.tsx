@@ -16,15 +16,19 @@ import { FilaEspejo, EspejoHead } from '@/components/ficha/v2/barrasGoles'
 import TarjetasTemporadaV2 from '@/components/ficha/v2/TarjetasTemporadaV2'
 import Panorama from '@/components/ficha/v2/Panorama'
 import {
+  datosGoleadorTemp, datosPorteroTemp, datosFantasyTemp, datosEloTemp, datosXiTemp,
+  leyGoleadorTemp, leyPorteroTemp, leyFantasyTemp, leyEloTemp, leyXiTemp,
+} from '@/components/ficha/v2/lineasComp'
+import { Balon } from '@/components/iconos'
+import {
   TEMPORADA_MAP, COD_TO_LABEL, TEMPORADAS_ORD, getGlobalGruposV2, getGlobalClasifV2, kpisDeClasif,
-  zonaFamilia, ZONA_FAM_COL, ZONA_FAM_LABEL, colorMediaJug,
+  zonaFamilia, ZONA_FAM_COL, ZONA_FAM_LABEL,
   getGlobalTopTemporadaV2, getGlobalMvpV2, getGlobalEquiposFormaV2,
   getGlobalXiV2, getGlobalCifrasV2, getGlobalTeamGoalsV2, getGlobalTramosV2, getJuegoLimpioV2, getAlertasV2,
   getGlobalLideresV2, getGlobalCifrasFullV2,
 } from '@/lib/competicionV2'
 import type { ReactNode } from 'react'
 
-const fmt2 = (v: number | null | undefined) => (v == null ? '—' : Number(v).toFixed(2).replace('.', ','))
 // Pestañas de Global: se ocultan las de jornada atadas a partidos de un grupo (Resultados, Goleadores y
 // Tarjetas de jornada) — no tienen equivalente global. El resto AGREGA los grupos.
 const G_TABS_J: [string, string][] = [['clasificacion', 'Clasificación'], ['top5-jugadores-jornada', 'Top 5 Jugadores'], ['top5-equipos-jornada', 'Top 5 Equipos'], ['once-optimo-jornada', 'XI Óptimo']]
@@ -32,7 +36,6 @@ const G_TABS_T: [string, string][] = [['top10-goleadores-temporada', 'Goleadores
 const G_TEMP = new Set(G_TABS_T.map((t) => t[0]))
 
 const mil = (n: number | null | undefined) => (n == null ? '—' : Math.round(Number(n)).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.'))
-const med1 = (v: number | null) => (v == null ? '—' : v.toFixed(1).replace('.', ','))
 
 // La clasificación GLOBAL es la única pestaña especial; el resto se atienden desde cada grupo. En este
 // incremento la vista global implementa la CLASIFICACIÓN por zonas (la que más cuidado pedía Fernando).
@@ -66,25 +69,25 @@ export default async function FichaCompeticionGlobalV2({ categoria, slugComp, te
   const tabEf = tabsA.some((t) => t[0] === tab) ? tab : tabsA[0][0]
 
   // Rankings AGREGADOS (fusión de grupos por valor individual; NO se suman puntos de equipo).
-  let gRank: { title: string; sub: string; items: RankItem[]; barColor?: string } | null = null
+  let gRank: { title: string; sub: string; items: RankItem[]; barColor?: string; leyenda?: ReactNode } | null = null
   let fichas = new Map<string, any>()
   const subCat = 'toda la categoría'
   if (tabEf === 'top5-jugadores-jornada') {
     const mvp = await getGlobalMvpV2(codgrupos, codtemporada, jornadaNum)
     fichas = await fichasInfo(mvp.map((j) => j.codjugador))
-    gRank = { title: '5 mejores jugadores', sub: `jornada ${jornadaNum} · ${subCat}`, items: mvp.map((j) => ({ rank: j.rank, codjugador: j.codjugador, nombre: j.nombre, pos: j.posicion, escudo: j.escudo, nombreEquipo: j.nombre_equipo, valor: Math.round(j.pts_fantasy ?? 0), valorColor: 'var(--e3)', extra: <span><b className="num">{j.goles ?? 0}</b> {(j.goles ?? 0) === 1 ? 'gol' : 'goles'}</span> })) }
+    gRank = { title: '5 mejores jugadores', sub: `jornada ${jornadaNum} · ${subCat}`, leyenda: <>El chip son los <b>puntos fantasy</b> de la jornada; el icono, los <b>goles</b>.</>, items: mvp.map((j) => ({ rank: j.rank, codjugador: j.codjugador, nombre: j.nombre, pos: j.posicion, escudo: j.escudo, nombreEquipo: j.nombre_equipo, valor: Math.round(j.pts_fantasy ?? 0), valorColor: 'var(--e3)', extra: <span style={{ color: 'var(--e3)' }}>{j.goles ?? 0}<Balon size={11} /></span> })) }
   } else if (tabEf === 'top5-equipos-jornada') {
     const ef = await getGlobalEquiposFormaV2(codgrupos, codtemporada, jornadaNum)
-    gRank = { title: '5 equipos más en forma', sub: `jornada ${jornadaNum} · ${subCat}`, items: ef.map((e) => ({ rank: e.rank, codequipo: e.codequipo, nombre: e.nombre_equipo, escudo: e.escudo, nombreEquipo: e.nombre_equipo, valor: Math.round(e.pts_fantasy ?? 0), valorColor: 'var(--e3)' })) }
+    gRank = { title: '5 equipos más en forma', sub: `jornada ${jornadaNum} · ${subCat}`, leyenda: <>El chip es la suma de <b>puntos fantasy</b> de los jugadores del equipo en la jornada.</>, items: ef.map((e) => ({ rank: e.rank, codequipo: e.codequipo, nombre: e.nombre_equipo, escudo: e.escudo, nombreEquipo: e.nombre_equipo, valor: Math.round(e.pts_fantasy ?? 0), valorColor: 'var(--e3)' })) }
   } else if (tabEf === 'top10-goleadores-temporada' || tabEf === 'top10-porteros-temporada' || tabEf === 'top10-elo-jugadores-temporada' || tabEf === 'top10-fantasy-temporada') {
     const t = await getGlobalTopTemporadaV2(codgrupos, codtemporada, jornadaNum)
     fichas = await fichasInfo([...t.goleadores, ...t.porteros, ...t.elo, ...t.fantasy].map((j) => j.codjugador))
     const sub = `acumulado hasta J${jornadaNum} · ${subCat}`
     const base3 = (j: any) => ({ rank: j.rank, codjugador: j.codjugador, nombre: j.nombre, pos: j.posicion, escudo: j.escudo, nombreEquipo: j.nombre_equipo })
-    if (tabEf === 'top10-goleadores-temporada') { const max = Math.max(1, ...t.goleadores.map((j) => j.goles ?? 0)); gRank = { title: 'Goleadores', sub, barColor: 'var(--e4)', items: t.goleadores.map((j) => ({ ...base3(j), valor: j.goles, valorColor: 'var(--e4)', barPct: ((j.goles ?? 0) / max) * 100, extra: <span><b className="num">{j.pj}</b> PJ · <b className="num">{fmt2(j.goles_pj)}</b> g/PJ</span> })) } }
-    else if (tabEf === 'top10-porteros-temporada') { const max = Math.max(1, ...t.porteros.map((j) => j.goles ?? 0)); gRank = { title: 'Porterías a cero', sub, barColor: 'var(--amber)', items: t.porteros.map((j) => ({ ...base3(j), valor: j.goles, valorColor: 'var(--amber)', barPct: ((j.goles ?? 0) / max) * 100, extra: <span><b className="num">{j.pj}</b> PJ · <b className="num">{j.goles_enc}</b> enc.</span> })) } }
-    else if (tabEf === 'top10-fantasy-temporada') { const max = Math.max(1, ...t.fantasy.map((j) => Math.round(j.pts_fantasy ?? 0))); gRank = { title: 'Ranking fantasy', sub, barColor: 'var(--e3)', items: t.fantasy.map((j) => ({ ...base3(j), valor: Math.round(j.pts_fantasy ?? 0), valorColor: 'var(--e3)', barPct: (Math.round(j.pts_fantasy ?? 0) / max) * 100, extra: <><span className="mediabadge" style={{ color: colorMediaJug(j.media_fantasy) || 'var(--ink-2)', borderColor: colorMediaJug(j.media_fantasy) || 'var(--line)' }}>⌀ {med1(j.media_fantasy)}</span><span><b className="num">{j.pj}</b> PJ</span></> })) } }
-    else { gRank = { title: 'ELO jugadores', sub: `tras J${jornadaNum} · ${subCat}`, items: t.elo.map((j) => ({ ...base3(j), valor: j.elo != null ? mil(j.elo) : '—', valorColor: colorElo(j.elo) || 'var(--e1)', extra: <span>máx <b className="num">{j.elo_max != null ? mil(j.elo_max) : '—'}</b> · mín <b className="num">{j.elo_min != null ? mil(j.elo_min) : '—'}</b></span> })) } }
+    if (tabEf === 'top10-goleadores-temporada') { const max = Math.max(1, ...t.goleadores.map((j) => j.goles ?? 0)); gRank = { title: 'Goleadores', sub, barColor: 'var(--e4)', leyenda: leyGoleadorTemp, items: t.goleadores.map((j) => ({ ...base3(j), valor: j.goles, valorColor: 'var(--e4)', barPct: ((j.goles ?? 0) / max) * 100, extra: datosGoleadorTemp(j) })) } }
+    else if (tabEf === 'top10-porteros-temporada') { const max = Math.max(1, ...t.porteros.map((j) => j.goles ?? 0)); gRank = { title: 'Porterías a cero', sub, barColor: 'var(--amber)', leyenda: leyPorteroTemp, items: t.porteros.map((j) => ({ ...base3(j), valor: j.goles, valorColor: 'var(--amber)', barPct: ((j.goles ?? 0) / max) * 100, extra: datosPorteroTemp(j) })) } }
+    else if (tabEf === 'top10-fantasy-temporada') { const max = Math.max(1, ...t.fantasy.map((j) => Math.round(j.pts_fantasy ?? 0))); gRank = { title: 'Ranking fantasy', sub, barColor: 'var(--e3)', leyenda: leyFantasyTemp, items: t.fantasy.map((j) => ({ ...base3(j), valor: Math.round(j.pts_fantasy ?? 0), valorColor: 'var(--e3)', barPct: (Math.round(j.pts_fantasy ?? 0) / max) * 100, extra: datosFantasyTemp(j) })) } }
+    else { gRank = { title: 'ELO jugadores', sub: `tras J${jornadaNum} · ${subCat}`, leyenda: leyEloTemp, items: t.elo.map((j) => ({ ...base3(j), valor: j.elo != null ? mil(j.elo) : '—', valorColor: colorElo(j.elo) || 'var(--e1)', extra: datosEloTemp(j) })) } }
   }
 
   // XI Óptimo global (lo calcula el pipeline con normalización entre grupos: tipo temporada_global / jornada_global).
@@ -103,10 +106,10 @@ export default async function FichaCompeticionGlobalV2({ categoria, slugComp, te
         rank: j.posicion, rankColor: POSC[j.posicion], codjugador: j.codjugador, nombre: j.nombre, pos: j.posicion,
         escudo: j.escudo, nombreEquipo: j.nombre_equipo, valor: valOf(j), valorColor: POSC[j.posicion] ?? 'var(--e3)',
         extra: esTemp
-          ? <span><b className="num">{j.goles ?? 0}</b> {(j.goles ?? 0) === 1 ? 'gol' : 'goles'}{j.racha_5p != null ? <> · racha <b className="num">{j.racha_5p}</b></> : null}{j.power_ranking != null ? <> · power <b className="num">{j.power_ranking}</b></> : null}</span>
-          : <span><b className="num">{j.goles ?? 0}</b> {(j.goles ?? 0) === 1 ? 'gol' : 'goles'}</span>,
+          ? datosXiTemp(j)
+          : <span style={{ color: 'var(--e3)' }}>{j.goles ?? 0}<Balon size={11} /></span>,
       })),
-      leyenda: <><b>Pos</b> posición en el campo · once ideal de toda la categoría, calculado con normalización entre grupos.</>,
+      leyenda: <>{leyXiTemp} Once ideal de toda la categoría, calculado con normalización entre grupos.</>,
     }
   }
 
@@ -254,7 +257,7 @@ export default async function FichaCompeticionGlobalV2({ categoria, slugComp, te
           <section>
             <div className="s-head"><div className="s-title">{gRank.title}</div><div className="s-sub">{gRank.sub}</div></div>
             {gRank.items.length > 0
-              ? <RankingComp items={gRank.items} fichas={fichas} barColor={gRank.barColor} />
+              ? <><RankingComp items={gRank.items} fichas={fichas} barColor={gRank.barColor} />{gRank.leyenda && <div className="leyenda">{gRank.leyenda}</div>}</>
               : <p className="vacio">Sin datos agregados en esta {modo === 'temporada' ? 'temporada' : 'jornada'}.</p>}
           </section>
         )}

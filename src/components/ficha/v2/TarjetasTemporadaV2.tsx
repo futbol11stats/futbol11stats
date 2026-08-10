@@ -1,17 +1,23 @@
 import type { ReactNode } from 'react'
 import RankingComp, { type RankItem } from '@/components/ficha/v2/RankingComp'
+import { TarjetaDoble, TarjetaRoja } from '@/components/iconos'
+import { datosSancionado, leySancionados, leyJuegoLimpio } from '@/components/ficha/v2/lineasComp'
 
-// Tarjetas de TEMPORADA en estilo v2 (.rr), compartido por ficha de grupo y global. Reproduce la lógica
-// de la tabla clásica (TarjetasTemporadaTab): 3 bloques — Juego limpio (equipos, menos expulsiones primero),
+// Tarjetas de TEMPORADA en estilo v2, compartido por ficha de grupo y global. Reproduce la lógica de la
+// tabla clásica (TarjetasTemporadaTab): 3 bloques — Juego limpio (equipos, menos expulsiones primero),
 // Banquillos más calientes (cuerpo técnico, top 5, se oculta si no hay) y Sancionados/en ciclo (jugadores).
+// Iconos con su color de siempre (mismos que el resto de listados).
 const YEL = '#d9a400'
 const RED = 'var(--e0)'
 
 function expuls(dobles: number, rojas: number): ReactNode {
-  const p: string[] = []
-  if (dobles) p.push(`🟨🟨 ${dobles}`)
-  if (rojas) p.push(`🟥 ${rojas}`)
-  return <span>{p.length ? p.join('  ·  ') : 'sin expulsiones'}</span>
+  if (!dobles && !rojas) return <span>sin expulsiones</span>
+  return (
+    <>
+      {dobles > 0 && <span style={{ color: 'var(--card-y)' }}>{dobles}<TarjetaDoble size={11} /></span>}
+      {rojas > 0 && <span style={{ color: 'var(--card-r)' }}>{rojas}<TarjetaRoja size={10} /></span>}
+    </>
+  )
 }
 
 export default function TarjetasTemporadaV2({ equipos = [], jugadores = [], fichas, ambito, limiteJL }: {
@@ -47,17 +53,10 @@ export default function TarjetasTemporadaV2({ equipos = [], jugadores = [], fich
     b.rojas_directas - a.rojas_directas ||
     b.dobles_amarillas - a.dobles_amarillas).slice(0, 10)
   const umbral = jg[0]?.ciclo_umbral ?? 5
-  const sancLine = (j: any): ReactNode => {
-    const p: string[] = []
-    if (j.ciclos_completados) p.push(`${j.ciclos_completados}× ${umbral}🟨`)
-    if (j.dobles_amarillas) p.push(`🟨🟨 ${j.dobles_amarillas}`)
-    if (j.rojas_directas) p.push(`🟥 ${j.rojas_directas}`)
-    return <span>{p.join('  ·  ') || '—'}</span>
-  }
   const sancItems: RankItem[] = jg.map((j, i) => ({
     rank: i + 1, codjugador: j.codjugador, nombre: j.nombre, pos: j.posicion, escudo: j.escudo, nombreEquipo: j.nombre_equipo,
     valor: j.ciclos_completados + j.dobles_amarillas + j.rojas_directas,
-    valorColor: (j.dobles_amarillas || j.rojas_directas) ? RED : YEL, extra: sancLine(j),
+    valorColor: (j.dobles_amarillas || j.rojas_directas) ? RED : YEL, extra: datosSancionado(j, umbral),
   }))
 
   return (
@@ -65,7 +64,7 @@ export default function TarjetasTemporadaV2({ equipos = [], jugadores = [], fich
       <section>
         <div className="s-head"><div className="s-title">Juego limpio</div><div className="s-sub">menos expulsiones primero · {ambito}</div></div>
         {jlItems.length > 0
-          ? <><RankingComp items={jlItems} /><div className="leyenda">🟨 amarillas · 🟨🟨 dobles (expulsión) · 🟥 rojas directas.{limiteJL ? ` Los ${limiteJL} más deportivos de la categoría.` : ''}</div></>
+          ? <><RankingComp items={jlItems} /><div className="leyenda">{leyJuegoLimpio}{limiteJL ? ` Los ${limiteJL} más deportivos de la categoría.` : ''}</div></>
           : <p className="vacio">Sin datos disciplinarios.</p>}
       </section>
       {banqItems.length > 0 && (
@@ -77,7 +76,7 @@ export default function TarjetasTemporadaV2({ equipos = [], jugadores = [], fich
       <section>
         <div className="s-head"><div className="s-title">Sancionados y en ciclo</div><div className="s-sub">a fecha actual · {ambito}</div></div>
         {sancItems.length > 0
-          ? <><RankingComp items={sancItems} fichas={fichas} /><div className="leyenda">Jugadores con al menos un ciclo de {umbral} amarillas, una doble amarilla o una roja directa. No contempla sanciones adicionales del Comité de Competición.</div></>
+          ? <><RankingComp items={sancItems} fichas={fichas} /><div className="leyenda">{leySancionados(umbral)} Jugadores con al menos un ciclo de {umbral} amarillas, una doble o una roja directa. No contempla sanciones adicionales del Comité.</div></>
           : <p className="vacio">Ningún jugador sancionado.</p>}
       </section>
     </>
