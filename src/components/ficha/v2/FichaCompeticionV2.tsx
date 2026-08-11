@@ -248,7 +248,7 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
       title: 'Porterías a cero', sub: `${acum} · umbral proporcional`, barColor: 'var(--amber)',
       items: topTemp.porteros.map((j) => ({
         rank: j.rank, codjugador: j.codjugador, nombre: j.nombre, pos: j.posicion, escudo: j.escudo, nombreEquipo: j.nombre_equipo,
-        valor: j.goles, valorColor: 'var(--amber)', barPct: ((j.goles ?? 0) / max) * 100,
+        valor: j.goles ?? 0, valorColor: 'var(--amber)', barPct: ((j.goles ?? 0) / max) * 100,
         extra: datosPorteroTemp(j),
       })),
       leyenda: <>{leyPorteroTemp} Elegibles desde la J3 (≥65 % de jornadas, media ≥60′).</>,

@@ -6,6 +6,15 @@ import { colorMediaJug } from '@/lib/competicionV2'
 // (gol verde, guante ámbar, reloj minutos, tarjetas cada una su color). Compartidas por grupo y global.
 // Van dentro de .pl-stats (FilaJugador), así que son fragmentos de <span>. Cuando un dato no tiene icono
 // natural, se deja como texto abreviado dentro de la misma línea (no se pierde).
+//
+// CONVENCIÓN DEL CERO (para no redecidirla en cada pestaña nueva):
+//   El 0 se MUESTRA cuando la métrica es el ASUNTO de la pestaña; se OMITE cuando es contexto secundario.
+//   - El asunto de cada ranking va en el CHIP de la derecha y siempre se muestra, incluido el 0
+//     (p. ej. Porteros: 0 porterías a cero en 24 partidos es justo lo que esa pestaña mide → chip "0").
+//   - En la LÍNEA de datos (contexto), un 0 se omite igual que se omiten las 0 tarjetas
+//     (p. ej. Fantasy: los goles son contexto → sin goles no se pinta balón+0; el asunto es el chip).
+//   - JORNADA (partido único): el 0 nunca informa → se omite SIEMPRE (goles, portería a cero y tarjetas).
+//     Ver filaJornada() en FichaCompeticionV2.tsx.
 const fmt2 = (v: number | null | undefined) => (v == null ? '—' : Number(v).toFixed(2).replace('.', ','))
 const mil = (n: number | null | undefined) => (n == null ? '—' : Math.round(Number(n)).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.'))
 const med1 = (v: number | null | undefined) => (v == null ? '—' : Number(v).toFixed(1).replace('.', ','))
