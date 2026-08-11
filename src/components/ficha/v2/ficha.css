@@ -546,7 +546,9 @@
 .fcv2 .pan-h{display:flex;align-items:baseline;justify-content:space-between;padding-bottom:10px;gap:12px}
 .fcv2 .pan-t{font-family:var(--font-display),sans-serif;font-size:var(--h-sec);font-weight:700;letter-spacing:.02em}
 .fcv2 .pan-s{font-size:var(--t-cap);color:var(--ink-3)}
-.fcv2 .lid-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+/* Líderes: 2×2 en desktop (no 4 en fila). Cuatro tarjetas con nombre de jugador + club no caben cómodas
+   en una fila ni a 1900px; a 2 columnas el nombre deja de recortarse. minmax(0,...) permite encoger. */
+.fcv2 .lid-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
 .fcv2 .lid{border:1px solid var(--line);border-radius:11px;padding:12px;background:rgba(255,255,255,.03);display:flex;align-items:center;gap:12px}
 .fcv2 .lid .esc{width:40px;height:40px;flex:none}
 .fcv2 .lid .mid{flex:1;min-width:0}
@@ -586,7 +588,7 @@
 .fcv2 .full{display:block}
 .fcv2 .full .main{width:100%}
 
-@media(max-width:1100px){ .fcv2 .cifras{grid-template-columns:repeat(2,1fr)} .fcv2 .lid-grid{grid-template-columns:repeat(2,1fr)} }
+@media(max-width:1100px){ .fcv2 .cifras{grid-template-columns:repeat(2,1fr)} }
 @media(max-width:640px){ .fcv2 .cifras,.fcv2 .lid-grid{grid-template-columns:1fr} .fcv2 .sel-lbl{width:72px} }
 
 /* Nombre de equipo al inicio de la línea de datos (el escudo va como avatar). El avatar-escudo (.pl-esc)
