@@ -71,7 +71,7 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
   const [tramos, facetas, plantilla, movs, hitos, mediasTemp, copasAmbito] = await Promise.all([
     getTramos(e.codequipo, codgrupoSel),
     getFacetasGrupo(codgrupoSel, e.codequipo),
-    getPlantillaEquipoV2(e.codequipo, tempSel),
+    getPlantillaEquipoV2(e.codequipo, tempSel, e.rama),
     getMovimientosEquipo(cod),
     getHitosEquipo(cod),
     getMediasPorTemporada(e.codequipo),
@@ -104,10 +104,13 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
   const LINEAS = [
     { k: 'POR', nm: 'Porteros', c: '#f0b429' }, { k: 'DEF', nm: 'Defensas', c: '#9ac4f1' },
     { k: 'MED', nm: 'Centrocampistas', c: '#8cefa5' }, { k: 'DEL', nm: 'Delanteros', c: '#f2a3c0' },
+    // "Otros": jugadores sin demarcación (frecuente en plantillas juveniles, donde muchos no traen posición).
+    // Sin él se omitirían del listado. Se filtra si queda vacío (caso normal en aficionados).
+    { k: 'OTR', nm: 'Otros', c: '#8a9cbd' },
   ] as const
-  // En juveniles casi toda la plantilla son menores, excluidos de web_jugador(_carrera) por protección de
-  // datos, así que la lista sale legítimamente vacía o casi. Estado degradado que lo explica (no un hueco mudo).
-  const esJuvenil = e.rama === 'juvenil'
+  // Menores (juveniles, sin ficha): se listan con nombre y datos pero SIN enlace. fichasExistentes da los
+  // codjugador que sí tienen ficha (adultos) -> solo esos enlazan.
+  const plantillaFichas = plantilla.length ? await fichasExistentes(plantilla.map((p) => p.codjugador)) : new Set<string>()
   const topPlantilla = [...plantilla].filter((p) => p.pts != null).sort((a, b) => (b.pts ?? 0) - (a.pts ?? 0)).slice(0, 5)
   const porLinea = LINEAS.map((L) => ({ ...L, jug: plantilla.filter((p) => p.linea === L.k).sort((a, b) => b.minutos - a.minutos) })).filter((L) => L.jug.length)
 
@@ -237,7 +240,7 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
     forma.racha.length ? { id: 's-forma', label: 'Forma' } : null,
     ana.pj ? { id: 's-analisis', label: 'Análisis' } : null,
     temporadas.length ? { id: 's-temporadas', label: 'Temporadas' } : null,
-    (plantilla.length || esJuvenil) ? { id: 's-plantilla', label: 'Plantilla' } : null,
+    plantilla.length ? { id: 's-plantilla', label: 'Plantilla' } : null,
     movs.length ? { id: 's-movs', label: 'Movimientos' } : null,
     hitos.length ? { id: 's-hitos', label: 'Hitos' } : null,
   ].filter(Boolean)) as { id: string; label: string; aside?: boolean }[]
@@ -522,21 +525,26 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
           {/* PLANTILLA (Top por fantasy + plantilla por líneas, desplegable) */}
           {plantilla.length > 0 && (
             <section id="s-plantilla">
-              <div className="s-head"><div className="s-title">Top de la plantilla</div><div className="s-sub">por puntos fantasy</div></div>
-              <div>
-                {topPlantilla.map((p, i) => (
-                  <div className="pl" key={p.codjugador}>
-                    <div className="pl-rk">{i + 1}</div>
-                    <div className="pl-av" style={avaStyle(p.pos)}>{iniciales(p.nombre)}</div>
-                    <div className="pl-mid">
-                      <div className="pl-nm"><Link href={jugadorHref(p.codjugador, p.nombre)}>{formatNombre(p.nombre)}</Link></div>
-                      <div className="pl-me">{p.pos && <Pastilla pos={p.pos} size="mini" />}{filaDatos(p)}</div>
-                    </div>
-                    <div className="pl-val" style={{ background: 'var(--e2)' }}>{mil(p.pts)}</div>
+              {/* Top por fantasy: en juveniles la plantilla no trae pts_fantasy -> topPlantilla vacío y no se pinta. */}
+              {topPlantilla.length > 0 && (
+                <>
+                  <div className="s-head"><div className="s-title">Top de la plantilla</div><div className="s-sub">por puntos fantasy</div></div>
+                  <div>
+                    {topPlantilla.map((p, i) => (
+                      <div className="pl" key={p.codjugador}>
+                        <div className="pl-rk">{i + 1}</div>
+                        <div className="pl-av" style={avaStyle(p.pos)}>{iniciales(p.nombre)}</div>
+                        <div className="pl-mid">
+                          <div className="pl-nm">{plantillaFichas.has(String(p.codjugador)) ? <Link href={jugadorHref(p.codjugador, p.nombre)}>{formatNombre(p.nombre)}</Link> : formatNombre(p.nombre)}</div>
+                          <div className="pl-me">{p.pos && <Pastilla pos={p.pos} size="mini" />}{filaDatos(p)}</div>
+                        </div>
+                        <div className="pl-val" style={{ background: 'var(--e2)' }}>{mil(p.pts)}</div>
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
-              <div className="s-head" style={{ paddingTop: 20 }}><div className="s-title">Plantilla</div><div className="s-sub">{echoTxt}</div></div>
+                </>
+              )}
+              <div className="s-head" style={{ paddingTop: topPlantilla.length > 0 ? 20 : 0 }}><div className="s-title">Plantilla</div><div className="s-sub">{echoTxt}</div></div>
               {/* Desplegable CSS (checkbox): por defecto los 11 con más minutos (≥1 portero); el resto tras el botón. */}
               <input type="checkbox" id="pl-open-eq" className="pl-open-cb" />
               <div id="plantilla-eq">
@@ -547,7 +555,7 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
                       <div className={`pl${starterIds.has(p.codjugador) ? '' : ' pl-hid'}`} key={p.codjugador}>
                         <div className="pl-av" style={avaStyle(p.pos)}>{iniciales(p.nombre)}</div>
                         <div className="pl-mid">
-                          <div className="pl-nm"><Link href={jugadorHref(p.codjugador, p.nombre)}>{formatNombre(p.nombre)}</Link></div>
+                          <div className="pl-nm">{plantillaFichas.has(String(p.codjugador)) ? <Link href={jugadorHref(p.codjugador, p.nombre)}>{formatNombre(p.nombre)}</Link> : formatNombre(p.nombre)}</div>
                           <div className="pl-me">{filaDatos(p)}</div>
                         </div>
                         <div className="pl-val" style={{ background: 'var(--e2)' }}>{mil(p.pts)}</div>
@@ -567,17 +575,6 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
                 <span className="lg-item"><span style={{ color: 'var(--card-y)', display: 'inline-flex' }}><TarjetaDoble size={11} /></span>Dobles</span>
                 <span className="lg-item"><span style={{ color: 'var(--card-r)', display: 'inline-flex' }}><TarjetaRoja size={10} /></span>Rojas</span>
               </div>
-              {esJuvenil && <div className="leyenda" style={{ paddingTop: 10 }}>En categorías juveniles no se listan los jugadores individualmente por <b>protección de datos de menores</b>; solo aparecen quienes ya no son menores de edad.</div>}
-            </section>
-          )}
-
-          {/* Plantilla vacía: estado degradado que explica el porqué, no un hueco mudo. */}
-          {plantilla.length === 0 && (
-            <section id="s-plantilla">
-              <div className="s-head"><div className="s-title">Plantilla</div><div className="s-sub">{echoTxt}</div></div>
-              <p className="vacio">{esJuvenil
-                ? 'En categorías juveniles no se listan los jugadores individualmente por protección de datos de menores.'
-                : 'Sin datos de plantilla para esta temporada.'}</p>
             </section>
           )}
 

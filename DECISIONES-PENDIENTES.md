@@ -378,3 +378,28 @@ dibujaba un placeholder de algo que YA existe como componente del sitio, se usa 
 - web_clasificacion.mov (variación de puestos entre jornadas) viene vacía en el dato. La ficha v2 no la
   pinta (no bloquea; hay pendientes mayores). Cuando el pipeline la pueble, se añade una columna Mov a la
   clasificación como en la ficha actual. Aparcado por decisión de Fernando (2026-08).
+
+## E-menores · Plantilla de aficionados omite a los menores (hueco de dato, anterior a v2)
+- **Política del sitio:** los menores SÍ se listan (Top de la plantilla, Plantilla, rankings, XI) con nombre
+  y datos, pero SIN enlace a ficha (no la tienen). Verificado que competición ya lo cumple: `web_top_jugadores`
+  (34.780 menores), `web_xi_optimo` (3.632), `web_alertas_tarjetas` (12.730) los incluyen, y el render enlaza
+  solo si hay ficha.
+- **El hueco:** la **plantilla de EQUIPO de aficionados** los omite. `getPlantillaEquipoV2` (v2) y
+  `getPlantillaAfic` (no-v2) leen `web_jugador_carrera`, que tiene **0 menores** (38.173 distintos = solo
+  adultos). **No existe una tabla `web_equipo_plantilla` de aficionados** (solo `web_equipo_plantilla_juvenil`).
+  Así que un equipo de aficionados con menores no los muestra en su plantilla — **en las dos fichas** (no es
+  regresión de la v2; el no-v2 ya lo hacía). Los juveniles SÍ se arreglaron (v2 ahora ramifica por rama y lee
+  `web_equipo_plantilla_juvenil`).
+- **Arreglo:** requiere PIPELINE — que exista una plantilla de aficionados con menores (equivalente al
+  `web_equipo_plantilla_juvenil`: codequipo, codtemporada, codjugador, nombre, posicion_pastilla, pj, goles,
+  minutos, ta/td/tr). En cuanto exista, `getPlantillaEquipoV2` rama aficionado leería de ahí igual que juvenil.
+  Incoherencia real con la política, pero de dato, no de web. Llevar a `C:\rffm-pipeline` cuando toque.
+
+## E-jornada-menores · "Sin datos del partido" para menores en pestañas de jornada (degradación parcial)
+- En las pestañas de JORNADA de competición (Top 5, Goleadores de jornada, XI de jornada), el jugador SÍ
+  aparece en la lista (el ranking sale de `web_top_jugadores`, que incluye menores), pero la línea de datos
+  del partido (titular/min/goles/tarjetas) se enriquece con `getPartidosJornadaV2` → `web_jugador_partidos`,
+  que tiene **0 menores**. Para un menor, esa línea sale "Sin datos del partido".
+- Es **degradación parcial, no omisión** (el menor aparece con su nombre y su chip de puntos). Merece mirarse
+  con calma: o una fuente de partidos no filtrada por edad, o construir una línea reducida para menores con lo
+  que `web_top_jugadores` sí trae (goles, etc.). No urgente.
