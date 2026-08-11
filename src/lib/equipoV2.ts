@@ -5,6 +5,7 @@
 import { supabase } from '@/lib/supabase'
 import { getResultadosGrupo, type ResultadoRow, type EquipoFicha, COLS_EQUIPO } from '@/lib/equipo'
 import { cortesValidos } from '@/lib/escala'
+import { cacheEquipo } from '@/lib/cacheComp'
 
 // Paleta de la escala (hex, como en Jornadas de jugador — el runtime de Vercel no purga literales).
 const PAL = ['#f87171', '#94a3b8', '#22a050', '#2ee56b', '#8cf0a2']
@@ -33,14 +34,18 @@ export function cortesEquipoValidados(c: readonly [number, number, number, numbe
 }
 
 export async function getEquipoV2(cod: string): Promise<EquipoFicha | null> {
-  const { data } = await supabase.from('web_equipo').select(COLS_EQUIPO).eq('codequipo', cod).limit(1).maybeSingle()
-  return (data as unknown as EquipoFicha) || null
+  return cacheEquipo(async () => {
+    const { data } = await supabase.from('web_equipo').select(COLS_EQUIPO).eq('codequipo', cod).limit(1).maybeSingle()
+    return (data as unknown as EquipoFicha) || null
+  }, ['getEquipoV2', cod], cod)
 }
 
 export async function getTemporadasEquipo(cod: string) {
-  const cols = 'codtemporada, nombre_comp, categoria_nivel, rama, codgrupo, grupo_nombre, pj, pts, posicion_final, gf, gc, badge'
-  const { data } = await supabase.from('web_equipo_temporadas').select(cols).eq('codequipo', cod)
-  return ((data || []) as any[]).sort((a, b) => String(b.codtemporada).localeCompare(String(a.codtemporada)))
+  return cacheEquipo(async () => {
+    const cols = 'codtemporada, nombre_comp, categoria_nivel, rama, codgrupo, grupo_nombre, pj, pts, posicion_final, gf, gc, badge'
+    const { data } = await supabase.from('web_equipo_temporadas').select(cols).eq('codequipo', cod)
+    return ((data || []) as any[]).sort((a, b) => String(b.codtemporada).localeCompare(String(a.codtemporada)))
+  }, ['getTemporadasEquipo', cod], cod)
 }
 
 // --- Serie de clasificación: una fila por jornada del equipo en su grupo de liga ---
@@ -54,9 +59,11 @@ const COLS_CLASIF = 'jornada, pos, pts, pts_fantasy, mov, elo, pj, gf, gc, pg, p
 
 export async function getSerieLiga(codequipo: string, codgrupo: string | null): Promise<ClasifRow[]> {
   if (!codgrupo) return []
-  const { data } = await supabase.from('web_clasificacion').select(COLS_CLASIF)
-    .eq('codgrupo', String(codgrupo)).eq('codequipo', String(codequipo)).order('jornada', { ascending: true })
-  return (data || []) as ClasifRow[]
+  return cacheEquipo(async () => {
+    const { data } = await supabase.from('web_clasificacion').select(COLS_CLASIF)
+      .eq('codgrupo', String(codgrupo)).eq('codequipo', String(codequipo)).order('jornada', { ascending: true })
+    return (data || []) as ClasifRow[]
+  }, ['getSerieLiga', codequipo, String(codgrupo)], codequipo, { codgrupo })
 }
 
 // --- Datum de una jornada para el gráfico (barra=fantasy de esa jornada; carriles marcador·pos/mov·rival) ---
@@ -110,21 +117,23 @@ export async function escudosPorNombre(nombres: string[]): Promise<Map<string, s
 export type MiniRow = { pos: number; codequipo: string; nombre: string; escudo: string | null; pts: number; me: boolean }
 export async function getMiniClasif(codgrupo: string | null, codequipo: string): Promise<{ filas: MiniRow[]; jornada: number | null }> {
   if (!codgrupo) return { filas: [], jornada: null }
-  const { data: jr } = await supabase.from('web_clasificacion').select('jornada')
-    .eq('codgrupo', String(codgrupo)).order('jornada', { ascending: false }).limit(1)
-  const jornada = (jr && jr[0]?.jornada) ?? null
-  if (jornada == null) return { filas: [], jornada: null }
-  const { data } = await supabase.from('web_clasificacion').select('pos, codequipo, nombre_equipo, escudo, pts')
-    .eq('codgrupo', String(codgrupo)).eq('jornada', jornada).order('pos', { ascending: true })
-  const rows = (data || []) as any[]
-  const idx = rows.findIndex((r) => String(r.codequipo) === String(codequipo))
-  if (idx < 0) return { filas: [], jornada }
-  const from = Math.max(0, idx - 2), to = Math.min(rows.length, idx + 3)
-  const filas: MiniRow[] = rows.slice(from, to).map((r) => ({
-    pos: r.pos, codequipo: String(r.codequipo), nombre: r.nombre_equipo, escudo: r.escudo ?? null,
-    pts: r.pts, me: String(r.codequipo) === String(codequipo),
-  }))
-  return { filas, jornada }
+  return cacheEquipo(async () => {
+    const { data: jr } = await supabase.from('web_clasificacion').select('jornada')
+      .eq('codgrupo', String(codgrupo)).order('jornada', { ascending: false }).limit(1)
+    const jornada = (jr && jr[0]?.jornada) ?? null
+    if (jornada == null) return { filas: [], jornada: null }
+    const { data } = await supabase.from('web_clasificacion').select('pos, codequipo, nombre_equipo, escudo, pts')
+      .eq('codgrupo', String(codgrupo)).eq('jornada', jornada).order('pos', { ascending: true })
+    const rows = (data || []) as any[]
+    const idx = rows.findIndex((r) => String(r.codequipo) === String(codequipo))
+    if (idx < 0) return { filas: [], jornada }
+    const from = Math.max(0, idx - 2), to = Math.min(rows.length, idx + 3)
+    const filas: MiniRow[] = rows.slice(from, to).map((r) => ({
+      pos: r.pos, codequipo: String(r.codequipo), nombre: r.nombre_equipo, escudo: r.escudo ?? null,
+      pts: r.pts, me: String(r.codequipo) === String(codequipo),
+    }))
+    return { filas, jornada }
+  }, ['getMiniClasif', String(codgrupo), codequipo], codequipo, { codgrupo })
 }
 
 // --- Análisis: balance V/E/D + casa/fuera + goles, todo desde los resultados del grupo ---
@@ -172,32 +181,36 @@ export type TramoRow = { tramo: string; gf: number; gc: number }
 const TRAMOS_ORDEN = ['0-15', '16-30', '31-45', '46-60', '61-75', '76-90', '90+']
 export async function getTramos(codequipo: string, codgrupo: string | null): Promise<TramoRow[]> {
   if (!codgrupo) return []
-  const { data } = await supabase.from('web_goles_tramos').select('tramo, gf, gc')
-    .eq('codequipo', String(codequipo)).eq('codgrupo', String(codgrupo))
-  const rows = (data || []) as any[]
-  if (!rows.length) return []
-  return TRAMOS_ORDEN.map((t) => { const r = rows.find((x) => x.tramo === t); return { tramo: t, gf: r?.gf ?? 0, gc: r?.gc ?? 0 } })
+  return cacheEquipo(async () => {
+    const { data } = await supabase.from('web_goles_tramos').select('tramo, gf, gc')
+      .eq('codequipo', String(codequipo)).eq('codgrupo', String(codgrupo))
+    const rows = (data || []) as any[]
+    if (!rows.length) return []
+    return TRAMOS_ORDEN.map((t) => { const r = rows.find((x) => x.tramo === t); return { tramo: t, gf: r?.gf ?? 0, gc: r?.gc ?? 0 } })
+  }, ['getTramos', codequipo, String(codgrupo)], codequipo, { codgrupo })
 }
 
 // --- Facetas: ranking del equipo DENTRO DE SU GRUPO en gf, gc (menos es mejor), pts_fantasy. ---
 export type Facetas = { gf: number | null; gc: number | null; ptsFan: number | null; n: number }
 export async function getFacetasGrupo(codgrupo: string | null, codequipo: string): Promise<Facetas> {
   if (!codgrupo) return { gf: null, gc: null, ptsFan: null, n: 0 }
-  const { data: jr } = await supabase.from('web_clasificacion').select('jornada')
-    .eq('codgrupo', String(codgrupo)).order('jornada', { ascending: false }).limit(1)
-  const jornada = (jr && jr[0]?.jornada) ?? null
-  if (jornada == null) return { gf: null, gc: null, ptsFan: null, n: 0 }
-  const { data } = await supabase.from('web_clasificacion').select('codequipo, gf, gc, pts_fantasy')
-    .eq('codgrupo', String(codgrupo)).eq('jornada', jornada)
-  const rows = (data || []) as any[]
-  const n = rows.length
-  const rank = (key: string, desc: boolean) => {
-    const me = rows.find((r) => String(r.codequipo) === String(codequipo))
-    if (!me || me[key] == null) return null
-    const mv = me[key] as number
-    return 1 + rows.filter((r) => r[key] != null && (desc ? r[key] > mv : r[key] < mv)).length
-  }
-  return { gf: rank('gf', true), gc: rank('gc', false), ptsFan: rank('pts_fantasy', true), n }
+  return cacheEquipo(async () => {
+    const { data: jr } = await supabase.from('web_clasificacion').select('jornada')
+      .eq('codgrupo', String(codgrupo)).order('jornada', { ascending: false }).limit(1)
+    const jornada = (jr && jr[0]?.jornada) ?? null
+    if (jornada == null) return { gf: null, gc: null, ptsFan: null, n: 0 }
+    const { data } = await supabase.from('web_clasificacion').select('codequipo, gf, gc, pts_fantasy')
+      .eq('codgrupo', String(codgrupo)).eq('jornada', jornada)
+    const rows = (data || []) as any[]
+    const n = rows.length
+    const rank = (key: string, desc: boolean) => {
+      const me = rows.find((r) => String(r.codequipo) === String(codequipo))
+      if (!me || me[key] == null) return null
+      const mv = me[key] as number
+      return 1 + rows.filter((r) => r[key] != null && (desc ? r[key] > mv : r[key] < mv)).length
+    }
+    return { gf: rank('gf', true), gc: rank('gc', false), ptsFan: rank('pts_fantasy', true), n }
+  }, ['getFacetasGrupo', String(codgrupo), codequipo], codequipo, { codgrupo })
 }
 
 // --- Plantilla de la temporada seleccionada (aficionados): por líneas + top por fantasy ---
@@ -209,50 +222,58 @@ export type PlantillaEqRow = {
 const LINEA_DE: Record<string, 'POR' | 'DEF' | 'MED' | 'DEL'> = { POR: 'POR', DEF: 'DEF', MED: 'MED', DEL: 'DEL' }
 export async function getPlantillaEquipoV2(codequipo: string, codtemp: string | null): Promise<PlantillaEqRow[]> {
   if (!codtemp) return []
-  const { data: car } = await supabase.from('web_jugador_carrera')
-    .select('codjugador, pj, goles, minutos, pts_fantasy, elo_final, porterias_cero, tarjetas_amarillas, tarjetas_dobles, tarjetas_rojas')
-    .eq('codequipo', String(codequipo)).eq('codtemporada', String(codtemp))
-  const rows = (car || []) as any[]
-  const ids = Array.from(new Set(rows.map((r) => String(r.codjugador))))
-  if (!ids.length) return []
-  const { data: jug } = await supabase.from('web_jugador').select('codjugador, nombre, posicion_pastilla, es_portero').in('codjugador', ids)
-  const info = new Map<string, any>((jug || []).map((j: any) => [String(j.codjugador), j]))
-  return rows.map((r) => {
-    const j = info.get(String(r.codjugador))
-    const pos = j?.posicion_pastilla ?? null
-    return {
-      codjugador: String(r.codjugador), nombre: j?.nombre ?? '', pos,
-      linea: (pos && LINEA_DE[pos]) || 'OTR', portero: !!j?.es_portero,
-      pj: r.pj ?? 0, goles: r.goles ?? 0, minutos: r.minutos ?? 0, porteriasCero: r.porterias_cero ?? 0,
-      ta: r.tarjetas_amarillas ?? 0, td: r.tarjetas_dobles ?? 0, tr: r.tarjetas_rojas ?? 0,
-      pts: r.pts_fantasy ?? null, elo: r.elo_final ?? null,
-    }
-  })
+  return cacheEquipo(async () => {
+    const { data: car } = await supabase.from('web_jugador_carrera')
+      .select('codjugador, pj, goles, minutos, pts_fantasy, elo_final, porterias_cero, tarjetas_amarillas, tarjetas_dobles, tarjetas_rojas')
+      .eq('codequipo', String(codequipo)).eq('codtemporada', String(codtemp))
+    const rows = (car || []) as any[]
+    const ids = Array.from(new Set(rows.map((r) => String(r.codjugador))))
+    if (!ids.length) return []
+    const { data: jug } = await supabase.from('web_jugador').select('codjugador, nombre, posicion_pastilla, es_portero').in('codjugador', ids)
+    const info = new Map<string, any>((jug || []).map((j: any) => [String(j.codjugador), j]))
+    return rows.map((r) => {
+      const j = info.get(String(r.codjugador))
+      const pos = j?.posicion_pastilla ?? null
+      return {
+        codjugador: String(r.codjugador), nombre: j?.nombre ?? '', pos,
+        linea: (pos && LINEA_DE[pos]) || 'OTR', portero: !!j?.es_portero,
+        pj: r.pj ?? 0, goles: r.goles ?? 0, minutos: r.minutos ?? 0, porteriasCero: r.porterias_cero ?? 0,
+        ta: r.tarjetas_amarillas ?? 0, td: r.tarjetas_dobles ?? 0, tr: r.tarjetas_rojas ?? 0,
+        pts: r.pts_fantasy ?? null, elo: r.elo_final ?? null,
+      }
+    })
+  }, ['getPlantillaEquipoV2', codequipo, String(codtemp)], codequipo, { codtemporada: codtemp })
 }
 
 // --- Movimientos (altas/bajas/promociones) e hitos del club ---
 export async function getMovimientosEquipo(cod: string) {
-  const cols = 'codtemporada, fecha, clase, direccion, codjugador, nombre, equipo_rel_nombre, equipo_rel_escudo'
-  const { data } = await supabase.from('web_equipo_movimientos').select(cols).eq('codequipo', String(cod))
-  return ((data || []) as any[]).sort((a, b) => String(b.fecha || b.codtemporada || '').localeCompare(String(a.fecha || a.codtemporada || '')))
+  return cacheEquipo(async () => {
+    const cols = 'codtemporada, fecha, clase, direccion, codjugador, nombre, equipo_rel_nombre, equipo_rel_escudo'
+    const { data } = await supabase.from('web_equipo_movimientos').select(cols).eq('codequipo', String(cod))
+    return ((data || []) as any[]).sort((a, b) => String(b.fecha || b.codtemporada || '').localeCompare(String(a.fecha || a.codtemporada || '')))
+  }, ['getMovimientosEquipo', cod], cod)
 }
 export async function getHitosEquipo(cod: string) {
-  const { data } = await supabase.from('web_equipo_hitos').select('tipo_hito, fecha, codtemporada, detalle, valor').eq('codequipo', String(cod))
-  return (data || []) as any[]
+  return cacheEquipo(async () => {
+    const { data } = await supabase.from('web_equipo_hitos').select('tipo_hito, fecha, codtemporada, detalle, valor').eq('codequipo', String(cod))
+    return (data || []) as any[]
+  }, ['getHitosEquipo', cod], cod)
 }
 
 // Media de fantasy y ELO de cierre POR temporada (para las tarjetas de Temporadas). Una query: todas las
 // filas de clasificación del equipo; en JS se toma la de mayor jornada de cada temporada.
 export async function getMediasPorTemporada(codequipo: string): Promise<Record<string, { media: number | null; elo: number | null }>> {
-  const { data } = await supabase.from('web_clasificacion').select('codtemporada, jornada, pts_fantasy, pj, elo')
-    .eq('codequipo', String(codequipo)).order('jornada', { ascending: true })
-  const last = new Map<string, any>()
-  for (const r of ((data || []) as any[])) last.set(String(r.codtemporada), r)  // la última jornada gana
-  const out: Record<string, { media: number | null; elo: number | null }> = {}
-  for (const [t, r] of Array.from(last.entries())) {
-    out[t] = { media: r.pts_fantasy != null && r.pj ? r.pts_fantasy / r.pj : null, elo: r.elo ?? null }
-  }
-  return out
+  return cacheEquipo(async () => {
+    const { data } = await supabase.from('web_clasificacion').select('codtemporada, jornada, pts_fantasy, pj, elo')
+      .eq('codequipo', String(codequipo)).order('jornada', { ascending: true })
+    const last = new Map<string, any>()
+    for (const r of ((data || []) as any[])) last.set(String(r.codtemporada), r)  // la última jornada gana
+    const out: Record<string, { media: number | null; elo: number | null }> = {}
+    for (const [t, r] of Array.from(last.entries())) {
+      out[t] = { media: r.pts_fantasy != null && r.pj ? r.pts_fantasy / r.pj : null, elo: r.elo ?? null }
+    }
+    return out
+  }, ['getMediasPorTemporada', codequipo], codequipo)
 }
 
 // --- Copa: tira de rondas (opción A). No hay pts_fantasy por jornada en copa, así que NO se pintan
@@ -271,27 +292,29 @@ function etiquetaCopa(competicion: string, rondaLabel: string | null): string {
 }
 export async function getCopasAmbito(codequipo: string, tempSel: string | null, nombre: string): Promise<CopaComp[]> {
   if (!tempSel) return []
-  const { data } = await supabase.from('web_equipo').select('copas').eq('codequipo', String(codequipo)).limit(1).maybeSingle()
-  const raw = (data as { copas?: unknown } | null)?.copas
-  if (!Array.isArray(raw)) return []
-  const delTemp = (raw as any[]).filter((c) => String(c.codtemporada) === String(tempSel) && c.codgrupo)
-  const out: CopaComp[] = []
-  for (const c of delTemp) {
-    const res = await getResultadosGrupo(nombre, String(c.codgrupo))
-    const jugados = res.filter((r) => r.goles_local != null && r.goles_visitante != null).sort((a, b) => a.jornada - b.jornada)
-    const rondas: RondaDatum[] = jugados.map((r) => {
-      const local = r.nombre_local === nombre
-      const gf = (local ? r.goles_local : r.goles_visitante) as number
-      const gc = (local ? r.goles_visitante : r.goles_local) as number
-      return {
-        marcador: `${r.goles_local}-${r.goles_visitante}`, signo: gf > gc ? 'G' : gf < gc ? 'P' : 'E',
-        rivalNombre: (local ? r.nombre_visitante : r.nombre_local) as string, rivalEscudo: null,
-        esLocal: local, fecha: r.fecha, ronda: c.ronda_label || 'Ronda',
-      }
-    })
-    if (rondas.length) out.push({ label: etiquetaCopa(c.competicion, c.ronda_label), titulo: c.competicion, competicion: c.competicion, rondas })
-  }
-  return out
+  return cacheEquipo(async () => {
+    const { data } = await supabase.from('web_equipo').select('copas').eq('codequipo', String(codequipo)).limit(1).maybeSingle()
+    const raw = (data as { copas?: unknown } | null)?.copas
+    if (!Array.isArray(raw)) return []
+    const delTemp = (raw as any[]).filter((c) => String(c.codtemporada) === String(tempSel) && c.codgrupo)
+    const out: CopaComp[] = []
+    for (const c of delTemp) {
+      const res = await getResultadosGrupo(nombre, String(c.codgrupo))
+      const jugados = res.filter((r) => r.goles_local != null && r.goles_visitante != null).sort((a, b) => a.jornada - b.jornada)
+      const rondas: RondaDatum[] = jugados.map((r) => {
+        const local = r.nombre_local === nombre
+        const gf = (local ? r.goles_local : r.goles_visitante) as number
+        const gc = (local ? r.goles_visitante : r.goles_local) as number
+        return {
+          marcador: `${r.goles_local}-${r.goles_visitante}`, signo: gf > gc ? 'G' : gf < gc ? 'P' : 'E',
+          rivalNombre: (local ? r.nombre_visitante : r.nombre_local) as string, rivalEscudo: null,
+          esLocal: local, fecha: r.fecha, ronda: c.ronda_label || 'Ronda',
+        }
+      })
+      if (rondas.length) out.push({ label: etiquetaCopa(c.competicion, c.ronda_label), titulo: c.competicion, competicion: c.competicion, rondas })
+    }
+    return out
+  }, ['getCopasAmbito', codequipo, String(tempSel)], codequipo, { codtemporada: tempSel })
 }
 
 export { getResultadosGrupo }

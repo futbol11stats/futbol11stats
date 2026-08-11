@@ -9,6 +9,7 @@ import { SITE_URL } from '@/lib/seo'
 import { graphLd, websiteLd, organizationLd, breadcrumbLd } from '@/lib/jsonld'
 import { ORDEN_JUVENILES as COMPETICION_ORDER, esViejaCopa, segRondaActual, numRondas, historicoLegenda } from '@/lib/competiciones'
 import { familiaSello, nombreOficial } from '@/lib/sellos'
+import { cacheIndices } from '@/lib/cacheComp'
 
 export const metadata: Metadata = {
   title: 'Fútbol Juvenil Madrid — categorías y grupos | Fútbol11Stats',
@@ -25,27 +26,31 @@ export const metadata: Metadata = {
 }
 
 async function getGrupos() {
-  const { data } = await supabase
-    .from('web_grupos')
-    .select('codtemporada, nombre_comp, nombre_grupo, codgrupo, categoria, jornada_actual, slug_comp, slug_grupo, tipo, rondas')
-    .eq('categoria', 'JUVENIL')
-    .eq('codtemporada', 21)
-    .order('nombre_comp')
-  // Copa por FAMILIA: oculta las páginas viejas por competición (la familia es la canónica).
-  return (data || []).filter((g: any) => !esViejaCopa(g.slug_comp))
+  return cacheIndices(async () => {
+    const { data } = await supabase
+      .from('web_grupos')
+      .select('codtemporada, nombre_comp, nombre_grupo, codgrupo, categoria, jornada_actual, slug_comp, slug_grupo, tipo, rondas')
+      .eq('categoria', 'JUVENIL')
+      .eq('codtemporada', 21)
+      .order('nombre_comp')
+    // Copa por FAMILIA: oculta las páginas viejas por competición (la familia es la canónica).
+    return (data || []).filter((g: any) => !esViejaCopa(g.slug_comp))
+  }, ['getGrupos-juv'])
 }
 
 // nombre_historico solo está poblado en T17-T19; mapeamos nombre_comp -> nombre_historico
 async function getHistoricoMap() {
-  const { data } = await supabase
-    .from('web_grupos')
-    .select('nombre_comp, nombre_historico')
-    .not('nombre_historico', 'is', null)
-  const map: Record<string, string> = {}
-  for (const g of data || []) {
-    if (g.nombre_historico) map[g.nombre_comp] = g.nombre_historico
-  }
-  return map
+  return cacheIndices(async () => {
+    const { data } = await supabase
+      .from('web_grupos')
+      .select('nombre_comp, nombre_historico')
+      .not('nombre_historico', 'is', null)
+    const map: Record<string, string> = {}
+    for (const g of data || []) {
+      if (g.nombre_historico) map[g.nombre_comp] = g.nombre_historico
+    }
+    return map
+  }, ['getHistoricoMap-juv'])
 }
 
 

@@ -19,3 +19,29 @@ export function cacheComp<T>(
   const tags = [...codgrupos.map((g) => `comp:${g}`), `temporada:${codtemporada}`]
   return unstable_cache(fn, keyParts.map(String), { tags, revalidate: TTL })()
 }
+
+// Genérico: envuelve una lectura con las etiquetas explícitas dadas (mismo TTL). Base de los helpers.
+export function cacheTagged<T>(fn: () => Promise<T>, keyParts: Array<string | number>, tags: string[]): Promise<T> {
+  return unstable_cache(fn, keyParts.map(String), { tags, revalidate: TTL })()
+}
+
+// Lectura de la ficha de EQUIPO. Etiqueta siempre `equipo:<codequipo>` (invalidar el equipo refresca sus 3
+// variantes: base, /v2, /[temporada]/v2). Opcionalmente cuelga también de `comp:<codgrupo>` (lecturas
+// grupo-scoped como la mini-clasificación o la serie de liga: se refrescan al actualizar ese grupo) y/o de
+// `temporada:<cod>` (lecturas de una temporada concreta).
+export function cacheEquipo<T>(
+  fn: () => Promise<T>,
+  keyParts: Array<string | number>,
+  codequipo: string | number,
+  opts?: { codgrupo?: string | number | null; codtemporada?: string | number | null },
+): Promise<T> {
+  const tags = [`equipo:${codequipo}`]
+  if (opts?.codgrupo) tags.push(`comp:${opts.codgrupo}`)
+  if (opts?.codtemporada != null) tags.push(`temporada:${opts.codtemporada}`)
+  return cacheTagged(fn, keyParts, tags)
+}
+
+// Lectura de los ÍNDICES (home + categorías): dependen de agregados de web_grupos, no de una entidad.
+export function cacheIndices<T>(fn: () => Promise<T>, keyParts: Array<string | number>): Promise<T> {
+  return cacheTagged(fn, keyParts, ['indices'])
+}

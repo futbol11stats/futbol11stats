@@ -4,6 +4,7 @@
 
 import { supabase } from '@/lib/supabase'
 import { slugify, codFromSlug, tempLabel, LIVE_COD } from '@/lib/jugador'
+import { cacheEquipo, cacheTagged } from '@/lib/cacheComp'
 
 export { slugify, codFromSlug, tempLabel, LIVE_COD }
 
@@ -36,12 +37,14 @@ export type ResultadoRow = {
 }
 export async function getResultadosGrupo(nombre: string | null, codgrupo: string | null | undefined): Promise<ResultadoRow[]> {
   if (!nombre || !codgrupo) return []
-  const cols = 'jornada, fecha, goles_local, goles_visitante, nombre_local, nombre_visitante'
-  const [loc, vis] = await Promise.all([
-    supabase.from('web_resultados').select(cols).eq('codgrupo', String(codgrupo)).eq('nombre_local', nombre),
-    supabase.from('web_resultados').select(cols).eq('codgrupo', String(codgrupo)).eq('nombre_visitante', nombre),
-  ])
-  return [...((loc.data || []) as any[]), ...((vis.data || []) as any[])] as ResultadoRow[]
+  return cacheTagged(async () => {
+    const cols = 'jornada, fecha, goles_local, goles_visitante, nombre_local, nombre_visitante'
+    const [loc, vis] = await Promise.all([
+      supabase.from('web_resultados').select(cols).eq('codgrupo', String(codgrupo)).eq('nombre_local', nombre),
+      supabase.from('web_resultados').select(cols).eq('codgrupo', String(codgrupo)).eq('nombre_visitante', nombre),
+    ])
+    return [...((loc.data || []) as any[]), ...((vis.data || []) as any[])] as ResultadoRow[]
+  }, ['getResultadosGrupo', String(nombre), String(codgrupo)], [`comp:${codgrupo}`])
 }
 
 // Un chip de racha/forma: signo (para color), jornada, marcador (orden absoluto local-visitante) y
@@ -80,21 +83,23 @@ export function resumenForma(rows: ResultadoRow[], nombre: string): {
 // rama). Liga desde web_equipo_temporadas; copas desde el JSONB web_equipo.copas. Devuelve
 // { codtemporada -> [codgrupo, ...] }.
 export async function getGruposPorTemporada(codequipo: string, temporadasRows: { codtemporada: string | number; codgrupo: string | null }[]): Promise<Record<string, string[]>> {
-  const map: Record<string, Set<string>> = {}
-  const add = (t: string | number | null, g: string | null) => {
-    if (t == null || !g) return
-    ;(map[String(t)] ??= new Set<string>()).add(String(g))
-  }
-  for (const r of temporadasRows) add(r.codtemporada, r.codgrupo)
-  const { data } = await supabase.from('web_equipo').select('copas').eq('codequipo', String(codequipo)).limit(1).maybeSingle()
-  const copas = (data as { copas?: unknown } | null)?.copas
-  // Copa por FAMILIA: usa el codgrupo de la familia (fam-*), que tiene TODAS las rondas, los mismos
-  // codacta y el tipo correcto (COPA/PLAYOFF). Así PartidosEquipo deja de depender de las filas viejas
-  // de copa -> el pipeline puede borrarlas. Fallback al codgrupo viejo si aún no hubiera familia.
-  if (Array.isArray(copas)) for (const c of copas as any[]) add(c.codtemporada, c.codgrupo_familia ?? c.codgrupo)
-  const out: Record<string, string[]> = {}
-  for (const k in map) out[k] = Array.from(map[k])
-  return out
+  return cacheEquipo(async () => {
+    const map: Record<string, Set<string>> = {}
+    const add = (t: string | number | null, g: string | null) => {
+      if (t == null || !g) return
+      ;(map[String(t)] ??= new Set<string>()).add(String(g))
+    }
+    for (const r of temporadasRows) add(r.codtemporada, r.codgrupo)
+    const { data } = await supabase.from('web_equipo').select('copas').eq('codequipo', String(codequipo)).limit(1).maybeSingle()
+    const copas = (data as { copas?: unknown } | null)?.copas
+    // Copa por FAMILIA: usa el codgrupo de la familia (fam-*), que tiene TODAS las rondas, los mismos
+    // codacta y el tipo correcto (COPA/PLAYOFF). Así PartidosEquipo deja de depender de las filas viejas
+    // de copa -> el pipeline puede borrarlas. Fallback al codgrupo viejo si aún no hubiera familia.
+    if (Array.isArray(copas)) for (const c of copas as any[]) add(c.codtemporada, c.codgrupo_familia ?? c.codgrupo)
+    const out: Record<string, string[]> = {}
+    for (const k in map) out[k] = Array.from(map[k])
+    return out
+  }, ['getGruposPorTemporada', codequipo, temporadasRows.map((r) => `${r.codtemporada}:${r.codgrupo}`).join(',')], codequipo)
 }
 
 // Días desde una fecha DD/MM/YYYY hasta hoy (aritmética de fechas, no comparación de strings).
@@ -183,29 +188,35 @@ async function resolveCopas(raw: unknown): Promise<CopaEquipo[]> {
 // año, junto al badge de liga). El hero sigue mostrando solo la viva; aquí salen las históricas.
 export async function getCopasPorTemporada(codequipo: string | number | null | undefined): Promise<Record<string, CopaEquipo[]>> {
   if (!COPAS_HABILITADO || codequipo == null) return {}
-  const { data } = await supabase.from('web_equipo').select('copas').eq('codequipo', String(codequipo)).limit(1).maybeSingle()
-  const raw = (data as { copas?: unknown } | null)?.copas
-  if (!Array.isArray(raw)) return {}
-  const resolved = await resolveCopaRows(raw as CopaRaw[])
-  const out: Record<string, CopaEquipo[]> = {}
-  for (const c of resolved) (out[c.codtemporada] ??= []).push({ nombre_comp: c.nombre_comp, slug_familia: c.slug_familia, estado: c.estado, href: c.href })
-  return out
+  return cacheEquipo(async () => {
+    const { data } = await supabase.from('web_equipo').select('copas').eq('codequipo', String(codequipo)).limit(1).maybeSingle()
+    const raw = (data as { copas?: unknown } | null)?.copas
+    if (!Array.isArray(raw)) return {}
+    const resolved = await resolveCopaRows(raw as CopaRaw[])
+    const out: Record<string, CopaEquipo[]> = {}
+    for (const c of resolved) (out[c.codtemporada] ??= []).push({ nombre_comp: c.nombre_comp, slug_familia: c.slug_familia, estado: c.estado, href: c.href })
+    return out
+  }, ['getCopasPorTemporada', String(codequipo)], codequipo)
 }
 
 export async function getCopasEquipo(codequipo: string | number | null | undefined): Promise<CopaEquipo[]> {
   if (!COPAS_HABILITADO || codequipo == null) return []
-  const { data, error } = await supabase.from('web_equipo').select('copas').eq('codequipo', String(codequipo)).limit(1).maybeSingle()
-  if (error || !data) return []
-  return resolveCopas((data as { copas?: unknown }).copas)
+  return cacheEquipo(async () => {
+    const { data, error } = await supabase.from('web_equipo').select('copas').eq('codequipo', String(codequipo)).limit(1).maybeSingle()
+    if (error || !data) return []
+    return resolveCopas((data as { copas?: unknown }).copas)
+  }, ['getCopasEquipo', String(codequipo)], codequipo)
 }
 
 // Copas + posición en liga del equipo (una sola query a web_equipo). Para el hero de la ficha de
 // jugador: la pastilla de competición incluye la posición del equipo actual y la línea de copas.
 export async function getEquipoActualInfo(codequipo: string | number | null | undefined): Promise<{ copas: CopaEquipo[]; posicionActual: number | null }> {
   if (codequipo == null) return { copas: [], posicionActual: null }
-  const { data } = await supabase.from('web_equipo').select('copas, posicion_actual').eq('codequipo', String(codequipo)).limit(1).maybeSingle()
-  if (!data) return { copas: [], posicionActual: null }
-  return { copas: await resolveCopas((data as { copas?: unknown }).copas), posicionActual: (data as { posicion_actual?: number | null }).posicion_actual ?? null }
+  return cacheEquipo(async () => {
+    const { data } = await supabase.from('web_equipo').select('copas, posicion_actual').eq('codequipo', String(codequipo)).limit(1).maybeSingle()
+    if (!data) return { copas: [], posicionActual: null }
+    return { copas: await resolveCopas((data as { copas?: unknown }).copas), posicionActual: (data as { posicion_actual?: number | null }).posicion_actual ?? null }
+  }, ['getEquipoActualInfo', String(codequipo)], codequipo)
 }
 
 // Columnas explícitas de los fetchers (cotejadas con el DDL de _equipos_export.py).

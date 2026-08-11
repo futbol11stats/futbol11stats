@@ -8,6 +8,7 @@ import Sello from '@/components/Sello'
 import { familiaSello, nombreOficial } from '@/lib/sellos'
 import { graphLd, websiteLd, organizationLd } from '@/lib/jsonld'
 import { ORDEN_AFICIONADOS, ORDEN_JUVENILES, esViejaCopa, segRondaActual, numRondas } from '@/lib/competiciones'
+import { cacheIndices } from '@/lib/cacheComp'
 
 // Marca neutral con Madrid como ámbito ACTUAL (preparada para ampliar a otras federaciones).
 export const metadata: Metadata = {
@@ -25,13 +26,15 @@ export const metadata: Metadata = {
 }
 
 async function getCompeticiones() {
-  const { data } = await supabase
-    .from('web_grupos')
-    .select('codtemporada, nombre_comp, nombre_grupo, codgrupo, categoria, jornada_actual, slug_comp, slug_grupo, tipo, rondas')
-    .eq('codtemporada', 21)
-    .order('nombre_comp')
-  // Copa por FAMILIA: oculta las páginas viejas por competición (la familia es la canónica).
-  return (data || []).filter((g: any) => !esViejaCopa(g.slug_comp))
+  return cacheIndices(async () => {
+    const { data } = await supabase
+      .from('web_grupos')
+      .select('codtemporada, nombre_comp, nombre_grupo, codgrupo, categoria, jornada_actual, slug_comp, slug_grupo, tipo, rondas')
+      .eq('codtemporada', 21)
+      .order('nombre_comp')
+    // Copa por FAMILIA: oculta las páginas viejas por competición (la familia es la canónica).
+    return (data || []).filter((g: any) => !esViejaCopa(g.slug_comp))
+  }, ['getCompeticiones-home'])
 }
 
 // Orden desde la fuente única (aficionados + juveniles); cada rama filtra el que le toca.
