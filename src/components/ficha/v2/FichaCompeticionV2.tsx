@@ -70,9 +70,11 @@ function filaJornada(p: any) {
     <span className="cfj">
       <span>{p.titular ? <Camiseta size={11} /> : <CamisetaHueca size={11} />}{p.titular ? 'Titular' : 'Supl.'}</span>
       <span><b className="num">{p.minutos ?? 0}</b><Reloj size={11} /></span>
+      {/* Jornada (partido único): se omite el 0 igual que en las tarjetas. Portería a cero solo si la
+          mantuvo; goles solo si marcó. */}
       {esPor
-        ? <span><b className="num">{p.goles_encajados === 0 ? 1 : 0}</b><span style={{ color: 'var(--amber)', display: 'inline-flex' }}><Guante size={11} /></span></span>
-        : <span><b className="num">{p.goles ?? 0}</b><span style={{ color: 'var(--e3)', display: 'inline-flex' }}><Balon size={11} /></span></span>}
+        ? (p.goles_encajados === 0 && <span><b className="num">1</b><span style={{ color: 'var(--amber)', display: 'inline-flex' }}><Guante size={11} /></span></span>)
+        : ((p.goles ?? 0) > 0 && <span><b className="num">{p.goles}</b><span style={{ color: 'var(--e3)', display: 'inline-flex' }}><Balon size={11} /></span></span>)}
       {p.amarillas > 0 && <span style={{ color: 'var(--card-y)' }}>{p.amarillas}<TarjetaAmarilla size={10} /></span>}
       {p.dobles_amarilla > 0 && <span style={{ color: 'var(--card-y)' }}><TarjetaDoble size={11} /></span>}
       {p.rojas > 0 && <span style={{ color: 'var(--card-r)' }}><TarjetaRoja size={10} /></span>}

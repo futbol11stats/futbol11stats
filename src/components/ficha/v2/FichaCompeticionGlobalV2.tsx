@@ -77,7 +77,7 @@ export default async function FichaCompeticionGlobalV2({ categoria, slugComp, te
   if (tabEf === 'top5-jugadores-jornada') {
     const mvp = await getGlobalMvpV2(codgrupos, codtemporada, jornadaNum)
     fichas = await fichasInfo(mvp.map((j) => j.codjugador))
-    gRank = { title: '5 mejores jugadores', sub: `jornada ${jornadaNum} · ${subCat}`, leyenda: <>El chip son los <b>puntos fantasy</b> de la jornada; el icono, los <b>goles</b>.</>, items: mvp.map((j) => ({ rank: j.rank, codjugador: j.codjugador, nombre: j.nombre, pos: j.posicion, escudo: j.escudo, nombreEquipo: j.nombre_equipo, valor: Math.round(j.pts_fantasy ?? 0), valorColor: 'var(--e3)', extra: <span style={{ color: 'var(--e3)' }}>{j.goles ?? 0}<Balon size={11} /></span> })) }
+    gRank = { title: '5 mejores jugadores', sub: `jornada ${jornadaNum} · ${subCat}`, leyenda: <>El chip son los <b>puntos fantasy</b> de la jornada; el icono, los <b>goles</b>.</>, items: mvp.map((j) => ({ rank: j.rank, codjugador: j.codjugador, nombre: j.nombre, pos: j.posicion, escudo: j.escudo, nombreEquipo: j.nombre_equipo, valor: Math.round(j.pts_fantasy ?? 0), valorColor: 'var(--e3)', extra: (j.goles ?? 0) > 0 ? <span style={{ color: 'var(--e3)' }}>{j.goles}<Balon size={11} /></span> : null })) }
   } else if (tabEf === 'top5-equipos-jornada') {
     const ef = await getGlobalEquiposFormaV2(codgrupos, codtemporada, jornadaNum)
     gRank = { title: '5 equipos más en forma', sub: `jornada ${jornadaNum} · ${subCat}`, leyenda: <>El chip es la suma de <b>puntos fantasy</b> de los jugadores del equipo en la jornada.</>, items: ef.map((e) => ({ rank: e.rank, codequipo: e.codequipo, nombre: e.nombre_equipo, escudo: e.escudo, nombreEquipo: e.nombre_equipo, valor: Math.round(e.pts_fantasy ?? 0), valorColor: 'var(--e3)' })) }
@@ -109,7 +109,7 @@ export default async function FichaCompeticionGlobalV2({ categoria, slugComp, te
         escudo: j.escudo, nombreEquipo: j.nombre_equipo, valor: valOf(j), valorColor: POSC[j.posicion] ?? 'var(--e3)',
         extra: esTemp
           ? datosXiTemp(j)
-          : <span style={{ color: 'var(--e3)' }}>{j.goles ?? 0}<Balon size={11} /></span>,
+          : ((j.goles ?? 0) > 0 ? <span style={{ color: 'var(--e3)' }}>{j.goles}<Balon size={11} /></span> : null),
       })),
       leyenda: <>{leyXiTemp} Once ideal de toda la categoría, calculado con normalización entre grupos.</>,
     }
