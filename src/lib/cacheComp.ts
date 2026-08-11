@@ -41,6 +41,22 @@ export function cacheEquipo<T>(
   return cacheTagged(fn, keyParts, tags)
 }
 
+// Lectura de la ficha de JUGADOR. Etiqueta fina `jugador:<codjugador>` (invalidar el jugador refresca sus
+// 3 variantes: base carrera, /v2, /[temporada]/v2). Opcional `temporada:<cod>` en lecturas de una temporada
+// concreta. NO se cuelga de comp:<codgrupo> a propósito: la ficha es de carrera y un fichaje dejaría la
+// etiqueta con el grupo antiguo → rancia. El pipeline invalida cada jugador tocado (ya conoce las
+// alineaciones de las actas).
+export function cacheJugador<T>(
+  fn: () => Promise<T>,
+  keyParts: Array<string | number>,
+  codjugador: string | number,
+  codtemporada?: string | number | null,
+): Promise<T> {
+  const tags = [`jugador:${codjugador}`]
+  if (codtemporada != null) tags.push(`temporada:${codtemporada}`)
+  return cacheTagged(fn, keyParts, tags)
+}
+
 // Lectura de los ÍNDICES (home + categorías): dependen de agregados de web_grupos, no de una entidad.
 export function cacheIndices<T>(fn: () => Promise<T>, keyParts: Array<string | number>): Promise<T> {
   return cacheTagged(fn, keyParts, ['indices'])

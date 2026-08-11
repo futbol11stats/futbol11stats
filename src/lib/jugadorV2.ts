@@ -3,6 +3,7 @@
 // exportan) — se reimplementan aquí para no tocar archivos existentes. Ver DECISIONES-PENDIENTES.md (D1).
 
 import { supabase } from '@/lib/supabase'
+import { cacheJugador, cacheTagged } from '@/lib/cacheComp'
 import {
   COLS_JUGADOR, COLS_CARRERA, COLS_HITOS, COLS_ACTUACIONES,
   TEMP_LABEL, tempLabel, marcadorLocalVisitante,
@@ -24,8 +25,10 @@ export function labelToCod(label: string | null | undefined): string | null {
 
 // --- Fetchers base ---
 export async function getJugadorV2(cod: string): Promise<JugadorFicha | null> {
-  const { data } = await supabase.from('web_jugador').select(COLS_JUGADOR).eq('codjugador', cod).limit(1).maybeSingle()
-  return (data as unknown as JugadorFicha) || null
+  return cacheJugador(async () => {
+    const { data } = await supabase.from('web_jugador').select(COLS_JUGADOR).eq('codjugador', cod).limit(1).maybeSingle()
+    return (data as unknown as JugadorFicha) || null
+  }, ['getJugadorV2', cod], cod)
 }
 
 export type CarreraRow = {
@@ -39,31 +42,37 @@ export type CarreraRow = {
 }
 // Carrera ordenada: temporada DESC, y dentro de la temporada orden_temporada ASC (lo decide el pipeline).
 export async function getCarreraV2(cod: string): Promise<CarreraRow[]> {
-  const { data } = await supabase.from('web_jugador_carrera').select(COLS_CARRERA).eq('codjugador', cod)
-  return ((data || []) as any[]).sort((a, b) =>
-    String(b.codtemporada).localeCompare(String(a.codtemporada)) || (a.orden_temporada ?? 0) - (b.orden_temporada ?? 0)) as CarreraRow[]
+  return cacheJugador(async () => {
+    const { data } = await supabase.from('web_jugador_carrera').select(COLS_CARRERA).eq('codjugador', cod)
+    return ((data || []) as any[]).sort((a, b) =>
+      String(b.codtemporada).localeCompare(String(a.codtemporada)) || (a.orden_temporada ?? 0) - (b.orden_temporada ?? 0)) as CarreraRow[]
+  }, ['getCarreraV2', cod], cod)
 }
 
 export async function getActuacionesV2(cod: string): Promise<any[]> {
-  let r = await supabase.from('web_jugador_actuaciones').select(COLS_ACTUACIONES + ', es_local').eq('codjugador', cod).order('rank')
-  if (r.error) r = await supabase.from('web_jugador_actuaciones').select(COLS_ACTUACIONES).eq('codjugador', cod).order('rank')
-  const rows = (r.data || []) as any[]
-  // web_jugador_actuaciones no trae jornada ni minutos, pero web_jugador_partidos SÍ (mismo codacta):
-  // se cruza por codacta para poder mostrarlos. Ver punto 10.
-  const codactas = rows.map((a) => a.codacta).filter(Boolean)
-  if (codactas.length) {
-    const { data } = await supabase.from('web_jugador_partidos').select('codacta, jornada, minutos')
-      .eq('codjugador', cod).in('codacta', codactas)
-    const m = new Map<string, { jornada: number | null; minutos: number | null }>()
-    for (const p of (data || []) as any[]) m.set(String(p.codacta), { jornada: p.jornada, minutos: p.minutos })
-    for (const a of rows) { const e = m.get(String(a.codacta)); if (e) { a.jornada = e.jornada; a.minutos = e.minutos } }
-  }
-  return rows
+  return cacheJugador(async () => {
+    let r = await supabase.from('web_jugador_actuaciones').select(COLS_ACTUACIONES + ', es_local').eq('codjugador', cod).order('rank')
+    if (r.error) r = await supabase.from('web_jugador_actuaciones').select(COLS_ACTUACIONES).eq('codjugador', cod).order('rank')
+    const rows = (r.data || []) as any[]
+    // web_jugador_actuaciones no trae jornada ni minutos, pero web_jugador_partidos SÍ (mismo codacta):
+    // se cruza por codacta para poder mostrarlos. Ver punto 10.
+    const codactas = rows.map((a) => a.codacta).filter(Boolean)
+    if (codactas.length) {
+      const { data } = await supabase.from('web_jugador_partidos').select('codacta, jornada, minutos')
+        .eq('codjugador', cod).in('codacta', codactas)
+      const m = new Map<string, { jornada: number | null; minutos: number | null }>()
+      for (const p of (data || []) as any[]) m.set(String(p.codacta), { jornada: p.jornada, minutos: p.minutos })
+      for (const a of rows) { const e = m.get(String(a.codacta)); if (e) { a.jornada = e.jornada; a.minutos = e.minutos } }
+    }
+    return rows
+  }, ['getActuacionesV2', cod], cod)
 }
 
 export async function getHitosV2(cod: string): Promise<HitoRow[]> {
-  const { data } = await supabase.from('web_jugador_hitos').select(COLS_HITOS).eq('codjugador', cod)
-  return (data || []) as unknown as HitoRow[]
+  return cacheJugador(async () => {
+    const { data } = await supabase.from('web_jugador_hitos').select(COLS_HITOS).eq('codjugador', cod)
+    return (data || []) as unknown as HitoRow[]
+  }, ['getHitosV2', cod], cod)
 }
 
 // Alerta disciplinaria MÁS RECIENTE del jugador (web_alertas_tarjetas es por jornada). Null si no hay.
@@ -73,10 +82,12 @@ export type AlertaRow = {
   rojas_directas: number | null; nombre_equipo: string | null
 }
 export async function getAlertaActual(cod: string): Promise<AlertaRow | null> {
-  const cols = 'estado, codtemporada, jornada, amarillas_ciclo, ciclo_umbral, dobles_amarillas, rojas_directas, nombre_equipo'
-  const { data } = await supabase.from('web_alertas_tarjetas').select(cols)
-    .eq('codjugador', cod).order('codtemporada', { ascending: false }).order('jornada', { ascending: false }).limit(1)
-  return ((data && data[0]) as AlertaRow) || null
+  return cacheJugador(async () => {
+    const cols = 'estado, codtemporada, jornada, amarillas_ciclo, ciclo_umbral, dobles_amarillas, rojas_directas, nombre_equipo'
+    const { data } = await supabase.from('web_alertas_tarjetas').select(cols)
+      .eq('codjugador', cod).order('codtemporada', { ascending: false }).order('jornada', { ascending: false }).limit(1)
+    return ((data && data[0]) as AlertaRow) || null
+  }, ['getAlertaActual', cod], cod)
 }
 
 // Texto humano de la alerta disciplinaria. NUNCA muestra el código crudo (CICLO_COMPLETADO…) ni dice
@@ -95,9 +106,11 @@ export function alertaHumana(a: AlertaRow | null): string | null {
 
 // ¿El jugador tiene algún partido con goles_encajados no nulo? (para decidir si mostrar "P. a 0").
 export async function tienePorteriaDato(cod: string): Promise<boolean> {
-  const { data } = await supabase.from('web_jugador_partidos').select('id')
-    .eq('codjugador', cod).not('goles_encajados', 'is', null).limit(1)
-  return !!(data && data.length)
+  return cacheJugador(async () => {
+    const { data } = await supabase.from('web_jugador_partidos').select('id')
+      .eq('codjugador', cod).not('goles_encajados', 'is', null).limit(1)
+    return !!(data && data.length)
+  }, ['tienePorteriaDato', cod], cod)
 }
 
 // Totales de tarjetas de TODA la carrera desde web_jugador_partidos. Sus tres columnas son DISJUNTAS
@@ -106,15 +119,17 @@ export async function tienePorteriaDato(cod: string): Promise<boolean> {
 // dobles, por eso NO se usa aquí. web_jugador_partidos tiene una fila por partido jugado y su recuento
 // coincide EXACTO con la suma de pj de carrera (verificado en los 38.173 jugadores).
 export async function getTarjetasTotales(cod: string): Promise<{ amarillas: number; dobles: number; rojas: number }> {
-  const { data } = await supabase.from('web_jugador_partidos')
-    .select('amarillas, dobles_amarilla, rojas').eq('codjugador', cod)
-  let amarillas = 0, dobles = 0, rojas = 0
-  for (const p of (data || []) as any[]) {
-    amarillas += p.amarillas ?? 0
-    dobles += p.dobles_amarilla ?? 0
-    rojas += p.rojas ?? 0
-  }
-  return { amarillas, dobles, rojas }
+  return cacheJugador(async () => {
+    const { data } = await supabase.from('web_jugador_partidos')
+      .select('amarillas, dobles_amarilla, rojas').eq('codjugador', cod)
+    let amarillas = 0, dobles = 0, rojas = 0
+    for (const p of (data || []) as any[]) {
+      amarillas += p.amarillas ?? 0
+      dobles += p.dobles_amarilla ?? 0
+      rojas += p.rojas ?? 0
+    }
+    return { amarillas, dobles, rojas }
+  }, ['getTarjetasTotales', cod], cod)
 }
 
 // Cortes de percentil (métrica/categoría/temporada). Devuelve la 4-tupla o null si no hay fila.
@@ -122,12 +137,15 @@ export async function getPercentilCortes(
   metrica: string, categoria: string | null, codtempInt: number | null
 ): Promise<[number, number, number, number] | null> {
   if (!categoria || codtempInt == null) return null
-  const { data } = await supabase.from('web_percentiles')
-    .select('p20, p40, p60, p80').eq('metrica', metrica).eq('categoria', categoria).eq('codtemporada', codtempInt).limit(1).maybeSingle()
-  if (!data) return null
-  const c = [data.p20, data.p40, data.p60, data.p80]
-  if (c.some((x) => x == null)) return null
-  return c as [number, number, number, number]
+  // No es jugador-scoped (percentiles por categoría+temporada, compartidos): se etiqueta por temporada.
+  return cacheTagged(async () => {
+    const { data } = await supabase.from('web_percentiles')
+      .select('p20, p40, p60, p80').eq('metrica', metrica).eq('categoria', categoria).eq('codtemporada', codtempInt).limit(1).maybeSingle()
+    if (!data) return null
+    const c = [data.p20, data.p40, data.p60, data.p80]
+    if (c.some((x) => x == null)) return null
+    return c as [number, number, number, number]
+  }, ['getPercentilCortes', metrica, String(categoria), codtempInt], [`temporada:${codtempInt}`])
 }
 
 // Cortes de ELO por categoría/temporada, validados; si son degenerados o no hay, cae a CORTES_FIJOS.elo.
@@ -141,11 +159,13 @@ const COLS_PART = 'codacta, codtemporada, codgrupo, jornada, fecha, equipo_nombr
   'rival_cod, rival_nombre, rival_escudo, resultado, titular, minutos, goles, amarillas, dobles_amarilla, ' +
   'rojas, puntos, elo_delta, goles_encajados, competicion'
 export async function getPartidosTemporada(cod: string, codtemp: string): Promise<any[]> {
-  const q = (c: string) => supabase.from('web_jugador_partidos').select(c)
-    .eq('codjugador', cod).eq('codtemporada', codtemp).order('jornada', { ascending: true })
-  let r = await q(COLS_PART + ', es_local')
-  if (r.error) r = await q(COLS_PART)
-  return (r.data || []) as any[]
+  return cacheJugador(async () => {
+    const q = (c: string) => supabase.from('web_jugador_partidos').select(c)
+      .eq('codjugador', cod).eq('codtemporada', codtemp).order('jornada', { ascending: true })
+    let r = await q(COLS_PART + ', es_local')
+    if (r.error) r = await q(COLS_PART)
+    return (r.data || []) as any[]
+  }, ['getPartidosTemporada', cod, String(codtemp)], cod, codtemp)
 }
 
 // --- Ámbito: por competición de la temporada, la secuencia de jornadas con estado (incluidas ausencias) ---
@@ -178,6 +198,7 @@ async function resultadosGrupoRich(nombre: string | null, codgrupo: string): Pro
 // AUSENCIAS: una jornada que el equipo jugó y el jugador no aparece -> {tipo:'no_jugo'}. Sin este cruce,
 // una lesión larga sería invisible. Ver DECISIONES-PENDIENTES.md (D3).
 export async function getAmbitoTemporada(cod: string, codtemp: string): Promise<CompAmbito[]> {
+  return cacheJugador(async () => {
   const partidos = await getPartidosTemporada(cod, codtemp)
   if (partidos.length === 0) return []
 
@@ -230,6 +251,7 @@ export async function getAmbitoTemporada(cod: string, codtemp: string): Promise<
   }
   // Liga (más jornadas) primero.
   return comps.sort((a, b) => b.jornadas.length - a.jornadas.length)
+  }, ['getAmbitoTemporada', cod, String(codtemp)], cod, codtemp)
 }
 
 // --- Forma: ventanas de últimas 5 / 10 / temporada sobre los partidos JUGADOS de la temporada ---

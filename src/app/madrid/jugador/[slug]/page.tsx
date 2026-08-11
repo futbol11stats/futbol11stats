@@ -20,6 +20,7 @@ import {
   marcadorLocalVisitante, colorSigno, golesRival, LIVE_COD, POS_LABEL,
   type JugadorFicha, type HitoRow, type CompaneroTop,
 } from '@/lib/jugador'
+import { cacheJugador } from '@/lib/cacheComp'
 import { getEquipoActualInfo, getGrupoInfo, grupoHref, type ChipRacha } from '@/lib/equipo'
 import CopasLinea from '@/components/CopasLinea'
 import Pastilla from '@/components/Pastilla'
@@ -34,52 +35,64 @@ import {
 
 // --- Fetchers (columnas explícitas) ---
 async function getJugador(cod: string): Promise<JugadorFicha | null> {
-  const { data } = await supabase.from('web_jugador').select(COLS_JUGADOR).eq('codjugador', cod).limit(1).maybeSingle()
-  return (data as unknown as JugadorFicha) || null
+  return cacheJugador(async () => {
+    const { data } = await supabase.from('web_jugador').select(COLS_JUGADOR).eq('codjugador', cod).limit(1).maybeSingle()
+    return (data as unknown as JugadorFicha) || null
+  }, ['getJugador', cod], cod)
 }
 async function getCarrera(cod: string) {
-  const { data } = await supabase.from('web_jugador_carrera').select(COLS_CARRERA).eq('codjugador', cod)
-  // Orden: temporada DESC, y dentro de la temporada por orden_temporada ASC (lo decide el pipeline:
-  // equipo instalado primero, resto por última aparición). Sin criterio propio de desempate.
-  return ((data || []) as any[]).sort((a, b) =>
-    String(b.codtemporada).localeCompare(String(a.codtemporada)) || (a.orden_temporada ?? 0) - (b.orden_temporada ?? 0))
+  return cacheJugador(async () => {
+    const { data } = await supabase.from('web_jugador_carrera').select(COLS_CARRERA).eq('codjugador', cod)
+    // Orden: temporada DESC, y dentro de la temporada por orden_temporada ASC (lo decide el pipeline:
+    // equipo instalado primero, resto por última aparición). Sin criterio propio de desempate.
+    return ((data || []) as any[]).sort((a, b) =>
+      String(b.codtemporada).localeCompare(String(a.codtemporada)) || (a.orden_temporada ?? 0) - (b.orden_temporada ?? 0))
+  }, ['getCarrera', cod], cod)
 }
 async function getHitos(cod: string): Promise<HitoRow[]> {
-  const { data } = await supabase.from('web_jugador_hitos').select(COLS_HITOS).eq('codjugador', cod)
-  return (data || []) as unknown as HitoRow[]
+  return cacheJugador(async () => {
+    const { data } = await supabase.from('web_jugador_hitos').select(COLS_HITOS).eq('codjugador', cod)
+    return (data || []) as unknown as HitoRow[]
+  }, ['getHitos', cod], cod)
 }
 async function getActuaciones(cod: string) {
-  // es_local (local/visitante) llega con el próximo export; se intenta y, si la columna aún no existe,
-  // se reintenta sin ella (el icono casa/avión brota solo cuando el dato aterrice).
-  let r = await supabase.from('web_jugador_actuaciones').select(COLS_ACTUACIONES + ', es_local').eq('codjugador', cod).order('rank')
-  if (r.error) r = await supabase.from('web_jugador_actuaciones').select(COLS_ACTUACIONES).eq('codjugador', cod).order('rank')
-  return (r.data || []) as any[]
+  return cacheJugador(async () => {
+    // es_local (local/visitante) llega con el próximo export; se intenta y, si la columna aún no existe,
+    // se reintenta sin ella (el icono casa/avión brota solo cuando el dato aterrice).
+    let r = await supabase.from('web_jugador_actuaciones').select(COLS_ACTUACIONES + ', es_local').eq('codjugador', cod).order('rank')
+    if (r.error) r = await supabase.from('web_jugador_actuaciones').select(COLS_ACTUACIONES).eq('codjugador', cod).order('rank')
+    return (r.data || []) as any[]
+  }, ['getActuaciones', cod], cod)
 }
 // Los 3 ÚLTIMOS partidos jugados (por temporada+jornada, no por el string de fecha DD/MM/YYYY).
 async function getUltimosPartidos(cod: string) {
-  const cols = 'codacta, codtemporada, jornada, fecha, equipo_nombre, escudo, rival_cod, rival_nombre, resultado, goles, puntos, goles_encajados'
-  const q = (c: string) => supabase.from('web_jugador_partidos').select(c).eq('codjugador', cod)
-    .order('codtemporada', { ascending: false }).order('jornada', { ascending: false }).limit(3)
-  let r = await q(cols + ', es_local')  // idem: se activa solo cuando exista es_local
-  if (r.error) r = await q(cols)
-  return (r.data || []) as any[]
+  return cacheJugador(async () => {
+    const cols = 'codacta, codtemporada, jornada, fecha, equipo_nombre, escudo, rival_cod, rival_nombre, resultado, goles, puntos, goles_encajados'
+    const q = (c: string) => supabase.from('web_jugador_partidos').select(c).eq('codjugador', cod)
+      .order('codtemporada', { ascending: false }).order('jornada', { ascending: false }).limit(3)
+    let r = await q(cols + ', es_local')  // idem: se activa solo cuando exista es_local
+    if (r.error) r = await q(cols)
+    return (r.data || []) as any[]
+  }, ['getUltimosPartidos', cod], cod)
 }
 // Racha del hero: los 5 ÚLTIMOS partidos jugados (por temporada+jornada, jamás por el string de
 // fecha) -> chips V/E/D con tooltip "Jnn · marcador vs Rival" (marcador en orden local-visitante,
 // perspectiva del jugador para el color). Se invierte para pintar el más reciente a la DERECHA.
 async function getRacha5(cod: string): Promise<ChipRacha[]> {
-  const q = (c: string) => supabase.from('web_jugador_partidos').select(c)
-    .eq('codjugador', cod)
-    .order('codtemporada', { ascending: false }).order('jornada', { ascending: false }).limit(5)
-  let { data, error } = await q('resultado, jornada, rival_nombre, es_local')
-  if (error) ({ data } = await q('resultado, jornada, rival_nombre'))
-  return ((data || []) as any[])
-    .reverse()
-    .map((p): ChipRacha => {
-      const { marcador, signo } = marcadorLocalVisitante(p.resultado, p.es_local)
-      return { signo: signo as 'G' | 'E' | 'P', jornada: p.jornada ?? null, marcador, rival: p.rival_nombre ?? null }
-    })
-    .filter((c) => c.signo === 'G' || c.signo === 'E' || c.signo === 'P')
+  return cacheJugador(async () => {
+    const q = (c: string) => supabase.from('web_jugador_partidos').select(c)
+      .eq('codjugador', cod)
+      .order('codtemporada', { ascending: false }).order('jornada', { ascending: false }).limit(5)
+    let { data, error } = await q('resultado, jornada, rival_nombre, es_local')
+    if (error) ({ data } = await q('resultado, jornada, rival_nombre'))
+    return ((data || []) as any[])
+      .reverse()
+      .map((p): ChipRacha => {
+        const { marcador, signo } = marcadorLocalVisitante(p.resultado, p.es_local)
+        return { signo: signo as 'G' | 'E' | 'P', jornada: p.jornada ?? null, marcador, rival: p.rival_nombre ?? null }
+      })
+      .filter((c) => c.signo === 'G' || c.signo === 'E' || c.signo === 'P')
+  }, ['getRacha5', cod], cod)
 }
 
 function iniciales(nombreDisplay: string): string {
