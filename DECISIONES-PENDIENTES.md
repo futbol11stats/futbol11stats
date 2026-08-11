@@ -256,16 +256,22 @@ dibujaba un placeholder de algo que YA existe como componente del sitio, se usa 
     envuelven (devuelven `Map`, que `unstable_cache` serializaría a `{}`); su ruta se invalida igual porque
     se leen junto a funciones etiquetadas.
   - Prueba: cambio de `pts` en Supabase → `POST` con `comp:24037458` → la ficha /v2 pasó de 82 a 92. 200 OK.
-- **PENDIENTE PARA PRODUCCIÓN (imprescindible antes de usarlo en prod):**
-  - **Regla de bypass del firewall para `/api/revalidate` en el entorno de Production.** Sin ella, el
-    pipeline (cliente máquina) choca con el *Vercel Security Checkpoint* (Attack Challenge Mode) y recibe un
-    429 con HTML, nunca llega al endpoint. Una WAF custom rule con *Bypass* para esa ruta basta (no hace
-    falta system bypass rule). En preview se comprobó que la custom rule funciona.
+- **PRODUCCIÓN (estado):**
+  - **Regla de bypass del firewall para `/api/revalidate`: RESUELTA.** Es una WAF custom rule de PROYECTO y
+    cubre también Production — verificado: `POST https://www.futbol11stats.com/api/revalidate` con el secreto
+    → **200** `{"revalidated":true,"tags":1,"paths":0}`. No hace falta system bypass rule ni nada específico
+    de prod. (Contexto: sin esa regla, un cliente máquina choca con el *Vercel Security Checkpoint* / Attack
+    Challenge Mode → 429 con HTML y nunca llega al endpoint.)
   - `REVALIDATE_SECRET` **ya creada en Production**. (Ojo: los env vars solo los coge un deploy nuevo.)
-  - **Reactivar *Vercel Authentication* en previews** (se desactivó temporalmente para esta prueba).
-- **PENDIENTE DE CÓDIGO:** Fase 1b (etiquetar las rutas ACTUALES no-v2 de competición — las que ven los
-  usuarios y donde escoció lo de las copas) · Fase 2 (equipo + índices) · Fase 3 (jugador, 38k fichas) · y el
-  **llamador desde el pipeline** (`C:\rffm-pipeline`) al terminar cada tanda.
+  - **Reactivar *Vercel Authentication* en previews** (se desactivó temporalmente para la prueba) — PENDIENTE.
+- **CÓDIGO — estado por fases:**
+  - Fase 1a (competición /v2) y Fase 1b (competición actual no-v2): **HECHAS** — las no-v2 eran las que ven
+    los usuarios y donde escoció lo de las copas.
+  - Fase 2 (equipo + índices): **EN CURSO**.
+  - Fase 3 (jugador, 38k fichas): pendiente; decidir ANTES si conviene una etiqueta más gruesa para no lanzar
+    ~10k `jugador:<cod>` por noche.
+  - **Llamador desde el pipeline** (`C:\rffm-pipeline`) que POSTee las tags de las entidades tocadas al
+    terminar cada tanda: pendiente.
 - **Diseño propuesto (original):**
   - Endpoint de revalidación en la web (route handler, p.ej. `/api/revalidate`) **protegido por un secreto**
     (header o query con un token en variable de entorno; rechazar si no coincide).
