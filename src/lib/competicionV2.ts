@@ -2,6 +2,7 @@
 // actuales ni sus componentes. Reutiliza el sistema de color de equipo v2 y las tablas del pipeline.
 
 import { supabase } from '@/lib/supabase'
+import { cacheComp } from '@/lib/cacheComp'
 import { COLS_CLASIFICACION, COLS_TOP_JUGADORES, COLS_EQUIPOS_FORMA, COLS_XI_OPTIMO } from '@/lib/columns'
 import { CORTES_FIJOS } from '@/lib/escala'
 import { type Ronda } from '@/lib/competiciones'
@@ -72,9 +73,11 @@ export type ClasifCompRow = {
   forma: string | null; racha: string | null; zona: string | null; p0: number | null
 }
 export async function getClasifV2(codgrupo: string, codtemporada: number, jornada: number): Promise<ClasifCompRow[]> {
-  const { data } = await supabase.from('web_clasificacion').select(COLS_CLASIFICACION)
-    .eq('codgrupo', codgrupo).eq('codtemporada', codtemporada).eq('jornada', jornada).order('pos')
-  return (data || []) as unknown as ClasifCompRow[]
+  return cacheComp(async () => {
+    const { data } = await supabase.from('web_clasificacion').select(COLS_CLASIFICACION)
+      .eq('codgrupo', codgrupo).eq('codtemporada', codtemporada).eq('jornada', jornada).order('pos')
+    return (data || []) as unknown as ClasifCompRow[]
+  }, ['getClasifV2', codgrupo, codtemporada, jornada], [codgrupo], codtemporada)
 }
 
 // KPIs de la cabecera a partir de la clasificación de la jornada: nº equipos, partidos disputados,
@@ -143,51 +146,61 @@ async function fetchSnapshot(build: (q: any) => any, jornada: number) {
 
 // Destacados de UNA jornada (web_top_jugadores por tipo): mvp_jornada, goleadores_jornada, xi_jornada…
 export async function getDestacadosV2(codgrupo: string, codtemporada: number, jornada: number, tipo: string) {
-  const { data } = await supabase.from('web_top_jugadores').select(COLS_TOP_JUGADORES)
-    .eq('codgrupo', codgrupo).eq('codtemporada', codtemporada).eq('jornada', jornada).eq('tipo', tipo).order('rank')
-  return (data || []) as any[]
+  return cacheComp(async () => {
+    const { data } = await supabase.from('web_top_jugadores').select(COLS_TOP_JUGADORES)
+      .eq('codgrupo', codgrupo).eq('codtemporada', codtemporada).eq('jornada', jornada).eq('tipo', tipo).order('rank')
+    return (data || []) as any[]
+  }, ['getDestacadosV2', codgrupo, codtemporada, jornada, tipo], [codgrupo], codtemporada)
 }
 
 // Equipos en forma de UNA jornada (web_equipos_forma).
 export async function getEquiposFormaV2(codgrupo: string, codtemporada: number, jornada: number) {
-  const { data } = await supabase.from('web_equipos_forma').select(COLS_EQUIPOS_FORMA)
-    .eq('codgrupo', codgrupo).eq('codtemporada', codtemporada).eq('jornada', jornada).order('rank')
-  return (data || []) as any[]
+  return cacheComp(async () => {
+    const { data } = await supabase.from('web_equipos_forma').select(COLS_EQUIPOS_FORMA)
+      .eq('codgrupo', codgrupo).eq('codtemporada', codtemporada).eq('jornada', jornada).order('rank')
+    return (data || []) as any[]
+  }, ['getEquiposFormaV2', codgrupo, codtemporada, jornada], [codgrupo], codtemporada)
 }
 
 // Rankings de TEMPORADA (acumulado hasta la jornada): goleadores/porteros/fantasy rebobinan (snapshot);
 // elo_temp es foto-final (no rebobina), como en la ruta actual.
 export async function getTopTemporadaV2(codgrupo: string, codtemporada: number, jornada: number) {
-  const [snap, elo] = await Promise.all([
-    fetchSnapshot((q: any) => q.from('web_top_jugadores').select(COLS_TOP_JUGADORES)
-      .eq('codgrupo', codgrupo).eq('codtemporada', codtemporada)
-      .in('tipo', ['goleadores_temp', 'fantasy_temp', 'porteros_temp']).order('rank'), jornada),
-    supabase.from('web_top_jugadores').select(COLS_TOP_JUGADORES)
-      .eq('codgrupo', codgrupo).eq('codtemporada', codtemporada).eq('tipo', 'elo_temp').is('jornada', null).order('rank'),
-  ])
-  const all = [...snap, ...((elo.data || []) as any[])]
-  return {
-    goleadores: all.filter((j) => j.tipo === 'goleadores_temp'),
-    porteros: all.filter((j) => j.tipo === 'porteros_temp'),
-    fantasy: all.filter((j) => j.tipo === 'fantasy_temp'),
-    elo: all.filter((j) => j.tipo === 'elo_temp'),
-  }
+  return cacheComp(async () => {
+    const [snap, elo] = await Promise.all([
+      fetchSnapshot((q: any) => q.from('web_top_jugadores').select(COLS_TOP_JUGADORES)
+        .eq('codgrupo', codgrupo).eq('codtemporada', codtemporada)
+        .in('tipo', ['goleadores_temp', 'fantasy_temp', 'porteros_temp']).order('rank'), jornada),
+      supabase.from('web_top_jugadores').select(COLS_TOP_JUGADORES)
+        .eq('codgrupo', codgrupo).eq('codtemporada', codtemporada).eq('tipo', 'elo_temp').is('jornada', null).order('rank'),
+    ])
+    const all = [...snap, ...((elo.data || []) as any[])]
+    return {
+      goleadores: all.filter((j) => j.tipo === 'goleadores_temp'),
+      porteros: all.filter((j) => j.tipo === 'porteros_temp'),
+      fantasy: all.filter((j) => j.tipo === 'fantasy_temp'),
+      elo: all.filter((j) => j.tipo === 'elo_temp'),
+    }
+  }, ['getTopTemporadaV2', codgrupo, codtemporada, jornada], [codgrupo], codtemporada)
 }
 
 // XI Óptimo de temporada (web_xi_optimo tipo temporada, acumulado por jornada).
 export async function getXiTemporadaV2(codgrupo: string, codtemporada: number, jornada: number) {
-  return fetchSnapshot((q: any) => q.from('web_xi_optimo').select(COLS_XI_OPTIMO)
-    .eq('tipo', 'temporada').eq('codgrupo', codgrupo).eq('codtemporada', codtemporada).order('pos_orden'), jornada) as Promise<any[]>
+  return cacheComp(async () => (
+    fetchSnapshot((q: any) => q.from('web_xi_optimo').select(COLS_XI_OPTIMO)
+      .eq('tipo', 'temporada').eq('codgrupo', codgrupo).eq('codtemporada', codtemporada).order('pos_orden'), jornada) as Promise<any[]>
+  ), ['getXiTemporadaV2', codgrupo, codtemporada, jornada], [codgrupo], codtemporada)
 }
 
 // XI Óptimo de UNA jornada: en copa vive en web_xi_optimo (tipo jornada); en liga, en web_top_jugadores (xi_jornada).
 export async function getXiJornadaV2(codgrupo: string, codtemporada: number, jornada: number, isCopa: boolean) {
-  if (isCopa) {
-    const { data } = await supabase.from('web_xi_optimo').select(COLS_XI_OPTIMO)
-      .eq('codgrupo', codgrupo).eq('codtemporada', codtemporada).eq('tipo', 'jornada').eq('jornada', jornada).order('pos_orden')
-    return (data || []) as any[]
-  }
-  return getDestacadosV2(codgrupo, codtemporada, jornada, 'xi_jornada')
+  return cacheComp(async () => {
+    if (isCopa) {
+      const { data } = await supabase.from('web_xi_optimo').select(COLS_XI_OPTIMO)
+        .eq('codgrupo', codgrupo).eq('codtemporada', codtemporada).eq('tipo', 'jornada').eq('jornada', jornada).order('pos_orden')
+      return (data || []) as any[]
+    }
+    return getDestacadosV2(codgrupo, codtemporada, jornada, 'xi_jornada')
+  }, ['getXiJornadaV2', codgrupo, codtemporada, jornada, String(isCopa)], [codgrupo], codtemporada)
 }
 
 // --- Resultados de una jornada (web_resultados). campo ya poblado; fecha/hora pueden venir NULL. ---
@@ -198,13 +211,17 @@ export type ResultadoCompRow = {
   fecha: string | null; hora: string | null; campo: string | null
 }
 export async function getResultadosV2(codgrupo: string, codtemporada: number, jornada: number): Promise<ResultadoCompRow[]> {
-  const { data } = await supabase.from('web_resultados')
-    .select('codacta, nombre_local, escudo_local, goles_local, goles_visitante, nombre_visitante, escudo_visitante, fecha, hora, campo')
-    .eq('codgrupo', codgrupo).eq('codtemporada', codtemporada).eq('jornada', jornada).order('fecha').order('hora')
-  return (data || []) as unknown as ResultadoCompRow[]
+  return cacheComp(async () => {
+    const { data } = await supabase.from('web_resultados')
+      .select('codacta, nombre_local, escudo_local, goles_local, goles_visitante, nombre_visitante, escudo_visitante, fecha, hora, campo')
+      .eq('codgrupo', codgrupo).eq('codtemporada', codtemporada).eq('jornada', jornada).order('fecha').order('hora')
+    return (data || []) as unknown as ResultadoCompRow[]
+  }, ['getResultadosV2', codgrupo, codtemporada, jornada], [codgrupo], codtemporada)
 }
 
 // nombre_equipo -> codequipo (para enlazar equipos en Resultados; web_resultados no trae codequipo).
+// NO se envuelve en cacheComp: devuelve un Map y unstable_cache serializa el resultado (el Map se
+// perdería a {}). Se lee siempre junto a getResultadosV2 (ya etiquetada), así que la ruta queda cubierta.
 export async function getEquiposMapV2(codgrupo: string, codtemporada: number): Promise<Map<string, string>> {
   const { data } = await supabase.from('web_clasificacion').select('codequipo, nombre_equipo')
     .eq('codgrupo', codgrupo).eq('codtemporada', codtemporada).eq('jornada', 1)
@@ -228,10 +245,12 @@ export async function getGlobalGruposV2(categoria: string, slugComp: string, cod
 // para reutilizar kpisDeClasif y pos/zona para el bloque por zonas.
 export async function getGlobalClasifV2(codgrupos: string[], codtemporada: number, jornada: number) {
   if (!codgrupos.length) return [] as any[]
-  const { data } = await supabase.from('web_clasificacion')
-    .select('codgrupo, pos, codequipo, nombre_equipo, escudo, pj, gf, pts, elo, zona')
-    .in('codgrupo', codgrupos).eq('codtemporada', codtemporada).eq('jornada', jornada).order('pos')
-  return (data || []) as any[]
+  return cacheComp(async () => {
+    const { data } = await supabase.from('web_clasificacion')
+      .select('codgrupo, pos, codequipo, nombre_equipo, escudo, pj, gf, pts, elo, zona')
+      .in('codgrupo', codgrupos).eq('codtemporada', codtemporada).eq('jornada', jornada).order('pos')
+    return (data || []) as any[]
+  }, ['getGlobalClasifV2', codgrupos.join(','), codtemporada, jornada], codgrupos, codtemporada)
 }
 
 // --- Carrera de posiciones: posición por jornada de cada equipo + bandas de zona (de la última jornada). ---
@@ -240,6 +259,7 @@ const iniEq = (n: string) => (n || '').replace(/['"]/g, '').split(/\s+/).filter(
 export type CarreraSerie = { codequipo: string; nombre: string; ini: string; color: string; pos: number[] }
 export type CarreraBand = { from: number; to: number; color: string }
 export async function getCarreraV2(codgrupo: string, codtemporada: number): Promise<{ series: CarreraSerie[]; jornadas: number[]; bands: CarreraBand[] }> {
+  return cacheComp(async () => {
   // 1) Última jornada: define los equipos de la carrera (orden final + zona para las bandas). Evita traer
   //    series de equipos que no están en la tabla final (retirados, filas sueltas).
   const { data: jr } = await supabase.from('web_clasificacion').select('jornada')
@@ -276,28 +296,31 @@ export async function getCarreraV2(codgrupo: string, codtemporada: number): Prom
     else raw.push({ from: p, to: p, fam: f })
   }
   return { series, jornadas, bands: raw.map((b) => ({ from: b.from, to: b.to, color: ZONA_FAM_COL[b.fam] })) }
+  }, ['getCarreraV2', codgrupo, codtemporada], [codgrupo], codtemporada)
 }
 
 // --- Aside: líderes (goleador/portero/mejor ELO) y cifras de la competición. ---
 export async function getLideresV2(codgrupo: string, codtemporada: number) {
-  const [top, al] = await Promise.all([
-    supabase.from('web_top_jugadores')
-      .select('tipo, jornada, codjugador, nombre, posicion, codequipo, nombre_equipo, escudo, goles, elo')
-      .eq('codgrupo', codgrupo).eq('codtemporada', codtemporada)
-      .in('tipo', ['goleadores_temp', 'porteros_temp', 'elo_temp']).eq('rank', 1),
-    // "Más tarjetas": no hay ranking de tarjetas por jugador de temporada; se usa la mejor fuente
-    // disponible, web_alertas_tarjetas (amarillas de ciclo + simples). Cubre solo a los que tienen
-    // registro disciplinario, así que es aproximado (ver DECISIONES C-lideres).
-    supabase.from('web_alertas_tarjetas')
-      .select('codjugador, nombre, posicion, codequipo, nombre_equipo, escudo, amarillas_ciclo, amarillas_simples')
-      .eq('codgrupo', codgrupo).eq('codtemporada', codtemporada),
-  ])
-  const rows = (top.data || []) as any[]
-  const pick = (t: string) => rows.filter((r) => r.tipo === t).sort((a, b) => (Number(b.jornada) || 0) - (Number(a.jornada) || 0))[0] || null
-  const tarj = ((al.data || []) as any[])
-    .map((r) => ({ ...r, amarillas: (r.amarillas_ciclo || 0) + (r.amarillas_simples || 0) }))
-    .sort((a, b) => b.amarillas - a.amarillas)[0] || null
-  return { goleador: pick('goleadores_temp'), portero: pick('porteros_temp'), elo: pick('elo_temp'), tarjetas: tarj }
+  return cacheComp(async () => {
+    const [top, al] = await Promise.all([
+      supabase.from('web_top_jugadores')
+        .select('tipo, jornada, codjugador, nombre, posicion, codequipo, nombre_equipo, escudo, goles, elo')
+        .eq('codgrupo', codgrupo).eq('codtemporada', codtemporada)
+        .in('tipo', ['goleadores_temp', 'porteros_temp', 'elo_temp']).eq('rank', 1),
+      // "Más tarjetas": no hay ranking de tarjetas por jugador de temporada; se usa la mejor fuente
+      // disponible, web_alertas_tarjetas (amarillas de ciclo + simples). Cubre solo a los que tienen
+      // registro disciplinario, así que es aproximado (ver DECISIONES C-lideres).
+      supabase.from('web_alertas_tarjetas')
+        .select('codjugador, nombre, posicion, codequipo, nombre_equipo, escudo, amarillas_ciclo, amarillas_simples')
+        .eq('codgrupo', codgrupo).eq('codtemporada', codtemporada),
+    ])
+    const rows = (top.data || []) as any[]
+    const pick = (t: string) => rows.filter((r) => r.tipo === t).sort((a, b) => (Number(b.jornada) || 0) - (Number(a.jornada) || 0))[0] || null
+    const tarj = ((al.data || []) as any[])
+      .map((r) => ({ ...r, amarillas: (r.amarillas_ciclo || 0) + (r.amarillas_simples || 0) }))
+      .sort((a, b) => b.amarillas - a.amarillas)[0] || null
+    return { goleador: pick('goleadores_temp'), portero: pick('porteros_temp'), elo: pick('elo_temp'), tarjetas: tarj }
+  }, ['getLideresV2', codgrupo, codtemporada], [codgrupo], codtemporada)
 }
 
 export type CifrasComp = {
@@ -306,32 +329,34 @@ export type CifrasComp = {
   amarillas: number; dobles: number; rojas: number; p0: number
 }
 export async function getCifrasV2(codgrupo: string, codtemporada: number, jornada: number, clasif: ClasifCompRow[], totalJornadas: number): Promise<CifrasComp> {
-  const equipos = clasif.length
-  const disputados = Math.round(clasif.reduce((s, r) => s + (r.pj || 0), 0) / 2)
-  const goles = clasif.reduce((s, r) => s + (r.gf || 0), 0)
-  const p0 = clasif.reduce((s, r) => s + (r.p0 || 0), 0)
-  const totalPartidos = totalJornadas && equipos ? Math.round((totalJornadas * equipos) / 2) : disputados
-  const [{ data: res }, jl] = await Promise.all([
-    supabase.from('web_resultados').select('goles_local, goles_visitante').eq('codgrupo', codgrupo).eq('codtemporada', codtemporada),
-    fetchSnapshot((q: any) => q.from('web_juego_limpio').select('amarillas, dobles, rojas, jornada').eq('codgrupo', codgrupo).eq('codtemporada', codtemporada), jornada),
-  ])
-  let vl = 0, em = 0, vv = 0
-  for (const m of (res || []) as any[]) {
-    if (m.goles_local == null || m.goles_visitante == null) continue
-    if (m.goles_local > m.goles_visitante) vl++
-    else if (m.goles_local < m.goles_visitante) vv++
-    else em++
-  }
-  const tot = vl + em + vv || 1
-  const jlRows = jl as any[]
-  return {
-    disputados, totalPartidos, goles, mediaGoles: disputados ? goles / disputados : null,
-    vLocalPct: Math.round((vl / tot) * 100), empPct: Math.round((em / tot) * 100), vVisitPct: Math.round((vv / tot) * 100),
-    amarillas: jlRows.reduce((s, r) => s + (r.amarillas || 0), 0),
-    dobles: jlRows.reduce((s, r) => s + (r.dobles || 0), 0),
-    rojas: jlRows.reduce((s, r) => s + (r.rojas || 0), 0),
-    p0,
-  }
+  return cacheComp(async () => {
+    const equipos = clasif.length
+    const disputados = Math.round(clasif.reduce((s, r) => s + (r.pj || 0), 0) / 2)
+    const goles = clasif.reduce((s, r) => s + (r.gf || 0), 0)
+    const p0 = clasif.reduce((s, r) => s + (r.p0 || 0), 0)
+    const totalPartidos = totalJornadas && equipos ? Math.round((totalJornadas * equipos) / 2) : disputados
+    const [{ data: res }, jl] = await Promise.all([
+      supabase.from('web_resultados').select('goles_local, goles_visitante').eq('codgrupo', codgrupo).eq('codtemporada', codtemporada),
+      fetchSnapshot((q: any) => q.from('web_juego_limpio').select('amarillas, dobles, rojas, jornada').eq('codgrupo', codgrupo).eq('codtemporada', codtemporada), jornada),
+    ])
+    let vl = 0, em = 0, vv = 0
+    for (const m of (res || []) as any[]) {
+      if (m.goles_local == null || m.goles_visitante == null) continue
+      if (m.goles_local > m.goles_visitante) vl++
+      else if (m.goles_local < m.goles_visitante) vv++
+      else em++
+    }
+    const tot = vl + em + vv || 1
+    const jlRows = jl as any[]
+    return {
+      disputados, totalPartidos, goles, mediaGoles: disputados ? goles / disputados : null,
+      vLocalPct: Math.round((vl / tot) * 100), empPct: Math.round((em / tot) * 100), vVisitPct: Math.round((vv / tot) * 100),
+      amarillas: jlRows.reduce((s, r) => s + (r.amarillas || 0), 0),
+      dobles: jlRows.reduce((s, r) => s + (r.dobles || 0), 0),
+      rojas: jlRows.reduce((s, r) => s + (r.rojas || 0), 0),
+      p0,
+    }
+  }, ['getCifrasV2', codgrupo, codtemporada, jornada, totalJornadas], [codgrupo], codtemporada)
 }
 
 // Goles por equipo en UNA jornada, derivados de web_resultados (no hay tabla). Cada equipo juega una vez.
@@ -347,14 +372,18 @@ export function golesEquipoJornada(res: ResultadoCompRow[], equiposMap: Map<stri
 
 // Suspendidos para la jornada SIGUIENTE a la seleccionada (web_suspendidos).
 export async function getSuspendidosV2(codgrupo: string, codtemporada: number, jornadaSiguiente: number) {
-  const { data } = await supabase.from('web_suspendidos')
-    .select('codjugador, nombre, posicion, codequipo, nombre_equipo, escudo, motivo')
-    .eq('codgrupo', codgrupo).eq('codtemporada', codtemporada).eq('jornada', jornadaSiguiente).order('nombre_equipo')
-  return (data || []) as any[]
+  return cacheComp(async () => {
+    const { data } = await supabase.from('web_suspendidos')
+      .select('codjugador, nombre, posicion, codequipo, nombre_equipo, escudo, motivo')
+      .eq('codgrupo', codgrupo).eq('codtemporada', codtemporada).eq('jornada', jornadaSiguiente).order('nombre_equipo')
+    return (data || []) as any[]
+  }, ['getSuspendidosV2', codgrupo, codtemporada, jornadaSiguiente], [codgrupo], codtemporada)
 }
 
 // Datos por partido de UNA jornada para unos jugadores (web_jugador_partidos): titular, minutos, goles,
 // tarjetas, puntos, goles encajados. Para la fila completa del Top 5 (web_top_jugadores no los expone).
+// NO se envuelve en cacheComp: devuelve un Map (unstable_cache lo perdería a {}). Se lee junto a los
+// destacados/XI de jornada (ya etiquetados), así que la ruta queda cubierta.
 export async function getPartidosJornadaV2(codgrupo: string, codtemporada: number, jornada: number, codjugadores: string[]) {
   const m = new Map<string, any>()
   if (!codjugadores.length) return m
@@ -368,11 +397,13 @@ export async function getPartidosJornadaV2(codgrupo: string, codtemporada: numbe
 // Goles marcados por tramo del partido en TODA la competición (suma de web_goles_tramos de sus equipos).
 const TRAMOS_ORDEN = ['0-15', '16-30', '31-45', '46-60', '61-75', '76-90', '90+']
 export async function getTramosCompeticionV2(codgrupo: string, codtemporada: number) {
-  const { data } = await supabase.from('web_goles_tramos').select('tramo, gf')
-    .eq('codgrupo', codgrupo).eq('codtemporada', codtemporada)
-  const m = new Map<string, number>()
-  for (const r of (data || []) as any[]) m.set(r.tramo, (m.get(r.tramo) || 0) + (r.gf || 0))
-  return TRAMOS_ORDEN.map((t) => ({ tramo: t, gf: m.get(t) || 0 }))
+  return cacheComp(async () => {
+    const { data } = await supabase.from('web_goles_tramos').select('tramo, gf')
+      .eq('codgrupo', codgrupo).eq('codtemporada', codtemporada)
+    const m = new Map<string, number>()
+    for (const r of (data || []) as any[]) m.set(r.tramo, (m.get(r.tramo) || 0) + (r.gf || 0))
+    return TRAMOS_ORDEN.map((t) => ({ tramo: t, gf: m.get(t) || 0 }))
+  }, ['getTramosCompeticionV2', codgrupo, codtemporada], [codgrupo], codtemporada)
 }
 
 // --- GLOBAL: rankings de JUGADOR agregando los grupos de la categoria. NO se suman puntos de equipo ni
@@ -380,151 +411,174 @@ export async function getTramosCompeticionV2(codgrupo: string, codtemporada: num
 // (goleadores/porteros/fantasy/elo) por su valor. ---
 export async function getGlobalTopTemporadaV2(codgrupos: string[], codtemporada: number, jornada: number) {
   if (!codgrupos.length) return { goleadores: [], porteros: [], fantasy: [], elo: [] }
-  const [snap, elo] = await Promise.all([
-    supabase.from('web_top_jugadores').select(COLS_TOP_JUGADORES)
-      .in('codgrupo', codgrupos).eq('codtemporada', codtemporada)
-      .in('tipo', ['goleadores_temp', 'porteros_temp', 'fantasy_temp']).eq('jornada', jornada),
-    supabase.from('web_top_jugadores').select(COLS_TOP_JUGADORES)
-      .in('codgrupo', codgrupos).eq('codtemporada', codtemporada).eq('tipo', 'elo_temp').is('jornada', null),
-  ])
-  const all = [...((snap.data || []) as any[]), ...((elo.data || []) as any[])]
-  const top = (tipo: string, key: string) => all.filter((j) => j.tipo === tipo)
-    .sort((a, b) => (Number(b[key]) || 0) - (Number(a[key]) || 0)).slice(0, 10)
-    .map((j, i) => ({ ...j, rank: i + 1 }))
-  return { goleadores: top('goleadores_temp', 'goles'), porteros: top('porteros_temp', 'goles'), fantasy: top('fantasy_temp', 'pts_fantasy'), elo: top('elo_temp', 'elo') }
+  return cacheComp(async () => {
+    const [snap, elo] = await Promise.all([
+      supabase.from('web_top_jugadores').select(COLS_TOP_JUGADORES)
+        .in('codgrupo', codgrupos).eq('codtemporada', codtemporada)
+        .in('tipo', ['goleadores_temp', 'porteros_temp', 'fantasy_temp']).eq('jornada', jornada),
+      supabase.from('web_top_jugadores').select(COLS_TOP_JUGADORES)
+        .in('codgrupo', codgrupos).eq('codtemporada', codtemporada).eq('tipo', 'elo_temp').is('jornada', null),
+    ])
+    const all = [...((snap.data || []) as any[]), ...((elo.data || []) as any[])]
+    const top = (tipo: string, key: string) => all.filter((j) => j.tipo === tipo)
+      .sort((a, b) => (Number(b[key]) || 0) - (Number(a[key]) || 0)).slice(0, 10)
+      .map((j, i) => ({ ...j, rank: i + 1 }))
+    return { goleadores: top('goleadores_temp', 'goles'), porteros: top('porteros_temp', 'goles'), fantasy: top('fantasy_temp', 'pts_fantasy'), elo: top('elo_temp', 'elo') }
+  }, ['getGlobalTopTemporadaV2', codgrupos.join(','), codtemporada, jornada], codgrupos, codtemporada)
 }
 
 // GLOBAL: destacados de jornada agregando grupos (mvp / equipos en forma). Top 5 por valor.
 export async function getGlobalMvpV2(codgrupos: string[], codtemporada: number, jornada: number) {
   if (!codgrupos.length) return [] as any[]
-  const { data } = await supabase.from('web_top_jugadores').select(COLS_TOP_JUGADORES)
-    .in('codgrupo', codgrupos).eq('codtemporada', codtemporada).eq('tipo', 'mvp_jornada').eq('jornada', jornada)
-  return ((data || []) as any[]).sort((a, b) => (Number(b.pts_fantasy) || 0) - (Number(a.pts_fantasy) || 0)).slice(0, 5).map((j, i) => ({ ...j, rank: i + 1 }))
+  return cacheComp(async () => {
+    const { data } = await supabase.from('web_top_jugadores').select(COLS_TOP_JUGADORES)
+      .in('codgrupo', codgrupos).eq('codtemporada', codtemporada).eq('tipo', 'mvp_jornada').eq('jornada', jornada)
+    return ((data || []) as any[]).sort((a, b) => (Number(b.pts_fantasy) || 0) - (Number(a.pts_fantasy) || 0)).slice(0, 5).map((j, i) => ({ ...j, rank: i + 1 }))
+  }, ['getGlobalMvpV2', codgrupos.join(','), codtemporada, jornada], codgrupos, codtemporada)
 }
 export async function getGlobalEquiposFormaV2(codgrupos: string[], codtemporada: number, jornada: number) {
   if (!codgrupos.length) return [] as any[]
-  const { data } = await supabase.from('web_equipos_forma').select(COLS_EQUIPOS_FORMA)
-    .in('codgrupo', codgrupos).eq('codtemporada', codtemporada).eq('jornada', jornada)
-  return ((data || []) as any[]).sort((a, b) => (Number(b.pts_fantasy) || 0) - (Number(a.pts_fantasy) || 0)).slice(0, 5).map((e, i) => ({ ...e, rank: i + 1 }))
+  return cacheComp(async () => {
+    const { data } = await supabase.from('web_equipos_forma').select(COLS_EQUIPOS_FORMA)
+      .in('codgrupo', codgrupos).eq('codtemporada', codtemporada).eq('jornada', jornada)
+    return ((data || []) as any[]).sort((a, b) => (Number(b.pts_fantasy) || 0) - (Number(a.pts_fantasy) || 0)).slice(0, 5).map((e, i) => ({ ...e, rank: i + 1 }))
+  }, ['getGlobalEquiposFormaV2', codgrupos.join(','), codtemporada, jornada], codgrupos, codtemporada)
 }
 
 // --- Tarjetas de TEMPORADA (grupo o global): juego limpio (web_juego_limpio) + sancionados
 // (web_alertas_tarjetas, foto-final). Reciben lista de grupos -> valen para grupo (uno) y global (varios). ---
 export async function getJuegoLimpioV2(codgrupos: string[], codtemporada: number, jornada: number) {
   if (!codgrupos.length) return [] as any[]
-  // Rebobina por equipo: la fila de mayor jornada <= la pedida. Robusto ante grupos de distinta longitud
-  // (categorías con grupos de 22-30 partidos) y ante la foto-final por jornada.
-  const { data } = await supabase.from('web_juego_limpio')
-    .select('codequipo, nombre_equipo, escudo, amarillas, dobles, rojas, amarillas_tec, dobles_tec, rojas_tec, jornada')
-    .in('codgrupo', codgrupos).eq('codtemporada', codtemporada).lte('jornada', jornada)
-  const best = new Map<string, any>()
-  for (const r of (data || []) as any[]) {
-    const k = String(r.codequipo)
-    const cur = best.get(k)
-    if (!cur || (r.jornada || 0) > (cur.jornada || 0)) best.set(k, r)
-  }
-  return Array.from(best.values())
+  return cacheComp(async () => {
+    // Rebobina por equipo: la fila de mayor jornada <= la pedida. Robusto ante grupos de distinta longitud
+    // (categorías con grupos de 22-30 partidos) y ante la foto-final por jornada.
+    const { data } = await supabase.from('web_juego_limpio')
+      .select('codequipo, nombre_equipo, escudo, amarillas, dobles, rojas, amarillas_tec, dobles_tec, rojas_tec, jornada')
+      .in('codgrupo', codgrupos).eq('codtemporada', codtemporada).lte('jornada', jornada)
+    const best = new Map<string, any>()
+    for (const r of (data || []) as any[]) {
+      const k = String(r.codequipo)
+      const cur = best.get(k)
+      if (!cur || (r.jornada || 0) > (cur.jornada || 0)) best.set(k, r)
+    }
+    return Array.from(best.values())
+  }, ['getJuegoLimpioV2', codgrupos.join(','), codtemporada, jornada], codgrupos, codtemporada)
 }
 export async function getAlertasV2(codgrupos: string[], codtemporada: number) {
   if (!codgrupos.length) return [] as any[]
-  const { data } = await supabase.from('web_alertas_tarjetas')
-    .select('codjugador, nombre, posicion, codequipo, nombre_equipo, escudo, amarillas_ciclo, amarillas_simples, dobles_amarillas, rojas_directas, ciclos_completados, ciclo_umbral')
-    .in('codgrupo', codgrupos).eq('codtemporada', codtemporada)
-  return (data || []) as any[]
+  return cacheComp(async () => {
+    const { data } = await supabase.from('web_alertas_tarjetas')
+      .select('codjugador, nombre, posicion, codequipo, nombre_equipo, escudo, amarillas_ciclo, amarillas_simples, dobles_amarillas, rojas_directas, ciclos_completados, ciclo_umbral')
+      .in('codgrupo', codgrupos).eq('codtemporada', codtemporada)
+    return (data || []) as any[]
+  }, ['getAlertasV2', codgrupos.join(','), codtemporada], codgrupos, codtemporada)
 }
 
 // --- GLOBAL: XI óptimo de la competición (el pipeline lo calcula con normalización entre grupos y lo
 // guarda como tipo temporada_global / jornada_global). Solo se consume, no se recalcula. ---
 export async function getGlobalXiV2(codgrupos: string[], codtemporada: number, tipo: 'temporada_global' | 'jornada_global', jornada?: number) {
   if (!codgrupos.length) return [] as any[]
-  let q = supabase.from('web_xi_optimo').select(COLS_XI_OPTIMO)
-    .eq('codtemporada', codtemporada).in('codgrupo', codgrupos).eq('tipo', tipo)
-  if (jornada != null) q = q.eq('jornada', jornada)
-  const { data } = await q.order('pos_orden')
-  return (data || []) as any[]
+  return cacheComp(async () => {
+    let q = supabase.from('web_xi_optimo').select(COLS_XI_OPTIMO)
+      .eq('codtemporada', codtemporada).in('codgrupo', codgrupos).eq('tipo', tipo)
+    if (jornada != null) q = q.eq('jornada', jornada)
+    const { data } = await q.order('pos_orden')
+    return (data || []) as any[]
+  }, ['getGlobalXiV2', codgrupos.join(','), codtemporada, tipo, jornada ?? 'null'], codgrupos, codtemporada)
 }
 
 // GLOBAL: reparto V/E/D de toda la categoría (cuenta partidos, NO suma puntos). Porcentajes agregados.
 export async function getGlobalCifrasV2(codgrupos: string[], codtemporada: number) {
   if (!codgrupos.length) return { vLocalPct: 0, empPct: 0, vVisitPct: 0, disputados: 0 }
-  const { data } = await supabase.from('web_resultados').select('goles_local, goles_visitante')
-    .in('codgrupo', codgrupos).eq('codtemporada', codtemporada)
-  let vl = 0, em = 0, vv = 0
-  for (const m of (data || []) as any[]) {
-    if (m.goles_local == null || m.goles_visitante == null) continue
-    if (m.goles_local > m.goles_visitante) vl++
-    else if (m.goles_local < m.goles_visitante) vv++
-    else em++
-  }
-  const tot = vl + em + vv || 1
-  return { vLocalPct: Math.round((vl / tot) * 100), empPct: Math.round((em / tot) * 100), vVisitPct: Math.round((vv / tot) * 100), disputados: vl + em + vv }
+  return cacheComp(async () => {
+    const { data } = await supabase.from('web_resultados').select('goles_local, goles_visitante')
+      .in('codgrupo', codgrupos).eq('codtemporada', codtemporada)
+    let vl = 0, em = 0, vv = 0
+    for (const m of (data || []) as any[]) {
+      if (m.goles_local == null || m.goles_visitante == null) continue
+      if (m.goles_local > m.goles_visitante) vl++
+      else if (m.goles_local < m.goles_visitante) vv++
+      else em++
+    }
+    const tot = vl + em + vv || 1
+    return { vLocalPct: Math.round((vl / tot) * 100), empPct: Math.round((em / tot) * 100), vVisitPct: Math.round((vv / tot) * 100), disputados: vl + em + vv }
+  }, ['getGlobalCifrasV2', codgrupos.join(','), codtemporada], codgrupos, codtemporada)
 }
 
 // GLOBAL: perfil goleador de cada equipo de la categoría (gf/gc a foto-final), ordenado por goles marcados.
 // No es una tabla por puntos: cada fila es el equipo con su grupo; no se comparan posiciones entre grupos.
 export async function getGlobalTeamGoalsV2(codgrupos: string[], codtemporada: number, jornada: number) {
   if (!codgrupos.length) return [] as any[]
-  const { data } = await supabase.from('web_clasificacion')
-    .select('codgrupo, codequipo, nombre_equipo, escudo, gf, gc')
-    .in('codgrupo', codgrupos).eq('codtemporada', codtemporada).eq('jornada', jornada)
-  return ((data || []) as any[]).sort((a, b) => (b.gf || 0) - (a.gf || 0))
+  return cacheComp(async () => {
+    const { data } = await supabase.from('web_clasificacion')
+      .select('codgrupo, codequipo, nombre_equipo, escudo, gf, gc')
+      .in('codgrupo', codgrupos).eq('codtemporada', codtemporada).eq('jornada', jornada)
+    return ((data || []) as any[]).sort((a, b) => (b.gf || 0) - (a.gf || 0))
+  }, ['getGlobalTeamGoalsV2', codgrupos.join(','), codtemporada, jornada], codgrupos, codtemporada)
 }
 
 // GLOBAL: goles por tramo del partido en toda la categoría (suma de web_goles_tramos de todos los grupos).
 export async function getGlobalTramosV2(codgrupos: string[], codtemporada: number) {
   if (!codgrupos.length) return TRAMOS_ORDEN.map((t) => ({ tramo: t, gf: 0 }))
-  const { data } = await supabase.from('web_goles_tramos').select('tramo, gf')
-    .in('codgrupo', codgrupos).eq('codtemporada', codtemporada)
-  const m = new Map<string, number>()
-  for (const r of (data || []) as any[]) m.set(r.tramo, (m.get(r.tramo) || 0) + (r.gf || 0))
-  return TRAMOS_ORDEN.map((t) => ({ tramo: t, gf: m.get(t) || 0 }))
+  return cacheComp(async () => {
+    const { data } = await supabase.from('web_goles_tramos').select('tramo, gf')
+      .in('codgrupo', codgrupos).eq('codtemporada', codtemporada)
+    const m = new Map<string, number>()
+    for (const r of (data || []) as any[]) m.set(r.tramo, (m.get(r.tramo) || 0) + (r.gf || 0))
+    return TRAMOS_ORDEN.map((t) => ({ tramo: t, gf: m.get(t) || 0 }))
+  }, ['getGlobalTramosV2', codgrupos.join(','), codtemporada], codgrupos, codtemporada)
 }
 
 // --- GLOBAL: Panorama (líderes + cifras) de toda la categoría, para el mismo componente Panorama. ---
 // Líderes: top-1 de cada ranking individual agregado + "más tarjetas" (aprox, web_alertas).
 export async function getGlobalLideresV2(codgrupos: string[], codtemporada: number, jornada: number) {
-  const [top, al] = await Promise.all([
-    getGlobalTopTemporadaV2(codgrupos, codtemporada, jornada),
-    getAlertasV2(codgrupos, codtemporada),
-  ])
-  const tarjetas = (al as any[])
-    .map((r) => ({ ...r, amarillas: (r.amarillas_ciclo || 0) + (r.amarillas_simples || 0) }))
-    .sort((a, b) => b.amarillas - a.amarillas)[0] || null
-  return { goleador: top.goleadores[0] || null, portero: top.porteros[0] || null, elo: top.elo[0] || null, tarjetas }
+  if (!codgrupos.length) return { goleador: null, portero: null, elo: null, tarjetas: null }
+  return cacheComp(async () => {
+    const [top, al] = await Promise.all([
+      getGlobalTopTemporadaV2(codgrupos, codtemporada, jornada),
+      getAlertasV2(codgrupos, codtemporada),
+    ])
+    const tarjetas = (al as any[])
+      .map((r) => ({ ...r, amarillas: (r.amarillas_ciclo || 0) + (r.amarillas_simples || 0) }))
+      .sort((a, b) => b.amarillas - a.amarillas)[0] || null
+    return { goleador: top.goleadores[0] || null, portero: top.porteros[0] || null, elo: top.elo[0] || null, tarjetas }
+  }, ['getGlobalLideresV2', codgrupos.join(','), codtemporada, jornada], codgrupos, codtemporada)
 }
 
 // Cifras completas de la categoría (agrega los grupos; cuenta partidos, NO suma puntos).
 export async function getGlobalCifrasFullV2(grupos: any[], codtemporada: number, jornada: number): Promise<CifrasComp> {
   const codgrupos = grupos.map((g) => String(g.codgrupo))
   if (!codgrupos.length) return { disputados: 0, totalPartidos: 0, goles: 0, mediaGoles: null, vLocalPct: 0, empPct: 0, vVisitPct: 0, amarillas: 0, dobles: 0, rojas: 0, p0: 0 }
-  const [clasRes, resRes, jl] = await Promise.all([
-    supabase.from('web_clasificacion').select('codgrupo, pj, gf, p0').in('codgrupo', codgrupos).eq('codtemporada', codtemporada).eq('jornada', jornada),
-    supabase.from('web_resultados').select('goles_local, goles_visitante').in('codgrupo', codgrupos).eq('codtemporada', codtemporada),
-    getJuegoLimpioV2(codgrupos, codtemporada, jornada),
-  ])
-  const clas = (clasRes.data || []) as any[]
-  const disputados = Math.round(clas.reduce((s, r) => s + (r.pj || 0), 0) / 2)
-  const goles = clas.reduce((s, r) => s + (r.gf || 0), 0)
-  const p0 = clas.reduce((s, r) => s + (r.p0 || 0), 0)
-  const eqPorGrupo = new Map<string, number>()
-  for (const r of clas) eqPorGrupo.set(String(r.codgrupo), (eqPorGrupo.get(String(r.codgrupo)) || 0) + 1)
-  let totalPartidos = 0
-  for (const g of grupos) totalPartidos += Math.round(((g.total_jornadas || 0) * (eqPorGrupo.get(String(g.codgrupo)) || 0)) / 2)
-  if (!totalPartidos) totalPartidos = disputados
-  let vl = 0, em = 0, vv = 0
-  for (const m of (resRes.data || []) as any[]) {
-    if (m.goles_local == null || m.goles_visitante == null) continue
-    if (m.goles_local > m.goles_visitante) vl++
-    else if (m.goles_local < m.goles_visitante) vv++
-    else em++
-  }
-  const tot = vl + em + vv || 1
-  return {
-    disputados, totalPartidos, goles, mediaGoles: disputados ? goles / disputados : null,
-    vLocalPct: Math.round((vl / tot) * 100), empPct: Math.round((em / tot) * 100), vVisitPct: Math.round((vv / tot) * 100),
-    amarillas: jl.reduce((s, r) => s + (r.amarillas || 0), 0),
-    dobles: jl.reduce((s, r) => s + (r.dobles || 0), 0),
-    rojas: jl.reduce((s, r) => s + (r.rojas || 0), 0),
-    p0,
-  }
+  return cacheComp(async () => {
+    const [clasRes, resRes, jl] = await Promise.all([
+      supabase.from('web_clasificacion').select('codgrupo, pj, gf, p0').in('codgrupo', codgrupos).eq('codtemporada', codtemporada).eq('jornada', jornada),
+      supabase.from('web_resultados').select('goles_local, goles_visitante').in('codgrupo', codgrupos).eq('codtemporada', codtemporada),
+      getJuegoLimpioV2(codgrupos, codtemporada, jornada),
+    ])
+    const clas = (clasRes.data || []) as any[]
+    const disputados = Math.round(clas.reduce((s, r) => s + (r.pj || 0), 0) / 2)
+    const goles = clas.reduce((s, r) => s + (r.gf || 0), 0)
+    const p0 = clas.reduce((s, r) => s + (r.p0 || 0), 0)
+    const eqPorGrupo = new Map<string, number>()
+    for (const r of clas) eqPorGrupo.set(String(r.codgrupo), (eqPorGrupo.get(String(r.codgrupo)) || 0) + 1)
+    let totalPartidos = 0
+    for (const g of grupos) totalPartidos += Math.round(((g.total_jornadas || 0) * (eqPorGrupo.get(String(g.codgrupo)) || 0)) / 2)
+    if (!totalPartidos) totalPartidos = disputados
+    let vl = 0, em = 0, vv = 0
+    for (const m of (resRes.data || []) as any[]) {
+      if (m.goles_local == null || m.goles_visitante == null) continue
+      if (m.goles_local > m.goles_visitante) vl++
+      else if (m.goles_local < m.goles_visitante) vv++
+      else em++
+    }
+    const tot = vl + em + vv || 1
+    return {
+      disputados, totalPartidos, goles, mediaGoles: disputados ? goles / disputados : null,
+      vLocalPct: Math.round((vl / tot) * 100), empPct: Math.round((em / tot) * 100), vVisitPct: Math.round((vv / tot) * 100),
+      amarillas: jl.reduce((s, r) => s + (r.amarillas || 0), 0),
+      dobles: jl.reduce((s, r) => s + (r.dobles || 0), 0),
+      rojas: jl.reduce((s, r) => s + (r.rojas || 0), 0),
+      p0,
+    }
+  }, ['getGlobalCifrasFullV2', codgrupos.join(','), codtemporada, jornada], codgrupos, codtemporada)
 }
