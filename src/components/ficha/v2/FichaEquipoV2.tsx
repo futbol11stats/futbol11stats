@@ -20,7 +20,7 @@ import { TarjetaAmarilla, TarjetaDoble, TarjetaRoja, FlechaEntra, FlechaSale, Pr
 import { graphLd, breadcrumbLd, sportsTeamLd } from '@/lib/jsonld'
 import { SITE_URL } from '@/lib/seo'
 import { escudoUrl, formatNombre } from '@/lib/supabase'
-import { jugadorHref, fechaCorta } from '@/lib/jugador'
+import { jugadorHref, fechaCorta, fichasExistentes } from '@/lib/jugador'
 import {
   equipoSlug, tempLabel, LIVE_COD, getGrupoInfo, grupoHref, getEquipoActualInfo,
   fechaCortaDMY, fechaCortaYMD, BADGE, HITO_EQUIPO,
@@ -105,6 +105,9 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
     { k: 'POR', nm: 'Porteros', c: '#f0b429' }, { k: 'DEF', nm: 'Defensas', c: '#9ac4f1' },
     { k: 'MED', nm: 'Centrocampistas', c: '#8cefa5' }, { k: 'DEL', nm: 'Delanteros', c: '#f2a3c0' },
   ] as const
+  // En juveniles casi toda la plantilla son menores, excluidos de web_jugador(_carrera) por protección de
+  // datos, así que la lista sale legítimamente vacía o casi. Estado degradado que lo explica (no un hueco mudo).
+  const esJuvenil = e.rama === 'juvenil'
   const topPlantilla = [...plantilla].filter((p) => p.pts != null).sort((a, b) => (b.pts ?? 0) - (a.pts ?? 0)).slice(0, 5)
   const porLinea = LINEAS.map((L) => ({ ...L, jug: plantilla.filter((p) => p.linea === L.k).sort((a, b) => b.minutos - a.minutos) })).filter((L) => L.jug.length)
 
@@ -169,6 +172,9 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
   const nPromo = Math.min(promosMov.length, 3)
   const movsShown = [...fichajesMov.slice(0, 8 - nPromo), ...promosMov.slice(0, nPromo)]
     .sort((a: any, b: any) => String(b.fecha || '').localeCompare(String(a.fecha || '')))
+  // Enlazar solo a quien TIENE ficha: un movimiento puede referir a un menor (excluido de web_jugador),
+  // que tiene codjugador pero no página -> el enlace daría 404. Se enlaza si existe ficha; si no, texto plano.
+  const movsFichas = movsShown.length ? await fichasExistentes(movsShown.map((m: any) => m.codjugador)) : new Set<string>()
 
   // KPIs (temporada seleccionada). Posición/Pts/Media F./ELO salen de la serie de clasificación.
   // GF/GC (y por tanto DG) salen del MISMO origen que el desglose casa/fuera: los resultados. El
@@ -231,7 +237,7 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
     forma.racha.length ? { id: 's-forma', label: 'Forma' } : null,
     ana.pj ? { id: 's-analisis', label: 'Análisis' } : null,
     temporadas.length ? { id: 's-temporadas', label: 'Temporadas' } : null,
-    plantilla.length ? { id: 's-plantilla', label: 'Plantilla' } : null,
+    (plantilla.length || esJuvenil) ? { id: 's-plantilla', label: 'Plantilla' } : null,
     movs.length ? { id: 's-movs', label: 'Movimientos' } : null,
     hitos.length ? { id: 's-hitos', label: 'Hitos' } : null,
   ].filter(Boolean)) as { id: string; label: string; aside?: boolean }[]
@@ -561,6 +567,17 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
                 <span className="lg-item"><span style={{ color: 'var(--card-y)', display: 'inline-flex' }}><TarjetaDoble size={11} /></span>Dobles</span>
                 <span className="lg-item"><span style={{ color: 'var(--card-r)', display: 'inline-flex' }}><TarjetaRoja size={10} /></span>Rojas</span>
               </div>
+              {esJuvenil && <div className="leyenda" style={{ paddingTop: 10 }}>En categorías juveniles no se listan los jugadores individualmente por <b>protección de datos de menores</b>; solo aparecen quienes ya no son menores de edad.</div>}
+            </section>
+          )}
+
+          {/* Plantilla vacía: estado degradado que explica el porqué, no un hueco mudo. */}
+          {plantilla.length === 0 && (
+            <section id="s-plantilla">
+              <div className="s-head"><div className="s-title">Plantilla</div><div className="s-sub">{echoTxt}</div></div>
+              <p className="vacio">{esJuvenil
+                ? 'En categorías juveniles no se listan los jugadores individualmente por protección de datos de menores.'
+                : 'Sin datos de plantilla para esta temporada.'}</p>
             </section>
           )}
 
@@ -583,7 +600,7 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
                     <div className="mv" key={i}>
                       <div className={`mv-ic ${cls}`}>{ic}</div>
                       <div className="mv-m">
-                        <div className="mv-n">{m.codjugador ? <Link href={jugadorHref(m.codjugador, m.nombre)}>{nm}</Link> : nm}</div>
+                        <div className="mv-n">{m.codjugador && movsFichas.has(String(m.codjugador)) ? <Link href={jugadorHref(m.codjugador, m.nombre)}>{nm}</Link> : nm}</div>
                         <div className="mv-sub">{sub}</div>
                       </div>
                     </div>

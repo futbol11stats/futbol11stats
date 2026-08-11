@@ -592,6 +592,8 @@
 /* Nombre de equipo al inicio de la línea de datos (el escudo va como avatar). El avatar-escudo (.pl-esc)
    sustituye al de iniciales en competición, mismo tamaño y hueco que .pl-av. */
 .fjv2 .pl-eq{display:inline-block;max-width:170px;color:var(--ink-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;vertical-align:middle}
+/* En desktop hay sitio de sobra: sin recorte del nombre de equipo (la línea .pl-me hace wrap si no cabe). */
+@media(min-width:1000px){ .fjv2 .pl-eq{max-width:none} }
 .fjv2 .pl-esc{display:inline-flex;flex:none}
 
 /* XI Óptimo: campo a la izquierda + listado (FilaJugador) a la derecha en desktop; apilado en móvil. */
