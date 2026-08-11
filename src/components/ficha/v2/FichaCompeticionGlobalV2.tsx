@@ -16,6 +16,7 @@ import { FilaEspejo, EspejoHead } from '@/components/ficha/v2/barrasGoles'
 import TarjetasTemporadaV2 from '@/components/ficha/v2/TarjetasTemporadaV2'
 import Panorama from '@/components/ficha/v2/Panorama'
 import ScrollRail from '@/components/ficha/v2/ScrollRail'
+import ReportesScroll from '@/components/ficha/v2/ReportesScroll'
 import {
   datosGoleadorTemp, datosPorteroTemp, datosFantasyTemp, datosEloTemp, datosXiTemp,
   leyGoleadorTemp, leyPorteroTemp, leyFantasyTemp, leyEloTemp, leyXiTemp,
@@ -104,7 +105,7 @@ export default async function FichaCompeticionGlobalV2({ categoria, slugComp, te
       sub: `${esTemp ? `acumulado hasta J${jornadaNum}` : `jornada ${jornadaNum}`} · ${subCat}`,
       players: xi.map((j) => ({ posicion: j.posicion, nombre: j.nombre, valor: valOf(j) })),
       items: xi.map((j) => ({
-        rank: j.posicion, rankColor: POSC[j.posicion], codjugador: j.codjugador, nombre: j.nombre, pos: j.posicion,
+        codjugador: j.codjugador, nombre: j.nombre, pos: j.posicion,
         escudo: j.escudo, nombreEquipo: j.nombre_equipo, valor: valOf(j), valorColor: POSC[j.posicion] ?? 'var(--e3)',
         extra: esTemp
           ? datosXiTemp(j)
@@ -182,7 +183,8 @@ export default async function FichaCompeticionGlobalV2({ categoria, slugComp, te
         subLideres={`${temporada} · toda la categoría`} subCifras={`tras la jornada ${jornadaNum}`} />
 
       {/* PESTAÑAS sticky */}
-      <div className="tabs">
+      <ReportesScroll tab={tabEf} land={tabEf !== G_TABS_J[0][0]} />
+      <div className="tabs" id="reportes-anchor">
         <div className="modo">
           <div className="sel-lbl">Reportes de</div>
           <Link href={`${base}/global/${temporada}/jornada-${jornadaNum}/${G_TABS_J[0][0]}/v2`} className={modo === 'jornada' ? 'on' : ''}>Jornada</Link>

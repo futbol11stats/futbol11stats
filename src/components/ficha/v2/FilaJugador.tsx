@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import EscudoBox from '@/components/ficha/v2/EscudoBox'
 import NombreJugador from '@/components/NombreJugador'
 import Pastilla from '@/components/Pastilla'
+import { escudoUrl } from '@/lib/supabase'
 import { inicialesJugador, avaStyle } from '@/components/ficha/v2/jugadorFila'
 
 export type FilaJugadorProps = {
@@ -19,21 +20,22 @@ export type FilaJugadorProps = {
 }
 
 // Fila de jugador COMPARTIDA — la misma de "Top de la plantilla" de la ficha de equipo (mismas clases .pl,
-// mismo avatar coloreado por demarcación, mismo chip de puntos). Lo único que se añade en competición es el
-// escudo y el nombre del equipo al principio de la línea de datos. La estructura no cambia entre pestañas;
-// solo el contenido de `datos`.
+// mismo tamaño, mismo chip de puntos). Único cambio en competición: el avatar de iniciales se sustituye por
+// el ESCUDO del equipo (mismo tamaño y posición, con alt/title del club), porque los jugadores vienen de
+// muchos clubes. El nombre del equipo se mantiene en la línea de datos (identificador real en aficionado);
+// el escudo pequeño de esa línea se elimina por redundante. La estructura no cambia entre pestañas.
 export default function FilaJugador({ rank, rankColor, codjugador, nombre, pos, escudo, nombreEquipo, datos, valor, valorColor, fichas }: FilaJugadorProps) {
   return (
     <div className="pl">
       {rank != null && <div className="pl-rk" style={rankColor ? { color: rankColor } : undefined}>{rank}</div>}
-      <div className="pl-av" style={avaStyle(pos)}>{inicialesJugador(nombre)}</div>
+      {escudoUrl(escudo ?? null)
+        ? <span className="pl-esc" title={nombreEquipo ?? undefined}><EscudoBox escudo={escudo ?? null} nombre={nombreEquipo ?? undefined} size={34} radius={8} /></span>
+        : <div className="pl-av" style={avaStyle(pos)}>{inicialesJugador(nombre)}</div>}
       <div className="pl-mid">
         <div className="pl-nm">{codjugador != null ? <NombreJugador codjugador={codjugador} nombre={nombre} fichas={fichas} /> : nombre}</div>
         <div className="pl-me">
           {pos && <Pastilla pos={pos} size="mini" />}
-          {(escudo || nombreEquipo) && (
-            <span className="pl-eq"><EscudoBox escudo={escudo ?? null} nombre={nombreEquipo ?? undefined} size={16} radius={4} /><span>{nombreEquipo}</span></span>
-          )}
+          {nombreEquipo && <span className="pl-eq">{nombreEquipo}</span>}
           {datos && <span className="pl-stats">{datos}</span>}
         </div>
       </div>

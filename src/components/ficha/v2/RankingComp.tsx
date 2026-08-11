@@ -4,7 +4,7 @@ import NombreEquipo from '@/components/NombreEquipo'
 import FilaJugador from '@/components/ficha/v2/FilaJugador'
 
 export type RankItem = {
-  rank: number | string
+  rank?: number | string
   rankColor?: string                // color del número/etiqueta de rango (p. ej. la posición en el XI)
   codjugador?: string | null        // presente -> fila de JUGADOR (avatar de iniciales + escudo en la línea extra)
   nombre: string

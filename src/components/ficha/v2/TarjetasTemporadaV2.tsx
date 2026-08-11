@@ -74,7 +74,7 @@ export default function TarjetasTemporadaV2({ equipos = [], jugadores = [], fich
         </section>
       )}
       <section>
-        <div className="s-head"><div className="s-title">Sancionados y en ciclo</div><div className="s-sub">a fecha actual · {ambito}</div></div>
+        <div className="s-head"><div className="s-title">Jugadores expulsados/ciclos de amarillas</div><div className="s-sub">a fecha actual · {ambito}</div></div>
         {sancItems.length > 0
           ? <><RankingComp items={sancItems} fichas={fichas} /><div className="leyenda">{leySancionados(umbral)} Jugadores con al menos un ciclo de {umbral} amarillas, una doble o una roja directa. No contempla sanciones adicionales del Comité.</div></>
           : <p className="vacio">Ningún jugador sancionado.</p>}

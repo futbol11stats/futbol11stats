@@ -20,6 +20,7 @@ import { campoXI, POSC } from '@/components/ficha/v2/campoXI'
 import TarjetasTemporadaV2 from '@/components/ficha/v2/TarjetasTemporadaV2'
 import Panorama from '@/components/ficha/v2/Panorama'
 import ScrollRail from '@/components/ficha/v2/ScrollRail'
+import ReportesScroll from '@/components/ficha/v2/ReportesScroll'
 import {
   datosGoleadorTemp, datosPorteroTemp, datosFantasyTemp, datosEloTemp, datosXiTemp,
   leyGoleadorTemp, leyPorteroTemp, leyFantasyTemp, leyEloTemp, leyXiTemp, leyJornada,
@@ -289,7 +290,7 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
           ? datosXiTemp(j)
           : (p ? filaJornada(p) : <span className="cfj-none">Sin datos del partido</span>)
         return {
-          rank: j.posicion, rankColor: POSC[j.posicion], codjugador: j.codjugador, nombre: j.nombre, pos: j.posicion,
+          codjugador: j.codjugador, nombre: j.nombre, pos: j.posicion,
           escudo: j.escudo, nombreEquipo: j.nombre_equipo, valor: valOf(j), valorColor: POSC[j.posicion] ?? 'var(--e3)', extra,
         }
       }),
@@ -346,7 +347,8 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
       )}
 
       {/* PESTAÑAS sticky: Reportes de (pastilla) · Jornada (pastilla) · Ver (subrayado) */}
-      <div className="tabs">
+      <ReportesScroll tab={tabEf} land={tabEf !== tabsJ[0][0]} />
+      <div className="tabs" id="reportes-anchor">
         <div className="modo">
           <div className="sel-lbl">Reportes de</div>
           <Link href={`${baseTab}/${tabsJ[0][0]}/v2`} className={modo === 'jornada' ? 'on' : ''}>Jornada</Link>
@@ -384,13 +386,18 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
                   <div className="ctabla"><ScrollRail className="ctw" wrapClassName="srail-tabla">
                     <div className="ctr head">
                       <div className="cfix"><span className="czona" /><span className="cpos">#</span><span style={{ width: 24, flex: 'none' }} /><span className="ceq">Equipo</span></div>
-                      {['PJ', 'G', 'E', 'P', 'GF', 'GC', 'DG', 'ELO', 'PF', 'P0'].map((c) => <span key={c} className={`cc${c === 'DG' ? ' dg' : ''}`}>{c}</span>)}
+                      {['PJ', 'PG', 'PE', 'PP', 'GF', 'GC', 'DG'].map((c) => <span key={c} className={`cc${c === 'DG' ? ' dg' : ''}`}>{c}</span>)}
                       <span className="cc pts">Pts</span>
+                      <span className="cc">Mov</span>
+                      <span className="cc">ELO</span>
+                      <span className="cc">PF</span>
                       <span className="cracha">Forma</span>
                       <span className="ccom">Racha</span>
+                      <span className="cc">PO</span>
                     </div>
                     {clasif.map((r) => {
                       const z = zonaEf(r.zona)
+                      const movCol = r.mov?.startsWith('↑') ? 'var(--e3)' : r.mov?.startsWith('↓') ? 'var(--e0)' : 'var(--ink-3)'
                       return (
                         <div key={r.codequipo} className="ctr" style={ZONA_BG[z]}>
                           <div className="cfix">
@@ -402,12 +409,13 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
                           <span className="cc">{r.pj}</span><span className="cc">{r.pg}</span><span className="cc">{r.pe}</span><span className="cc">{r.pp}</span>
                           <span className="cc">{r.gf}</span><span className="cc">{r.gc}</span>
                           <span className="cc dg">{r.dg > 0 ? `+${r.dg}` : r.dg}</span>
-                          <span className="cc">{r.elo != null ? Math.round(r.elo) : '—'}</span>
-                          <span className="cc">{r.pts_fantasy != null ? Math.round(r.pts_fantasy) : ''}</span>
-                          <span className="cc">{r.p0 ?? ''}</span>
                           <span className="cc pts">{r.pts}</span>
+                          <span className="cc" style={{ color: movCol }}>{r.mov || '—'}</span>
+                          <span className="cc">{r.elo != null ? Math.round(r.elo) : '—'}</span>
+                          <span className="cc">{r.pts_fantasy != null ? Math.round(r.pts_fantasy) : '—'}</span>
                           <span className="cracha">{Array.from(r.forma || '').slice(-5).map((x, i) => <i key={i} style={{ background: FORMA_COL[x] || 'var(--line)' }} />)}</span>
                           <span className="ccom">{r.racha || ''}</span>
+                          <span className="cc">{r.p0 ?? '—'}</span>
                         </div>
                       )
                     })}
@@ -417,7 +425,7 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
                       {leyendaZ.map((z) => <span key={z.tipo}><i style={ZONA_BG[z.tipo]} />{z.label}</span>)}
                     </div>
                   )}
-                  <div className="leyenda" style={{ paddingTop: 10 }}><b>Forma</b> últimos 5: <b style={{ color: 'var(--e3)' }}>ganó</b> · <b style={{ color: 'var(--ink-3)' }}>empató</b> · <b style={{ color: 'var(--e0)' }}>perdió</b> · <b>Racha</b> racha actual del equipo.</div>
+                  <div className="leyenda" style={{ paddingTop: 10 }}><b>Mov</b> cambio de posición vs. jornada anterior · <b>PF</b> puntos fantasy · <b>PO</b> porterías a cero · <b>Forma</b> últimos 5: <b style={{ color: 'var(--e3)' }}>ganó</b> · <b style={{ color: 'var(--ink-3)' }}>empató</b> · <b style={{ color: 'var(--e0)' }}>perdió</b> · <b>Racha</b> racha actual del equipo.</div>
                 </>
               ) : <p className="vacio">Sin clasificación en esta jornada.</p>}
             </section>
@@ -445,7 +453,12 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
                         <EscudoBox escudo={r.escudo_local} nombre={r.nombre_local} size={26} radius={5} />
                         <span className={`rnm${jugado && (r.goles_local as number) > (r.goles_visitante as number) ? ' w' : ''}`}><NombreEquipo codequipo={equiposMap.get(r.nombre_local) ?? null} nombre={r.nombre_local} /></span>
                       </div>
-                      <div className="rsc">{jugado ? `${r.goles_local}-${r.goles_visitante}` : 'vs'}</div>
+                      <div className="rsc">{jugado ? (() => {
+                        const gL = r.goles_local as number, gV = r.goles_visitante as number
+                        const cL = gL > gV ? 'var(--e3)' : gL < gV ? 'var(--e0)' : 'var(--ink-2)'
+                        const cV = gV > gL ? 'var(--e3)' : gV < gL ? 'var(--e0)' : 'var(--ink-2)'
+                        return <><span style={{ color: cL }}>{gL}</span><span className="rsc-sep">-</span><span style={{ color: cV }}>{gV}</span></>
+                      })() : 'vs'}</div>
                       <div className="rside v">
                         <EscudoBox escudo={r.escudo_visitante} nombre={r.nombre_visitante} size={26} radius={5} />
                         <span className={`rnm${jugado && (r.goles_visitante as number) > (r.goles_local as number) ? ' w' : ''}`}><NombreEquipo codequipo={equiposMap.get(r.nombre_visitante) ?? null} nombre={r.nombre_visitante} /></span>
