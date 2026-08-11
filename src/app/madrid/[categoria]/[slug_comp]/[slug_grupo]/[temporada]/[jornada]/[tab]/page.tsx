@@ -2,6 +2,7 @@ export const revalidate = 2592000  // ISR 30d (Fluid CPU free tier): contenido c
 
 import type { Metadata } from 'next'
 import { supabase } from '@/lib/supabase'
+import { cacheComp } from '@/lib/cacheComp'
 import { SITE_URL, ensureMadrid, tabLabel, noindexJuvenil } from '@/lib/seo'
 import {
   COLS_CLASIFICACION, COLS_RESULTADOS, COLS_TOP_JUGADORES, COLS_ALERTAS,
@@ -118,49 +119,57 @@ async function getGruposCompeticion(nombreComp: string, codtemporada: number) {
 
 // Destacados por jornada (web_top_jugadores: mvp_jornada, goleadores_jornada, ...)
 async function getDestacadosJornada(codgrupo: string, codtemporada: number, jornada: number, tipo: string) {
-  const { data } = await supabase
-    .from('web_top_jugadores')
-    .select(COLS_TOP_JUGADORES)
-    .eq('codgrupo', codgrupo)
-    .eq('codtemporada', codtemporada)
-    .eq('jornada', jornada)
-    .eq('tipo', tipo)
-    .order('rank')
-  return data || []
+  return cacheComp(async () => {
+    const { data } = await supabase
+      .from('web_top_jugadores')
+      .select(COLS_TOP_JUGADORES)
+      .eq('codgrupo', codgrupo)
+      .eq('codtemporada', codtemporada)
+      .eq('jornada', jornada)
+      .eq('tipo', tipo)
+      .order('rank')
+    return data || []
+  }, ['getDestacadosJornada', codgrupo, codtemporada, jornada, tipo], [codgrupo], codtemporada)
 }
 
 // Equipos en forma por jornada (web_equipos_forma)
 async function getEquiposForma(codgrupo: string, codtemporada: number, jornada: number) {
-  const { data } = await supabase
-    .from('web_equipos_forma')
-    .select(COLS_EQUIPOS_FORMA)
-    .eq('codgrupo', codgrupo)
-    .eq('codtemporada', codtemporada)
-    .eq('jornada', jornada)
-    .order('rank')
-  return data || []
+  return cacheComp(async () => {
+    const { data } = await supabase
+      .from('web_equipos_forma')
+      .select(COLS_EQUIPOS_FORMA)
+      .eq('codgrupo', codgrupo)
+      .eq('codtemporada', codtemporada)
+      .eq('jornada', jornada)
+      .order('rank')
+    return data || []
+  }, ['getEquiposForma', codgrupo, codtemporada, jornada], [codgrupo], codtemporada)
 }
 
 async function getClasificacion(codgrupo: string, codtemporada: number, jornada: number) {
-  const { data } = await supabase
-    .from('web_clasificacion')
-    .select(COLS_CLASIFICACION)
-    .eq('codgrupo', codgrupo)
-    .eq('codtemporada', codtemporada)
-    .eq('jornada', jornada)
-    .order('pos')
-  return data || []
+  return cacheComp(async () => {
+    const { data } = await supabase
+      .from('web_clasificacion')
+      .select(COLS_CLASIFICACION)
+      .eq('codgrupo', codgrupo)
+      .eq('codtemporada', codtemporada)
+      .eq('jornada', jornada)
+      .order('pos')
+    return data || []
+  }, ['getClasificacion', codgrupo, codtemporada, jornada], [codgrupo], codtemporada)
 }
 
 async function getResultados(codgrupo: string, codtemporada: number, jornada: number) {
-  const { data } = await supabase
-    .from('web_resultados')
-    .select(COLS_RESULTADOS)
-    .eq('codgrupo', codgrupo)
-    .eq('codtemporada', codtemporada)
-    .eq('jornada', jornada)
-    .order('fecha')
-  return data || []
+  return cacheComp(async () => {
+    const { data } = await supabase
+      .from('web_resultados')
+      .select(COLS_RESULTADOS)
+      .eq('codgrupo', codgrupo)
+      .eq('codtemporada', codtemporada)
+      .eq('jornada', jornada)
+      .order('fecha')
+    return data || []
+  }, ['getResultados', codgrupo, codtemporada, jornada], [codgrupo], codtemporada)
 }
 
 // nombre_equipo -> codequipo del grupo (para enlazar equipos en Resultados, que no trae codequipo).
@@ -204,50 +213,58 @@ async function getTopJugadores(codgrupo: string, codtemporada: number, jornada: 
   // jornada (es el ELO vigente, foto-final; coherente con el fix de ELO del pipeline y con la vista
   // global): se pide siempre jornada IS NULL, así la tab ELO no rebobina y nunca sale vacía en las
   // jornadas con snapshot (donde fetchSnapshot no caería al foto-final).
-  const [snap, elo] = await Promise.all([
-    fetchSnapshot((q) => q
-      .from('web_top_jugadores').select(COLS_TOP_JUGADORES)
-      .eq('codgrupo', codgrupo).eq('codtemporada', codtemporada)
-      .in('tipo', ['goleadores_temp', 'fantasy_temp', 'porteros_temp'])
-      .order('rank'), jornada),
-    supabase.from('web_top_jugadores').select(COLS_TOP_JUGADORES)
-      .eq('codgrupo', codgrupo).eq('codtemporada', codtemporada)
-      .eq('tipo', 'elo_temp').is('jornada', null).order('rank'),
-  ])
-  return [...snap, ...(elo.data || [])]
+  return cacheComp(async () => {
+    const [snap, elo] = await Promise.all([
+      fetchSnapshot((q) => q
+        .from('web_top_jugadores').select(COLS_TOP_JUGADORES)
+        .eq('codgrupo', codgrupo).eq('codtemporada', codtemporada)
+        .in('tipo', ['goleadores_temp', 'fantasy_temp', 'porteros_temp'])
+        .order('rank'), jornada),
+      supabase.from('web_top_jugadores').select(COLS_TOP_JUGADORES)
+        .eq('codgrupo', codgrupo).eq('codtemporada', codtemporada)
+        .eq('tipo', 'elo_temp').is('jornada', null).order('rank'),
+    ])
+    return [...snap, ...(elo.data || [])]
+  }, ['getTopJugadores', codgrupo, codtemporada, jornada], [codgrupo], codtemporada)
 }
 
 // Sancionados (alertas): FOTO-FINAL siempre — fuera del time-machine (se acumula demasiado).
 // No filtra por jornada; lee el estado a fecha actual (foto-final, jornada=MAX por grupo).
 async function getAlertasTarjetas(codgrupo: string, codtemporada: number) {
-  const { data } = await supabase
-    .from('web_alertas_tarjetas').select(COLS_ALERTAS)
-    .eq('codgrupo', codgrupo).eq('codtemporada', codtemporada)
-  return data || []
+  return cacheComp(async () => {
+    const { data } = await supabase
+      .from('web_alertas_tarjetas').select(COLS_ALERTAS)
+      .eq('codgrupo', codgrupo).eq('codtemporada', codtemporada)
+    return data || []
+  }, ['getAlertasTarjetas', codgrupo, codtemporada], [codgrupo], codtemporada)
 }
 
 async function getJuegoLimpio(codgrupo: string, codtemporada: number, jornada: number) {
-  return fetchSnapshot((q) => q
+  return cacheComp(async () => fetchSnapshot((q) => q
     .from('web_juego_limpio').select(COLS_JUEGO_LIMPIO)
-    .eq('codgrupo', codgrupo).eq('codtemporada', codtemporada), jornada)
+    .eq('codgrupo', codgrupo).eq('codtemporada', codtemporada), jornada),
+  ['getJuegoLimpio', codgrupo, codtemporada, jornada], [codgrupo], codtemporada)
 }
 
 async function getXiOptimoTemporada(codgrupo: string, codtemporada: number, jornada: number) {
-  return fetchSnapshot((q) => q
+  return cacheComp(async () => fetchSnapshot((q) => q
     .from('web_xi_optimo').select(COLS_XI_OPTIMO).eq('tipo', 'temporada')
     .eq('codgrupo', codgrupo).eq('codtemporada', codtemporada)
-    .order('pos_orden'), jornada)
+    .order('pos_orden'), jornada),
+  ['getXiOptimoTemporada', codgrupo, codtemporada, jornada], [codgrupo], codtemporada)
 }
 
 async function getSuspendidosJornada(codgrupo: string, codtemporada: number, jornada: number) {
-  const { data } = await supabase
-    .from('web_suspendidos')
-    .select(COLS_SUSPENDIDOS)
-    .eq('codgrupo', codgrupo)
-    .eq('codtemporada', codtemporada)
-    .eq('jornada', jornada)
-    .order('nombre_equipo')
-  return data || []
+  return cacheComp(async () => {
+    const { data } = await supabase
+      .from('web_suspendidos')
+      .select(COLS_SUSPENDIDOS)
+      .eq('codgrupo', codgrupo)
+      .eq('codtemporada', codtemporada)
+      .eq('jornada', jornada)
+      .order('nombre_equipo')
+    return data || []
+  }, ['getSuspendidosJornada', codgrupo, codtemporada, jornada], [codgrupo], codtemporada)
 }
 
 export async function generateMetadata({
@@ -391,10 +408,12 @@ export default async function GrupoPage({
     equiposForma = await getEquiposForma(cg, codtemporada, jornadaNum)
   } else if (tab2 === 'once-optimo-jornada') {
     if (isCopa) {
-      const { data } = await supabase.from('web_xi_optimo').select(COLS_XI_OPTIMO)
-        .eq('codgrupo', cg).eq('codtemporada', codtemporada)
-        .eq('tipo', 'jornada').eq('jornada', jornadaNum).order('pos_orden')
-      xiRondaCopa = data || []
+      xiRondaCopa = await cacheComp(async () => {
+        const { data } = await supabase.from('web_xi_optimo').select(COLS_XI_OPTIMO)
+          .eq('codgrupo', cg).eq('codtemporada', codtemporada)
+          .eq('tipo', 'jornada').eq('jornada', jornadaNum).order('pos_orden')
+        return data || []
+      }, ['xiRondaCopa-copa', cg, codtemporada, jornadaNum], [cg], codtemporada)
     } else {
       xiJ = await getDestacadosJornada(cg, codtemporada, jornadaNum, 'xi_jornada')
     }
