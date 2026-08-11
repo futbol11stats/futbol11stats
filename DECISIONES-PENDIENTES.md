@@ -264,14 +264,23 @@ dibujaba un placeholder de algo que YA existe como componente del sitio, se usa 
     Challenge Mode → 429 con HTML y nunca llega al endpoint.)
   - `REVALIDATE_SECRET` **ya creada en Production**. (Ojo: los env vars solo los coge un deploy nuevo.)
   - **Reactivar *Vercel Authentication* en previews** (se desactivó temporalmente para la prueba) — PENDIENTE.
-- **CÓDIGO — estado por fases:**
-  - Fase 1a (competición /v2) y Fase 1b (competición actual no-v2): **HECHAS** — las no-v2 eran las que ven
-    los usuarios y donde escoció lo de las copas.
-  - Fase 2 (equipo + índices): **EN CURSO**.
-  - Fase 3 (jugador, 38k fichas): pendiente; decidir ANTES si conviene una etiqueta más gruesa para no lanzar
-    ~10k `jugador:<cod>` por noche.
-  - **Llamador desde el pipeline** (`C:\rffm-pipeline`) que POSTee las tags de las entidades tocadas al
-    terminar cada tanda: pendiente.
+- **CÓDIGO — estado por fases (LADO WEB COMPLETO):**
+  - Fase 1a (competición /v2) + 1b (competición no-v2): **HECHAS**.
+  - Fase 2 (equipo + índices): **HECHA**.
+  - Fase 3 (jugador): **HECHA** con **etiqueta fina `jugador:<cod>`** (opción A, decidida). NO se cuelga de
+    `comp:<codgrupo>`: la ficha es de carrera y un fichaje dejaría la etiqueta con el grupo antiguo → rancia.
+    El coste (~10k tags/noche) es del pipeline, que ya conoce los jugadores tocados por las actas; con el
+    límite de 1000/lote son ~10-20 peticiones. Los cortes de percentil/ELO (por categoría+temporada, no
+    jugador) cuelgan de `temporada:<cod>`.
+  - Tags en uso: `comp:<codgrupo>` · `temporada:<cod>` · `equipo:<codequipo>` · `jugador:<codjugador>` ·
+    `indices`. Helpers en `src/lib/cacheComp.ts` (cacheComp/cacheEquipo/cacheJugador/cacheIndices/cacheTagged).
+    Cautela recurrente: las funciones que DEVUELVEN `Map`/`Set` NO se envuelven (unstable_cache las
+    serializa a `{}`).
+  - **ÚNICO PENDIENTE: el llamador desde el pipeline** (`C:\rffm-pipeline`) que POSTee a
+    `POST https://www.futbol11stats.com/api/revalidate` (cabecera `x-revalidate-secret`) las tags de las
+    entidades tocadas al terminar cada tanda: `comp:<codgrupo>` de los grupos con jornada nueva (refresca
+    competición + equipos del grupo, que cuelgan de comp) + `equipo:<cod>` y `jugador:<cod>` de los tocados +
+    `indices` si cambian portadas. Trocear a ≤1000 ítems/petición.
 - **Diseño propuesto (original):**
   - Endpoint de revalidación en la web (route handler, p.ej. `/api/revalidate`) **protegido por un secreto**
     (header o query con un token en variable de entorno; rechazar si no coincide).
