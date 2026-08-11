@@ -245,11 +245,28 @@ dibujaba un placeholder de algo que YA existe como componente del sitio, se usa 
   degrada (marcador/rival sin barra de fantasy) o se documenta que no aplica. Ver al construir el ámbito
   completo.
 
-## E-reval · Revalidación on-demand de fichas (pendiente — va con el ciclo nocturno)
-- **Estado:** NO implementado. Decisión explícita: se monta JUNTO con la activación del ciclo nocturno del
-  pipeline, no antes. Son la misma pieza (el pipeline actualiza los datos y avisa a la web para refrescar);
-  montar el endpoint sin el nocturno corriendo es media solución.
-- **Diseño propuesto:**
+## E-reval · Revalidación on-demand de fichas (Fase 1a HECHA; resto pendiente)
+- **Estado (actualizado):** Fase 1a IMPLEMENTADA y validada end-to-end en preview:
+  - `POST /api/revalidate` protegido por `REVALIDATE_SECRET` en cabecera `x-revalidate-secret` (401 sin
+    match), body `{ tags?, paths? }`, deduplica, máx **1000 ítems/lote** (>1000 → 413, el pipeline trocea),
+    responde `{ revalidated, tags, paths }`. `revalidateTag(tag, 'max')` (firma de Next 16).
+  - Etiquetado de la capa **v2** de competición (`src/lib/cacheComp.ts` envuelve las lecturas de
+    `competicionV2.ts` en `unstable_cache` con `comp:<codgrupo>` + `temporada:<cod>`, TTL 30d). El global
+    cuelga de `comp:<codgrupo>` de cada grupo miembro. `getEquiposMapV2`/`getPartidosJornadaV2` NO se
+    envuelven (devuelven `Map`, que `unstable_cache` serializaría a `{}`); su ruta se invalida igual porque
+    se leen junto a funciones etiquetadas.
+  - Prueba: cambio de `pts` en Supabase → `POST` con `comp:24037458` → la ficha /v2 pasó de 82 a 92. 200 OK.
+- **PENDIENTE PARA PRODUCCIÓN (imprescindible antes de usarlo en prod):**
+  - **Regla de bypass del firewall para `/api/revalidate` en el entorno de Production.** Sin ella, el
+    pipeline (cliente máquina) choca con el *Vercel Security Checkpoint* (Attack Challenge Mode) y recibe un
+    429 con HTML, nunca llega al endpoint. Una WAF custom rule con *Bypass* para esa ruta basta (no hace
+    falta system bypass rule). En preview se comprobó que la custom rule funciona.
+  - `REVALIDATE_SECRET` **ya creada en Production**. (Ojo: los env vars solo los coge un deploy nuevo.)
+  - **Reactivar *Vercel Authentication* en previews** (se desactivó temporalmente para esta prueba).
+- **PENDIENTE DE CÓDIGO:** Fase 1b (etiquetar las rutas ACTUALES no-v2 de competición — las que ven los
+  usuarios y donde escoció lo de las copas) · Fase 2 (equipo + índices) · Fase 3 (jugador, 38k fichas) · y el
+  **llamador desde el pipeline** (`C:\rffm-pipeline`) al terminar cada tanda.
+- **Diseño propuesto (original):**
   - Endpoint de revalidación en la web (route handler, p.ej. `/api/revalidate`) **protegido por un secreto**
     (header o query con un token en variable de entorno; rechazar si no coincide).
   - El endpoint hace `revalidatePath` de **las fichas tocadas** en ese export (equipo y jugador afectados,
