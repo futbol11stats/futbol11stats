@@ -307,6 +307,22 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
               {pct != null && <div className="batt-lbl">Mejor que el <b>{pct} %</b> de los jugadores de su categoría</div>}
               {/* Evolución del ELO (cierre por temporada) — mismo sparkline que la ficha actual (Medidores). */}
               <EloSparkline serie={j.elo_serie || []} className="w-full h-9 mt-3" />
+              {/* Rating F11S (índice compuesto 0-100, beta) — de web_jugador.rating_f11s, métrica DISTINTA del
+                  ELO. Estaba en la ficha actual (Medidores/AnilloRating) y se perdió al portar. Estilo v2. */}
+              {j.rating_f11s != null && (() => {
+                const r = j.rating_f11s as number
+                const cR = r >= 66 ? 'var(--e3)' : r >= 40 ? 'var(--e2)' : 'var(--e1)'
+                return (
+                  <div className="rating-f11s">
+                    <div className="rf-top">
+                      <div className="cap">Rating F11S <span className="rf-beta">beta</span></div>
+                      <div className="rf-v" style={{ color: cR }}>{r}<span className="rf-100">/100</span></div>
+                    </div>
+                    <div className="batt">{Array.from({ length: 10 }).map((_, i) => <i key={i} style={i < Math.round(r / 10) ? { background: cR } : undefined} />)}</div>
+                    <div className="batt-lbl">Índice compuesto de rendimiento sobre 100.</div>
+                  </div>
+                )
+              })()}
               <div style={{ marginTop: 13 }}>
                 {/* Cada ranking con su icono: badge (11) F11S, Sello de competición, Pastilla de posición. */}
                 {RankFila(badge11, 'Fútbol11Stats · Madrid', j.rank_general, j.rank_general_total)}
@@ -458,7 +474,7 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
             <section id="s-trayectoria">
               <div className="s-head"><div className="s-title">Trayectoria</div><div className="s-sub"><span className="allscope">Todas las temporadas</span></div></div>
               <div style={{ padding: '0 var(--pad)' }}>
-                <Trayectoria carrera={carrera} portero={portero} codjugador={j.codjugador} />
+                <Trayectoria carrera={carrera} portero={portero} codjugador={j.codjugador} railWrap />
               </div>
             </section>
           )}

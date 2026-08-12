@@ -628,3 +628,17 @@
 
 /* Resultados: separador del marcador siempre neutro (los goles se colorean por resultado). */
 .fjv2 .rsc-sep{color:var(--ink-3);margin:0 1px}
+
+/* Trayectoria v2: la tabla de partidos en ScrollRail. La caja (borde/fondo/redondeo) va en el wrap; el
+   degradado de los bordes se tiñe del fondo de la tabla (pitch-800), no del pitch-900 por defecto. */
+.fjv2 .tray-srail{background:var(--pitch-800);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.fjv2 .tray-srail .srail-fade-l{background:linear-gradient(90deg,var(--pitch-800) 22%,transparent)}
+.fjv2 .tray-srail .srail-fade-r{background:linear-gradient(270deg,var(--pitch-800) 22%,transparent)}
+
+/* Rating F11S (Nivel): índice 0-100 con su batería, bajo el ELO. Badge "beta" en NEUTRO (el ámbar está
+   reservado para playoff/copa/disciplina). Reutiliza .batt/.batt-lbl/.cap del bloque ELO. */
+.fjv2 .rating-f11s{margin-top:14px;padding-top:12px;border-top:1px solid var(--line-2)}
+.fjv2 .rf-top{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:7px}
+.fjv2 .rf-v{font-family:var(--font-display),sans-serif;font-weight:700;font-size:var(--n-md);line-height:1;font-variant-numeric:tabular-nums}
+.fjv2 .rf-100{font-size:var(--t-cap);color:var(--ink-3);font-weight:600;margin-left:1px}
+.fjv2 .rf-beta{font-size:var(--t-micro);font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-3);border:1px solid var(--line);border-radius:4px;padding:0 4px;margin-left:5px}

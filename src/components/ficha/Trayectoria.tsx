@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, Fragment } from 'react'
+import ScrollRail from '@/components/ficha/v2/ScrollRail'
 import { ChevronDown, Loader2, CircleDot, Hand } from 'lucide-react'
 import { supabase, escudoUrl } from '@/lib/supabase'
 import EscudoImg from '@/components/EscudoImg'
@@ -97,7 +98,9 @@ function PartidoFila({ p, portero }: { p: any; portero: boolean }) {
   )
 }
 
-export default function Trayectoria({ carrera, portero, codjugador }: { carrera: Carrera[]; portero: boolean; codjugador: string }) {
+// railWrap: en la ficha v2 (dentro de .fjv2, con ficha.css) envuelve la tabla en ScrollRail (flechas +
+// degradado en desktop). En la ficha actual (sin ese CSS) se queda con el contenedor overflow-x-auto de siempre.
+export default function Trayectoria({ carrera, portero, codjugador, railWrap = false }: { carrera: Carrera[]; portero: boolean; codjugador: string; railWrap?: boolean }) {
   const [abierto, setAbierto] = useState<string | null>(null)
   const [cache, setCache] = useState<Record<string, { loading: boolean; rows: any[] }>>({})
   const nCols = portero ? 12 : 11
@@ -114,9 +117,10 @@ export default function Trayectoria({ carrera, portero, codjugador }: { carrera:
     }
   }
 
-  return (
-    <div className="bg-pitch-800 rounded-xl border border-pitch-700 overflow-x-auto">
-      <table className="w-full tabla-clasificacion tabla-partidos">
+  // La tabla es w-full: se ancla al contenedor y las columnas de la derecha (ELO) se comprimen sin desbordar,
+  // por eso no había scroll. min-w-max en desktop la deja crecer a su contenido -> desborda -> scroll.
+  const tabla = (
+      <table className={`w-full ${railWrap ? 'sm:min-w-max' : ''} tabla-clasificacion tabla-partidos`}>
         <thead>
           <tr className="border-b border-pitch-700">
             <th className="text-left">Temp.</th>
@@ -199,6 +203,8 @@ export default function Trayectoria({ carrera, portero, codjugador }: { carrera:
           )}
         </tbody>
       </table>
-    </div>
   )
+  return railWrap
+    ? <ScrollRail wrapClassName="tray-srail" className="tray-srail-sc">{tabla}</ScrollRail>
+    : <div className="bg-pitch-800 rounded-xl border border-pitch-700 overflow-x-auto">{tabla}</div>
 }
