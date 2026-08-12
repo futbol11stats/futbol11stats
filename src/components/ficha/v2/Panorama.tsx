@@ -67,7 +67,7 @@ export default function Panorama({ lideres, cifras, kpis, fichas, subLideres, su
             <div className="cgrupo"><h4>Competición</h4>
               <div className="cfila"><span className="ci"><Escudo size={13} /></span><span className="ck">Equipos</span><span className="cv">{kpis.equipos || '—'}</span></div>
               <div className="cfila"><span className="ci"><Calendario size={13} /></span><span className="ck">Partidos jugados</span><span className="cv">{mil(cifras.disputados)} <small>de {mil(cifras.totalPartidos)}</small></span></div>
-              <div className="cfila"><span className="ci" style={{ color: colorElo(kpis.eloMedio) || 'var(--e3)' }}><Badge11 color={colorElo(kpis.eloMedio) || 'var(--e3)'} /></span><span className="ck">ELO medio</span><span className="cv" style={{ color: colorElo(kpis.eloMedio) || undefined }}>{mil(kpis.eloMedio)}</span></div>
+              <div className="cfila"><span className="ci" style={{ color: colorElo(kpis.eloMedio) || 'var(--e3)' }}><Badge11 color={colorElo(kpis.eloMedio) || 'var(--e3)'} /></span><span className="ck">ELO medio por equipo</span><span className="cv" style={{ color: colorElo(kpis.eloMedio) || undefined }}>{mil(kpis.eloMedio)}</span></div>
             </div>
             <div className="cgrupo"><h4>Goles</h4>
               <div className="cfila"><span className="ci" style={{ color: 'var(--e4)' }}><Balon size={13} /></span><span className="ck">Goles marcados</span><span className="cv">{mil(cifras.goles)}</span></div>

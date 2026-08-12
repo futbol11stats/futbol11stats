@@ -170,7 +170,7 @@ export default async function FichaCompeticionGlobalV2({ categoria, slugComp, te
         <div className="selrow" style={{ paddingBottom: 16 }}>
           <div className="sel-lbl">Grupo</div>
           <ScrollRail><div className="sel-rail">
-            <span className="glob" style={{ background: 'var(--pitch-700)', borderColor: 'rgba(240,180,41,.55)' }}>Global</span>
+            <span className="glob">Global</span>
             {grupos.map((g) => (
               <Link key={g.codgrupo} href={`${base}/${g.slug_grupo}/${temporada}/jornada-${jornadaNum}/clasificacion/v2`}>{g.nombre_grupo}</Link>
             ))}
