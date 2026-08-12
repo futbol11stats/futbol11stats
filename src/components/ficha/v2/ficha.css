@@ -668,6 +668,8 @@
 .fjv2 .dt-v.mut{color:var(--ink-2)}
 .fjv2 .dt-v.sm{font-size:var(--t-sm);font-weight:600;color:var(--ink-3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .fjv2 .dt-k{font-size:var(--t-micro);letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);margin-top:4px}
+/* «vs» delante del rival en Mejores actuaciones: el escudo es el equipo en el que jugaba, «vs X» el rival. */
+.fjv2 .m-vs{color:var(--ink-3);font-weight:600;font-size:.9em}
 /* #7 Reparto titular/suplente/minutos bajo la Trayectoria. */
 .fjv2 .tray-note{margin-top:10px;font-size:var(--t-cap);color:var(--ink-3);line-height:1.5}
 .fjv2 .tray-note b{color:var(--ink-2);font-variant-numeric:tabular-nums}

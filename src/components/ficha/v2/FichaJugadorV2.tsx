@@ -228,7 +228,7 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
   // Totales de carrera que no caben en la parrilla principal (participación/eventos): recuento de temporadas
   // y, para porteros, goles encajados y GC por partido. Van en una segunda parrilla con tantas columnas como
   // fichas, así siempre queda una fila completa. Ver ficha actual (Totales de [slug]/page.tsx).
-  const gc = j.gc_pj != null ? j.gc_pj.toFixed(2).replace('.', ',') : '—'
+  const gc = j.gc_pj != null ? med1(j.gc_pj) : '—'
   const extras: Array<[ReactNode, string, string]> = []
   if (portero) {
     extras.push([<Balon size={13} key="i" />, mil(j.goles_encajados_total), 'Goles enc.'])
@@ -561,7 +561,7 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
                     <div className="m-score" style={{ color: col }}>{marcador}</div>
                     <EscudoBox escudo={a.escudo} nombre={a.equipo_nombre ?? undefined} size={26} radius={4} />
                     <div className="m-mid">
-                      <div className="m-riv"><NombreEquipo codequipo={a.rival_cod} nombre={a.rival_nombre} /></div>
+                      <div className="m-riv"><span className="m-vs">vs</span> <NombreEquipo codequipo={a.rival_cod} nombre={a.rival_nombre} /></div>
                       <div className="m-meta">
                         {a.es_local != null && <IndicadorLocal esLocal={a.es_local} />}
                         <span>{fechaCorta(a.fecha)}{a.jornada != null ? ` · J${a.jornada}` : ''}</span>
