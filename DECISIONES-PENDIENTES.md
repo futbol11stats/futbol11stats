@@ -411,3 +411,47 @@ dibujaba un placeholder de algo que YA existe como componente del sitio, se usa 
   coloreado + casa/fuera. Cubre lo mismo que "Últimos partidos" pero para TODAS las jornadas y con más detalle.
   Portar los 3 recientes duplicaría un subconjunto. Decisión: fuera. Si algún día se quiere el resumen "3
   últimos" compacto, se saca de ahí sin fetch nuevo (`ultimosDePartidos` existe en jugadorV2, sin usar).
+
+## E-migracion-v2-seo · Plan: portar el andamiaje SEO a los componentes v2 (competicion)
+Estado: PLANIFICADO. No ejecutar todavia (Fernando quiere revisar las tres fichas en pantalla antes).
+
+### Decision de URL (cerrada)
+La v2 HEREDA la URL actual, SIN sufijo /v2. Indexar bajo /v2 significaria tirar el posicionamiento
+de miles de URLs y redirigir la web entera; la v2 no es un sitio nuevo, es la misma web mejor hecha.
+Consecuencia: NO se reescribe sitemap.ts ni se montan 308 de /v2 -> canonica. El dia del cambio, la
+ruta actual pasa a renderizar el componente nuevo y su SEO debe estar ya intacto en el componente v2.
+
+### Alcance: portar a FichaCompeticionV2 / FichaCompeticionGlobalV2 (y sus page.tsx v2) lo que hoy
+solo vive en las rutas actuales. Cuatro BLOQUEANTES + dos recomendables:
+
+BLOQUEANTES (precondicion para que la v2 sustituya a la actual sin perder SEO):
+1. generateMetadata dinamica (title/description por pestaña/comp/temporada + OpenGraph). Hoy la v2 es
+   un stub fijo `{ title:'Competicion...', robots:{index:false,follow:false} }`. Plantillas en la ruta
+   actual: grupo page.tsx:296-297,312 ; global page.tsx:228-229,238.
+2. canonical jornada->jornada_actual (mata la duplicacion del time-machine, conservando la pestaña).
+   Actual: grupo page.tsx:298-304 ; global page.tsx:230. Sin esto, indexable = cientos de duplicados.
+4. Sitemap: NO hay que reescribirlo (misma URL). Solo asegurar que el dia del cambio las rutas que ya
+   emite (sin /v2) rendericen el componente v2. (Deja de ser bloqueante-de-reescritura por la decision
+   de URL; queda como verificacion.)
+5. noindex selectivo juvenil con follow:true (solo juveniles y solo pestañas que listan menores). Hoy
+   la v2 va noindex,nofollow GLOBAL. Portar noindexJuvenil (seo.ts:86-87) + follow:true; quitar el
+   noindex de las pestañas indexables.
+
+RECOMENDABLES:
+2b. canonical de slugs viejos de copa -> familia (actual grupo page.tsx:287-288).
+3.  JSON-LD BreadcrumbList (graphLd(breadcrumbLd(...))): actual grupo page.tsx:514, global :391. La v2
+    de competicion no emite ningun schema (equipo v2 y jugador v2 si). Portar el breadcrumb.
+6.  308 slugs viejos de copa -> familia (actual grupo page.tsx:335-338). La v2 solo hace notFound.
+
+### Nota tecnica del dia del cambio
+El SEO por-pestaña (metadata/robots) vive en el page.tsx de cada ruta, no en el componente. Al heredar
+la URL, ese page.tsx actual seguira siendo el que corre; hay que decidir si (a) el page.tsx actual pasa
+a renderizar el componente v2 conservando su generateMetadata, o (b) se traslada la generateMetadata al
+patron v2. Opcion (a) es la de menor riesgo: el andamiaje SEO ya probado se queda, solo cambia el
+componente de render. Confirmar antes de ejecutar.
+
+### Hecho ya (regresion aparte, no era de competicion)
+- 308 al slug canonico en la ficha de JUGADOR v2: la v2 lo habia perdido (la actual lo tiene,
+  page.tsx:243-245). Repuesto en jugador/[slug]/v2/page.tsx (redirige a .../{canonico}/v2 mientras
+  la v2 vive en /v2). La v2 de competicion NO tiene el 308 tipo-slug-nombre porque la actual tampoco
+  (ahi no hay regresion).
