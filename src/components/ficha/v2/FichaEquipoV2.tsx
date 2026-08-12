@@ -435,7 +435,7 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
                     {([['Victorias', ana.v, 'var(--e3)'], ['Empates', ana.e, 'var(--ink-3)'], ['Derrotas', ana.d, 'var(--e0)']] as const).map(([nm, n, col]) => (
                       <div className="ved-r" key={nm}><span className="ved-dot" style={{ background: col }} /><span className="ved-nm">{nm}</span><span className="ved-n num" style={{ color: col }}>{n}</span><span className="ved-p num">{pc(n)}%</span></div>
                     ))}
-                    <div className="ved-r"><span className="ved-dot" style={{ background: 'transparent' }} /><span className="ved-nm">Puntos por partido</span><span className="ved-n num">{(ana.pj ? (ana.v * 3 + ana.e) / ana.pj : 0).toFixed(2).replace('.', ',')}</span><span className="ved-p" /></div>
+                    <div className="ved-r"><span className="ved-dot" style={{ background: 'transparent' }} /><span className="ved-nm">Puntos por partido</span><span className="ved-n num">{med1(ana.pj ? (ana.v * 3 + ana.e) / ana.pj : 0)}</span><span className="ved-p" /></div>
                   </div>
                 </div>
                 {/* Resultados por contexto: V/E/D en casa y fuera (distinto de los goles, que van abajo). */}
