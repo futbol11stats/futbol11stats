@@ -403,3 +403,11 @@ dibujaba un placeholder de algo que YA existe como componente del sitio, se usa 
 - Es **degradación parcial, no omisión** (el menor aparece con su nombre y su chip de puntos). Merece mirarse
   con calma: o una fuente de partidos no filtrada por edad, o construir una línea reducida para menores con lo
   que `web_top_jugadores` sí trae (goles, etc.). No urgente.
+
+## D-ultimos-partidos · "Últimos partidos" NO se porta a la v2 (decisión, no carencia)
+- La ficha ACTUAL tiene un bloque "Últimos partidos" (3 más recientes con rival, marcador, goles/GC, puntos).
+- La v2 NO lo lleva a propósito: el componente `Jornadas` (sección "Jornadas") ya pinta, por CADA jornada de
+  la temporada, la barra de puntos + goles (balón) + titular/suplente + minutos + escudo del rival + marcador
+  coloreado + casa/fuera. Cubre lo mismo que "Últimos partidos" pero para TODAS las jornadas y con más detalle.
+  Portar los 3 recientes duplicaría un subconjunto. Decisión: fuera. Si algún día se quiere el resumen "3
+  últimos" compacto, se saca de ahí sin fetch nuevo (`ultimosDePartidos` existe en jugadorV2, sin usar).
