@@ -20,6 +20,7 @@ import Echo from '@/components/ficha/v2/Echo'
 import Jornadas from '@/components/ficha/v2/Jornadas'
 import {
   Balon, Reloj, Escudo, Camiseta, CamisetaHueca, TarjetaAmarilla, TarjetaDoble, TarjetaRoja, Guante,
+  Estrella, Calendario,
 } from '@/components/iconos'
 import { getEquipoActualInfo, getGrupoInfo, grupoHref } from '@/lib/equipo'
 import { graphLd, breadcrumbLd } from '@/lib/jsonld'
@@ -121,6 +122,20 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
 
   const dorsalesOtros = (j.dorsales_otros || []).filter((d) => d !== j.dorsal_ultimo && d !== j.dorsal_comun)
 
+  // Aviso de colaboración sobre la posición (mismo canal que la ficha actual): sin posición -> se muestra en
+  // el hero (el hueco es visible); posición estimada -> al pie, junto a «Corregir datos». Confirmada -> nada
+  // (el botón «Corregir datos» ya cubre ese caso). Ver AvisoDato / [slug]/page.tsx.
+  const sinPosicion = !j.posicion_pastilla
+  const avisoPos = sinPosicion
+    ? { pre: '¿Conoces la posición de este jugador?', enlace: 'Dínoslo', post: ' y la añadimos.', asunto: `Posición de ${nombre}` }
+    : j.posicion_es_estimada
+      ? { pre: 'Esta demarcación es una estimación a partir del dorsal. ¿Sabes cuál es la suya?', enlace: 'Dínoslo', post: '.', asunto: `Posición de ${nombre}` }
+      : null
+  const avisoHref = avisoPos ? `mailto:futbol11stats@gmail.com?subject=${encodeURIComponent(avisoPos.asunto)}` : ''
+  const avisoNode = avisoPos ? (
+    <p className="aviso-pos">{avisoPos.pre}{' '}<a href={avisoHref}>{avisoPos.enlace}</a>{avisoPos.post}</p>
+  ) : null
+
   const cuentaTemp = new Map<string, number>()
   for (const c of carrera) cuentaTemp.set(c.codtemporada, (cuentaTemp.get(c.codtemporada) ?? 0) + 1)
 
@@ -210,6 +225,16 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
     [<span style={{ color: 'var(--card-y)', display: 'flex' }} key="i"><TarjetaDoble size={12} /></span>, mil(tarjetas.dobles), '2TA'],
     [<span style={{ color: 'var(--card-r)', display: 'flex' }} key="i"><TarjetaRoja size={11} /></span>, mil(tarjetas.rojas), 'TR'],
   ]
+  // Totales de carrera que no caben en la parrilla principal (participación/eventos): recuento de temporadas
+  // y, para porteros, goles encajados y GC por partido. Van en una segunda parrilla con tantas columnas como
+  // fichas, así siempre queda una fila completa. Ver ficha actual (Totales de [slug]/page.tsx).
+  const gc = j.gc_pj != null ? j.gc_pj.toFixed(2).replace('.', ',') : '—'
+  const extras: Array<[ReactNode, string, string]> = []
+  if (portero) {
+    extras.push([<Balon size={13} key="i" />, mil(j.goles_encajados_total), 'Goles enc.'])
+    extras.push([<Guante size={13} key="i" />, gc, 'GC/partido'])
+  }
+  if (j.temporadas != null) extras.push([<Calendario size={13} key="i" />, mil(j.temporadas), 'Temporadas'])
 
   const RC: Record<string, string> = { G: 'var(--e3)', E: 'var(--ink-3)', P: 'var(--e0)' }
 
@@ -232,7 +257,9 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
           {j.equipo_actual_nombre && (
             <span className="pill n">
               <EscudoBox escudo={j.escudo_actual} nombre={j.equipo_actual_nombre ?? undefined} size={26} radius={4} />
+              {inactivo && <span style={{ color: 'var(--ink-3)' }}>Último equipo · </span>}
               <NombreEquipo codequipo={j.codequipo_actual} nombre={j.equipo_actual_nombre} />
+              {inactivo && j.codtemporada_ultima && <span style={{ color: 'var(--ink-3)' }}> ({tempLabel(j.codtemporada_ultima)})</span>}
             </span>
           )}
           {etapaPrincipal?.nombre_comp && (
@@ -248,6 +275,8 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
             <span dangerouslySetInnerHTML={{ __html: alertaTxt }} />
           </div>
         )}
+        {/* Sin posición: el aviso se queda en el hero, donde el hueco es visible (los demás casos bajan al pie). */}
+        {sinPosicion && avisoNode}
       </div>
 
       {carrera.length === 0 ? (
@@ -303,8 +332,14 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
                 <div><div className="cap">ELO F11S</div><div className="elo-v" style={{ color: cElo(eloBig) }}>{eloBig != null ? mil(Math.round(eloBig)) : '—'}</div></div>
                 <div style={{ textAlign: 'right' }}><div className="cap">Percentil</div><div className="elo-v" style={{ color: cElo(eloBig) }}>{pct != null ? pct : '—'}</div></div>
               </div>
+              {/* Techo histórico del ELO y la temporada en que se alcanzó (de web_jugador.elo_max/temporada_elo_max). */}
+              {j.elo_max != null && (
+                <div className="elo-max">máx {mil(Math.round(j.elo_max))}{j.temporada_elo_max ? ` · ${tempLabel(j.temporada_elo_max)}` : ''}</div>
+              )}
               <div className="batt">{Array.from({ length: 10 }).map((_, i) => <i key={i} style={i < llenos ? { background: cElo(eloBig) } : undefined} />)}</div>
-              {pct != null && <div className="batt-lbl">Mejor que el <b>{pct} %</b> de los jugadores de su categoría</div>}
+              {/* La población del percentil es la categoría del jugador: nombrarla (con su Sello) es lo que da
+                  sentido al número; sin categoría se cae a «su categoría». */}
+              {pct != null && <div className="batt-lbl">Mejor que el <b>{pct} %</b> de los jugadores de {categoriaSel ? <span className="cat-inline"><Sello nombreComp={categoriaSel} size={14} /> {categoriaSel}</span> : 'su categoría'}</div>}
               {/* Evolución del ELO (cierre por temporada) — mismo sparkline que la ficha actual (Medidores). */}
               <EloSparkline serie={j.elo_serie || []} className="w-full h-9 mt-3" />
               {/* Rating F11S (índice compuesto 0-100, beta) — de web_jugador.rating_f11s, métrica DISTINTA del
@@ -329,6 +364,8 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
                 {RankFila(categoriaSel ? <Sello nombreComp={categoriaSel} size={18} /> : null, categoriaSel || 'Competición', j.rank_categoria, j.rank_categoria_total)}
                 {RankFila(<Pastilla pos={j.posicion_pastilla} estimada={!!j.posicion_es_estimada} size="mini" />, j.posicion_pastilla ? (POS_LABEL[j.posicion_pastilla] || j.posicion_pastilla) : 'Posición', j.rank_posicion, j.rank_posicion_total)}
               </div>
+              {/* Aclara el criterio de los rankings: no son de todas las temporadas, sino de la última activa. */}
+              <p className="rank-note">Por puntos fantasy de la última temporada activa.</p>
             </div>
           </section>
 
@@ -340,12 +377,37 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
                 <div className="tot" key={i}><div className="t-i">{ic}</div><div className="t-v">{v}</div><div className="t-k">{k}</div></div>
               ))}
             </div>
-            <div style={{ padding: '10px var(--pad) 0', fontSize: 'var(--t-cap)', color: 'var(--ink-3)', lineHeight: 1.5 }}>
-              <b style={{ color: 'var(--ink-2)' }}>Dorsal</b>
-              {j.dorsal_ultimo != null && <> · último <b style={{ color: 'var(--ink-2)' }}>{j.dorsal_ultimo}</b></>}
-              {j.dorsal_comun != null && <> · habitual <b style={{ color: 'var(--ink-2)' }}>{j.dorsal_comun}</b></>}
-              {dorsalesOtros.length > 0 && <> · otros {dorsalesOtros.join(', ')}</>}
-            </div>
+            {/* #3 Temporadas + #5 (portero) Goles enc./GC por partido: segunda parrilla ajustada al nº de fichas. */}
+            {extras.length > 0 && (
+              <div className="totales tot-extra" style={{ gridTemplateColumns: `repeat(${extras.length}, 1fr)` }}>
+                {extras.map(([ic, v, k], i) => (
+                  <div className="tot" key={i}><div className="t-i">{ic}</div><div className="t-v">{v}</div><div className="t-k">{k}</div></div>
+                ))}
+              </div>
+            )}
+            {/* #4 Cobertura de la trayectoria: completa (todo su historial) o desde 2021-22 (inicio del dato). */}
+            {j.trayectoria_completa != null && (
+              j.trayectoria_completa
+                ? <p className="tot-badge ok"><Estrella size={13} /> Trayectoria completa</p>
+                : <p className="tot-badge">Datos desde 2021-22</p>
+            )}
+            {/* #12 Dorsal: último / habitual / otros como tiles (antes era una línea de texto comprimida). */}
+            {(j.dorsal_ultimo != null || j.dorsal_comun != null || dorsalesOtros.length > 0) && (
+              <div className="dorsal-blk">
+                <div className="cap dorsal-cap">Dorsal</div>
+                <div className="dorsal-tiles">
+                  {j.dorsal_ultimo != null && (
+                    <div className="dt"><div className="dt-v">{j.dorsal_ultimo}</div><div className="dt-k">Último</div></div>
+                  )}
+                  {j.dorsal_comun != null && j.dorsal_comun !== j.dorsal_ultimo && (
+                    <div className="dt"><div className="dt-v mut">{j.dorsal_comun}</div><div className="dt-k">Habitual</div></div>
+                  )}
+                  {dorsalesOtros.length > 0 && (
+                    <div className="dt otros"><div className="dt-v sm">{dorsalesOtros.join(', ')}</div><div className="dt-k">Otros</div></div>
+                  )}
+                </div>
+              </div>
+            )}
           </section>
 
           {/* COMPAÑEROS */}
@@ -475,6 +537,13 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
               <div className="s-head"><div className="s-title">Trayectoria</div><div className="s-sub"><span className="allscope">Todas las temporadas</span></div></div>
               <div style={{ padding: '0 var(--pad)' }}>
                 <Trayectoria carrera={carrera} portero={portero} codjugador={j.codjugador} railWrap />
+                {/* #7 Reparto titular/suplente y minutos totales de la carrera (web_jugador.*_total). */}
+                {(j.titular_total != null || j.suplente_total != null) && (
+                  <p className="tray-note">
+                    <b>{mil(j.titular_total)}</b> como titular · <b>{mil(j.suplente_total)}</b> como suplente
+                    {portero ? '' : <> · <b>{mil(j.minutos_total)}</b> minutos</>}
+                  </p>
+                )}
               </div>
             </section>
           )}
@@ -527,6 +596,8 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
                 )
               })}
             </div>
+            {/* Posición estimada: el aviso de colaboración baja al pie, junto a «Corregir datos». */}
+            {!sinPosicion && avisoNode && <div style={{ padding: '14px var(--pad) 0' }}>{avisoNode}</div>}
             <div className="foot" style={{ paddingTop: 18 }}>
               <CompartirBtn titulo={`${nombre} · Fútbol11Stats`} variant="btn" />
               <a className="btn" href={`mailto:futbol11stats@gmail.com?subject=${encodeURIComponent(`Corrección en la ficha de ${nombre}`)}&body=${encodeURIComponent(`Jugador: ${nombre} (código ${j.codjugador})\nFicha: ${SITE_URL}/madrid/jugador/${slug}/v2\n\nQué está mal:\n`)}`}>Corregir datos</a>

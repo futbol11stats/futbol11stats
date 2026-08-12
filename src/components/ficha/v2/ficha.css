@@ -642,3 +642,36 @@
 .fjv2 .rf-v{font-family:var(--font-display),sans-serif;font-weight:700;font-size:var(--n-md);line-height:1;font-variant-numeric:tabular-nums}
 .fjv2 .rf-100{font-size:var(--t-cap);color:var(--ink-3);font-weight:600;margin-left:1px}
 .fjv2 .rf-beta{font-size:var(--t-micro);font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-3);border:1px solid var(--line);border-radius:4px;padding:0 4px;margin-left:5px}
+
+/* ============ Datos portados de la ficha actual (barrido comparativo jugador v2) ============ */
+/* #2 ELO máximo histórico + su temporada, bajo el valor del ELO en Nivel. Caption tenue. */
+.fjv2 .elo-max{font-size:var(--t-cap);color:var(--ink-3);margin-top:3px}
+/* #8 Categoría (con Sello) embebida en la línea del percentil: nombra la población del dato. */
+.fjv2 .cat-inline{display:inline-flex;align-items:center;gap:4px;vertical-align:middle}
+.fjv2 .cat-inline :where(img,svg){vertical-align:middle}
+/* #9 Nota que aclara el criterio de los rankings. */
+.fjv2 .rank-note{font-size:var(--t-micro);color:var(--ink-3);line-height:1.45;margin-top:9px}
+/* #3/#5 Segunda parrilla de totales (Temporadas y, en porteros, Goles enc./GC por partido). El nº de
+   columnas lo fija el inline-style según cuántas fichas haya, así la fila queda siempre completa. */
+.fjv2 .tot-extra{border-top:0;margin-top:1px}
+/* #4 Badge de cobertura de la trayectoria. Verde (--e3) cuando es completa; neutro cuando es parcial. */
+.fjv2 .tot-badge{display:flex;align-items:center;gap:6px;font-size:var(--t-cap);color:var(--ink-3);padding:10px var(--pad) 0}
+.fjv2 .tot-badge.ok{color:var(--e3)}
+.fjv2 .tot-badge :where(svg){flex:none}
+/* #12 Dorsal como tiles (último / habitual / otros) en lugar de una línea de texto. */
+.fjv2 .dorsal-blk{padding:12px var(--pad) 0}
+.fjv2 .dorsal-cap{margin-bottom:7px}
+.fjv2 .dorsal-tiles{display:flex;align-items:flex-start;gap:18px}
+.fjv2 .dt{min-width:0;text-align:center}
+.fjv2 .dt.otros{text-align:left}
+.fjv2 .dt-v{font-family:var(--font-display),'Barlow Condensed',sans-serif;font-weight:700;font-size:var(--n-md);line-height:1;color:var(--ink);font-variant-numeric:tabular-nums}
+.fjv2 .dt-v.mut{color:var(--ink-2)}
+.fjv2 .dt-v.sm{font-size:var(--t-sm);font-weight:600;color:var(--ink-3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fjv2 .dt-k{font-size:var(--t-micro);letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);margin-top:4px}
+/* #7 Reparto titular/suplente/minutos bajo la Trayectoria. */
+.fjv2 .tray-note{margin-top:10px;font-size:var(--t-cap);color:var(--ink-3);line-height:1.5}
+.fjv2 .tray-note b{color:var(--ink-2);font-variant-numeric:tabular-nums}
+/* #10 Aviso de colaboración sobre la posición (réplica de AvisoDato con estilo v2; enlace en verde F11S). */
+.fjv2 .aviso-pos{font-size:var(--t-cap);color:var(--ink-3);line-height:1.5;margin-top:12px}
+.fjv2 .aviso-pos a{color:var(--e3);text-decoration:underline;text-underline-offset:2px}
+.fjv2 .aviso-pos a:hover{color:var(--e4)}
