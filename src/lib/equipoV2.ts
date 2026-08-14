@@ -223,43 +223,22 @@ const LINEA_DE: Record<string, 'POR' | 'DEF' | 'MED' | 'DEL'> = { POR: 'POR', DE
 export async function getPlantillaEquipoV2(codequipo: string, codtemp: string | null, rama?: string | null): Promise<PlantillaEqRow[]> {
   if (!codtemp) return []
   return cacheEquipo(async () => {
-    // Juveniles: la plantilla REAL (incluidos los menores) vive en web_equipo_plantilla_juvenil, no en
-    // web_jugador_carrera (que solo tiene adultos). Esa tabla no trae pts_fantasy/elo/porterías a cero.
+    // La plantilla REAL (adultos + menores) vive en las tablas de plantilla por rama, no en
+    // web_jugador_carrera (que solo tiene adultos, por eso los menores no aparecían). Ambas tablas
+    // replican el mismo esquema —pts_fantasy, goles_encajados, porterías a cero—; ninguna trae ELO.
     // Los menores no tienen ficha -> el render los lista con nombre y datos pero sin enlace (fichasExistentes).
-    if (rama === 'juvenil') {
-      const { data } = await supabase.from('web_equipo_plantilla_juvenil')
-        .select('codjugador, nombre, posicion_pastilla, pj, goles, minutos, ta, td, tr')
-        .eq('codequipo', String(codequipo)).eq('codtemporada', String(codtemp))
-      return ((data || []) as any[]).map((r) => {
-        const pos = r.posicion_pastilla ?? null
-        return {
-          codjugador: String(r.codjugador), nombre: r.nombre ?? '', pos,
-          linea: (pos && LINEA_DE[pos]) || 'OTR', portero: pos === 'POR',
-          pj: r.pj ?? 0, goles: r.goles ?? 0, minutos: r.minutos ?? 0, porteriasCero: 0,
-          ta: r.ta ?? 0, td: r.td ?? 0, tr: r.tr ?? 0, pts: null, elo: null,
-        } as PlantillaEqRow
-      })
-    }
-    // Aficionados: web_jugador_carrera (adultos). No existe una tabla de plantilla de aficionados con menores,
-    // así que sus menores no aparecen aquí (hueco de dato heredado del no-v2; ver DECISIONES E-menores).
-    const { data: car } = await supabase.from('web_jugador_carrera')
-      .select('codjugador, pj, goles, minutos, pts_fantasy, elo_final, porterias_cero, tarjetas_amarillas, tarjetas_dobles, tarjetas_rojas')
+    const tabla = rama === 'juvenil' ? 'web_equipo_plantilla_juvenil' : 'web_equipo_plantilla_aficionado'
+    const { data } = await supabase.from(tabla)
+      .select('codjugador, nombre, posicion_pastilla, pj, goles, minutos, ta, td, tr, pts_fantasy, porterias_cero')
       .eq('codequipo', String(codequipo)).eq('codtemporada', String(codtemp))
-    const rows = (car || []) as any[]
-    const ids = Array.from(new Set(rows.map((r) => String(r.codjugador))))
-    if (!ids.length) return []
-    const { data: jug } = await supabase.from('web_jugador').select('codjugador, nombre, posicion_pastilla, es_portero').in('codjugador', ids)
-    const info = new Map<string, any>((jug || []).map((j: any) => [String(j.codjugador), j]))
-    return rows.map((r) => {
-      const j = info.get(String(r.codjugador))
-      const pos = j?.posicion_pastilla ?? null
+    return ((data || []) as any[]).map((r) => {
+      const pos = r.posicion_pastilla ?? null
       return {
-        codjugador: String(r.codjugador), nombre: j?.nombre ?? '', pos,
-        linea: (pos && LINEA_DE[pos]) || 'OTR', portero: !!j?.es_portero,
+        codjugador: String(r.codjugador), nombre: r.nombre ?? '', pos,
+        linea: (pos && LINEA_DE[pos]) || 'OTR', portero: pos === 'POR',
         pj: r.pj ?? 0, goles: r.goles ?? 0, minutos: r.minutos ?? 0, porteriasCero: r.porterias_cero ?? 0,
-        ta: r.tarjetas_amarillas ?? 0, td: r.tarjetas_dobles ?? 0, tr: r.tarjetas_rojas ?? 0,
-        pts: r.pts_fantasy ?? null, elo: r.elo_final ?? null,
-      }
+        ta: r.ta ?? 0, td: r.td ?? 0, tr: r.tr ?? 0, pts: r.pts_fantasy ?? null, elo: null,
+      } as PlantillaEqRow
     })
   }, ['getPlantillaEquipoV2', codequipo, String(codtemp), rama ?? 'afic'], codequipo, { codtemporada: codtemp })
 }

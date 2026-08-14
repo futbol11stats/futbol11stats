@@ -379,7 +379,15 @@ dibujaba un placeholder de algo que YA existe como componente del sitio, se usa 
   pinta (no bloquea; hay pendientes mayores). Cuando el pipeline la pueble, se añade una columna Mov a la
   clasificación como en la ficha actual. Aparcado por decisión de Fernando (2026-08).
 
-## E-menores · Plantilla de aficionados omite a los menores (hueco de dato, anterior a v2)
+## E-menores · Plantilla de aficionados omite a los menores — RESUELTO (2026-08-14)
+- **RESUELTO:** el pipeline creó `web_equipo_plantilla_aficionado` (98.052 filas, adultos + menores, réplica
+  literal de la juvenil: pts_fantasy, goles_encajados, porterias_cero; sin ELO). `getPlantillaEquipoV2` (v2)
+  ahora lee la tabla de plantilla por rama —juvenil → `web_equipo_plantilla_juvenil`, aficionado →
+  `web_equipo_plantilla_aficionado`— en vez de `web_jugador_carrera`. Los menores se listan con nombre y datos
+  sin enlace (fichasExistentes). "Top de la plantilla" reactivado en ambas ramas (ambas traen pts_fantasy).
+  Verificado codequipo=10633447 T21: 48 jugadores, 9 menores. NOTA: el NO-v2 (`getPlantillaAfic` en
+  `[slug]/page.tsx`) sigue leyendo `web_jugador_carrera` → pendiente de portar ahí también si se quiere paridad
+  antes de la migración. La política/hueco original queda abajo como histórico.
 - **Política del sitio:** los menores SÍ se listan (Top de la plantilla, Plantilla, rankings, XI) con nombre
   y datos, pero SIN enlace a ficha (no la tienen). Verificado que competición ya lo cumple: `web_top_jugadores`
   (34.780 menores), `web_xi_optimo` (3.632), `web_alertas_tarjetas` (12.730) los incluyen, y el render enlaza

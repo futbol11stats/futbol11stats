@@ -525,7 +525,8 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
           {/* PLANTILLA (Top por fantasy + plantilla por líneas, desplegable) */}
           {plantilla.length > 0 && (
             <section id="s-plantilla">
-              {/* Top por fantasy: en juveniles la plantilla no trae pts_fantasy -> topPlantilla vacío y no se pinta. */}
+              {/* Top por fantasy: ambas ramas (aficionado y juvenil) traen ya pts_fantasy en su tabla de plantilla;
+                  si por lo que fuera no hubiera pts, topPlantilla queda vacío y no se pinta. */}
               {topPlantilla.length > 0 && (
                 <>
                   <div className="s-head"><div className="s-title">Top de la plantilla</div><div className="s-sub">por puntos fantasy</div></div>
