@@ -36,5 +36,5 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
       if (slug !== canonicalSlug) permanentRedirect(`/madrid/jugador/${canonicalSlug}/v2`)
     }
   }
-  return <FichaJugadorV2 cod={cod} temporadaLabel={null} />
+  return <FichaJugadorV2 cod={cod} temporadaLabel={null} suf="/v2" />
 }
