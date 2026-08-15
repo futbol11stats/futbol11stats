@@ -8,7 +8,7 @@ import { ResultadoJugador, ResultadoEquipo } from './Resultados'
 const PAGE = 20
 
 // Página /buscar: caja editable + pestañas EQUIPOS | JUGADORES con recuentos + listas con "cargar más".
-export default function BuscarClient({ initialQ }: { initialQ: string }) {
+export default function BuscarClient({ initialQ, suelo }: { initialQ: string; suelo: number }) {
   const [q, setQ] = useState(initialQ)
   const [tab, setTab] = useState<'jugadores' | 'equipos'>('jugadores')
   const [jug, setJug] = useState<JugadorHit[]>([])
@@ -95,7 +95,7 @@ export default function BuscarClient({ initialQ }: { initialQ: string }) {
               <p className="px-3 py-8 text-center text-sm text-chalk-600">Sin {tab} para «{q}»</p>
             )}
             {tab === 'jugadores'
-              ? jug.map((j) => <ResultadoJugador key={j.codjugador} j={j} tokens={tokens} />)
+              ? jug.map((j) => <ResultadoJugador key={j.codjugador} j={j} tokens={tokens} suelo={suelo} />)
               : eq.map((e) => <ResultadoEquipo key={e.codequipo} e={e} tokens={tokens} />)}
           </div>
 

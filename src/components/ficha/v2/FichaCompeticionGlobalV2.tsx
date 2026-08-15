@@ -7,7 +7,7 @@ import NombreEquipo from '@/components/NombreEquipo'
 import { FlechaEntra } from '@/components/iconos'
 import { nombreOficial, denominacion, familiaSello } from '@/lib/sellos'
 import { ensureMadrid } from '@/lib/seo'
-import { LIVE_COD } from '@/lib/equipo'
+import { esTemporadaActiva } from '@/lib/temporadas'
 import { colorElo } from '@/lib/equipoV2'
 import { fichasInfo } from '@/lib/jugador'
 import RankingComp, { type RankItem } from '@/components/ficha/v2/RankingComp'
@@ -66,7 +66,7 @@ export default async function FichaCompeticionGlobalV2({ categoria, slugComp, te
   const fichasLid = await fichasInfo([lideresG.goleador, lideresG.portero, lideresG.elo, lideresG.tarjetas].filter(Boolean).map((j: any) => j.codjugador))
 
   const nombre = nombreOficial(grupos[0].nombre_comp) ?? ensureMadrid(denominacion(grupos[0].nombre_comp))
-  const enJuego = String(codtemporada) === String(LIVE_COD)
+  const enJuego = await esTemporadaActiva(categoria, slugComp, codtemporada)
   const base = `/madrid/${categoria}/${slugComp}`
 
   const modo: 'jornada' | 'temporada' = G_TEMP.has(tab) ? 'temporada' : 'jornada'

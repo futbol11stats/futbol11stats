@@ -10,7 +10,8 @@ export const USA_NOMBRE_BUSQUEDA = true
 const COL_JUG = USA_NOMBRE_BUSQUEDA ? 'nombre_busqueda' : 'nombre'
 const COL_EQ = USA_NOMBRE_BUSQUEDA ? 'nombre_busqueda' : 'nombre'
 
-export const LIVE_COD = '21'
+// El badge activo/inactivo del buscador recibe el suelo vivo por prop (getSueloVivo, resuelto en el layout
+// server). Ya no hay constante de temporada aquí. Ver '@/lib/temporadas'.
 
 // Normalización COMPLETA (como el pipeline): mayúsculas, sin acentos, sin puntuación, colapsada.
 // Se usa para prefijo/ranking y para generar tokens contra la columna normalizada.

@@ -1,14 +1,14 @@
 export const revalidate = 2592000  // ISR 30d (Fluid CPU free tier): contenido congelado en pretemporada; cada deploy/re-export invalida TODA la caché, así que los datos nuevos llegan igual. De ~4 regeneraciones/día/URL a 1 por deploy.
 
 import type { Metadata } from 'next'
-import { supabase } from '@/lib/supabase'
 import Link from 'next/link'
 import JsonLd from '@/components/JsonLd'
 import Sello from '@/components/Sello'
 import { familiaSello, nombreOficial } from '@/lib/sellos'
 import { graphLd, websiteLd, organizationLd } from '@/lib/jsonld'
-import { ORDEN_AFICIONADOS, ORDEN_JUVENILES, esViejaCopa, segRondaActual, numRondas } from '@/lib/competiciones'
-import { cacheIndices } from '@/lib/cacheComp'
+import { ORDEN_AFICIONADOS, ORDEN_JUVENILES, segRondaActual, numRondas } from '@/lib/competiciones'
+import { getGruposIndice } from '@/lib/temporadas'
+import { TEMP_LABEL_BY_COD } from '@/lib/seo'
 
 // Marca neutral con Madrid como ámbito ACTUAL (preparada para ampliar a otras federaciones).
 export const metadata: Metadata = {
@@ -25,37 +25,25 @@ export const metadata: Metadata = {
   },
 }
 
-async function getCompeticiones() {
-  return cacheIndices(async () => {
-    const { data } = await supabase
-      .from('web_grupos')
-      .select('codtemporada, nombre_comp, nombre_grupo, codgrupo, categoria, jornada_actual, slug_comp, slug_grupo, tipo, rondas')
-      .eq('codtemporada', 21)
-      .order('nombre_comp')
-    // Copa por FAMILIA: oculta las páginas viejas por competición (la familia es la canónica).
-    return (data || []).filter((g: any) => !esViejaCopa(g.slug_comp))
-  }, ['getCompeticiones-home'])
-}
-
 // Orden desde la fuente única (aficionados + juveniles); cada rama filtra el que le toca.
 const COMPETICION_ORDER = [...ORDEN_AFICIONADOS, ...ORDEN_JUVENILES]
 
 export default async function Home() {
-  const grupos = await getCompeticiones()
+  // Cada categoría en la temporada activa de cada competición (fuente única data-driven).
+  const [aficionados, juvenil] = await Promise.all([getGruposIndice('AFICIONADO'), getGruposIndice('JUVENIL')])
 
   // Ordenar por número de grupo en cliente (evita orden alfabético tipo "Grupo 10" < "Grupo 2")
-  grupos.sort((a, b) => {
+  const sortG = (arr: typeof aficionados) => arr.sort((a, b) => {
     const numA = parseInt(a.nombre_grupo.replace(/\D/g, '')) || 0
     const numB = parseInt(b.nombre_grupo.replace(/\D/g, '')) || 0
     return numA - numB
   })
-
-  const aficionados = grupos.filter(g => g.categoria === 'AFICIONADO')
-  const juvenil = grupos.filter(g => g.categoria === 'JUVENIL')
+  sortG(aficionados)
+  sortG(juvenil)
 
   // Agrupar por competición
-  const groupBy = (arr: typeof grupos) => {
-    const map: Record<string, typeof grupos> = {}
+  const groupBy = (arr: typeof aficionados) => {
+    const map: Record<string, typeof aficionados> = {}
     for (const g of arr) {
       if (!map[g.nombre_comp]) map[g.nombre_comp] = []
       map[g.nombre_comp].push(g)
@@ -151,9 +139,11 @@ function CompeticionCard({
   categoria,
 }: {
   nombre: string
-  grupos: { codgrupo: string; nombre_grupo: string; jornada_actual: number; slug_comp: string; slug_grupo: string; tipo?: string; rondas?: unknown }[]
+  grupos: { codtemporada: number; codgrupo: string; nombre_grupo: string; jornada_actual: number; slug_comp: string; slug_grupo: string; tipo?: string; rondas?: unknown }[]
   categoria: string
 }) {
+  // Temporada de ESTA competición (todos sus grupos comparten temporada activa). Sustituye al '2025-26' global.
+  const temp = TEMP_LABEL_BY_COD[grupos[0].codtemporada]
   const nombreCorto: Record<string, string> = {
     '3ª RFEF Madrid': '3ª RFEF',
     '1ª Autonómica Madrid': '1ª Autonómica',
@@ -174,12 +164,12 @@ function CompeticionCard({
     <div className="bg-pitch-800 rounded-xl border border-pitch-700 overflow-hidden hover:border-grass-500/50 transition-colors">
       <div className="px-4 py-3 border-b border-pitch-700 flex items-center justify-between">
         <span className="font-semibold text-white text-sm flex items-center gap-2"><Sello nombreComp={nombre} src={famSlug ? familiaSello(famSlug, nombre) : undefined} size={24} />{titulo}</span>
-        <span className="text-xs text-chalk-600">{grupos.length} grupo{grupos.length !== 1 ? 's' : ''}</span>
+        <span className="text-xs text-chalk-600">{temp} · {grupos.length} grupo{grupos.length !== 1 ? 's' : ''}</span>
       </div>
       <div className="px-4 py-2 flex flex-wrap gap-2">
         {grupos.length > 1 && (
           <Link
-            href={`/madrid/${categoria}/${grupos[0].slug_comp}/global/2025-26/jornada-${grupos[0].jornada_actual}/clasificacion`}
+            href={`/madrid/${categoria}/${grupos[0].slug_comp}/global/${temp}/jornada-${grupos[0].jornada_actual}/clasificacion`}
             className="text-xs bg-grass-500/15 hover:bg-grass-500 text-grass-300 hover:text-white px-3 py-1.5 rounded-md transition-colors border border-grass-500/30 font-semibold"
           >
             Global
@@ -191,7 +181,7 @@ function CompeticionCard({
           return (
           <Link
             key={g.codgrupo}
-            href={`/madrid/${categoria}/${g.slug_comp}/${g.slug_grupo}/2025-26/${esCopa ? segRondaActual(g) : `jornada-${g.jornada_actual}`}/${entrada}`}
+            href={`/madrid/${categoria}/${g.slug_comp}/${g.slug_grupo}/${TEMP_LABEL_BY_COD[g.codtemporada]}/${esCopa ? segRondaActual(g) : `jornada-${g.jornada_actual}`}/${entrada}`}
             className="text-xs bg-pitch-700 hover:bg-grass-500 text-chalk-200 hover:text-white px-3 py-1.5 rounded-md transition-colors"
           >
             {esCopa ? `Ver competición · ${numRondas(g)} ronda${numRondas(g) === 1 ? '' : 's'}` : `${g.nombre_grupo} · J${g.jornada_actual}`}

@@ -3,11 +3,12 @@
 // de las filas (nombre de fichero del bucket, como el resto del sitio) — igual que en la ficha de jugador.
 
 import { supabase } from '@/lib/supabase'
-import { slugify, codFromSlug, tempLabel, LIVE_COD } from '@/lib/jugador'
+import { slugify, codFromSlug, tempLabel } from '@/lib/jugador'
+import { getSueloVivo } from '@/lib/temporadas'
 import { cacheEquipo, cacheTagged } from '@/lib/cacheComp'
 import { FAMILIA_SLUGS, OLD_A_FAMILIA } from '@/lib/competiciones'
 
-export { slugify, codFromSlug, tempLabel, LIVE_COD }
+export { slugify, codFromSlug, tempLabel }
 
 // rama de web_equipo -> segmento de URL de la vista de grupo.
 export const RAMA_SLUG: Record<string, string> = { aficionados: 'aficionados', juvenil: 'juveniles' }
@@ -198,7 +199,8 @@ async function resolveCopaRows(rows: CopaRaw[]): Promise<(CopaEquipo & { codtemp
 // Copas de la temporada VIVA (hero, línea CopasLinea).
 async function resolveCopas(raw: unknown): Promise<CopaEquipo[]> {
   if (!COPAS_HABILITADO || !Array.isArray(raw)) return []
-  const copasT = (raw as CopaRaw[]).filter((c) => String(c.codtemporada) === LIVE_COD)
+  const suelo = String(await getSueloVivo())
+  const copasT = (raw as CopaRaw[]).filter((c) => String(c.codtemporada) === suelo)
   return resolveCopaRows(copasT)
 }
 

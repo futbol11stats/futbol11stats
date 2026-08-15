@@ -16,7 +16,8 @@ export const TEMP_LABEL: Record<string, string> = {
   '20': '2024-25',
   '21': '2025-26',
 }
-export const LIVE_COD = '21'                 // temporada viva (codtemporada como TEXT)
+// La "temporada viva" ya NO es una constante: se resuelve data-driven por competición en '@/lib/temporadas'
+// (vista web_temporada_activa + ventana). El badge activo/inactivo usa getSueloVivo(). Fuente única.
 export const PRIMERA_TEMP = '2021-22'        // inicio de la ventana de datos (no-cohorte)
 
 export function tempLabel(cod: string | number | null): string {

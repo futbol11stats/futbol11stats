@@ -5,12 +5,12 @@ import {
   SITE_URL,
   TEMP_LABEL_BY_COD,
   CATEGORIA_SLUG,
-  LIVE_SEASON,
   GROUP_TABS_LIGA,
   GROUP_TABS_COPA,
   GLOBAL_TABS,
   noindexJuvenil,
 } from '@/lib/seo'
+import { getTemporadasActivas, mapaActivas } from '@/lib/temporadas'
 
 export const revalidate = 2592000 // ISR 30d (Fluid CPU): se regenera con cada deploy/re-export; el sitemap solo cambia al añadir grupos/temporadas nuevas
 
@@ -28,6 +28,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // Copa por FAMILIA: no listar las páginas viejas por competición (redirigen 308 a la familia).
   const grupos = (data || []).filter((g: any) => !esViejaCopa(g.slug_comp))
 
+  // Temporada activa por competición (data-driven, dentro de la ventana). Sustituye a `codtemporada === LIVE_SEASON`:
+  // el grupo que está en la temporada activa de su competición recibe todas las pestañas; el resto (histórico), la
+  // vista final. Con todo en T21 hoy, la activa es 21 para todas -> idéntico al comportamiento anterior.
+  const activas = mapaActivas(await getTemporadasActivas())
+
   const urls: MetadataRoute.Sitemap = [
     { url: `${SITE_URL}/`, changeFrequency: 'weekly', priority: 1 },
     { url: `${SITE_URL}/madrid/aficionados`, changeFrequency: 'weekly', priority: 0.8 },
@@ -44,7 +49,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
     const j = g.jornada_actual || 1
     const isLiga = !g.tipo || g.tipo === 'LIGA'
-    const isLive = g.codtemporada === LIVE_SEASON
+    const isLive = activas.get(`${g.categoria}|${g.slug_comp}`) === g.codtemporada
     // Copa por familia: el segmento es el slug de la ronda por defecto; liga: jornada-N.
     const seg = isLiga ? `jornada-${j}` : segRondaActual(g)
     const base = `${SITE_URL}/madrid/${cat}/${g.slug_comp}/${g.slug_grupo}/${temp}/${seg}`

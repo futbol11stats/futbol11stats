@@ -27,9 +27,10 @@ import { graphLd, breadcrumbLd } from '@/lib/jsonld'
 import { SITE_URL } from '@/lib/seo'
 import {
   formatNombre, tempLabel, jugadorSlug, jugadorHref, curarHitos, HITO_CONFIG, fechaCorta,
-  marcadorLocalVisitante, POS_LABEL, LIVE_COD, companerosActivos, type HitoRow, type CompaneroTop,
+  marcadorLocalVisitante, POS_LABEL, companerosActivos, type HitoRow, type CompaneroTop,
 } from '@/lib/jugador'
 import { CORTES_FIJOS } from '@/lib/escala'
+import { getSueloVivo } from '@/lib/temporadas'
 import {
   getJugadorV2, getCarreraV2, getAlertaActual, getAmbitoTemporada, getCortesElo, labelToCod,
   getPartidosTemporada, ventanasForma, racha5DePartidos, splitCasaFuera, balanceEquipo,
@@ -47,7 +48,7 @@ const med1 = (v: number) => v.toFixed(1).replace('.', ',')
 // ('' -> /madrid/jugador/{slug}); mientras la v2 se sirve además en /v2 se pasa '/v2' para que ese árbol
 // siga enlazando dentro de sí mismo. Así el mismo componente sirve en ambas rutas sin filtrar el sufijo.
 export default async function FichaJugadorV2({ cod, temporadaLabel, suf = '' }: { cod: string; temporadaLabel: string | null; suf?: string }) {
-  const [j, carrera] = await Promise.all([getJugadorV2(cod), getCarreraV2(cod)])
+  const [j, carrera, suelo] = await Promise.all([getJugadorV2(cod), getCarreraV2(cod), getSueloVivo()])
   if (!j) notFound()
 
   const rawNombre = j.nombre || ''
@@ -62,7 +63,7 @@ export default async function FichaJugadorV2({ cod, temporadaLabel, suf = '' }: 
   const avatarStyle = { background: `linear-gradient(to bottom right, rgba(${avaRGB},.45), var(--pitch-800))`, border: `2px solid rgba(${avaRGB},.6)` }
   const slug = jugadorSlug(j.codjugador, j.nombre)
   const portero = !!j.es_portero
-  const inactivo = Number(j.codtemporada_ultima) < Number(LIVE_COD)
+  const inactivo = Number(j.codtemporada_ultima) < suelo
 
   const temporadas = Array.from(new Set(carrera.map((c) => c.codtemporada)))
   const codPedido = labelToCod(temporadaLabel)

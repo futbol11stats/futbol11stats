@@ -463,3 +463,18 @@ componente de render. Confirmar antes de ejecutar.
   page.tsx:243-245). Repuesto en jugador/[slug]/v2/page.tsx (redirige a .../{canonico}/v2 mientras
   la v2 vive en /v2). La v2 de competicion NO tiene el 308 tipo-slug-nombre porque la actual tampoco
   (ahi no hay regresion).
+
+## E-temporada-activa · Resolución de temporada data-driven por competición (HECHO 2026-08-15)
+- Antes: "temporada viva" hardcodeada en 5 sitios (LIVE_COD en jugador.ts y buscador.ts, LIVE_SEASON en
+  seo.ts, y `.eq('codtemporada',21)`+`'2025-26'` en los índices home/aficionados/juveniles). Flip manual y
+  todo-o-nada.
+- Ahora: FUENTE ÚNICA = vista Postgres `web_temporada_activa` (max codtemporada con partido jugado en
+  web_resultados, por categoria+slug_comp) + `@/lib/temporadas.ts` (ventana [T_top-1, T_top], getGruposIndice,
+  getSueloVivo, esTemporadaActiva, mapaActivas). Cada competición muestra su temporada activa; badge
+  activo/inactivo usa el suelo (min activa en ventana). Índices, competición (badge EN JUEGO), sitemap y
+  badge (jugador/equipo/buscador) derivan de ahí. Verificado: hoy (todo en T21) el set mostrado es idéntico
+  (los 6 grupos de diferencia son slugs esViejaCopa que el índice ya filtraba).
+- PENDIENTE / evolución (NO construir ahora, decisión de Fernando): mover la señal al PIPELINE, emitiendo un
+  flag `arrancada`/`temporada_activa` en web_grupos, y que la web lo lea en vez de escanear web_resultados en
+  la vista. Sería más barato (sin el EXISTS sobre 106k filas) y explícito. La vista funciona y no requiere
+  mantenimiento, así que es opcional; el flag sería la versión definitiva si el escaneo llega a pesar.

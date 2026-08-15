@@ -4,7 +4,7 @@ import { escudoUrl, formatNombre } from '@/lib/supabase'
 import { jugadorHref, tempLabel } from '@/lib/jugador'
 import { equipoHref } from '@/lib/equipo'
 import Pastilla from '@/components/Pastilla'
-import { normAlign, LIVE_COD, type JugadorHit, type EquipoHit } from '@/lib/buscador'
+import { normAlign, type JugadorHit, type EquipoHit } from '@/lib/buscador'
 
 // Resalta en verde los trozos del texto que coinciden con los tokens (insensible a acentos/mayúsculas).
 export function Highlight({ text, tokens }: { text: string; tokens: string[] }) {
@@ -24,10 +24,10 @@ export function Highlight({ text, tokens }: { text: string; tokens: string[] }) 
   return <>{out}</>
 }
 
-export function ResultadoJugador({ j, tokens, onNavigate, active }: {
-  j: JugadorHit; tokens: string[]; onNavigate?: () => void; active?: boolean
+export function ResultadoJugador({ j, tokens, onNavigate, active, suelo }: {
+  j: JugadorHit; tokens: string[]; onNavigate?: () => void; active?: boolean; suelo: number
 }) {
-  const inactivo = Number(j.codtemporada_ultima) < Number(LIVE_COD)
+  const inactivo = Number(j.codtemporada_ultima) < suelo
   return (
     <Link
       href={jugadorHref(j.codjugador, j.nombre)}

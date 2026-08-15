@@ -7,13 +7,15 @@ import JsonLd from '@/components/JsonLd'
 import Sello from '@/components/Sello'
 import { SITE_URL } from '@/lib/seo'
 import { graphLd, websiteLd, organizationLd, breadcrumbLd } from '@/lib/jsonld'
-import { ORDEN_JUVENILES as COMPETICION_ORDER, esViejaCopa, segRondaActual, numRondas, historicoLegenda } from '@/lib/competiciones'
+import { ORDEN_JUVENILES as COMPETICION_ORDER, segRondaActual, numRondas, historicoLegenda } from '@/lib/competiciones'
 import { familiaSello, nombreOficial } from '@/lib/sellos'
 import { cacheIndices } from '@/lib/cacheComp'
+import { getGruposIndice } from '@/lib/temporadas'
+import { TEMP_LABEL_BY_COD } from '@/lib/seo'
 
 export const metadata: Metadata = {
   title: 'Fútbol Juvenil Madrid — categorías y grupos | Fútbol11Stats',
-  description: 'Clasificaciones, goleadores y estadísticas del fútbol juvenil de Madrid (RFFM): Nacional, 1ª Autonómica, Preferente, 1ª y 2ª Juvenil. Temporada 2025-26.',
+  description: 'Clasificaciones, goleadores y estadísticas del fútbol juvenil de Madrid (RFFM): Nacional, 1ª Autonómica, Preferente, 1ª y 2ª Juvenil.',
   alternates: { canonical: '/madrid/juveniles' },
   openGraph: {
     title: 'Fútbol Juvenil Madrid | Fútbol11Stats',
@@ -23,19 +25,6 @@ export const metadata: Metadata = {
     locale: 'es_ES',
     type: 'website',
   },
-}
-
-async function getGrupos() {
-  return cacheIndices(async () => {
-    const { data } = await supabase
-      .from('web_grupos')
-      .select('codtemporada, nombre_comp, nombre_grupo, codgrupo, categoria, jornada_actual, slug_comp, slug_grupo, tipo, rondas')
-      .eq('categoria', 'JUVENIL')
-      .eq('codtemporada', 21)
-      .order('nombre_comp')
-    // Copa por FAMILIA: oculta las páginas viejas por competición (la familia es la canónica).
-    return (data || []).filter((g: any) => !esViejaCopa(g.slug_comp))
-  }, ['getGrupos-juv'])
 }
 
 // nombre_historico solo está poblado en T17-T19; mapeamos nombre_comp -> nombre_historico
@@ -55,7 +44,7 @@ async function getHistoricoMap() {
 
 
 export default async function JuvenilPage() {
-  const [grupos, historicoMap] = await Promise.all([getGrupos(), getHistoricoMap()])
+  const [grupos, historicoMap] = await Promise.all([getGruposIndice('JUVENIL'), getHistoricoMap()])
 
   // Ordenar por número de grupo en cliente (evita orden alfabético tipo "Grupo 10" < "Grupo 2")
   grupos.sort((a, b) => {
@@ -99,7 +88,7 @@ export default async function JuvenilPage() {
           Juvenil
         </h1>
         <p className="text-chalk-600 text-sm mt-2">
-          {grupos.length} grupo{grupos.length !== 1 ? 's' : ''} · Temporada 2025-26
+          {grupos.length} grupo{grupos.length !== 1 ? 's' : ''}
         </p>
       </div>
 
@@ -124,9 +113,11 @@ function CompeticionCard({
   nombreHistorico,
 }: {
   nombre: string
-  grupos: { codgrupo: string; nombre_grupo: string; jornada_actual: number; slug_comp: string; slug_grupo: string; tipo?: string; rondas?: unknown }[]
+  grupos: { codtemporada: number; codgrupo: string; nombre_grupo: string; jornada_actual: number; slug_comp: string; slug_grupo: string; tipo?: string; rondas?: unknown }[]
   nombreHistorico?: string
 }) {
+  // Temporada de ESTA competición (todos sus grupos comparten temporada activa). Sustituye al '2025-26' global.
+  const temp = TEMP_LABEL_BY_COD[grupos[0].codtemporada]
   const nombreCorto: Record<string, string> = {
     'Nacional Juvenil Madrid': 'Nacional Juvenil',
     '1ª Autonómica Juvenil Madrid': '1ª Autonómica',
@@ -144,7 +135,7 @@ function CompeticionCard({
       <div className="px-4 py-3 border-b border-pitch-700">
         <div className="flex items-center justify-between">
           <span className="font-semibold text-white text-sm flex items-center gap-2"><Sello nombreComp={nombre} src={famSlug ? familiaSello(famSlug, nombre) : undefined} size={24} />{titulo}</span>
-          <span className="text-xs text-chalk-600">{grupos.length} grupo{grupos.length !== 1 ? 's' : ''}</span>
+          <span className="text-xs text-chalk-600">{temp} · {grupos.length} grupo{grupos.length !== 1 ? 's' : ''}</span>
         </div>
         {hist && (
           <p className="text-chalk-600 text-[11px] mt-1 flex items-center gap-1">
@@ -158,7 +149,7 @@ function CompeticionCard({
       <div className="px-4 py-2 flex flex-wrap gap-2">
         {grupos.length > 1 && (
           <Link
-            href={`/madrid/juveniles/${grupos[0].slug_comp}/global/2025-26/jornada-${grupos[0].jornada_actual}/clasificacion`}
+            href={`/madrid/juveniles/${grupos[0].slug_comp}/global/${temp}/jornada-${grupos[0].jornada_actual}/clasificacion`}
             className="text-xs bg-grass-500/15 hover:bg-grass-500 text-grass-300 hover:text-white px-3 py-1.5 rounded-md transition-colors border border-grass-500/30 font-semibold"
           >
             Global
@@ -169,7 +160,7 @@ function CompeticionCard({
           return (
           <Link
             key={g.codgrupo}
-            href={`/madrid/juveniles/${g.slug_comp}/${g.slug_grupo}/2025-26/${esCopa ? segRondaActual(g) : `jornada-${g.jornada_actual}`}/${esCopa ? 'resultados' : 'clasificacion'}`}
+            href={`/madrid/juveniles/${g.slug_comp}/${g.slug_grupo}/${TEMP_LABEL_BY_COD[g.codtemporada]}/${esCopa ? segRondaActual(g) : `jornada-${g.jornada_actual}`}/${esCopa ? 'resultados' : 'clasificacion'}`}
             className="text-xs bg-pitch-700 hover:bg-grass-500 text-chalk-200 hover:text-white px-3 py-1.5 rounded-md transition-colors"
           >
             {esCopa ? `Ver competición · ${numRondas(g)} ronda${numRondas(g) === 1 ? '' : 's'}` : `${g.nombre_grupo} · J${g.jornada_actual}`}

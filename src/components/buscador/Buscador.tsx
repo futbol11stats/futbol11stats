@@ -12,7 +12,7 @@ import { ResultadoJugador, ResultadoEquipo } from './Resultados'
 // Buscador del header (client): lupa siempre visible; al abrir despliega caja + resultados agrupados.
 // Consulta directa a Supabase con debounce 250ms y mínimo 2 caracteres. Teclado (flechas+Enter) en
 // desktop; cierre con X/Escape/click fuera. "Ver los N resultados" -> /buscar.
-export default function Buscador() {
+export default function Buscador({ suelo }: { suelo: number }) {
   const router = useRouter()
   const [open, setOpen] = useState(false)
   const [q, setQ] = useState('')
@@ -128,7 +128,7 @@ export default function Buscador() {
                 <div>
                   <p className="px-3 pt-2.5 pb-1 text-[10px] font-semibold uppercase tracking-widest text-chalk-600">Jugadores ({nJug})</p>
                   {jug.map((j, i) => (
-                    <ResultadoJugador key={j.codjugador} j={j} tokens={tokens} active={active === eq.length + i} onNavigate={cerrar} />
+                    <ResultadoJugador key={j.codjugador} j={j} tokens={tokens} active={active === eq.length + i} onNavigate={cerrar} suelo={suelo} />
                   ))}
                 </div>
               )}

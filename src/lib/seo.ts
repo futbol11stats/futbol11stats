@@ -38,7 +38,8 @@ export const TEMP_LABEL_BY_COD: Record<number, string> = {
   20: '2024-25',
   21: '2025-26',
 }
-export const LIVE_SEASON = 21
+// LIVE_SEASON eliminado: la temporada activa es data-driven por competición ('@/lib/temporadas'). El sitemap
+// usa getTemporadasActivas()+mapaActivas() para marcar qué grupo está en su temporada activa (vs histórico).
 
 // categoria de BD -> segmento de URL.
 export const CATEGORIA_SLUG: Record<string, string> = {

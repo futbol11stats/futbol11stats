@@ -8,7 +8,8 @@ import NombreEquipo from '@/components/NombreEquipo'
 import { Escudo, Balon, Guante, TarjetaAmarilla, TarjetaDoble, TarjetaRoja, Camiseta, CamisetaHueca, Reloj } from '@/components/iconos'
 import { nombreOficial, denominacion, familiaSello } from '@/lib/sellos'
 import { ensureMadrid } from '@/lib/seo'
-import { LIVE_COD, fechaCortaDMY } from '@/lib/equipo'
+import { fechaCortaDMY } from '@/lib/equipo'
+import { esTemporadaActiva } from '@/lib/temporadas'
 import { colorElo } from '@/lib/equipoV2'
 import { fichasInfo } from '@/lib/jugador'
 import { ZONA_BG, ZONA_LEYENDA, ARRASTRE_TIPOS } from '@/components/tablas'
@@ -197,7 +198,7 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
 
   const nombre = nombreOficial(grupo.nombre_comp) ?? ensureMadrid(denominacion(grupo.nombre_comp))
   const tituloGrupo = `${nombre}${grupo.nombre_grupo ? ` · ${grupo.nombre_grupo}` : ''}`
-  const enJuego = String(codtemporada) === String(LIVE_COD)
+  const enJuego = await esTemporadaActiva(categoria, slugComp, codtemporada)
   const base = `/madrid/${categoria}/${slugComp}/${slugGrupo}/${temporada}`
   const baseTab = `${base}/${segJornada}`
   const jlbl = modo === 'temporada' ? 'Acumulado hasta' : (esFamilia ? 'Ronda' : 'Jornada')

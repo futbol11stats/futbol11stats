@@ -6,6 +6,7 @@ import { SITE_URL } from '@/lib/seo'
 import CookieConsent from '@/components/CookieConsent'
 import CookieSettingsButton from '@/components/CookieSettingsButton'
 import Buscador from '@/components/buscador/Buscador'
+import { getSueloVivo } from '@/lib/temporadas'
 import Instagram from '@/components/icons/Instagram'
 import TikTok from '@/components/icons/TikTok'
 import './globals.css'
@@ -29,11 +30,13 @@ export const metadata: Metadata = {
   },
 }
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
+  // Suelo vivo (badge activo/inactivo del buscador del header), resuelto una vez y cacheado (tag 'indices').
+  const suelo = await getSueloVivo()
   return (
     <html lang="es" className={`${inter.variable} ${barlow.variable}`}>
       <body className="bg-pitch-900 text-chalk-100 min-h-screen font-body antialiased">
@@ -52,7 +55,7 @@ export default function RootLayout({
                 <a href="/madrid/aficionados" className="hover:text-white transition-colors">Aficionados</a>
                 <a href="/madrid/juveniles" className="hover:text-white transition-colors">Juveniles</a>
               </nav>
-              <Buscador />
+              <Buscador suelo={suelo} />
             </div>
           </div>
         </header>

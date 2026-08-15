@@ -21,8 +21,9 @@ import { graphLd, breadcrumbLd, sportsTeamLd } from '@/lib/jsonld'
 import { SITE_URL } from '@/lib/seo'
 import { escudoUrl, formatNombre } from '@/lib/supabase'
 import { jugadorHref, fechaCorta, fichasExistentes } from '@/lib/jugador'
+import { getSueloVivo } from '@/lib/temporadas'
 import {
-  equipoSlug, tempLabel, LIVE_COD, getGrupoInfo, grupoHref, getEquipoActualInfo,
+  equipoSlug, tempLabel, getGrupoInfo, grupoHref, getEquipoActualInfo,
   fechaCortaDMY, fechaCortaYMD, BADGE, HITO_EQUIPO,
 } from '@/lib/equipo'
 import {
@@ -42,10 +43,10 @@ const iniciales = (nombre: string) => formatNombre(nombre).split(/\s+/).map((w) 
 // '/v2' mientras la v2 se sirve además en /v2 (para que ese árbol enlace dentro de sí mismo). El sportsTeamLd
 // apunta siempre a la canónica (sin /v2), que es el identificador del equipo.
 export default async function FichaEquipoV2({ cod, temporadaLabel, suf = '' }: { cod: string; temporadaLabel: string | null; suf?: string }) {
-  const [e, temporadas] = await Promise.all([getEquipoV2(cod), getTemporadasEquipo(cod)])
+  const [e, temporadas, suelo] = await Promise.all([getEquipoV2(cod), getTemporadasEquipo(cod), getSueloVivo()])
   if (!e) notFound()
 
-  const inactivo = Number(e.codtemporada) < Number(LIVE_COD)
+  const inactivo = Number(e.codtemporada) < suelo
   const slug = equipoSlug(e.codequipo, e.nombre)
 
   // Temporada seleccionada (ruta) o la más reciente.
