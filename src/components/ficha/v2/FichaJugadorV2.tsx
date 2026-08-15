@@ -154,9 +154,10 @@ export default async function FichaJugadorV2({ cod, temporadaLabel, suf = '' }: 
   const compNames = comps.map((c) => c.nombre_comp)
   const ligaCod = comps[0]?.codgrupo
 
-  // Percentil: floor y TOPE 99 (no se puede ser "mejor que el 100 %" de su categoría, incluido uno mismo;
-  // rank 358/38.173 -> 99). Batería: min(10, round(pct/10)) -> se llena entera en el tope.
-  const pct = j.elo_percentil != null ? Math.min(99, Math.floor(j.elo_percentil)) : null
+  // Percentil de ELO POR TEMPORADA: elo_percentil_temp de la ÚLTIMA etapa (etapaUltima), la misma fila de la
+  // que sale el ELO -> coherente con el valor y su coloreado. Antes era web_jugador.elo_percentil (de hoy, en
+  // cualquier temporada). Floor y TOPE 99. Batería: min(10, round(pct/10)) -> se llena entera en el tope.
+  const pct = etapaUltima?.elo_percentil_temp != null ? Math.min(99, Math.floor(etapaUltima.elo_percentil_temp)) : null
   const llenos = pct != null ? Math.min(10, Math.round(pct / 10)) : 0
   const eloBig = eloCierre   // Nivel y KpiBar comparten el ELO de la última etapa (un solo ELO en pantalla).
 

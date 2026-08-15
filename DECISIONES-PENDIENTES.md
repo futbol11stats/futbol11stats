@@ -515,3 +515,18 @@ Petición concreta:
   ~19.578 en T21). rank_general_season_total = esa N.
 Mientras tanto, la web usa como INTERINO el rank_general_temp de la etapa con más puntos (fijo, no sigue la
 pastilla). Cuando lleguen las columnas nuevas, se cambia la ficha a rank_general_season (una línea).
+
+## E-nivel-percentil-temporada — RESUELTO
+El pipeline recalculó web_percentiles.elo_jugador (de elo_actual a elo_final por temporada) y añadió
+elo_percentil_temp a web_jugador_carrera. La ficha (bloque Nivel) ya lee elo_percentil_temp de la última
+etapa cronológica (etapaUltima), la misma de la que sale el ELO. Añadidas la columna a COLS_CARRERA/CarreraRow.
+
+## E-cache · Cache-miss GLOBAL tras cambios de esquema/dato (patrón)
+Contexto: las lecturas van por unstable_cache (cacheJugador/cacheComp/cacheTagged). En Vercel el Data Cache
+PERSISTE entre deploys: un redeploy vacía el full-route cache (regenera el HTML) pero al regenerar sigue
+leyendo el Data Cache viejo. Para refrescar TODAS las fichas sin revalidar 38k tags:
+- Bumpear la VERSIÓN en los keyParts de la función (p.ej. ['getCarreraV2','v2',cod]) -> cambia la clave ->
+  cache-miss global -> datos frescos en la primera visita post-deploy. Es lo que se usó al añadir
+  elo_percentil_temp (getCarreraV2) y al recalcular los cortes (getPercentilCortes).
+- La revalidación por tag (temporada:/jugador:) sigue sirviendo para cambios acotados (el pipeline la usa).
+- Un redeploy "a secas" NO invalida el Data Cache: no confiar en él para cambios de dato cacheado.

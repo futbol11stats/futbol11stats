@@ -90,7 +90,8 @@ export const COLS_CARRERA =
   'grupo_nombre, pj, goles, minutos, pts_fantasy, media_fantasy, elo_final, titular, suplente, ' +
   'tarjetas_amarillas, tarjetas_dobles, tarjetas_rojas, goles_encajados, porterias_cero, ' +
   'rank_general_temp, rank_general_temp_total, rank_categoria_temp, rank_categoria_temp_total, ' +
-  'rank_posicion_temp, rank_posicion_temp_total, rank_principal, rank_general_season, rank_general_season_total'
+  'rank_posicion_temp, rank_posicion_temp_total, rank_principal, rank_general_season, rank_general_season_total, ' +
+  'elo_percentil_temp'
 
 export const COLS_HITOS =
   'tipo_hito, ambito, fecha, codacta, codtemporada, contexto_cod, contexto_nombre, escudo, ' +

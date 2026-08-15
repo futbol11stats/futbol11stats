@@ -47,6 +47,9 @@ export type CarreraRow = {
   // Ranking GENERAL definitivo por temporada (unidad codjugador+codtemporada, sobre el total fantasy de la
   // temporada, contra jugadores distintos). Poblado solo en la fila rank_principal.
   rank_general_season: number | null; rank_general_season_total: number | null
+  // Percentil de ELO por temporada (del elo_final de ESA etapa). El bloque Nivel lee el de la última etapa
+  // cronológica (etapaUltima), la misma de la que sale el ELO.
+  elo_percentil_temp: number | null
 }
 // Carrera ordenada: temporada DESC, y dentro de la temporada orden_temporada ASC (lo decide el pipeline).
 export async function getCarreraV2(cod: string): Promise<CarreraRow[]> {
@@ -54,7 +57,9 @@ export async function getCarreraV2(cod: string): Promise<CarreraRow[]> {
     const { data } = await supabase.from('web_jugador_carrera').select(COLS_CARRERA).eq('codjugador', cod)
     return ((data || []) as any[]).sort((a, b) =>
       String(b.codtemporada).localeCompare(String(a.codtemporada)) || (a.orden_temporada ?? 0) - (b.orden_temporada ?? 0)) as CarreraRow[]
-  }, ['getCarreraV2', cod], cod)
+    // keyParts v2: se añadió elo_percentil_temp a COLS_CARRERA. Bump para forzar cache-miss GLOBAL (el Data
+    // Cache persiste entre deploys; sin esto seguiría sirviendo filas sin la columna). Ver también E-cache.
+  }, ['getCarreraV2', 'v2', cod], cod)
 }
 
 export async function getActuacionesV2(cod: string): Promise<any[]> {
@@ -153,7 +158,9 @@ export async function getPercentilCortes(
     const c = [data.p20, data.p40, data.p60, data.p80]
     if (c.some((x) => x == null)) return null
     return c as [number, number, number, number]
-  }, ['getPercentilCortes', metrica, String(categoria), codtempInt], [`temporada:${codtempInt}`])
+    // keyParts v2: el pipeline recalculó web_percentiles.elo_jugador (de elo_actual a elo_final por temporada).
+    // Bump para forzar cache-miss GLOBAL de los cortes (persisten entre deploys, tag temporada:).
+  }, ['getPercentilCortes', 'v2', metrica, String(categoria), codtempInt], [`temporada:${codtempInt}`])
 }
 
 // Cortes de ELO por categoría/temporada, validados; si son degenerados o no hay, cae a CORTES_FIJOS.elo.
