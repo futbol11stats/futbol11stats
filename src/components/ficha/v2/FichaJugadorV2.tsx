@@ -69,12 +69,12 @@ export default async function FichaJugadorV2({ cod, temporadaLabel, suf = '' }: 
   const codPedido = labelToCod(temporadaLabel)
   const tempSel = (codPedido && temporadas.includes(codPedido)) ? codPedido : (carrera[0]?.codtemporada ?? null)
   const etapas = carrera.filter((c) => c.codtemporada === tempSel)
-  const etapaPrincipal: CarreraRow | undefined = etapas[0]
   // Etapa PRINCIPAL de la temporada = la marcada `rank_principal` por el pipeline (en promoción, la categoría
-  // instalada superior; sin promoción, la de más actividad). Manda en Nivel (rankings + etiqueta + ELO) y en
-  // el ELO de la KpiBar. orden_temporada YA NO elige etapa: solo ordena la Trayectoria. Fallback a la primera
+  // instalada superior; sin promoción, la de más actividad). Es la ÚNICA que etiqueta la temporada en la
+  // ficha: hero (pastilla de competición + enlace), KpiBar (ELO) y Nivel (rankings + etiqueta + ELO).
+  // orden_temporada YA NO elige etapa en ningún sitio salvo ordenar la Trayectoria. Fallback a la primera
   // etapa si no hubiera marca (el pipeline garantiza exactamente una fila rank_principal por jugador-temporada).
-  const filaPrincipal: CarreraRow | undefined = etapas.find((c) => c.rank_principal) ?? etapaPrincipal
+  const filaPrincipal: CarreraRow | undefined = etapas.find((c) => c.rank_principal) ?? etapas[0]
   const categoriaSel = filaPrincipal?.nombre_comp ?? j.categoria_rama ?? null
 
   const sum = (f: (c: CarreraRow) => number | null) => etapas.reduce((s, c) => s + (f(c) ?? 0), 0)
@@ -94,7 +94,7 @@ export default async function FichaJugadorV2({ cod, temporadaLabel, suf = '' }: 
     tempSel ? getPartidosTemporada(cod, tempSel) : Promise.resolve([] as any[]),
     getActuacionesV2(cod),
     getHitosV2(cod),
-    getGrupoInfo(etapaPrincipal?.codgrupo),
+    getGrupoInfo(filaPrincipal?.codgrupo),
     getTarjetasTotales(cod),
   ])
   const { copas, posicionActual } = equipoInfo
@@ -270,9 +270,9 @@ export default async function FichaJugadorV2({ cod, temporadaLabel, suf = '' }: 
               {inactivo && j.codtemporada_ultima && <span style={{ color: 'var(--ink-3)' }}> ({tempLabel(j.codtemporada_ultima)})</span>}
             </span>
           )}
-          {etapaPrincipal?.nombre_comp && (
-            <LigaPastilla nombreComp={etapaPrincipal?.nombre_comp ?? null}
-              segments={[etapaPrincipal?.nombre_comp ?? null, etapaPrincipal?.grupo_nombre ?? null, inactivo || posicionActual == null ? null : `${posicionActual}º`]}
+          {filaPrincipal?.nombre_comp && (
+            <LigaPastilla nombreComp={filaPrincipal?.nombre_comp ?? null}
+              segments={[filaPrincipal?.nombre_comp ?? null, filaPrincipal?.grupo_nombre ?? null, inactivo || posicionActual == null ? null : `${posicionActual}º`]}
               href={grupoUrl} muted={inactivo} />
           )}
           <CopasLinea copas={copas} />
