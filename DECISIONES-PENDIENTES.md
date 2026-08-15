@@ -478,3 +478,20 @@ componente de render. Confirmar antes de ejecutar.
   flag `arrancada`/`temporada_activa` en web_grupos, y que la web lo lea en vez de escanear web_resultados en
   la vista. Sería más barato (sin el EXISTS sobre 106k filas) y explícito. La vista funciona y no requiere
   mantenimiento, así que es opcional; el flag sería la versión definitiva si el escaneo llega a pesar.
+
+## E-nivel-percentil-temporada · Percentil de ELO por temporada en el bloque Nivel (PENDIENTE de dato)
+Contexto: los rankings, la etiqueta y el ELO de Nivel ya son por temporada (fila rank_principal de
+web_jugador_carrera). El PERCENTIL sigue siendo el de web_jugador (snapshot de HOY) -> al ver un año
+histórico muestra el percentil de hoy. No se cambia de métrica (el percentil mide ELO; los rankings miden
+puntos fantasy: son KPI distintos, no tienen por qué cuadrar). El problema es solo su dimensión temporal.
+Opciones para un percentil de ELO POR TEMPORADA con precisión real:
+- (1) PIPELINE (recomendado): que emita `elo_percentil_temp` por jugador-temporada en la fila rank_principal,
+  igual que hizo con rank_*_temp. Tiene la distribución completa de ELO por categoria+temporada (de ahí sale
+  web_percentiles), así que puede dar percentil fino (0-99). Es el parche limpio y paralelo a los rankings.
+- (2) web_percentiles: YA tiene métrica `elo_jugador` por categoria+temporada, pero con cortes de DECIL
+  (p10..p90 = 9 cortes -> 10 buckets) + n. Se podría derivar un percentil por temporada AHORA bucketeando el
+  elo_final contra esos deciles, pero solo con precisión de decil (pasos de 10), un bajón visible frente al
+  0-99 fino de hoy.
+- (3) Cortes necesarios: para precisión de entero harían falta ~99 cortes o la distribución cruda; guardar 99
+  cortes es impráctico. Con los 9 deciles actuales -> decil. Conclusión: mejor que el pipeline emita el
+  percentil directo (opción 1); mientras, el percentil se deja como está (de hoy).

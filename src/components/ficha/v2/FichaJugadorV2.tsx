@@ -70,17 +70,21 @@ export default async function FichaJugadorV2({ cod, temporadaLabel, suf = '' }: 
   const tempSel = (codPedido && temporadas.includes(codPedido)) ? codPedido : (carrera[0]?.codtemporada ?? null)
   const etapas = carrera.filter((c) => c.codtemporada === tempSel)
   const etapaPrincipal: CarreraRow | undefined = etapas[0]
-  const categoriaSel = etapaPrincipal?.nombre_comp ?? j.categoria_rama ?? null
+  // Etapa PRINCIPAL de la temporada = la marcada `rank_principal` por el pipeline (en promoción, la categoría
+  // instalada superior; sin promoción, la de más actividad). Manda en Nivel (rankings + etiqueta + ELO) y en
+  // el ELO de la KpiBar. orden_temporada YA NO elige etapa: solo ordena la Trayectoria. Fallback a la primera
+  // etapa si no hubiera marca (el pipeline garantiza exactamente una fila rank_principal por jugador-temporada).
+  const filaPrincipal: CarreraRow | undefined = etapas.find((c) => c.rank_principal) ?? etapaPrincipal
+  const categoriaSel = filaPrincipal?.nombre_comp ?? j.categoria_rama ?? null
 
   const sum = (f: (c: CarreraRow) => number | null) => etapas.reduce((s, c) => s + (f(c) ?? 0), 0)
   const pj = sum((c) => c.pj), golesT = sum((c) => c.goles), ptsF = sum((c) => c.pts_fantasy)
   const minT = sum((c) => c.minutos), p0Sel = sum((c) => c.porterias_cero)
   const media = pj > 0 ? ptsF / pj : null
-  const eloSel = etapaPrincipal?.elo_final ?? j.elo_actual ?? null
-  // ELO de CIERRE de la temporada seleccionada para la KpiBar (ámbito = temporada, como PJ/min/goles/media).
-  // Con varias etapas en la misma temporada se toma el elo_final de la ÚLTIMA (carrera va orden_temporada
-  // ASC dentro de la temporada) — criterio original de Fernando. Nivel usa el ELO actual (otro ámbito).
-  const eloCierre = etapas[etapas.length - 1]?.elo_final ?? j.elo_actual ?? null
+  // ELO de la temporada seleccionada = elo_final de la etapa PRINCIPAL (rank_principal). MISMO valor en la
+  // KpiBar y en Nivel, para que no haya dos ELO distintos en pantalla. Se colorea con los cortes de esa
+  // categoría+temporada (getCortesElo(categoriaSel, tempSel), abajo).
+  const eloCierre = filaPrincipal?.elo_final ?? j.elo_actual ?? null
 
   const [equipoInfo, cortesElo, alerta, comps, partidosTemp, actuaciones, hitosRaw, grupoInfo, tarjetas] = await Promise.all([
     inactivo ? Promise.resolve({ copas: [], posicionActual: null }) : getEquipoActualInfo(j.codequipo_actual),
@@ -122,7 +126,7 @@ export default async function FichaJugadorV2({ cod, temporadaLabel, suf = '' }: 
   // rank 358/38.173 -> 99). Batería: min(10, round(pct/10)) -> se llena entera en el tope.
   const pct = j.elo_percentil != null ? Math.min(99, Math.floor(j.elo_percentil)) : null
   const llenos = pct != null ? Math.min(10, Math.round(pct / 10)) : 0
-  const eloBig = j.elo_actual ?? eloSel
+  const eloBig = eloCierre   // Nivel y KpiBar comparten el ELO de la etapa principal (un solo ELO en pantalla).
 
   const dorsalesOtros = (j.dorsales_otros || []).filter((d) => d !== j.dorsal_ultimo && d !== j.dorsal_comun)
 
@@ -328,9 +332,11 @@ export default async function FichaJugadorV2({ cod, temporadaLabel, suf = '' }: 
         <div className="aside">
           {/* NIVEL */}
           <section id="s-nivel">
-            {/* Los rankings salen de web_jugador (rank_general/categoria/posicion): son ACTUALES, no por
-                temporada, así que no cambian con el selector. El subtítulo lo deja claro (sin Echo). */}
-            <div className="s-head"><div className="s-title">Nivel</div><div className="s-sub"><span className="allscope">Situación actual</span></div></div>
+            {/* Rankings, etiqueta de categoría y ELO salen de la fila rank_principal de la TEMPORADA
+                seleccionada (rank_*_temp, no el snapshot de web_jugador): cambian con el selector y hablan del
+                mismo año que la KpiBar. El percentil sí sigue siendo el de web_jugador (mide ELO, otro KPI;
+                pendiente un percentil de ELO por temporada — ver DECISIONES). El subtítulo indica la temporada. */}
+            <div className="s-head"><div className="s-title">Nivel</div><div className="s-sub"><span className="allscope">{tempTxt ? `en ${tempTxt}` : 'Situación actual'}</span></div></div>
             <div className="box">
               <div className="elo-top">
                 <div><div className="cap">ELO F11S</div><div className="elo-v" style={{ color: cElo(eloBig) }}>{eloBig != null ? mil(Math.round(eloBig)) : '—'}</div></div>
@@ -364,12 +370,13 @@ export default async function FichaJugadorV2({ cod, temporadaLabel, suf = '' }: 
               })()}
               <div style={{ marginTop: 13 }}>
                 {/* Cada ranking con su icono: badge (11) F11S, Sello de competición, Pastilla de posición. */}
-                {RankFila(badge11, 'Fútbol11Stats · Madrid', j.rank_general, j.rank_general_total)}
-                {RankFila(categoriaSel ? <Sello nombreComp={categoriaSel} size={18} /> : null, categoriaSel || 'Competición', j.rank_categoria, j.rank_categoria_total)}
-                {RankFila(<Pastilla pos={j.posicion_pastilla} estimada={!!j.posicion_es_estimada} size="mini" />, j.posicion_pastilla ? (POS_LABEL[j.posicion_pastilla] || j.posicion_pastilla) : 'Posición', j.rank_posicion, j.rank_posicion_total)}
+                {RankFila(badge11, 'Fútbol11Stats · Madrid', filaPrincipal?.rank_general_temp ?? null, filaPrincipal?.rank_general_temp_total ?? null)}
+                {RankFila(categoriaSel ? <Sello nombreComp={categoriaSel} size={18} /> : null, categoriaSel || 'Competición', filaPrincipal?.rank_categoria_temp ?? null, filaPrincipal?.rank_categoria_temp_total ?? null)}
+                {RankFila(<Pastilla pos={j.posicion_pastilla} estimada={!!j.posicion_es_estimada} size="mini" />, j.posicion_pastilla ? (POS_LABEL[j.posicion_pastilla] || j.posicion_pastilla) : 'Posición', filaPrincipal?.rank_posicion_temp ?? null, filaPrincipal?.rank_posicion_temp_total ?? null)}
               </div>
-              {/* Aclara el criterio de los rankings: no son de todas las temporadas, sino de la última activa. */}
-              <p className="rank-note">Por puntos fantasy de la última temporada activa.</p>
+              {/* Aclara el criterio: rankings por PUNTOS FANTASY de la temporada seleccionada (rank_*_temp de la
+                  fila principal), no de toda la carrera. Distinto del percentil de arriba, que mide ELO. */}
+              <p className="rank-note">Por puntos fantasy de la temporada.</p>
             </div>
           </section>
 

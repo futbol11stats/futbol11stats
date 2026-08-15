@@ -39,6 +39,11 @@ export type CarreraRow = {
   pts_fantasy: number | null; media_fantasy: number | null; elo_final: number | null
   titular: number | null; suplente: number | null; tarjetas_amarillas: number | null
   tarjetas_dobles: number | null; tarjetas_rojas: number | null; goles_encajados: number | null; porterias_cero: number | null
+  // Rankings POR TEMPORADA (los usa el bloque Nivel desde la fila rank_principal de la temporada seleccionada).
+  rank_general_temp: number | null; rank_general_temp_total: number | null
+  rank_categoria_temp: number | null; rank_categoria_temp_total: number | null
+  rank_posicion_temp: number | null; rank_posicion_temp_total: number | null
+  rank_principal: boolean | null
 }
 // Carrera ordenada: temporada DESC, y dentro de la temporada orden_temporada ASC (lo decide el pipeline).
 export async function getCarreraV2(cod: string): Promise<CarreraRow[]> {
