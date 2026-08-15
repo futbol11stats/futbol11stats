@@ -38,7 +38,10 @@ const med1 = (v: number | null) => (v == null ? '—' : v.toFixed(1).replace('.'
 const conSigno = (n: number) => (n > 0 ? `+${n}` : `${n}`)
 const iniciales = (nombre: string) => formatNombre(nombre).split(/\s+/).map((w) => w[0]).filter(Boolean).slice(0, 2).join('').toUpperCase()
 
-export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: string; temporadaLabel: string | null }) {
+// `suf` = sufijo de URL para los enlaces internos y el breadcrumb JSON-LD. Vacío ('') en la URL canónica;
+// '/v2' mientras la v2 se sirve además en /v2 (para que ese árbol enlace dentro de sí mismo). El sportsTeamLd
+// apunta siempre a la canónica (sin /v2), que es el identificador del equipo.
+export default async function FichaEquipoV2({ cod, temporadaLabel, suf = '' }: { cod: string; temporadaLabel: string | null; suf?: string }) {
   const [e, temporadas] = await Promise.all([getEquipoV2(cod), getTemporadasEquipo(cod)])
   if (!e) notFound()
 
@@ -248,7 +251,7 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
   const crumbs = [
     { name: 'Inicio', url: `${SITE_URL}/` },
     { name: 'Equipos', url: `${SITE_URL}/madrid/aficionados` },
-    { name: e.nombre, url: `${SITE_URL}/madrid/equipo/${slug}/v2` },
+    { name: e.nombre, url: `${SITE_URL}/madrid/equipo/${slug}${suf}` },
   ]
 
   return (
@@ -293,7 +296,7 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
         <div className="scope-lbl">Temporada</div>
         <div className="track"><div className="rail">
           {temporadas.map((t) => (
-            <Link key={t.codtemporada} href={`/madrid/equipo/${slug}/${tempLabel(t.codtemporada)}/v2`} className={t.codtemporada === tempSel ? 'on' : ''}>{tempLabel(t.codtemporada)}</Link>
+            <Link key={t.codtemporada} href={`/madrid/equipo/${slug}/${tempLabel(t.codtemporada)}${suf}`} className={t.codtemporada === tempSel ? 'on' : ''}>{tempLabel(t.codtemporada)}</Link>
           ))}
         </div></div>
         {chartComps.length > 0 && <>

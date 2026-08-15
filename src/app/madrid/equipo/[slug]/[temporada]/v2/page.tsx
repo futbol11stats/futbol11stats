@@ -22,5 +22,5 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 export default async function Page({ params }: { params: Promise<{ slug: string; temporada: string }> }) {
   const { slug, temporada } = await params
   const cod = codFromSlug(slug)
-  return <FichaEquipoV2 cod={cod} temporadaLabel={temporada} />
+  return <FichaEquipoV2 cod={cod} temporadaLabel={temporada} suf="/v2" />
 }
