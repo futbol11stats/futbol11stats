@@ -131,11 +131,6 @@ export default async function FichaJugadorV2({ cod, temporadaLabel, suf = '' }: 
       rankPos: e?.rank_posicion_temp ?? null, rankPosTotal: e?.rank_posicion_temp_total ?? null,
     }
   })
-  // Ranking GENERAL (no sigue la pastilla). INTERINO = el de la etapa con MÁS puntos fantasy, no el de la
-  // instalada (que sobre pocos puntos sale artificialmente bajo: Raúl 14.936 sobre 10 pts). El general
-  // definitivo, agregado sobre el total de la temporada por (codjugador, codtemporada), es cambio de pipeline
-  // (ver DECISIONES E-rank-general-temporada). Con una sola etapa es esa misma -> sin cambio.
-  const etapaMaxPts = etapas.reduce<CarreraRow | undefined>((best, e) => ((e.pts_fantasy ?? 0) > (best?.pts_fantasy ?? -1) ? e : best), undefined)
 
   const cMed = (v: number | null) => (v == null ? '' : PAL[esc(v, CORTES_FIJOS.mediaPartido)])
   const cElo = (v: number | null) => (v == null ? '' : PAL[esc(v, cortesElo)])
@@ -389,8 +384,9 @@ export default async function FichaJugadorV2({ cod, temporadaLabel, suf = '' }: 
               })()}
               <div style={{ marginTop: 13 }}>
                 {/* Cada ranking con su icono: badge (11) F11S, Sello de competición, Pastilla de posición. */}
-                {/* General: NO sigue la pastilla (interino = etapa de más puntos). Categoría/posición: SÍ la siguen (cliente). */}
-                <RankFila insignia={badge11} label="Fútbol11Stats · Madrid" rank={etapaMaxPts?.rank_general_temp ?? null} total={etapaMaxPts?.rank_general_temp_total ?? null} />
+                {/* General: agregado sobre el total fantasy de la temporada (rank_general_season, fila
+                    rank_principal). NO sigue la pastilla. Categoría/posición: SÍ la siguen (cliente). */}
+                <RankFila insignia={badge11} label="Fútbol11Stats · Madrid" rank={filaPrincipal?.rank_general_season ?? null} total={filaPrincipal?.rank_general_season_total ?? null} />
                 <NivelRankings comps={compsRank}
                   posInsignia={<Pastilla pos={j.posicion_pastilla} estimada={!!j.posicion_es_estimada} size="mini" />}
                   posLabel={j.posicion_pastilla ? (POS_LABEL[j.posicion_pastilla] || j.posicion_pastilla) : 'Posición'} />

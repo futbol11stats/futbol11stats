@@ -44,6 +44,9 @@ export type CarreraRow = {
   rank_categoria_temp: number | null; rank_categoria_temp_total: number | null
   rank_posicion_temp: number | null; rank_posicion_temp_total: number | null
   rank_principal: boolean | null
+  // Ranking GENERAL definitivo por temporada (unidad codjugador+codtemporada, sobre el total fantasy de la
+  // temporada, contra jugadores distintos). Poblado solo en la fila rank_principal.
+  rank_general_season: number | null; rank_general_season_total: number | null
 }
 // Carrera ordenada: temporada DESC, y dentro de la temporada orden_temporada ASC (lo decide el pipeline).
 export async function getCarreraV2(cod: string): Promise<CarreraRow[]> {
