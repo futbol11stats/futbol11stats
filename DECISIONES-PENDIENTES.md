@@ -421,7 +421,21 @@ dibujaba un placeholder de algo que YA existe como componente del sitio, se usa 
   últimos" compacto, se saca de ahí sin fetch nuevo (`ultimosDePartidos` existe en jugadorV2, sin usar).
 
 ## E-migracion-v2-seo · Plan: portar el andamiaje SEO a los componentes v2 (competicion)
-Estado: PLANIFICADO. No ejecutar todavia (Fernando quiere revisar las tres fichas en pantalla antes).
+Estado: RESUELTO (2026-08-15). Los componentes v2 (jugador, equipo, competicion grupo/global) renderizan
+ya las URLs canonicas, con su andamiaje SEO. Cierre final (commit 105a9be):
+
+- Las rutas /v2 quedaron RETIRADAS. Eran duplicados del contenido canonico (que se sirve en la ruta sin
+  sufijo). No se borraron a secas: viven SOLO como redirects 308 permanentes en next.config.js (`redirects()`,
+  `permanent:true`), uno por patron —jugador, jugador+temporada, equipo, equipo+temporada, competicion grupo
+  y global—, para que URLs guardadas/compartidas de /v2 no den 404. Cada destino solo quita el /v2; el slug
+  no canonico encadena un segundo 308 (el de la propia ruta canonica). `global` va antes que `grupo` (ambos
+  de 8 segmentos). Verificacion HTTP de los 308 solo en navegador real: el WAF (Attack Challenge Mode)
+  responde 429 a curl/fetch desde el entorno local.
+- El prop `suf` se RETIRO con ellas. Existia para hacer los 4 componentes Ficha*V2 URL-aware (servir el
+  mismo componente en la URL canonica con suf='' y en /v2 con suf='/v2'). Una vez desaparece el sufijo,
+  siempre valia '' -> codigo muerto: fuera el prop/tipo y los ~21 `${suf}` de los enlaces internos.
+
+Lo de abajo es el plan original (ya ejecutado), se conserva como registro historico.
 
 ### Decision de URL (cerrada)
 La v2 HEREDA la URL actual, SIN sufijo /v2. Indexar bajo /v2 significaria tirar el posicionamiento
