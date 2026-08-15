@@ -7,8 +7,7 @@ import FichaJugadorV2 from '@/components/ficha/v2/FichaJugadorV2'
 import { getJugadorV2 } from '@/lib/jugadorV2'
 import { codFromSlug, jugadorSlug, formatNombre } from '@/lib/jugador'
 
-// Vista por TEMPORADA de la ficha de jugador, en la URL canónica (sin sufijo /v2). Contenido nuevo con valor
-// propio: cada temporada de un jugador es una página indexable. Réplica de la ruta [temporada]/v2 pero:
+// Vista por TEMPORADA de la ficha de jugador: cada temporada es una página indexable por derecho.
 //  - canonical PROPIO apuntando a sí misma (no a la ficha base), para que sea indexable por derecho.
 //  - title con la temporada, para que no compita con la ficha base.
 //  - redirect 308 al slug canónico (paridad con la ruta base [slug]/page.tsx).

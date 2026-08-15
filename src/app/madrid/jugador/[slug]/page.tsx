@@ -8,12 +8,9 @@ import { COLS_JUGADOR, codFromSlug, jugadorSlug, formatNombre, type JugadorFicha
 import { cacheJugador } from '@/lib/cacheComp'
 import FichaJugadorV2 from '@/components/ficha/v2/FichaJugadorV2'
 
-// Migración v2 (paso 2): esta ruta CANÓNICA (sin sufijo /v2) pasa a renderizar FichaJugadorV2. Se conservan
-// verbatim el generateMetadata, el canonical, el redirect 308 al slug canónico y los exports de ISR; lo único
-// que cambia es el componente de render. El JSON-LD (breadcrumb) lo emite FichaJugadorV2 con suf='' (URL sin
-// /v2), equivalente al que emitía el render inline anterior. Los fetchers del render antiguo (getCarrera,
-// getHitos, getActuaciones, getUltimosPartidos, getRacha5) se retiraron: FichaJugadorV2 trae sus propios datos
-// vía jugadorV2.ts. getJugador se mantiene porque lo usan generateMetadata y el 308.
+// La ficha de jugador la renderiza FichaJugadorV2. Este page.tsx conserva el generateMetadata, el canonical,
+// el redirect 308 al slug canónico y los exports de ISR; el JSON-LD (breadcrumb) lo emite FichaJugadorV2.
+// getJugador se mantiene porque lo usan generateMetadata y el 308 (los datos del render los trae jugadorV2.ts).
 
 const num = (n: number | null | undefined) => (n ?? 0).toLocaleString('es-ES')
 

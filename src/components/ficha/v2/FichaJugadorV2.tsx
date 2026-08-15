@@ -48,10 +48,7 @@ function esc(v: number, c: readonly [number, number, number, number]) { if (v < 
 const mil = (n: number | null | undefined) => (n == null ? '—' : Math.round(Number(n)).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.'))
 const med1 = (v: number) => v.toFixed(1).replace('.', ',')
 
-// `suf` = sufijo de URL para los enlaces internos y el breadcrumb JSON-LD. En la URL canónica va vacío
-// ('' -> /madrid/jugador/{slug}); mientras la v2 se sirve además en /v2 se pasa '/v2' para que ese árbol
-// siga enlazando dentro de sí mismo. Así el mismo componente sirve en ambas rutas sin filtrar el sufijo.
-export default async function FichaJugadorV2({ cod, temporadaLabel, suf = '' }: { cod: string; temporadaLabel: string | null; suf?: string }) {
+export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: string; temporadaLabel: string | null }) {
   const [j, carrera, suelo] = await Promise.all([getJugadorV2(cod), getCarreraV2(cod), getSueloVivo()])
   if (!j) notFound()
 
@@ -201,7 +198,7 @@ export default async function FichaJugadorV2({ cod, temporadaLabel, suf = '' }: 
   const crumbs = [
     { name: 'Inicio', url: `${SITE_URL}/` },
     { name: 'Jugadores', url: `${SITE_URL}/madrid/aficionados` },
-    { name: nombre, url: `${SITE_URL}/madrid/jugador/${slug}${suf}` },
+    { name: nombre, url: `${SITE_URL}/madrid/jugador/${slug}` },
   ]
 
   // --- helpers de render ---
@@ -329,7 +326,7 @@ export default async function FichaJugadorV2({ cod, temporadaLabel, suf = '' }: 
         <div className="scope-lbl">Temporada</div>
         <div className="track"><div className="rail">
           {temporadas.map((t) => (
-            <Link key={t} href={`/madrid/jugador/${slug}/${tempLabel(t)}${suf}`} className={t === tempSel ? 'on' : ''}>{tempLabel(t)}</Link>
+            <Link key={t} href={`/madrid/jugador/${slug}/${tempLabel(t)}`} className={t === tempSel ? 'on' : ''}>{tempLabel(t)}</Link>
           ))}
         </div></div>
         {comps.length > 0 && <>
@@ -629,7 +626,7 @@ export default async function FichaJugadorV2({ cod, temporadaLabel, suf = '' }: 
             {!sinPosicion && avisoNode && <div style={{ padding: '14px var(--pad) 0' }}>{avisoNode}</div>}
             <div className="foot" style={{ paddingTop: 18 }}>
               <CompartirBtn titulo={`${nombre} · Fútbol11Stats`} variant="btn" />
-              <a className="btn" href={`mailto:futbol11stats@gmail.com?subject=${encodeURIComponent(`Corrección en la ficha de ${nombre}`)}&body=${encodeURIComponent(`Jugador: ${nombre} (código ${j.codjugador})\nFicha: ${SITE_URL}/madrid/jugador/${slug}${suf}\n\nQué está mal:\n`)}`}>Corregir datos</a>
+              <a className="btn" href={`mailto:futbol11stats@gmail.com?subject=${encodeURIComponent(`Corrección en la ficha de ${nombre}`)}&body=${encodeURIComponent(`Jugador: ${nombre} (código ${j.codjugador})\nFicha: ${SITE_URL}/madrid/jugador/${slug}\n\nQué está mal:\n`)}`}>Corregir datos</a>
             </div>
           </section>
         </div>

@@ -8,13 +8,10 @@ import { COLS_EQUIPO, codFromSlug, equipoSlug, type EquipoFicha } from '@/lib/eq
 import { cacheEquipo } from '@/lib/cacheComp'
 import FichaEquipoV2 from '@/components/ficha/v2/FichaEquipoV2'
 
-// Migración v2 (paso 1): esta ruta CANÓNICA (sin sufijo /v2) pasa a renderizar FichaEquipoV2. Se conservan
-// verbatim generateMetadata (incluido el noindex juvenil), el canonical, el redirect 308 al slug canónico y
-// los exports de ISR; lo único que cambia es el componente de render. El JSON-LD (breadcrumb + sportsTeam) lo
-// emite FichaEquipoV2 con suf='' (URL sin /v2), equivalente al que emitía el render inline anterior. Los
-// fetchers del render antiguo (temporadas, movimientos, hitos, plantilla, mini-clasif, copas, forma…) se
-// retiraron: FichaEquipoV2 trae sus propios datos vía equipoV2.ts. getEquipo se mantiene: lo usan
-// generateMetadata y el 308.
+// La ficha de equipo la renderiza FichaEquipoV2. Este page.tsx conserva generateMetadata (incluido el noindex
+// juvenil), el canonical, el redirect 308 al slug canónico y los exports de ISR; el JSON-LD (breadcrumb +
+// sportsTeam) lo emite FichaEquipoV2. getEquipo se mantiene: lo usan generateMetadata y el 308 (los datos del
+// render los trae equipoV2.ts).
 
 async function getEquipo(cod: string): Promise<EquipoFicha | null> {
   return cacheEquipo(async () => {

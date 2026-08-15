@@ -10,13 +10,11 @@ import { nombreOficial, denominacion } from '@/lib/sellos'
 import { FAMILIA_SLUGS, OLD_A_FAMILIA, familiaSlugGrupo, type Ronda } from '@/lib/competiciones'
 import FichaCompeticionV2 from '@/components/ficha/v2/FichaCompeticionV2'
 
-// Migración v2 (Opción A): esta ruta CANÓNICA (sin sufijo /v2) pasa a renderizar FichaCompeticionV2. Se
-// conservan verbatim generateMetadata (title/description/canonical con colapso jornada→actual + canonical de
-// familia + noindex juvenil), el redirect 308 (copa-old-slug→familia) y el JSON-LD breadcrumb. El JSON-LD lo
-// SIGUE emitiendo el page.tsx a propósito: los componentes v2 de competición no lo emiten, y el breadcrumb
-// depende de la URL canónica, que conoce la ruta, no el componente. Solo se retira el render inline y sus
-// fetchers de datos (tab-gating): FichaCompeticionV2 trae sus propios datos. getGrupoBySlug se mantiene: lo
-// usan generateMetadata y la construcción de crumbs. FichaCompeticionV2 recibe suf='' -> enlaces canónicos.
+// La vista de GRUPO de competición la renderiza FichaCompeticionV2. Este page.tsx conserva generateMetadata
+// (title/description/canonical con colapso jornada→actual + canonical de familia + noindex juvenil), el
+// redirect 308 (copa-old-slug→familia) y emite el JSON-LD breadcrumb: los componentes de competición no lo
+// emiten, y el breadcrumb depende de la URL canónica, que conoce la ruta, no el componente. getGrupoBySlug se
+// mantiene: lo usan generateMetadata y la construcción de crumbs; los datos del render los trae el componente.
 
 const TEMPORADA_MAP: Record<string, number> = {
   '2021-22': 17,

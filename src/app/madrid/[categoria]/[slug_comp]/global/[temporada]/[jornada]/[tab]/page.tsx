@@ -9,12 +9,10 @@ import { graphLd, breadcrumbLd } from '@/lib/jsonld'
 import { nombreOficial } from '@/lib/sellos'
 import FichaCompeticionGlobalV2 from '@/components/ficha/v2/FichaCompeticionGlobalV2'
 
-// Migración v2 (Opción A): esta ruta CANÓNICA (sin sufijo /v2) pasa a renderizar FichaCompeticionGlobalV2.
-// Se conservan verbatim generateMetadata (canonical con colapso jornada→actual + noindex juvenil) y el JSON-LD
-// breadcrumb. El JSON-LD lo SIGUE emitiendo el page.tsx: los componentes v2 de competición no lo emiten, y el
-// breadcrumb depende de la URL canónica (la conoce la ruta, no el componente). El global no tenía redirect
-// 308, así que no hay ninguno que conservar. Solo se retira el render inline + sus fetchers de datos:
-// FichaCompeticionGlobalV2 trae los suyos. getCompeticion se mantiene (metadata + crumbs). suf='' -> canónico.
+// La vista GLOBAL de competición la renderiza FichaCompeticionGlobalV2. Este page.tsx conserva generateMetadata
+// (canonical con colapso jornada→actual + noindex juvenil) y emite el JSON-LD breadcrumb: los componentes de
+// competición no lo emiten, y el breadcrumb depende de la URL canónica (la conoce la ruta, no el componente).
+// getCompeticion se mantiene (metadata + crumbs); los datos del render los trae FichaCompeticionGlobalV2.
 
 const TEMPORADA_MAP: Record<string, number> = {
   '2021-22': 17,

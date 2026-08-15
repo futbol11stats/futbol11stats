@@ -101,11 +101,9 @@ function motivoCard(motivo: string | null) {
   return <span style={{ color: 'var(--card-y)', display: 'inline-flex' }}><TarjetaAmarilla size={13} /></span>
 }
 
-// `suf` = sufijo de URL para los enlaces internos (temporada, Global, grupos hermanos, modo, jornadas, tabs).
-// Vacío ('') en la URL canónica; '/v2' mientras la v2 se sirve además en /v2. El JSON-LD (breadcrumb) NO lo
-// emite este componente: lo mantiene el page.tsx, que es quien conoce la URL canónica.
-export default async function FichaCompeticionV2({ categoria, slugComp, slugGrupo, temporada, jornadaSeg, tab, suf = '' }: {
-  categoria: string; slugComp: string; slugGrupo: string; temporada: string; jornadaSeg: string; tab: string; suf?: string
+// El JSON-LD (breadcrumb) NO lo emite este componente: lo mantiene el page.tsx, que conoce la URL canónica.
+export default async function FichaCompeticionV2({ categoria, slugComp, slugGrupo, temporada, jornadaSeg, tab }: {
+  categoria: string; slugComp: string; slugGrupo: string; temporada: string; jornadaSeg: string; tab: string
 }) {
   const codtemporada = TEMPORADA_MAP[temporada]
   if (!codtemporada) notFound()
@@ -328,7 +326,7 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
             {TEMPORADAS_ORD.map((cod) => {
               const v = variantes[cod], label = COD_TO_LABEL[cod]
               if (!v) return <span key={cod} className="off" title="Sin datos en esta temporada">{label}</span>
-              return <Link key={cod} href={`/madrid/${categoria}/${v.slug_comp}/${v.slug_grupo}/${label}/${v.seg}/${tab}${suf}`} className={codtemporada === cod ? 'on' : ''}>{label}</Link>
+              return <Link key={cod} href={`/madrid/${categoria}/${v.slug_comp}/${v.slug_grupo}/${label}/${v.seg}/${tab}`} className={codtemporada === cod ? 'on' : ''}>{label}</Link>
             })}
           </div></ScrollRail>
         </div>
@@ -336,9 +334,9 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
           <div className="selrow" style={{ paddingBottom: 16 }}>
             <div className="sel-lbl">Grupo</div>
             <ScrollRail><div className="sel-rail">
-              <Link href={`/madrid/${categoria}/${slugComp}/global/${temporada}/jornada-${jornadaNum}/${modo === 'temporada' ? tab : 'clasificacion'}${suf}`} className="glob">Global</Link>
+              <Link href={`/madrid/${categoria}/${slugComp}/global/${temporada}/jornada-${jornadaNum}/${modo === 'temporada' ? tab : 'clasificacion'}`} className="glob">Global</Link>
               {hermanos.map((g) => (
-                <Link key={g.codgrupo} href={`/madrid/${categoria}/${g.slug_comp}/${g.slug_grupo}/${temporada}/jornada-${jornadaNum}/${tab}${suf}`}
+                <Link key={g.codgrupo} href={`/madrid/${categoria}/${g.slug_comp}/${g.slug_grupo}/${temporada}/jornada-${jornadaNum}/${tab}`}
                   className={String(g.codgrupo) === String(grupo.codgrupo) ? 'on' : ''}>{g.nombre_grupo}</Link>
               ))}
             </div></ScrollRail>
@@ -357,16 +355,16 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
       <div className="tabs" id="reportes-anchor">
         <div className="modo">
           <div className="sel-lbl">Reportes de</div>
-          <Link href={`${baseTab}/${tabsJ[0][0]}${suf}`} className={modo === 'jornada' ? 'on' : ''}>Jornada</Link>
-          <Link href={`${base}/jornada-${jornadaNum}/${tabsT[0][0]}${suf}`} className={modo === 'temporada' ? 'on' : ''}>Temporada</Link>
+          <Link href={`${baseTab}/${tabsJ[0][0]}`} className={modo === 'jornada' ? 'on' : ''}>Jornada</Link>
+          <Link href={`${base}/jornada-${jornadaNum}/${tabsT[0][0]}`} className={modo === 'temporada' ? 'on' : ''}>Temporada</Link>
         </div>
         <div className="jrow">
           <div className="sel-lbl">{jlbl}</div>
           <ScrollRail><div className="jbar-rail">
             {esFamilia
-              ? rondas.map((r) => <Link key={r.slug} href={`${base}/${r.slug}/${tab}${suf}`} className={r.idx === jornadaNum ? 'on' : ''}>{r.label}</Link>)
+              ? rondas.map((r) => <Link key={r.slug} href={`${base}/${r.slug}/${tab}`} className={r.idx === jornadaNum ? 'on' : ''}>{r.label}</Link>)
               : Array.from({ length: grupo.total_jornadas || 0 }, (_, i) => i + 1).map((j) => (
-                <Link key={j} href={`${base}/jornada-${j}/${tab}${suf}`} className={j === jornadaNum ? 'on' : ''}>J{j}</Link>
+                <Link key={j} href={`${base}/jornada-${j}/${tab}`} className={j === jornadaNum ? 'on' : ''}>J{j}</Link>
               ))}
           </div></ScrollRail>
         </div>
@@ -374,7 +372,7 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
           <div className="sel-lbl">Ver</div>
           <ScrollRail><div className="verrail">
             {tabsActivas.map(([id, label]) => {
-              const href = modo === 'temporada' ? `${base}/jornada-${jornadaNum}/${id}${suf}` : `${baseTab}/${id}${suf}`
+              const href = modo === 'temporada' ? `${base}/jornada-${jornadaNum}/${id}` : `${baseTab}/${id}`
               return <Link key={id} href={href} className={id === tabEf ? 'on' : ''}>{label}</Link>
             })}
           </div></ScrollRail>

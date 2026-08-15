@@ -1,5 +1,5 @@
-// Sparkline de la serie de ELO (cierre de cada temporada). SVG puro, sin librería. Mismo dibujo que el
-// de la ficha actual (Medidores): se extrae aquí para reutilizarlo también en la /v2 sin tocar Medidores.
+// Sparkline de la serie de ELO (cierre de cada temporada). SVG puro, sin librería. Extraído de Medidores
+// para reutilizarlo en la ficha sin tocar aquel componente.
 type Serie = { t: string; elo: number }
 
 export default function EloSparkline({ serie, className = 'w-full h-8 mt-2' }: { serie: Serie[]; className?: string }) {

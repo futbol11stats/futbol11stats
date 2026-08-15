@@ -7,10 +7,9 @@ import FichaEquipoV2 from '@/components/ficha/v2/FichaEquipoV2'
 import { getEquipoV2 } from '@/lib/equipoV2'
 import { codFromSlug, equipoSlug } from '@/lib/equipo'
 
-// Vista por TEMPORADA de la ficha de equipo, en la URL canónica (sin sufijo /v2). En el legacy la temporada
-// iba por ?temporada client-side; la v2 la maneja por segmento de ruta, así que esta ruta no-v2 no existía y
-// se crea aquí (mismo caso que en jugador). Canonical PROPIO a sí misma (indexable por derecho) + title con
-// la temporada (para no competir con la ficha base) + noindex juvenil + 308 al slug canónico.
+// Vista por TEMPORADA de la ficha de equipo: la temporada va por segmento de ruta (mismo caso que en jugador).
+// Canonical PROPIO a sí misma (indexable por derecho) + title con la temporada (para no competir con la ficha
+// base) + noindex juvenil + 308 al slug canónico.
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string; temporada: string }> }): Promise<Metadata> {
   const { slug, temporada } = await params
