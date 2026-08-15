@@ -19,6 +19,7 @@ export default async function Page({ params }: { params: Params }) {
       temporada={temporada}
       jornada={jornada}
       tab={tab}
+      suf="/v2"
     />
   )
 }

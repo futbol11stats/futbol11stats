@@ -41,8 +41,11 @@ const mil = (n: number | null | undefined) => (n == null ? '—' : Math.round(Nu
 
 // La clasificación GLOBAL es la única pestaña especial; el resto se atienden desde cada grupo. En este
 // incremento la vista global implementa la CLASIFICACIÓN por zonas (la que más cuidado pedía Fernando).
-export default async function FichaCompeticionGlobalV2({ categoria, slugComp, temporada, jornada, tab }: {
-  categoria: string; slugComp: string; temporada: string; jornada: string; tab: string
+// `suf` = sufijo de URL para los enlaces internos (temporada, grupos, modo, jornada, tabs), incluidos los
+// enlaces CRUZADOS global→grupo. Vacío ('') en la URL canónica; '/v2' mientras la v2 se sirve además en /v2.
+// El JSON-LD (breadcrumb) NO lo emite este componente: lo mantiene el page.tsx (dueño de la URL canónica).
+export default async function FichaCompeticionGlobalV2({ categoria, slugComp, temporada, jornada, tab, suf = '' }: {
+  categoria: string; slugComp: string; temporada: string; jornada: string; tab: string; suf?: string
 }) {
   const codtemporada = TEMPORADA_MAP[temporada]
   if (!codtemporada) notFound()
@@ -163,7 +166,7 @@ export default async function FichaCompeticionGlobalV2({ categoria, slugComp, te
           <div className="sel-lbl">Temporada</div>
           <ScrollRail><div className="sel-rail">
             {TEMPORADAS_ORD.map((cod) => (
-              <Link key={cod} href={`/madrid/${categoria}/${slugComp}/global/${COD_TO_LABEL[cod]}/jornada-${jornadaNum}/${tab}/v2`} className={codtemporada === cod ? 'on' : ''}>{COD_TO_LABEL[cod]}</Link>
+              <Link key={cod} href={`/madrid/${categoria}/${slugComp}/global/${COD_TO_LABEL[cod]}/jornada-${jornadaNum}/${tab}${suf}`} className={codtemporada === cod ? 'on' : ''}>{COD_TO_LABEL[cod]}</Link>
             ))}
           </div></ScrollRail>
         </div>
@@ -172,7 +175,7 @@ export default async function FichaCompeticionGlobalV2({ categoria, slugComp, te
           <ScrollRail><div className="sel-rail">
             <span className="glob">Global</span>
             {grupos.map((g) => (
-              <Link key={g.codgrupo} href={`${base}/${g.slug_grupo}/${temporada}/jornada-${jornadaNum}/clasificacion/v2`}>{g.nombre_grupo}</Link>
+              <Link key={g.codgrupo} href={`${base}/${g.slug_grupo}/${temporada}/jornada-${jornadaNum}/clasificacion${suf}`}>{g.nombre_grupo}</Link>
             ))}
           </div></ScrollRail>
         </div>
@@ -187,21 +190,21 @@ export default async function FichaCompeticionGlobalV2({ categoria, slugComp, te
       <div className="tabs" id="reportes-anchor">
         <div className="modo">
           <div className="sel-lbl">Reportes de</div>
-          <Link href={`${base}/global/${temporada}/jornada-${jornadaNum}/${G_TABS_J[0][0]}/v2`} className={modo === 'jornada' ? 'on' : ''}>Jornada</Link>
-          <Link href={`${base}/global/${temporada}/jornada-${jornadaNum}/${G_TABS_T[0][0]}/v2`} className={modo === 'temporada' ? 'on' : ''}>Temporada</Link>
+          <Link href={`${base}/global/${temporada}/jornada-${jornadaNum}/${G_TABS_J[0][0]}${suf}`} className={modo === 'jornada' ? 'on' : ''}>Jornada</Link>
+          <Link href={`${base}/global/${temporada}/jornada-${jornadaNum}/${G_TABS_T[0][0]}${suf}`} className={modo === 'temporada' ? 'on' : ''}>Temporada</Link>
         </div>
         <div className="jrow">
           <div className="sel-lbl">{modo === 'temporada' ? 'Acumulado hasta' : 'Jornada'}</div>
           <ScrollRail><div className="jbar-rail">
             {Array.from({ length: totalJornadas }, (_, i) => i + 1).map((j) => (
-              <Link key={j} href={`${base}/global/${temporada}/jornada-${j}/${tabEf}/v2`} className={j === jornadaNum ? 'on' : ''}>J{j}</Link>
+              <Link key={j} href={`${base}/global/${temporada}/jornada-${j}/${tabEf}${suf}`} className={j === jornadaNum ? 'on' : ''}>J{j}</Link>
             ))}
           </div></ScrollRail>
         </div>
         <div className="verrow">
           <div className="sel-lbl">Ver</div>
           <ScrollRail><div className="verrail">
-            {tabsA.map(([id, label]) => <Link key={id} href={`${base}/global/${temporada}/jornada-${jornadaNum}/${id}/v2`} className={id === tabEf ? 'on' : ''}>{label}</Link>)}
+            {tabsA.map(([id, label]) => <Link key={id} href={`${base}/global/${temporada}/jornada-${jornadaNum}/${id}${suf}`} className={id === tabEf ? 'on' : ''}>{label}</Link>)}
           </div></ScrollRail>
         </div>
       </div>
@@ -243,7 +246,7 @@ export default async function FichaCompeticionGlobalV2({ categoria, slugComp, te
             })
             return (
               <div className="grp" key={grupo.codgrupo}>
-                <Link className="grp-h" href={`${base}/${grupo.slug_grupo}/${temporada}/jornada-${jornadaNum}/clasificacion/v2`}>
+                <Link className="grp-h" href={`${base}/${grupo.slug_grupo}/${temporada}/jornada-${jornadaNum}/clasificacion${suf}`}>
                   <span className="gt">{grupo.nombre_grupo}</span>
                   <span className="gs">ver clasificación completa</span>
                   <span className="ga"><FlechaEntra size={15} /></span>

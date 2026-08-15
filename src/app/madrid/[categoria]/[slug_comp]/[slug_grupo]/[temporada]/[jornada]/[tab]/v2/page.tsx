@@ -20,6 +20,7 @@ export default async function Page({ params }: { params: Params }) {
       temporada={temporada}
       jornadaSeg={jornada}
       tab={tab}
+      suf="/v2"
     />
   )
 }
