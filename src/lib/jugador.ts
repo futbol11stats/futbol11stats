@@ -5,24 +5,21 @@
 
 import { supabase } from '@/lib/supabase'
 import { formatNombre } from '@/lib/supabase'
+import { codToSlug, TEMP_COD_BASE } from '@/lib/temporadaSlug'
 
 export { formatNombre }
 
-// codtemporada (TEXT en las tablas de jugador) -> etiqueta de temporada.
-export const TEMP_LABEL: Record<string, string> = {
-  '17': '2021-22',
-  '18': '2022-23',
-  '19': '2023-24',
-  '20': '2024-25',
-  '21': '2025-26',
-}
 // La "temporada viva" ya NO es una constante: se resuelve data-driven por competición en '@/lib/temporadas'
 // (vista web_temporada_activa + ventana). El badge activo/inactivo usa getSueloVivo(). Fuente única.
 export const PRIMERA_TEMP = '2021-22'        // inicio de la ventana de datos (no-cohorte)
 
+// codtemporada (TEXT en las tablas de jugador) -> etiqueta de temporada, vía codToSlug (fórmula lineal, fuente
+// única en '@/lib/temporadaSlug'; sin lista topada -> T22 y siguientes solas). Cod fuera de rango o no numérico
+// (defensivo) -> se muestra tal cual.
 export function tempLabel(cod: string | number | null): string {
   if (cod == null) return ''
-  return TEMP_LABEL[String(cod)] ?? String(cod)
+  const n = Number(cod)
+  return Number.isInteger(n) && n >= TEMP_COD_BASE ? codToSlug(n) : String(cod)
 }
 
 // Slug de URL: minúsculas, sin tildes, no-alfanumérico -> guion, colapsado y recortado.

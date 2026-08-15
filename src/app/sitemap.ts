@@ -3,13 +3,13 @@ import { supabase } from '@/lib/supabase'
 import { esViejaCopa, segRondaActual } from '@/lib/competiciones'
 import {
   SITE_URL,
-  TEMP_LABEL_BY_COD,
   CATEGORIA_SLUG,
   GROUP_TABS_LIGA,
   GROUP_TABS_COPA,
   GLOBAL_TABS,
   noindexJuvenil,
 } from '@/lib/seo'
+import { codToSlug } from '@/lib/temporadaSlug'
 import { getTemporadasActivas, mapaActivas } from '@/lib/temporadas'
 
 export const revalidate = 2592000 // ISR 30d (Fluid CPU): se regenera con cada deploy/re-export; el sitemap solo cambia al añadir grupos/temporadas nuevas
@@ -43,7 +43,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const globalsSeen = new Set<string>()
 
   for (const g of grupos) {
-    const temp = TEMP_LABEL_BY_COD[g.codtemporada]
+    const temp = codToSlug(g.codtemporada)
     const cat = CATEGORIA_SLUG[g.categoria]
     if (!temp || !cat) continue
 

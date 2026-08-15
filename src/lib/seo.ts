@@ -30,14 +30,8 @@ export function tabLabel(tab: string): string {
   return TAB_LABELS[tab] ?? 'Estadísticas'
 }
 
-// Temporadas: cod -> slug de URL. La viva es la de número más alto.
-export const TEMP_LABEL_BY_COD: Record<number, string> = {
-  17: '2021-22',
-  18: '2022-23',
-  19: '2023-24',
-  20: '2024-25',
-  21: '2025-26',
-}
+// Temporadas: cod -> slug de URL con codToSlug (fórmula lineal, fuente única en '@/lib/temporadaSlug'; sin
+// lista topada -> T22 y siguientes solas). La viva es la de número más alto.
 // LIVE_SEASON eliminado: la temporada activa es data-driven por competición ('@/lib/temporadas'). El sitemap
 // usa getTemporadasActivas()+mapaActivas() para marcar qué grupo está en su temporada activa (vs histórico).
 

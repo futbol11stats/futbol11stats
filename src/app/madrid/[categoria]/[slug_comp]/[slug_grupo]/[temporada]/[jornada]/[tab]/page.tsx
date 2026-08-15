@@ -9,20 +9,14 @@ import { graphLd, breadcrumbLd } from '@/lib/jsonld'
 import { nombreOficial, denominacion } from '@/lib/sellos'
 import { FAMILIA_SLUGS, OLD_A_FAMILIA, familiaSlugGrupo, type Ronda } from '@/lib/competiciones'
 import FichaCompeticionV2 from '@/components/ficha/v2/FichaCompeticionV2'
+import { slugToCod } from '@/lib/temporadaSlug'
 
 // La vista de GRUPO de competición la renderiza FichaCompeticionV2. Este page.tsx conserva generateMetadata
 // (title/description/canonical con colapso jornada→actual + canonical de familia + noindex juvenil), el
 // redirect 308 (copa-old-slug→familia) y emite el JSON-LD breadcrumb: los componentes de competición no lo
 // emiten, y el breadcrumb depende de la URL canónica, que conoce la ruta, no el componente. getGrupoBySlug se
 // mantiene: lo usan generateMetadata y la construcción de crumbs; los datos del render los trae el componente.
-
-const TEMPORADA_MAP: Record<string, number> = {
-  '2021-22': 17,
-  '2022-23': 18,
-  '2023-24': 19,
-  '2024-25': 20,
-  '2025-26': 21,
-}
+// La temporada (slug<->cod) se resuelve con slugToCod (fórmula, sin lista topada): T22 y siguientes solas.
 
 // El segmento [categoria] de la URL ('aficionados'|'juveniles') mapea a la
 // columna categoria de la BD ('AFICIONADO'|'JUVENIL').
@@ -66,7 +60,7 @@ export async function generateMetadata({
   }>
 }): Promise<Metadata> {
   const { categoria, slug_comp, slug_grupo, temporada, tab } = await params
-  const codtemporada = TEMPORADA_MAP[temporada]
+  const codtemporada = slugToCod(temporada)
   if (!codtemporada) return { title: 'Fútbol11Stats' }
   // Slugs viejos: el canonical es el de la familia (la página hace el 308).
   const famMeta = OLD_A_FAMILIA[slug_comp]
@@ -113,7 +107,7 @@ export default async function GrupoPage({
 }) {
   const { categoria, slug_comp, slug_grupo, temporada, jornada, tab } = await params
 
-  const codtemporada = TEMPORADA_MAP[temporada]
+  const codtemporada = slugToCod(temporada)
   if (!codtemporada) notFound()
 
   // FASE 3 — 308 de los slugs VIEJOS de copa/ronda a la familia canónica (misma temporada, ronda por

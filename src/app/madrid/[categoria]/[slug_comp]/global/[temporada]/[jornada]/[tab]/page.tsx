@@ -8,19 +8,13 @@ import JsonLd from '@/components/JsonLd'
 import { graphLd, breadcrumbLd } from '@/lib/jsonld'
 import { nombreOficial } from '@/lib/sellos'
 import FichaCompeticionGlobalV2 from '@/components/ficha/v2/FichaCompeticionGlobalV2'
+import { slugToCod } from '@/lib/temporadaSlug'
 
 // La vista GLOBAL de competición la renderiza FichaCompeticionGlobalV2. Este page.tsx conserva generateMetadata
 // (canonical con colapso jornada→actual + noindex juvenil) y emite el JSON-LD breadcrumb: los componentes de
 // competición no lo emiten, y el breadcrumb depende de la URL canónica (la conoce la ruta, no el componente).
 // getCompeticion se mantiene (metadata + crumbs); los datos del render los trae FichaCompeticionGlobalV2.
-
-const TEMPORADA_MAP: Record<string, number> = {
-  '2021-22': 17,
-  '2022-23': 18,
-  '2023-24': 19,
-  '2024-25': 20,
-  '2025-26': 21,
-}
+// La temporada (slug<->cod) se resuelve con slugToCod (fórmula, sin lista topada): T22 y siguientes solas.
 
 // El segmento [categoria] de la URL ('aficionados'|'juveniles') mapea a la
 // columna categoria de la BD ('AFICIONADO'|'JUVENIL').
@@ -53,7 +47,7 @@ export async function generateMetadata({
   }>
 }): Promise<Metadata> {
   const { categoria, slug_comp, temporada, tab } = await params
-  const codtemporada = TEMPORADA_MAP[temporada]
+  const codtemporada = slugToCod(temporada)
   if (!codtemporada) return { title: 'Fútbol11Stats' }
   const competicion = await getCompeticion(slug_comp, categoria, codtemporada)
   if (!competicion) return { title: 'Fútbol11Stats' }
@@ -87,7 +81,7 @@ export default async function GlobalPage({
 }) {
   const { categoria, slug_comp, temporada, jornada, tab } = await params
 
-  const codtemporada = TEMPORADA_MAP[temporada]
+  const codtemporada = slugToCod(temporada)
   if (!codtemporada) notFound()
 
   const competicion = await getCompeticion(slug_comp, categoria, codtemporada)

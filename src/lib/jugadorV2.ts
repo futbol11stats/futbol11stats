@@ -6,21 +6,21 @@ import { supabase } from '@/lib/supabase'
 import { cacheJugador, cacheTagged } from '@/lib/cacheComp'
 import {
   COLS_JUGADOR, COLS_CARRERA, COLS_HITOS, COLS_ACTUACIONES,
-  TEMP_LABEL, tempLabel, marcadorLocalVisitante,
+  tempLabel, marcadorLocalVisitante,
   type JugadorFicha, type HitoRow,
 } from '@/lib/jugador'
+import { slugToCod } from '@/lib/temporadaSlug'
 import { getResultadosGrupo, type ChipRacha } from '@/lib/equipo'
 import { derivarRol, escalon, cortesValidos, CORTES_FIJOS, type RolPartido } from '@/lib/escala'
 
 export type { JugadorFicha, HitoRow }
 
-// Etiqueta de temporada (2025-26) -> codtemporada TEXT ('21'). Inverso de TEMP_LABEL.
-export const COD_FROM_LABEL: Record<string, string> = Object.fromEntries(
-  Object.entries(TEMP_LABEL).map(([cod, label]) => [label, cod])
-)
+// Etiqueta de temporada ('2025-26') -> codtemporada TEXT ('21'), vía slugToCod (fórmula, fuente única en
+// '@/lib/temporadaSlug'; sin lista topada -> '/jugador/x/2026-27' resuelve solo). null si el slug es inválido.
 export function labelToCod(label: string | null | undefined): string | null {
   if (!label) return null
-  return COD_FROM_LABEL[label] ?? (TEMP_LABEL[label] ? label : null)
+  const cod = slugToCod(label)
+  return cod == null ? null : String(cod)
 }
 
 // --- Fetchers base ---

@@ -17,14 +17,21 @@ function escFijo(v: number, c: readonly number[]) {
 }
 export const colorMediaJug = (v: number | null | undefined) => (v == null ? '' : PAL_JUG[escFijo(v, CORTES_FIJOS.mediaPartido)])
 
-export const TEMPORADA_MAP: Record<string, number> = {
-  '2021-22': 17, '2022-23': 18, '2023-24': 19, '2024-25': 20, '2025-26': 21,
-}
-export const COD_TO_LABEL: Record<number, string> = Object.fromEntries(
-  Object.entries(TEMPORADA_MAP).map(([label, cod]) => [cod, label]),
-)
+// Conversión cod<->slug de temporada: fuente única en @/lib/temporadaSlug (relación lineal, sin lista que
+// mantener). Se re-exporta para que los componentes de competición la importen desde aquí como antes.
+export { codToSlug, slugToCod, universoTemporadas } from '@/lib/temporadaSlug'
 export const CATEGORIA_MAP: Record<string, string> = { aficionados: 'AFICIONADO', juveniles: 'JUVENIL' }
-export const TEMPORADAS_ORD = [21, 20, 19, 18, 17]
+
+// Temporadas (cod) en las que existe esta competición (por slug_comp + categoría), de más nueva a más vieja.
+// Data-driven -> alimenta el universo del selector global (techo) y su griseado (link solo donde hay dato);
+// una temporada nueva aparece sola. La consulta es barata (una columna) y la página va cacheada por ISR.
+export async function getTemporadasCompV2(categoria: string, slugComp: string): Promise<number[]> {
+  let q = supabase.from('web_grupos').select('codtemporada').eq('slug_comp', slugComp)
+  const cat = CATEGORIA_MAP[categoria]
+  if (cat) q = q.eq('categoria', cat)
+  const { data } = await q
+  return Array.from(new Set((data || []).map((r: any) => r.codtemporada as number))).sort((a, b) => b - a)
+}
 
 // --- Resolución del grupo (misma lógica que la ruta actual: prefiere la fila de FAMILIA fam-*) ---
 export async function getGrupoV2(categoria: string, slugComp: string, slugGrupo: string, codtemporada: number) {

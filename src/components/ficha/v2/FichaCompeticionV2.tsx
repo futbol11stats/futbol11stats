@@ -27,7 +27,7 @@ import {
   leyGoleadorTemp, leyPorteroTemp, leyFantasyTemp, leyEloTemp, leyXiTemp, leyJornada,
 } from '@/components/ficha/v2/lineasComp'
 import {
-  TEMPORADA_MAP, COD_TO_LABEL, TEMPORADAS_ORD, getGrupoV2, getVariantesV2, getGruposHermanos,
+  slugToCod, codToSlug, universoTemporadas, getGrupoV2, getVariantesV2, getGruposHermanos,
   getClasifV2, kpisDeClasif, zonaColor, FORMA_COL, type ClasifCompRow,
   getDestacadosV2, getEquiposFormaV2, getTopTemporadaV2, getXiJornadaV2, getXiTemporadaV2,
   getResultadosV2, getEquiposMapV2, type ResultadoCompRow, getCarreraV2,
@@ -105,7 +105,7 @@ function motivoCard(motivo: string | null) {
 export default async function FichaCompeticionV2({ categoria, slugComp, slugGrupo, temporada, jornadaSeg, tab }: {
   categoria: string; slugComp: string; slugGrupo: string; temporada: string; jornadaSeg: string; tab: string
 }) {
-  const codtemporada = TEMPORADA_MAP[temporada]
+  const codtemporada = slugToCod(temporada)
   if (!codtemporada) notFound()
   const grupo = await getGrupoV2(categoria, slugComp, slugGrupo, codtemporada)
   if (!grupo) notFound()
@@ -323,8 +323,10 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
         <div className="selrow">
           <div className="sel-lbl">Temporada</div>
           <ScrollRail><div className="sel-rail">
-            {TEMPORADAS_ORD.map((cod) => {
-              const v = variantes[cod], label = COD_TO_LABEL[cod]
+            {/* Universo derivado del dato: techo = temporada más nueva de este grupo (variantes), suelo = inicio
+                de datos. Se grisea donde el grupo no tiene fila -> una temporada nueva aparece sola, sin registrarla. */}
+            {universoTemporadas(Math.max(codtemporada, ...Object.keys(variantes).map(Number))).map((cod) => {
+              const v = variantes[cod], label = codToSlug(cod)
               if (!v) return <span key={cod} className="off" title="Sin datos en esta temporada">{label}</span>
               return <Link key={cod} href={`/madrid/${categoria}/${v.slug_comp}/${v.slug_grupo}/${label}/${v.seg}/${tab}`} className={codtemporada === cod ? 'on' : ''}>{label}</Link>
             })}

@@ -23,7 +23,7 @@ import {
 } from '@/components/ficha/v2/lineasComp'
 import { Balon } from '@/components/iconos'
 import {
-  TEMPORADA_MAP, COD_TO_LABEL, TEMPORADAS_ORD, getGlobalGruposV2, getGlobalClasifV2, kpisDeClasif,
+  slugToCod, codToSlug, universoTemporadas, getTemporadasCompV2, getGlobalGruposV2, getGlobalClasifV2, kpisDeClasif,
   zonaFamilia, ZONA_FAM_COL, ZONA_FAM_LABEL,
   getGlobalTopTemporadaV2, getGlobalMvpV2, getGlobalEquiposFormaV2,
   getGlobalXiV2, getGlobalCifrasV2, getGlobalTeamGoalsV2, getGlobalTramosV2, getJuegoLimpioV2, getAlertasV2,
@@ -45,10 +45,12 @@ const mil = (n: number | null | undefined) => (n == null ? '—' : Math.round(Nu
 export default async function FichaCompeticionGlobalV2({ categoria, slugComp, temporada, jornada, tab }: {
   categoria: string; slugComp: string; temporada: string; jornada: string; tab: string
 }) {
-  const codtemporada = TEMPORADA_MAP[temporada]
+  const codtemporada = slugToCod(temporada)
   if (!codtemporada) notFound()
   const grupos = await getGlobalGruposV2(categoria, slugComp, codtemporada)
   if (!grupos.length) notFound()
+  // Temporadas reales de esta competición (data-driven) para el selector: techo del universo + griseado.
+  const compSeasons = await getTemporadasCompV2(categoria, slugComp)
 
   const totalJornadas = Math.max(...grupos.map((g) => g.total_jornadas || 0), 1)
   const jornadaNum = parseInt(jornada.replace('jornada-', '')) || Math.max(...grupos.map((g) => g.jornada_actual || 0), 1)
@@ -163,9 +165,15 @@ export default async function FichaCompeticionGlobalV2({ categoria, slugComp, te
         <div className="selrow">
           <div className="sel-lbl">Temporada</div>
           <ScrollRail><div className="sel-rail">
-            {TEMPORADAS_ORD.map((cod) => (
-              <Link key={cod} href={`/madrid/${categoria}/${slugComp}/global/${COD_TO_LABEL[cod]}/jornada-${jornadaNum}/${tab}`} className={codtemporada === cod ? 'on' : ''}>{COD_TO_LABEL[cod]}</Link>
-            ))}
+            {/* Universo derivado del dato (compSeasons): techo = temporada más nueva de la competición, suelo =
+                inicio de datos. Link solo donde hay dato; el resto griseado -> una liga sin T22 no ofrece enlace
+                vivo a un global vacío, y una temporada nueva aparece sola cuando el pipeline la carga. */}
+            {universoTemporadas(compSeasons[0] ?? codtemporada).map((cod) => {
+              const label = codToSlug(cod)
+              return compSeasons.includes(cod)
+                ? <Link key={cod} href={`/madrid/${categoria}/${slugComp}/global/${label}/jornada-${jornadaNum}/${tab}`} className={codtemporada === cod ? 'on' : ''}>{label}</Link>
+                : <span key={cod} className="off" title="Sin datos en esta temporada">{label}</span>
+            })}
           </div></ScrollRail>
         </div>
         <div className="selrow" style={{ paddingBottom: 16 }}>

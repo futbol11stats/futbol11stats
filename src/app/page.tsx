@@ -8,7 +8,7 @@ import { familiaSello, nombreOficial } from '@/lib/sellos'
 import { graphLd, websiteLd, organizationLd } from '@/lib/jsonld'
 import { ORDEN_AFICIONADOS, ORDEN_JUVENILES, segRondaActual, numRondas } from '@/lib/competiciones'
 import { getGruposIndice } from '@/lib/temporadas'
-import { TEMP_LABEL_BY_COD } from '@/lib/seo'
+import { codToSlug } from '@/lib/temporadaSlug'
 
 // Marca neutral con Madrid como ámbito ACTUAL (preparada para ampliar a otras federaciones).
 export const metadata: Metadata = {
@@ -143,7 +143,7 @@ function CompeticionCard({
   categoria: string
 }) {
   // Temporada de ESTA competición (todos sus grupos comparten temporada activa). Sustituye al '2025-26' global.
-  const temp = TEMP_LABEL_BY_COD[grupos[0].codtemporada]
+  const temp = codToSlug(grupos[0].codtemporada)
   const nombreCorto: Record<string, string> = {
     '3ª RFEF Madrid': '3ª RFEF',
     '1ª Autonómica Madrid': '1ª Autonómica',
@@ -181,7 +181,7 @@ function CompeticionCard({
           return (
           <Link
             key={g.codgrupo}
-            href={`/madrid/${categoria}/${g.slug_comp}/${g.slug_grupo}/${TEMP_LABEL_BY_COD[g.codtemporada]}/${esCopa ? segRondaActual(g) : `jornada-${g.jornada_actual}`}/${entrada}`}
+            href={`/madrid/${categoria}/${g.slug_comp}/${g.slug_grupo}/${codToSlug(g.codtemporada)}/${esCopa ? segRondaActual(g) : `jornada-${g.jornada_actual}`}/${entrada}`}
             className="text-xs bg-pitch-700 hover:bg-grass-500 text-chalk-200 hover:text-white px-3 py-1.5 rounded-md transition-colors"
           >
             {esCopa ? `Ver competición · ${numRondas(g)} ronda${numRondas(g) === 1 ? '' : 's'}` : `${g.nombre_grupo} · J${g.jornada_actual}`}
