@@ -69,26 +69,30 @@ export default async function FichaJugadorV2({ cod, temporadaLabel, suf = '' }: 
   const codPedido = labelToCod(temporadaLabel)
   const tempSel = (codPedido && temporadas.includes(codPedido)) ? codPedido : (carrera[0]?.codtemporada ?? null)
   const etapas = carrera.filter((c) => c.codtemporada === tempSel)
-  // Etapa PRINCIPAL de la temporada = la marcada `rank_principal` por el pipeline (en promoción, la categoría
-  // instalada superior; sin promoción, la de más actividad). Es la ÚNICA que etiqueta la temporada en la
-  // ficha: hero (pastilla de competición + enlace), KpiBar (ELO) y Nivel (rankings + etiqueta + ELO).
-  // orden_temporada YA NO elige etapa en ningún sitio salvo ordenar la Trayectoria. Fallback a la primera
-  // etapa si no hubiera marca (el pipeline garantiza exactamente una fila rank_principal por jugador-temporada).
+  // Dos ámbitos distintos, no confundir:
+  //  - filaPrincipal (rank_principal): elige la CATEGORÍA contra la que se rankea al jugador (un puesto solo
+  //    existe dentro de una población). Manda en los RANKINGS y en la ETIQUETA de categoría (hero + Nivel).
+  //    En promoción = la instalada superior; sin promoción = la de más actividad. Fallback a la primera etapa.
+  //    orden_temporada NO elige etapa aquí; solo ordena la Trayectoria.
   const filaPrincipal: CarreraRow | undefined = etapas.find((c) => c.rank_principal) ?? etapas[0]
   const categoriaSel = filaPrincipal?.nombre_comp ?? j.categoria_rama ?? null
+  //  - El ELO es un valor PROPIO del jugador que evoluciona en el tiempo, NO depende de la categoría: el ELO de
+  //    una temporada es el último que registró cronológicamente en ella, cierre en el equipo que sea (= la
+  //    ÚLTIMA etapa, orden_temporada máximo). Sus CORTES de color deben venir de la categoría de ESA etapa
+  //    (la que aporta el ELO), no de la principal, o coloraríamos p.ej. un ELO de 1ª Aficionada con cortes de
+  //    3ª RFEF. Un solo ELO en pantalla (KpiBar y Nivel comparten eloCierre).
+  const etapaUltima: CarreraRow | undefined = etapas[etapas.length - 1]
+  const categoriaElo = etapaUltima?.nombre_comp ?? categoriaSel
 
   const sum = (f: (c: CarreraRow) => number | null) => etapas.reduce((s, c) => s + (f(c) ?? 0), 0)
   const pj = sum((c) => c.pj), golesT = sum((c) => c.goles), ptsF = sum((c) => c.pts_fantasy)
   const minT = sum((c) => c.minutos), p0Sel = sum((c) => c.porterias_cero)
   const media = pj > 0 ? ptsF / pj : null
-  // ELO de la temporada seleccionada = elo_final de la etapa PRINCIPAL (rank_principal). MISMO valor en la
-  // KpiBar y en Nivel, para que no haya dos ELO distintos en pantalla. Se colorea con los cortes de esa
-  // categoría+temporada (getCortesElo(categoriaSel, tempSel), abajo).
-  const eloCierre = filaPrincipal?.elo_final ?? j.elo_actual ?? null
+  const eloCierre = etapaUltima?.elo_final ?? j.elo_actual ?? null
 
   const [equipoInfo, cortesElo, alerta, comps, partidosTemp, actuaciones, hitosRaw, grupoInfo, tarjetas] = await Promise.all([
     inactivo ? Promise.resolve({ copas: [], posicionActual: null }) : getEquipoActualInfo(j.codequipo_actual),
-    getCortesElo(categoriaSel, tempSel ? Number(tempSel) : null),
+    getCortesElo(categoriaElo, tempSel ? Number(tempSel) : null),   // cortes de la categoría que aporta el ELO (última etapa)
     getAlertaActual(cod),
     tempSel ? getAmbitoTemporada(cod, tempSel) : Promise.resolve([]),
     tempSel ? getPartidosTemporada(cod, tempSel) : Promise.resolve([] as any[]),
@@ -126,7 +130,7 @@ export default async function FichaJugadorV2({ cod, temporadaLabel, suf = '' }: 
   // rank 358/38.173 -> 99). Batería: min(10, round(pct/10)) -> se llena entera en el tope.
   const pct = j.elo_percentil != null ? Math.min(99, Math.floor(j.elo_percentil)) : null
   const llenos = pct != null ? Math.min(10, Math.round(pct / 10)) : 0
-  const eloBig = eloCierre   // Nivel y KpiBar comparten el ELO de la etapa principal (un solo ELO en pantalla).
+  const eloBig = eloCierre   // Nivel y KpiBar comparten el ELO de la última etapa (un solo ELO en pantalla).
 
   const dorsalesOtros = (j.dorsales_otros || []).filter((d) => d !== j.dorsal_ultimo && d !== j.dorsal_comun)
 
@@ -332,10 +336,11 @@ export default async function FichaJugadorV2({ cod, temporadaLabel, suf = '' }: 
         <div className="aside">
           {/* NIVEL */}
           <section id="s-nivel">
-            {/* Rankings, etiqueta de categoría y ELO salen de la fila rank_principal de la TEMPORADA
-                seleccionada (rank_*_temp, no el snapshot de web_jugador): cambian con el selector y hablan del
-                mismo año que la KpiBar. El percentil sí sigue siendo el de web_jugador (mide ELO, otro KPI;
-                pendiente un percentil de ELO por temporada — ver DECISIONES). El subtítulo indica la temporada. */}
+            {/* Rankings y etiqueta de categoría: de la fila rank_principal de la TEMPORADA seleccionada
+                (rank_*_temp, no el snapshot de web_jugador) -> cambian con el selector. ELO: el de la ÚLTIMA
+                etapa de la temporada (eloCierre; valor propio del jugador, mismo que la KpiBar), coloreado con
+                los cortes de SU categoría (categoriaElo). El percentil sigue siendo el de web_jugador (mide
+                ELO, otro KPI; pendiente uno por temporada — ver DECISIONES). El subtítulo indica la temporada. */}
             <div className="s-head"><div className="s-title">Nivel</div><div className="s-sub"><span className="allscope">{tempTxt ? `en ${tempTxt}` : 'Situación actual'}</span></div></div>
             <div className="box">
               <div className="elo-top">

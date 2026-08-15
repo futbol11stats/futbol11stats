@@ -495,3 +495,6 @@ Opciones para un percentil de ELO POR TEMPORADA con precisión real:
 - (3) Cortes necesarios: para precisión de entero harían falta ~99 cortes o la distribución cruda; guardar 99
   cortes es impráctico. Con los 9 deciles actuales -> decil. Conclusión: mejor que el pipeline emita el
   percentil directo (opción 1); mientras, el percentil se deja como está (de hoy).
+- IMPORTANTE (criterio del percentil): debe calcularse sobre el ELO de la ÚLTIMA etapa de la temporada (el
+  que muestra la ficha, valor propio del jugador) y contra la distribución de la categoría de ESA etapa
+  (categoriaElo), no la de rank_principal. Es decir: mismo ELO y misma población que usa hoy el coloreado.
