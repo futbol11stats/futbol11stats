@@ -5,6 +5,7 @@
 import { supabase } from '@/lib/supabase'
 import { slugify, codFromSlug, tempLabel, LIVE_COD } from '@/lib/jugador'
 import { cacheEquipo, cacheTagged } from '@/lib/cacheComp'
+import { FAMILIA_SLUGS, OLD_A_FAMILIA } from '@/lib/competiciones'
 
 export { slugify, codFromSlug, tempLabel, LIVE_COD }
 
@@ -155,25 +156,42 @@ export type CopaEquipo = {
   href: string | null
 }
 
+// Slug de FAMILIA de una copa. El JSONB de honores (web_equipo.copas) trae el slug_comp de la EDICIÓN/ronda
+// suelta (p.ej. 'copa-de-aficionados-rffm-2025-2026'), pero la página de copa vive bajo la FAMILIA
+// ('copa-rffm', codgrupo fam-<slug>-t<NN>). Preferimos el slug_familia si el pipeline lo emite; si no, lo
+// derivamos con OLD_A_FAMILIA — el MISMO mapeo que usa competición para su 308 (o el propio slug si ya es de
+// familia). Sin esto el href salía null y las pastillas de copa quedaban sin enlace (a diferencia de la liga).
+const familiaDeCopa = (c: CopaRaw): string | null =>
+  c.slug_familia ?? (FAMILIA_SLUGS.has(c.slug_comp) ? c.slug_comp : (OLD_A_FAMILIA[c.slug_comp] ?? null))
+// codgrupo de la familia en web_grupos (patrón fam-<slug>-t<codtemporada>).
+const codgrupoFamilia = (c: CopaRaw): string | null => {
+  const fs = familiaDeCopa(c)
+  return fs ? `fam-${fs}-t${c.codtemporada}` : (c.codgrupo_familia ?? null)
+}
+
 // Resuelve un lote de filas crudas de copa a CopaEquipo[]. El href apunta a la vista de la FAMILIA en
-// esa temporada y a la RONDA donde quedó el equipo (slug_familia + slug_grupo de la familia + ronda_slug;
+// esa temporada y a la RONDA donde quedó el equipo (slug/slug_grupo de la familia + ronda_slug;
 // "Eliminado en Semifinales" -> esas semifinales). Si la familia aún no está en web_grupos -> href null:
 // la pastilla se pinta igual y se hará navegable sola cuando aterrice.
 async function resolveCopaRows(rows: CopaRaw[]): Promise<(CopaEquipo & { codtemporada: string })[]> {
   if (rows.length === 0) return []
-  const famCods = Array.from(new Set(rows.map((c) => c.codgrupo_familia).filter(Boolean) as string[]))
+  const famCods = Array.from(new Set(rows.map(codgrupoFamilia).filter(Boolean) as string[]))
   const { data: fams } = famCods.length
     ? await supabase.from('web_grupos').select('codgrupo, slug_comp, slug_grupo, categoria').in('codgrupo', famCods)
     : { data: [] as any[] }
   const fmap = new Map((fams || []).map((g: any) => [String(g.codgrupo), g]))
   return rows.map((c) => {
-    const fam = c.codgrupo_familia ? fmap.get(String(c.codgrupo_familia)) : null
+    const famCod = codgrupoFamilia(c)
+    const fam = famCod ? fmap.get(famCod) : null
     const rama = fam && String(fam.categoria).toUpperCase() === 'JUVENIL' ? 'juveniles' : 'aficionados'
     const ronda = c.ronda_slug || 'final'
-    const href = fam && c.slug_familia
-      ? `/madrid/${rama}/${c.slug_familia}/${fam.slug_grupo}/${tempLabel(c.codtemporada)}/${ronda}/resultados`
+    // href solo si la familia existe en web_grupos (navegable); usa su slug_comp/slug_grupo reales.
+    const href = fam
+      ? `/madrid/${rama}/${fam.slug_comp}/${fam.slug_grupo}/${tempLabel(c.codtemporada)}/${ronda}/resultados`
       : null
-    return { nombre_comp: c.competicion, slug_familia: c.slug_familia ?? null, estado: c.estado_label, href, codtemporada: String(c.codtemporada) }
+    // slug_familia (para sello/nombre corto de la pastilla): el de la familia confirmada, o el derivado.
+    const slugFam = fam ? String(fam.slug_comp) : familiaDeCopa(c)
+    return { nombre_comp: c.competicion, slug_familia: slugFam, estado: c.estado_label, href, codtemporada: String(c.codtemporada) }
   })
 }
 
