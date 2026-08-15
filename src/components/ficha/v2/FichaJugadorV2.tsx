@@ -16,6 +16,10 @@ import JsonLd from '@/components/JsonLd'
 import CompartirBtn from '@/components/ficha/v2/CompartirBtn'
 import NavSpy from '@/components/ficha/v2/NavSpy'
 import CompChips from '@/components/ficha/v2/CompChips'
+import NivelRankings, { type CompRank } from '@/components/ficha/v2/NivelRankings'
+import PercentilLbl from '@/components/ficha/v2/PercentilLbl'
+import CompReset from '@/components/ficha/v2/CompReset'
+import RankFila from '@/components/ficha/v2/RankFila'
 import Echo from '@/components/ficha/v2/Echo'
 import Jornadas from '@/components/ficha/v2/Jornadas'
 import {
@@ -103,6 +107,35 @@ export default async function FichaJugadorV2({ cod, temporadaLabel, suf = '' }: 
   ])
   const { copas, posicionActual } = equipoInfo
   const grupoUrl = grupoHref(grupoInfo)
+
+  // Reorden de las competiciones (pastillas): la INSTALADA (rank_principal) primero, luego el resto por
+  // categoria_nivel ascendente (menor nivel = categoría superior). El orden se COMPARTE con las pastillas y el
+  // gráfico de jornadas (CompChips/Jornadas) y con el bloque Nivel, para que el índice de pastilla mapee igual
+  // en los tres. Se une a las etapas por codgrupo. Con una sola competición el reorden es trivial (idéntico).
+  const etapaPorGrupo = new Map(etapas.map((e) => [String(e.codgrupo), e]))
+  const compsOrd = [...comps].sort((a, b) => {
+    const ea = etapaPorGrupo.get(String(a.codgrupo)), eb = etapaPorGrupo.get(String(b.codgrupo))
+    const ia = !!ea?.rank_principal, ib = !!eb?.rank_principal
+    if (ia !== ib) return ia ? -1 : 1
+    return (ea?.categoria_nivel ?? 99) - (eb?.categoria_nivel ?? 99)
+  })
+  // Datos por competición para Nivel (mismo orden que las pastillas): rankings de CATEGORÍA/POSICIÓN de cada
+  // etapa + sello (pre-renderizado en servidor; el componente cliente elige el de la pastilla activa).
+  const compsRank: CompRank[] = compsOrd.map((c) => {
+    const e = etapaPorGrupo.get(String(c.codgrupo))
+    return {
+      nombreComp: c.nombre_comp,
+      sello: <Sello nombreComp={c.nombre_comp} size={18} />,
+      selloSm: <Sello nombreComp={c.nombre_comp} size={14} />,
+      rankCat: e?.rank_categoria_temp ?? null, rankCatTotal: e?.rank_categoria_temp_total ?? null,
+      rankPos: e?.rank_posicion_temp ?? null, rankPosTotal: e?.rank_posicion_temp_total ?? null,
+    }
+  })
+  // Ranking GENERAL (no sigue la pastilla). INTERINO = el de la etapa con MÁS puntos fantasy, no el de la
+  // instalada (que sobre pocos puntos sale artificialmente bajo: Raúl 14.936 sobre 10 pts). El general
+  // definitivo, agregado sobre el total de la temporada por (codjugador, codtemporada), es cambio de pipeline
+  // (ver DECISIONES E-rank-general-temporada). Con una sola etapa es esa misma -> sin cambio.
+  const etapaMaxPts = etapas.reduce<CarreraRow | undefined>((best, e) => ((e.pts_fantasy ?? 0) > (best?.pts_fantasy ?? -1) ? e : best), undefined)
 
   const cMed = (v: number | null) => (v == null ? '' : PAL[esc(v, CORTES_FIJOS.mediaPartido)])
   const cElo = (v: number | null) => (v == null ? '' : PAL[esc(v, cortesElo)])
@@ -195,27 +228,7 @@ export default async function FichaJugadorV2({ cod, temporadaLabel, suf = '' }: 
   }
 
   // Fila de ranking con el mismo tratamiento que el ELO: icono del sitio + nº + barra de percentil.
-  // Percentil = mejor que el X% = (1 - rank/total), floor y tope 99.
-  const RankFila = (insignia: ReactNode, label: string, rank: number | null, total: number | null) => {
-    if (!rank) return null
-    const p = total ? Math.min(99, Math.floor((1 - rank / total) * 100)) : null
-    const ll = p != null ? Math.round(p / 10) : 0
-    return (
-      <div style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '9px 0', borderTop: '1px solid var(--line-2)' }}>
-        <span style={{ width: 24, display: 'flex', justifyContent: 'center', flexShrink: 0 }}>{insignia}</span>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, fontSize: 'var(--t-cap)' }}>
-            <span style={{ color: 'var(--ink-3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label}</span>
-            <span className="num" style={{ fontSize: 'var(--t-sm)', flexShrink: 0 }}><span style={{ color: 'var(--e3)' }}>#{mil(rank)}</span><span style={{ color: 'var(--ink-4)' }}> / {mil(total)}</span></span>
-          </div>
-          <div style={{ display: 'flex', gap: 2, marginTop: 5 }}>
-            {Array.from({ length: 10 }).map((_, i) => <span key={i} style={{ height: 6, flex: 1, borderRadius: 2, background: (p != null && i < ll) ? 'var(--e3)' : 'rgba(255,255,255,.1)' }} />)}
-          </div>
-        </div>
-      </div>
-    )
-  }
-  const badge11 = <span style={{ width: 20, height: 20, borderRadius: '50%', background: '#1a7a3c', display: 'grid', placeItems: 'center', fontFamily: 'var(--font-display), sans-serif', fontWeight: 700, color: '#fff', fontSize: 11, lineHeight: 1 }}>11</span>
+  const badge11 =<span style={{ width: 20, height: 20, borderRadius: '50%', background: '#1a7a3c', display: 'grid', placeItems: 'center', fontFamily: 'var(--font-display), sans-serif', fontWeight: 700, color: '#fff', fontSize: 11, lineHeight: 1 }}>11</span>
 
   // 3ª casilla: goles (jugador de campo) o porterías a cero (portero). El criterio es es_portero de
   // web_jugador (posición federativa / mayoría de apariciones como portero, lo calcula el pipeline), NO
@@ -252,6 +265,7 @@ export default async function FichaJugadorV2({ cod, temporadaLabel, suf = '' }: 
 
   return (
     <div className="fjv2">
+      <CompReset dep={j.codjugador} />
       <JsonLd data={graphLd(breadcrumbLd(crumbs))} />
       {/* 1 · HERO */}
       <div className="hero">
@@ -324,7 +338,7 @@ export default async function FichaJugadorV2({ cod, temporadaLabel, suf = '' }: 
         </div></div>
         {comps.length > 0 && <>
           <div className="scope-lbl" style={{ paddingTop: 11 }}>Competición</div>
-          <div className="track"><div className="rail"><CompChips comps={comps.map((c) => ({ label: c.nombre_comp, count: c.jornadas.length, sello: <Sello nombreComp={c.nombre_comp} size={18} /> }))} /></div></div>
+          <div className="track"><div className="rail"><CompChips comps={compsOrd.map((c) => ({ label: c.nombre_comp, count: c.jornadas.length, sello: <Sello nombreComp={c.nombre_comp} size={18} /> }))} /></div></div>
         </>}
         <div className="scope-note">Las secciones marcadas «Todas las temporadas» no dependen de esta selección.</div>
       </div>
@@ -354,7 +368,7 @@ export default async function FichaJugadorV2({ cod, temporadaLabel, suf = '' }: 
               <div className="batt">{Array.from({ length: 10 }).map((_, i) => <i key={i} style={i < llenos ? { background: cElo(eloBig) } : undefined} />)}</div>
               {/* La población del percentil es la categoría del jugador: nombrarla (con su Sello) es lo que da
                   sentido al número; sin categoría se cae a «su categoría». */}
-              {pct != null && <div className="batt-lbl">Mejor que el <b>{pct} %</b> de los jugadores de {categoriaSel ? <span className="cat-inline"><Sello nombreComp={categoriaSel} size={14} /> {categoriaSel}</span> : 'su categoría'}</div>}
+              {pct != null && <PercentilLbl pct={pct} comps={compsRank} />}
               {/* Evolución del ELO (cierre por temporada) — mismo sparkline que la ficha actual (Medidores). */}
               <EloSparkline serie={j.elo_serie || []} className="w-full h-9 mt-3" />
               {/* Rating F11S (índice compuesto 0-100, beta) — de web_jugador.rating_f11s, métrica DISTINTA del
@@ -375,9 +389,11 @@ export default async function FichaJugadorV2({ cod, temporadaLabel, suf = '' }: 
               })()}
               <div style={{ marginTop: 13 }}>
                 {/* Cada ranking con su icono: badge (11) F11S, Sello de competición, Pastilla de posición. */}
-                {RankFila(badge11, 'Fútbol11Stats · Madrid', filaPrincipal?.rank_general_temp ?? null, filaPrincipal?.rank_general_temp_total ?? null)}
-                {RankFila(categoriaSel ? <Sello nombreComp={categoriaSel} size={18} /> : null, categoriaSel || 'Competición', filaPrincipal?.rank_categoria_temp ?? null, filaPrincipal?.rank_categoria_temp_total ?? null)}
-                {RankFila(<Pastilla pos={j.posicion_pastilla} estimada={!!j.posicion_es_estimada} size="mini" />, j.posicion_pastilla ? (POS_LABEL[j.posicion_pastilla] || j.posicion_pastilla) : 'Posición', filaPrincipal?.rank_posicion_temp ?? null, filaPrincipal?.rank_posicion_temp_total ?? null)}
+                {/* General: NO sigue la pastilla (interino = etapa de más puntos). Categoría/posición: SÍ la siguen (cliente). */}
+                <RankFila insignia={badge11} label="Fútbol11Stats · Madrid" rank={etapaMaxPts?.rank_general_temp ?? null} total={etapaMaxPts?.rank_general_temp_total ?? null} />
+                <NivelRankings comps={compsRank}
+                  posInsignia={<Pastilla pos={j.posicion_pastilla} estimada={!!j.posicion_es_estimada} size="mini" />}
+                  posLabel={j.posicion_pastilla ? (POS_LABEL[j.posicion_pastilla] || j.posicion_pastilla) : 'Posición'} />
               </div>
               {/* Aclara el criterio: rankings por PUNTOS FANTASY de la temporada seleccionada (rank_*_temp de la
                   fila principal), no de toda la carrera. Distinto del percentil de arriba, que mide ELO. */}
@@ -454,7 +470,7 @@ export default async function FichaJugadorV2({ cod, temporadaLabel, suf = '' }: 
           <section id="s-jornadas">
             <div className="s-head"><div className="s-title">Puntos por jornada</div><div className="s-sub"><Echo temporada={tempTxt} comps={compNames} /></div></div>
             {comps.length > 0
-              ? <Jornadas comps={comps} cortes={CORTES_FIJOS.puntosPartido} />
+              ? <Jornadas comps={compsOrd} cortes={CORTES_FIJOS.puntosPartido} />
               : <p style={{ padding: '0 var(--pad)', color: 'var(--ink-3)', fontSize: 'var(--t-sm)' }}>Sin partidos en esta temporada.</p>}
           </section>
 

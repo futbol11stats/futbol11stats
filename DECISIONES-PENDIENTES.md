@@ -498,3 +498,20 @@ Opciones para un percentil de ELO POR TEMPORADA con precisión real:
 - IMPORTANTE (criterio del percentil): debe calcularse sobre el ELO de la ÚLTIMA etapa de la temporada (el
   que muestra la ficha, valor propio del jugador) y contra la distribución de la categoría de ESA etapa
   (categoriaElo), no la de rank_principal. Es decir: mismo ELO y misma población que usa hoy el coloreado.
+
+## E-rank-general-temporada · PETICIÓN AL PIPELINE: ranking general agregado por temporada
+Problema: hoy `web_jugador_carrera.rank_general_temp` se calcula POR ETAPA, sobre los puntos de esa etapa.
+Un jugador a caballo entre dos categorías queda mal rankeado: Raúl 971620 en T21 sale 14.936/19.578 sobre
+sus 10 pts de 3ª RFEF, cuando la KpiBar (suma) muestra 115. Los rankings de CATEGORÍA y POSICIÓN sí deben
+seguir siendo por etapa (un puesto necesita una población homogénea); el GENERAL no.
+
+Petición concreta:
+- CAMPO: dos columnas nuevas en web_jugador_carrera -> `rank_general_season` + `rank_general_season_total`
+  (nombre a gusto; NO reutilizar rank_general_temp, que sigue siendo el por-etapa para otros usos).
+- UNIDAD: por (codjugador, codtemporada) — un único valor por jugador-temporada (mismo en todas las etapas
+  de esa temporada; basta poblarlo al menos en la fila rank_principal, que es la que lee la ficha).
+- MÉTRICA: puntos fantasy TOTALES de la temporada (suma de todas las etapas del jugador esa temporada),
+  rankeado contra el total de temporada de TODOS los jugadores (la misma población de rank_general_temp:
+  ~19.578 en T21). rank_general_season_total = esa N.
+Mientras tanto, la web usa como INTERINO el rank_general_temp de la etapa con más puntos (fijo, no sigue la
+pastilla). Cuando lleguen las columnas nuevas, se cambia la ficha a rank_general_season (una línea).
