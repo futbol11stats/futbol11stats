@@ -3,7 +3,7 @@
 // de equipo actual ni sus componentes.
 
 import { supabase } from '@/lib/supabase'
-import { getResultadosGrupo, type ResultadoRow, type EquipoFicha, COLS_EQUIPO } from '@/lib/equipo'
+import { getResultadosGrupo, codgrupoFamilia, type ResultadoRow, type EquipoFicha, COLS_EQUIPO } from '@/lib/equipo'
 import { cortesValidos } from '@/lib/escala'
 import { cacheEquipo } from '@/lib/cacheComp'
 
@@ -308,12 +308,14 @@ export async function getCopasAmbito(codequipo: string, tempSel: string | null, 
     const { data } = await supabase.from('web_equipo').select('copas').eq('codequipo', String(codequipo)).limit(1).maybeSingle()
     const raw = (data as { copas?: unknown } | null)?.copas
     if (!Array.isArray(raw)) return []
-    const delTemp = (raw as any[]).filter((c) => String(c.codtemporada) === String(tempSel) && (c.codgrupo_familia || c.codgrupo))
     const out: CopaComp[] = []
-    for (const c of delTemp) {
+    for (const c of (raw as any[]).filter((c) => String(c.codtemporada) === String(tempSel))) {
       // Los resultados de copa viven bajo el codgrupo de FAMILIA (fam-*), no el de la edición suelta que el
-      // JSONB trae en `codgrupo` (mismo motivo que getGruposPorTemporada). Preferir codgrupo_familia.
-      const res = await getResultadosGrupo(nombre, String(c.codgrupo_familia ?? c.codgrupo))
+      // JSONB trae en `codgrupo`. Se DERIVA con codgrupoFamilia (no basta c.codgrupo_familia: falta en algunas
+      // entradas, p.ej. equipos permanentemente solo-copa). Mismo helper que resolveCopaRows.
+      const cg = codgrupoFamilia(c) ?? c.codgrupo
+      if (!cg) continue
+      const res = await getResultadosGrupo(nombre, String(cg))
       const jugados = res.filter((r) => r.goles_local != null && r.goles_visitante != null).sort((a, b) => a.jornada - b.jornada)
       const rondas: RondaDatum[] = jugados.map((r) => {
         const local = r.nombre_local === nombre

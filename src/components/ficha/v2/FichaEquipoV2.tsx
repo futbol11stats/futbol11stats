@@ -22,7 +22,7 @@ import { SITE_URL } from '@/lib/seo'
 import { escudoUrl, formatNombre } from '@/lib/supabase'
 import { jugadorHref, fechaCorta, fichasExistentes } from '@/lib/jugador'
 import {
-  equipoSlug, tempLabel, getGrupoInfo, grupoHref, getEquipoActualInfo,
+  equipoSlug, tempLabel, getGrupoInfo, grupoHref, getEquipoActualInfo, getCopasPorTemporada,
   fechaCortaDMY, fechaCortaYMD, BADGE, HITO_EQUIPO,
 } from '@/lib/equipo'
 import {
@@ -39,7 +39,9 @@ const conSigno = (n: number) => (n > 0 ? `+${n}` : `${n}`)
 const iniciales = (nombre: string) => formatNombre(nombre).split(/\s+/).map((w) => w[0]).filter(Boolean).slice(0, 2).join('').toUpperCase()
 
 export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: string; temporadaLabel: string | null }) {
-  const [e, temporadas, copaTemps] = await Promise.all([getEquipoV2(cod), getTemporadasEquipo(cod), getCopaTemporadas(cod)])
+  const [e, temporadas, copaTemps, copasPorTemp] = await Promise.all([
+    getEquipoV2(cod), getTemporadasEquipo(cod), getCopaTemporadas(cod), getCopasPorTemporada(cod),
+  ])
   if (!e) notFound()
 
   // ACTIVO lo fija el pipeline ("jugó en la temporada actual o la anterior"); antes la web lo cableaba a T21
@@ -235,11 +237,12 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
 
   const tempTxt = tempSel != null ? tempLabel(tempSel) : ''
   const echoTxt = [tempTxt, nombreComp].filter(Boolean).join(' · ')
-  // Hero sin identidad de liga (solo-copa, o equipo permanentemente solo-copa con codgrupo NULL): en vez de la
-  // pastilla de liga (ausente), se muestra la de la COPA de la temporada seleccionada (nombre de la competición
-  // del bloque Copas), con el sello/color de Copa que LigaPastilla deriva del nombre. Si tampoco hay copa, solo
-  // el nombre del equipo (no se usa club_root: es un código interno, no un nombre legible).
-  const copaHero = !nombreComp ? (copasAmbito[0]?.competicion ?? null) : null
+  // Hero sin identidad de liga (solo-copa o equipo permanentemente solo-copa, codgrupo NULL): la pastilla de
+  // liga está ausente, así que el hero muestra la(s) COPA(s) de la temporada seleccionada CON SU ESTADO (misma
+  // pastilla que CopasLinea: sello/color de Copa + estado + enlace). Sale de getCopasPorTemporada, que DERIVA la
+  // familia (codgrupoFamilia) aunque el JSONB no traiga codgrupo_familia —el caso de estos equipos— y no depende
+  // de que se hayan jugado partidos. No se usa club_root (código interno, no un nombre legible).
+  const copasSel = copasPorTemp[tempSelStr ?? ''] ?? []
 
   // Serie de ELO para el sparkline (cierre por temporada) — mismo formato {t,elo} que la ficha actual.
   const eloSerie = (e.elo_serie || []).filter((p): p is { t: string; elo: number } => !!p && typeof p.elo === 'number')
@@ -287,12 +290,14 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
           <CompartirBtn titulo={`${e.nombre} · Fútbol11Stats`} variant="icon" />
         </div>
         <div className="hero-pills">
-          {nombreComp
-            ? <LigaPastilla nombreComp={nombreComp}
-                segments={[nombreComp, grupoNombre, inactivo || posSel == null ? null : `${posSel}º`]}
-                href={grupoUrl} muted={inactivo} />
-            : copaHero && <LigaPastilla nombreComp={copaHero} segments={[copaHero]} muted={inactivo} />}
-          <CopasLinea copas={copas} />
+          {nombreComp && (
+            <LigaPastilla nombreComp={nombreComp}
+              segments={[nombreComp, grupoNombre, inactivo || posSel == null ? null : `${posSel}º`]}
+              href={grupoUrl} muted={inactivo} />
+          )}
+          {/* Con liga: la línea de copas son las honores de la temporada VIVA (getEquipoActualInfo). Sin liga
+              (solo-copa): la copa de la temporada SELECCIONADA es la identidad -> se muestra esa, con su estado. */}
+          <CopasLinea copas={nombreComp ? copas : copasSel} />
           {e.temporada_elo_max && <span className="pill n">{badge11Sello}<span>ELO máx {mil(e.elo_max)} · {tempLabel(e.temporada_elo_max)}</span></span>}
         </div>
       </div>

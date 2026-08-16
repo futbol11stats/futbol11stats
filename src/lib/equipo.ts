@@ -164,8 +164,10 @@ export type CopaEquipo = {
 // familia). Sin esto el href salía null y las pastillas de copa quedaban sin enlace (a diferencia de la liga).
 const familiaDeCopa = (c: CopaRaw): string | null =>
   c.slug_familia ?? (FAMILIA_SLUGS.has(c.slug_comp) ? c.slug_comp : (OLD_A_FAMILIA[c.slug_comp] ?? null))
-// codgrupo de la familia en web_grupos (patrón fam-<slug>-t<codtemporada>).
-const codgrupoFamilia = (c: CopaRaw): string | null => {
+// codgrupo de la familia en web_grupos (patrón fam-<slug>-t<codtemporada>). Exportado: el JSONB copas trae el
+// codgrupo de la EDICIÓN suelta (no el de familia, y a veces sin codgrupo_familia); los resultados/rondas
+// viven bajo la familia, así que hay que DERIVARLO, no leer el campo (que puede faltar).
+export const codgrupoFamilia = (c: CopaRaw): string | null => {
   const fs = familiaDeCopa(c)
   return fs ? `fam-${fs}-t${c.codtemporada}` : (c.codgrupo_familia ?? null)
 }
