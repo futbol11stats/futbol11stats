@@ -308,10 +308,12 @@ export async function getCopasAmbito(codequipo: string, tempSel: string | null, 
     const { data } = await supabase.from('web_equipo').select('copas').eq('codequipo', String(codequipo)).limit(1).maybeSingle()
     const raw = (data as { copas?: unknown } | null)?.copas
     if (!Array.isArray(raw)) return []
-    const delTemp = (raw as any[]).filter((c) => String(c.codtemporada) === String(tempSel) && c.codgrupo)
+    const delTemp = (raw as any[]).filter((c) => String(c.codtemporada) === String(tempSel) && (c.codgrupo_familia || c.codgrupo))
     const out: CopaComp[] = []
     for (const c of delTemp) {
-      const res = await getResultadosGrupo(nombre, String(c.codgrupo))
+      // Los resultados de copa viven bajo el codgrupo de FAMILIA (fam-*), no el de la edición suelta que el
+      // JSONB trae en `codgrupo` (mismo motivo que getGruposPorTemporada). Preferir codgrupo_familia.
+      const res = await getResultadosGrupo(nombre, String(c.codgrupo_familia ?? c.codgrupo))
       const jugados = res.filter((r) => r.goles_local != null && r.goles_visitante != null).sort((a, b) => a.jornada - b.jornada)
       const rondas: RondaDatum[] = jugados.map((r) => {
         const local = r.nombre_local === nombre
