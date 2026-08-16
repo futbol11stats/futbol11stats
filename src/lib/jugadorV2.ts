@@ -28,7 +28,7 @@ export async function getJugadorV2(cod: string): Promise<JugadorFicha | null> {
   return cacheJugador(async () => {
     const { data } = await supabase.from('web_jugador').select(COLS_JUGADOR).eq('codjugador', cod).limit(1).maybeSingle()
     return (data as unknown as JugadorFicha) || null
-  }, ['getJugadorV2', cod], cod)
+  }, ['getJugadorV2', 'copa', cod], cod)   // bump: es_portero/posicion/equipo_actual/elo pueden incluir copa; cache-miss global
 }
 
 export type CarreraRow = {
@@ -57,9 +57,10 @@ export async function getCarreraV2(cod: string): Promise<CarreraRow[]> {
     const { data } = await supabase.from('web_jugador_carrera').select(COLS_CARRERA).eq('codjugador', cod)
     return ((data || []) as any[]).sort((a, b) =>
       String(b.codtemporada).localeCompare(String(a.codtemporada)) || (a.orden_temporada ?? 0) - (b.orden_temporada ?? 0)) as CarreraRow[]
-    // keyParts v2: se añadió elo_percentil_temp a COLS_CARRERA. Bump para forzar cache-miss GLOBAL (el Data
-    // Cache persiste entre deploys; sin esto seguiría sirviendo filas sin la columna). Ver también E-cache.
-  }, ['getCarreraV2', 'v2', cod], cod)
+    // keyParts v3-copa: la copa/playoff entran como filas de carrera (categoria_nivel NULL, codgrupo fam-*).
+    // Bump para forzar cache-miss GLOBAL (el Data Cache persiste entre deploys; sin esto seguiría sirviendo la
+    // carrera sin las pastillas de copa). v2 fue elo_percentil_temp. Ver también E-cache.
+  }, ['getCarreraV2', 'v3-copa', cod], cod)
 }
 
 export async function getActuacionesV2(cod: string): Promise<any[]> {
@@ -71,14 +72,14 @@ export async function getActuacionesV2(cod: string): Promise<any[]> {
     // se cruza por codacta para poder mostrarlos. Ver punto 10.
     const codactas = rows.map((a) => a.codacta).filter(Boolean)
     if (codactas.length) {
-      const { data } = await supabase.from('web_jugador_partidos').select('codacta, jornada, minutos')
+      const { data } = await supabase.from('web_jugador_partidos').select('codacta, jornada, minutos, ronda_label')
         .eq('codjugador', cod).in('codacta', codactas)
-      const m = new Map<string, { jornada: number | null; minutos: number | null }>()
-      for (const p of (data || []) as any[]) m.set(String(p.codacta), { jornada: p.jornada, minutos: p.minutos })
-      for (const a of rows) { const e = m.get(String(a.codacta)); if (e) { a.jornada = e.jornada; a.minutos = e.minutos } }
+      const m = new Map<string, { jornada: number | null; minutos: number | null; ronda_label: string | null }>()
+      for (const p of (data || []) as any[]) m.set(String(p.codacta), { jornada: p.jornada, minutos: p.minutos, ronda_label: p.ronda_label ?? null })
+      for (const a of rows) { const e = m.get(String(a.codacta)); if (e) { a.jornada = e.jornada; a.minutos = e.minutos; a.ronda_label = e.ronda_label } }
     }
     return rows
-  }, ['getActuacionesV2', cod], cod)
+  }, ['getActuacionesV2', 'copa', cod], cod)   // bump: ronda_label + actuaciones de copa refundidas
 }
 
 export async function getHitosV2(cod: string): Promise<HitoRow[]> {
@@ -170,7 +171,7 @@ export async function getCortesElo(categoria: string | null, codtempInt: number 
 }
 
 // --- Partidos jugados de UNA temporada (todas las competiciones), orden jornada ASC ---
-const COLS_PART = 'codacta, codtemporada, codgrupo, jornada, fecha, equipo_nombre, escudo, codequipo, ' +
+const COLS_PART = 'codacta, codtemporada, codgrupo, jornada, ronda_label, fecha, equipo_nombre, escudo, codequipo, ' +
   'rival_cod, rival_nombre, rival_escudo, resultado, titular, minutos, goles, amarillas, dobles_amarilla, ' +
   'rojas, puntos, elo_delta, goles_encajados, competicion'
 export async function getPartidosTemporada(cod: string, codtemp: string): Promise<any[]> {
@@ -180,12 +181,13 @@ export async function getPartidosTemporada(cod: string, codtemp: string): Promis
     let r = await q(COLS_PART + ', es_local')
     if (r.error) r = await q(COLS_PART)
     return (r.data || []) as any[]
-  }, ['getPartidosTemporada', cod, String(codtemp)], cod, codtemp)
+  }, ['getPartidosTemporada', 'copa', cod, String(codtemp)], cod, codtemp)   // bump: ronda_label + partidos de copa
 }
 
 // --- Ámbito: por competición de la temporada, la secuencia de jornadas con estado (incluidas ausencias) ---
 export type JornadaDatum = {
   jornada: number
+  ronda?: string | null   // COPA: texto de la ronda ("Fase de grupos", "Final"...) -> el front lo muestra en vez de "J N"
   estado: { tipo: 'valor'; v: number } | { tipo: 'no_jugo' } | { tipo: 'sin_dato' }
   goles?: number; amarillas?: number; dobles?: number; rojas?: number; gc?: number | null
   titular?: boolean; minutos?: number; rol?: RolPartido
@@ -254,7 +256,7 @@ export async function getAmbitoTemporada(cod: string, codtemp: string): Promise<
       }
       const rol = derivarRol(!!p.titular, p.minutos ?? 0, p.rojas ?? 0, p.dobles_amarilla ?? 0)
       return {
-        jornada,
+        jornada, ronda: p.ronda_label ?? null,
         estado: { tipo: 'valor', v: p.puntos ?? 0 },
         goles: p.goles ?? 0, amarillas: p.amarillas ?? 0, dobles: p.dobles_amarilla ?? 0,
         rojas: p.rojas ?? 0, gc: p.goles_encajados ?? null, titular: !!p.titular, minutos: p.minutos ?? 0, rol,
@@ -266,7 +268,7 @@ export async function getAmbitoTemporada(cod: string, codtemp: string): Promise<
   }
   // Liga (más jornadas) primero.
   return comps.sort((a, b) => b.jornadas.length - a.jornadas.length)
-  }, ['getAmbitoTemporada', cod, String(codtemp)], cod, codtemp)
+  }, ['getAmbitoTemporada', 'copa', cod, String(codtemp)], cod, codtemp)   // bump: ronda + gráfico de jornadas de copa
 }
 
 // --- Forma: ventanas de últimas 5 / 10 / temporada sobre los partidos JUGADOS de la temporada ---

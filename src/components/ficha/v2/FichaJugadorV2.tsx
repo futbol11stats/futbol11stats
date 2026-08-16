@@ -17,7 +17,8 @@ import CompartirBtn from '@/components/ficha/v2/CompartirBtn'
 import NavSpy from '@/components/ficha/v2/NavSpy'
 import CompChips from '@/components/ficha/v2/CompChips'
 import NivelRankings, { type CompRank } from '@/components/ficha/v2/NivelRankings'
-import PercentilLbl from '@/components/ficha/v2/PercentilLbl'
+import KpiJugador, { type CompKpi } from '@/components/ficha/v2/KpiJugador'
+import NivelElo, { type CompPct } from '@/components/ficha/v2/NivelElo'
 import CompReset from '@/components/ficha/v2/CompReset'
 import RankFila from '@/components/ficha/v2/RankFila'
 import Echo from '@/components/ficha/v2/Echo'
@@ -133,6 +134,31 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
   const cElo = (v: number | null) => (v == null ? '' : PAL[esc(v, cortesElo)])
   const cPts = (v: number) => PAL[esc(v, CORTES_FIJOS.puntosPartido)]
 
+  // Datos por competición para las superficies REACTIVAS (mismo orden que las pastillas): la cabecera (KpiBar)
+  // y el percentil del Nivel siguen la etapa seleccionada. Cada etapa trae sus cifras propias (la copa NO se
+  // suma con la liga: son competiciones distintas). `kpiFallback` = temporada sin competiciones (sin partidos).
+  const compsKpi: CompKpi[] = compsOrd.map((c) => {
+    const e = etapaPorGrupo.get(String(c.codgrupo))
+    const pjE = e?.pj ?? 0, ptsE = e?.pts_fantasy ?? 0
+    return {
+      pj: pjE, minutos: e?.minutos ?? 0, goles: e?.goles ?? 0, porterias_cero: e?.porterias_cero ?? 0,
+      ptsFantasy: Math.round(ptsE), media: pjE > 0 ? ptsE / pjE : null, mediaColor: cMed(pjE > 0 ? ptsE / pjE : null),
+    }
+  })
+  const compsPct: CompPct[] = compsOrd.map((c) => {
+    const e = etapaPorGrupo.get(String(c.codgrupo))
+    return {
+      pct: e?.elo_percentil_temp != null ? Math.min(99, Math.floor(e.elo_percentil_temp)) : null,
+      nombreComp: c.nombre_comp, selloSm: <Sello nombreComp={c.nombre_comp} size={14} />,
+    }
+  })
+  const kpiFallback: CompKpi = { pj, minutos: minT, goles: golesT, porterias_cero: p0Sel, ptsFantasy: Math.round(ptsF), media, mediaColor: cMed(media) }
+
+  // Ficha SOLO-COPA: los agregados de VIDA (web_jugador) son estrictamente de LIGA -> en un jugador que solo ha
+  // jugado copa están a 0. Señal limpia del pipeline: pj_total = 0 AND temporadas = 0. Se OCULTA el bloque de
+  // vida (Totales, compañeros, ranking general, rating), NO la identidad ni el ELO (sí tienen valor).
+  const esSoloCopa = (j.pj_total ?? 0) === 0 && (j.temporadas ?? 0) === 0
+
   const ventanas = ventanasForma(partidosTemp)
   const racha = racha5DePartidos(partidosTemp)
   const split = splitCasaFuera(partidosTemp)
@@ -148,14 +174,12 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
   // Solo compañeros activos en la temporada actual o la anterior; se filtra la lista completa y luego se
   // recorta a 6 (el pipeline solo exporta ~5-6, así que puede quedar por debajo de 6: ver companerosActivos).
   const companeros = (await companerosActivos(j.companeros_top || [])).slice(0, 6)
-  const compNames = comps.map((c) => c.nombre_comp)
+  const compNames = compsOrd.map((c) => c.nombre_comp)   // mismo orden que pastillas/Jornadas -> el subtítulo Echo nombra la comp correcta
   const ligaCod = comps[0]?.codgrupo
 
   // Percentil de ELO POR TEMPORADA: elo_percentil_temp de la ÚLTIMA etapa (etapaUltima), la misma fila de la
   // que sale el ELO -> coherente con el valor y su coloreado. Antes era web_jugador.elo_percentil (de hoy, en
   // cualquier temporada). Floor y TOPE 99. Batería: min(10, round(pct/10)) -> se llena entera en el tope.
-  const pct = etapaUltima?.elo_percentil_temp != null ? Math.min(99, Math.floor(etapaUltima.elo_percentil_temp)) : null
-  const llenos = pct != null ? Math.min(10, Math.round(pct / 10)) : 0
   const eloBig = eloCierre   // Nivel y KpiBar comparten el ELO de la última etapa (un solo ELO en pantalla).
 
   const dorsalesOtros = (j.dorsales_otros || []).filter((d) => d !== j.dorsal_ultimo && d !== j.dorsal_comun)
@@ -184,7 +208,7 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
   // `aside:true` -> el scroll-spy las ignora en desktop (columna sticky, siempre visible). Ver NavSpy.
   const secciones = ([
     { id: 's-nivel', label: 'Nivel', aside: true },
-    { id: 's-totales', label: 'Totales', aside: true },
+    esSoloCopa ? null : { id: 's-totales', label: 'Totales', aside: true },   // vida (liga) -> se oculta en solo-copa
     companeros.length ? { id: 's-mates', label: 'Compañeros', aside: true } : null,
     comps.length ? { id: 's-jornadas', label: 'Jornadas' } : null,
     partidosTemp.length ? { id: 's-forma', label: 'Forma' } : null,
@@ -304,22 +328,11 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
            tabla, sin bandera manual que haya que acordarse de quitar. */
         <div className="aviso-datos">Estamos actualizando los datos históricos de este jugador. Vuelve en un rato.</div>
       ) : (<>
-      {/* 2 · KPIs — mismo orden en móvil y desktop; en móvil se oculta Goles/P.a0 (.kpi-goles) por espacio,
-          sin reordenar el resto. */}
-      <div className="kpis">
-        <div className="kpi"><div className="kpi-i"><Escudo size={14} /></div><div className="v num">{mil(pj)}</div><div className="k">PJ</div></div>
-        <div className="kpi"><div className="kpi-i"><Reloj size={14} /></div><div className="v num">{mil(minT)}</div><div className="k">Min</div></div>
-        <div className="kpi kpi-goles">
-          <div className="kpi-i">{portero ? <Guante size={14} /> : <Balon size={14} />}</div>
-          <div className="v num">{portero ? mil(p0Sel) : mil(golesT)}</div>
-          <div className="k">{portero ? 'P. a cero' : 'Goles'}</div>
-        </div>
-        {/* Pts F. · Media · ELO son métricas F11S -> el badge (11) del logo. ELO = eloCierre (cierre de la
-            temporada seleccionada), coherente con el resto de la KpiBar; Nivel usa el ELO actual. */}
-        <div className="kpi"><div className="kpi-i">{badge11}</div><div className="v num">{mil(Math.round(ptsF))}</div><div className="k">Pts F.</div></div>
-        <div className="kpi"><div className="kpi-i">{badge11}</div><div className="v num" style={{ color: cMed(media) }}>{media != null ? med1(media) : '—'}</div><div className="k">Media</div></div>
-        <div className="kpi"><div className="kpi-i">{badge11}</div><div className="v num" style={{ color: cElo(eloCierre) }}>{eloCierre != null ? mil(Math.round(eloCierre)) : '—'}</div><div className="k">ELO</div></div>
-      </div>
+      {/* 2 · KPIs — cabecera REACTIVA: las cifras (PJ/Min/Goles·P.a0/Pts F./Media) siguen la competición del
+          selector (compStore); cada etapa trae las suyas y la copa no se suma con la liga. El ELO NO cambia
+          (valor del jugador al cierre de la temporada = última etapa), coloreado con los cortes de su categoría. */}
+      <KpiJugador comps={compsKpi} fallback={kpiFallback} portero={portero}
+        elo={eloCierre != null ? Math.round(eloCierre) : null} eloColor={cElo(eloCierre)} />
 
       {/* SCOPE */}
       <div className="scope">
@@ -350,18 +363,13 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
                 ELO, otro KPI; pendiente uno por temporada — ver DECISIONES). El subtítulo indica la temporada. */}
             <div className="s-head"><div className="s-title">Nivel</div><div className="s-sub"><span className="allscope">{tempTxt ? `en ${tempTxt}` : 'Situación actual'}</span></div></div>
             <div className="box">
-              <div className="elo-top">
-                <div><div className="cap">ELO F11S</div><div className="elo-v" style={{ color: cElo(eloBig) }}>{eloBig != null ? mil(Math.round(eloBig)) : '—'}</div></div>
-                <div style={{ textAlign: 'right' }}><div className="cap">Percentil</div><div className="elo-v" style={{ color: cElo(eloBig) }}>{pct != null ? pct : '—'}</div></div>
-              </div>
-              {/* Techo histórico del ELO y la temporada en que se alcanzó (de web_jugador.elo_max/temporada_elo_max). */}
-              {j.elo_max != null && (
-                <div className="elo-max">máx {mil(Math.round(j.elo_max))}{j.temporada_elo_max ? ` · ${tempLabel(j.temporada_elo_max)}` : ''}</div>
-              )}
-              <div className="batt">{Array.from({ length: 10 }).map((_, i) => <i key={i} style={i < llenos ? { background: cElo(eloBig) } : undefined} />)}</div>
-              {/* La población del percentil es la categoría del jugador: nombrarla (con su Sello) es lo que da
-                  sentido al número; sin categoría se cae a «su categoría». */}
-              {pct != null && <PercentilLbl pct={pct} comps={compsRank} />}
+              {/* ELO + percentil REACTIVOS: el ELO no cambia (cierre de la temporada, última etapa); el percentil
+                  sí sigue la competición del selector -> con la copa activa, el percentil es el de SU pool
+                  (elo_percentil_temp de la etapa). El techo histórico (máx) va entre el ELO y la batería. */}
+              <NivelElo elo={eloBig != null ? Math.round(eloBig) : null} eloColor={cElo(eloBig)} comps={compsPct}
+                maxLbl={j.elo_max != null
+                  ? <div className="elo-max">máx {mil(Math.round(j.elo_max))}{j.temporada_elo_max ? ` · ${tempLabel(j.temporada_elo_max)}` : ''}</div>
+                  : null} />
               {/* Evolución del ELO (cierre por temporada) — mismo sparkline que la ficha actual (Medidores). */}
               <EloSparkline serie={j.elo_serie || []} className="w-full h-9 mt-3" />
               {/* Rating F11S (índice compuesto 0-100, beta) — de web_jugador.rating_f11s, métrica DISTINTA del
@@ -395,7 +403,9 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
             </div>
           </section>
 
-          {/* TOTALES */}
+          {/* TOTALES — agregados de VIDA (liga). En una ficha solo-copa están a 0 -> se oculta el bloque entero
+              (mismo criterio que la ficha de equipo solo-copa: ocultar, no mostrar ceros). */}
+          {!esSoloCopa && (
           <section id="s-totales">
             <div className="s-head"><div className="s-title">Totales</div><div className="s-sub"><span className="allscope">Todas las temporadas</span></div></div>
             <div className="totales">
@@ -435,6 +445,7 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
               </div>
             )}
           </section>
+          )}
 
           {/* COMPAÑEROS */}
           {companeros.length > 0 && (
@@ -563,8 +574,8 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
               <div className="s-head"><div className="s-title">Trayectoria</div><div className="s-sub"><span className="allscope">Todas las temporadas</span></div></div>
               <div style={{ padding: '0 var(--pad)' }}>
                 <Trayectoria carrera={carrera} portero={portero} codjugador={j.codjugador} railWrap />
-                {/* #7 Reparto titular/suplente y minutos totales de la carrera (web_jugador.*_total). */}
-                {(j.titular_total != null || j.suplente_total != null) && (
+                {/* #7 Reparto titular/suplente y minutos totales de la carrera (web_jugador.*_total, LIGA) -> fuera en solo-copa. */}
+                {!esSoloCopa && (j.titular_total != null || j.suplente_total != null) && (
                   <p className="tray-note">
                     <b>{mil(j.titular_total)}</b> como titular · <b>{mil(j.suplente_total)}</b> como suplente
                     {portero ? '' : <> · <b>{mil(j.minutos_total)}</b> minutos</>}
@@ -590,7 +601,7 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
                       <div className="m-riv"><span className="m-vs">vs</span> <NombreEquipo codequipo={a.rival_cod} nombre={a.rival_nombre} /></div>
                       <div className="m-meta">
                         {a.es_local != null && <IndicadorLocal esLocal={a.es_local} />}
-                        <span>{fechaCorta(a.fecha)}{a.jornada != null ? ` · J${a.jornada}` : ''}</span>
+                        <span>{fechaCorta(a.fecha)}{a.ronda_label ? ` · ${a.ronda_label}` : (a.jornada != null ? ` · J${a.jornada}` : '')}</span>
                         {g > 0 && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 2, color: 'var(--e4)' }}><Balon size={12} />{g > 1 ? `×${g}` : ''}</span>}
                         {a.minutos != null && <span>{a.minutos}&#39;</span>}
                       </div>

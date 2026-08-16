@@ -117,17 +117,22 @@ export function diasDesdeDMY(fecha: string | null): number | null {
 export async function getGrupoInfo(codgrupo: string | null | undefined) {
   if (!codgrupo) return null
   const { data } = await supabase.from('web_grupos')
-    .select('slug_comp, slug_grupo, jornada_actual, categoria, tipo, codtemporada')
+    .select('slug_comp, slug_grupo, jornada_actual, categoria, tipo, codtemporada, rondas')
     .eq('codgrupo', String(codgrupo)).limit(1)
   return (data && data[0]) as Record<string, any> | null
 }
 
 // URL de la vista de un grupo a partir de su fila de web_grupos (liga -> clasificación; copa -> resultados).
+// En COPA el segmento es la RONDA (slug de web_grupos.rondas), no "jornada-N" (que no matchea ninguna ronda).
 export function grupoHref(g: Record<string, any> | null | undefined): string | null {
   if (!g || !g.slug_comp || !g.slug_grupo) return null
   const rama = String(g.categoria).toUpperCase() === 'JUVENIL' ? 'juveniles' : 'aficionados'
-  const entrada = g.tipo && g.tipo !== 'LIGA' ? 'resultados' : 'clasificacion'
-  return `/madrid/${rama}/${g.slug_comp}/${g.slug_grupo}/${tempLabel(g.codtemporada)}/jornada-${g.jornada_actual || 1}/${entrada}`
+  const esCopa = !!g.tipo && g.tipo !== 'LIGA'
+  const rondas: any[] = Array.isArray(g.rondas) ? g.rondas : []
+  const seg = esCopa
+    ? ((rondas.find((r) => r.idx === g.jornada_actual) || rondas[rondas.length - 1])?.slug ?? `jornada-${g.jornada_actual || 1}`)
+    : `jornada-${g.jornada_actual || 1}`
+  return `/madrid/${rama}/${g.slug_comp}/${g.slug_grupo}/${tempLabel(g.codtemporada)}/${seg}/${esCopa ? 'resultados' : 'clasificacion'}`
 }
 
 // COPAS del equipo en la temporada en curso. Fuente: columna JSONB web_equipo.copas. Cada entrada

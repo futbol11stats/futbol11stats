@@ -131,7 +131,8 @@ export default function Jornadas({ comps, cortes }: { comps: CompAmbito[]; corte
                     </div>
                     <div className={`resu res-${res}`} />
                   </div>
-                  <div className="lane"><span className="jlabel">J{d.jornada}</span></div>
+                  {/* Copa: la ronda ("Fase de grupos", "Final") en vez del número de jornada (interno). */}
+                  <div className="lane"><span className="jlabel">{d.ronda ? d.ronda : `J${d.jornada}`}</span></div>
                 </div>
               )
             })}

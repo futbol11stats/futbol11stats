@@ -14,15 +14,20 @@ export const PARTIDOS_HABILITADO = true
 
 type Carrera = any
 
-// Columnas reales de web_jugador_partidos (2M+ filas, RLS pública).
-const COLS_P = 'codacta, jornada, fecha, rival_nombre, rival_escudo, resultado, titular, minutos, goles, amarillas, dobles_amarilla, rojas, puntos, elo_delta, goles_encajados'
+// Columnas reales de web_jugador_partidos (2M+ filas, RLS pública). ronda_label: copa -> "Fase de grupos"/"Final".
+const COLS_P = 'codacta, jornada, ronda_label, fecha, rival_nombre, rival_escudo, resultado, titular, minutos, goles, amarillas, dobles_amarilla, rojas, puntos, elo_delta, goles_encajados'
 
-async function fetchPartidos(codjugador: string, codtemporada: string, codequipo: string) {
+// Se filtra por codgrupo (no solo codequipo+temporada): un jugador puede tener liga Y copa con el MISMO equipo
+// en la misma temporada -> son dos etapas distintas; sin codgrupo el acordeón mezclaría ambos.
+async function fetchPartidos(codjugador: string, codtemporada: string, codequipo: string, codgrupo: string | null) {
   // es_local (local/visitante) llega con el próximo export; se intenta y, si no existe, se reintenta
   // sin ella -> el icono casa/avión brota solo cuando el dato aterrice.
-  const q = (c: string) => supabase.from('web_jugador_partidos').select(c)
-    .eq('codjugador', codjugador).eq('codtemporada', codtemporada).eq('codequipo', codequipo)
-    .order('jornada', { ascending: false })   // por jornada (entero), no por el string de fecha
+  const q = (c: string) => {
+    let b = supabase.from('web_jugador_partidos').select(c)
+      .eq('codjugador', codjugador).eq('codtemporada', codtemporada).eq('codequipo', codequipo)
+    if (codgrupo) b = b.eq('codgrupo', codgrupo)
+    return b.order('jornada', { ascending: false })   // por jornada (entero), no por el string de fecha
+  }
   let { data, error } = await q(COLS_P + ', es_local')
   if (error) ({ data, error } = await q(COLS_P))
   if (error) return { error: error.message, rows: [] as any[] }
@@ -41,7 +46,7 @@ function PartidoFila({ p, portero }: { p: any; portero: boolean }) {
     <tr className="border-b border-pitch-700/40 bg-pitch-900/30">
       {/* TEMP -> Jnn (· fecha en desktop) */}
       <td className={`${ACENTO} text-chalk-600 tabular-nums whitespace-nowrap`}>
-        J{p.jornada}<span className="hidden sm:inline"> · {fechaCorta(p.fecha)}</span>
+        {p.ronda_label ? p.ronda_label : `J${p.jornada}`}<span className="hidden sm:inline"> · {fechaCorta(p.fecha)}</span>
       </td>
       {/* EQUIPO -> escudo rival + nombre (+ resultado·min·pts SOLO en móvil) */}
       <td className="text-chalk-300 max-w-[7rem] sm:max-w-[13rem]">
@@ -107,12 +112,12 @@ export default function Trayectoria({ carrera, portero, codjugador, railWrap = f
 
   const toggle = async (c: any) => {
     if (!PARTIDOS_HABILITADO) return
-    const key = `${c.codtemporada}-${c.codequipo}`
+    const key = `${c.codtemporada}-${c.codequipo}-${c.codgrupo ?? ''}`
     if (abierto === key) { setAbierto(null); return }
     setAbierto(key)
     if (!cache[key]) {
       setCache((m) => ({ ...m, [key]: { loading: true, rows: [] } }))
-      const { rows } = await fetchPartidos(codjugador, String(c.codtemporada), String(c.codequipo))
+      const { rows } = await fetchPartidos(codjugador, String(c.codtemporada), String(c.codequipo), c.codgrupo ?? null)
       setCache((m) => ({ ...m, [key]: { loading: false, rows } }))
     }
   }
@@ -139,7 +144,7 @@ export default function Trayectoria({ carrera, portero, codjugador, railWrap = f
         </thead>
         <tbody>
           {carrera.map((c: any, i: number) => {
-            const key = `${c.codtemporada}-${c.codequipo}`
+            const key = `${c.codtemporada}-${c.codequipo}-${c.codgrupo ?? ''}`
             const open = abierto === key
             const box = cache[key]
             return (
