@@ -94,15 +94,18 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
     const copaEsc = await escudosPorNombre(copaNombres)
     for (const c of copasAmbito) for (const r of c.rondas) if (r.rivalNombre) r.rivalEscudo = copaEsc.get(r.rivalNombre) ?? null
   }
-  // Ámbito de competición: liga (barras) + copas (tira de rondas). Alimenta CompChips y el gráfico.
+  // Ámbito de competición: liga (barras) + copas (tira de rondas). Alimenta CompChips y el gráfico. La entrada
+  // de LIGA solo se incluye si hay jornadas de liga: en solo-copa (jornadas vacías) se omite para que el gráfico
+  // no defaultee a una liga vacía y la COPA sea el ámbito por defecto (protagonista).
+  const ligaChart: CompEquipo[] = jornadas.length > 0 ? [{ label: nombreComp || 'Liga', tipo: 'liga', jornadas }] : []
   const chartComps: CompEquipo[] = [
-    { label: nombreComp || 'Liga', tipo: 'liga', jornadas },
+    ...ligaChart,
     ...copasAmbito.map((c) => ({ label: c.label, tipo: 'copa' as const, rondas: c.rondas })),
   ]
   // Chips de ámbito: etiqueta corta visible + nombre completo en `titulo` (tooltip). El sello se calcula
   // con el nombre completo de la competición, no con la etiqueta abreviada.
   const chipComps = [
-    { label: nombreComp || 'Liga', titulo: nombreComp || 'Liga', count: jornadas.length, sello: <Sello nombreComp={nombreComp || 'Liga'} size={18} /> },
+    ...(jornadas.length > 0 ? [{ label: nombreComp || 'Liga', titulo: nombreComp || 'Liga', count: jornadas.length, sello: <Sello nombreComp={nombreComp || 'Liga'} size={18} /> }] : []),
     ...copasAmbito.map((c) => ({ label: c.label, titulo: c.titulo, count: c.rondas.length, sello: <Sello nombreComp={c.competicion} size={18} /> })),
   ]
   const ana = analisisResultados(resultados, e.nombre)
