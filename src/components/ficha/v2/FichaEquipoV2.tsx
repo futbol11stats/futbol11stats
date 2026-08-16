@@ -21,13 +21,12 @@ import { graphLd, breadcrumbLd, sportsTeamLd } from '@/lib/jsonld'
 import { SITE_URL } from '@/lib/seo'
 import { escudoUrl, formatNombre } from '@/lib/supabase'
 import { jugadorHref, fechaCorta, fichasExistentes } from '@/lib/jugador'
-import { getSueloVivo } from '@/lib/temporadas'
 import {
   equipoSlug, tempLabel, getGrupoInfo, grupoHref, getEquipoActualInfo,
   fechaCortaDMY, fechaCortaYMD, BADGE, HITO_EQUIPO,
 } from '@/lib/equipo'
 import {
-  getEquipoV2, getTemporadasEquipo, getSerieLiga, getResultadosGrupo, buildJornadasEquipo,
+  getEquipoV2, getTemporadasEquipo, getCopaTemporadas, getSerieLiga, getResultadosGrupo, buildJornadasEquipo,
   escudosPorNombre, getMiniClasif, colorMedia, colorElo, colorFan, CORTES_EQUIPO,
   analisisResultados, getTramos, getFacetasGrupo, getPlantillaEquipoV2, getMovimientosEquipo,
   getHitosEquipo, getMediasPorTemporada, getCopasAmbito, formaEquipo, type PlantillaEqRow,
@@ -40,19 +39,30 @@ const conSigno = (n: number) => (n > 0 ? `+${n}` : `${n}`)
 const iniciales = (nombre: string) => formatNombre(nombre).split(/\s+/).map((w) => w[0]).filter(Boolean).slice(0, 2).join('').toUpperCase()
 
 export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: string; temporadaLabel: string | null }) {
-  const [e, temporadas, suelo] = await Promise.all([getEquipoV2(cod), getTemporadasEquipo(cod), getSueloVivo()])
+  const [e, temporadas, copaTemps] = await Promise.all([getEquipoV2(cod), getTemporadasEquipo(cod), getCopaTemporadas(cod)])
   if (!e) notFound()
 
-  const inactivo = Number(e.codtemporada) < suelo
+  // ACTIVO lo fija el pipeline ("jugó en la temporada actual o la anterior"); antes la web lo cableaba a T21
+  // (Number(codtemporada) < suelo). Se lee el flag para que el criterio viva en una sola fuente.
+  const inactivo = e.activo === false
   const slug = equipoSlug(e.codequipo, e.nombre)
 
-  // Temporada seleccionada (ruta) o la más reciente.
-  const tempSel = (temporadaLabel && temporadas.find((t) => tempLabel(t.codtemporada) === temporadaLabel)?.codtemporada)
-    || temporadas[0]?.codtemporada || e.codtemporada || null
-  const tempRow = temporadas.find((t) => t.codtemporada === tempSel) || null
-  const codgrupoSel = tempRow?.codgrupo ?? (tempSel === e.codtemporada ? e.codgrupo : null)
-  const nombreComp = tempRow?.nombre_comp ?? e.nombre_comp ?? null
-  const grupoNombre = tempRow?.grupo_nombre ?? e.grupo_nombre ?? null
+  // Lista de temporadas = liga (web_equipo_temporadas) ∪ copa (web_equipo.copas), descendente. El ACTA
+  // construye la realidad: una temporada de solo-copa es una temporada del equipo aunque no tenga fila de liga.
+  // Default = MAX de la unión (no e.codtemporada, que es la última de LIGA y se queda atrás en solo-copa).
+  const ligaCods = temporadas.map((t) => Number(t.codtemporada))
+  const cods = Array.from(new Set([...ligaCods, ...copaTemps])).sort((a, b) => b - a)
+  const tempSel: number | null =
+    (temporadaLabel ? cods.find((c) => tempLabel(c) === temporadaLabel) ?? null : null)
+    ?? cods[0] ?? (e.codtemporada != null ? Number(e.codtemporada) : null)
+  const tempSelStr = tempSel != null ? String(tempSel) : null
+  const tempRow = temporadas.find((t) => Number(t.codtemporada) === tempSel) || null
+  // Solo-copa: la temporada seleccionada tiene acta de copa pero NO fila de liga -> se ocultan posición,
+  // clasificación y badges; se muestran Copas (protagonista), plantilla y ELO.
+  const esSoloCopa = tempSel != null && !tempRow && copaTemps.includes(tempSel)
+  const codgrupoSel = esSoloCopa ? null : (tempRow?.codgrupo ?? (tempSel != null && Number(e.codtemporada) === tempSel ? e.codgrupo : null))
+  const nombreComp = esSoloCopa ? null : (tempRow?.nombre_comp ?? e.nombre_comp ?? null)
+  const grupoNombre = esSoloCopa ? null : (tempRow?.grupo_nombre ?? e.grupo_nombre ?? null)
 
   const [serie, resultados, equipoInfo, grupoInfo] = await Promise.all([
     getSerieLiga(e.codequipo, codgrupoSel),
@@ -72,11 +82,11 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
   const [tramos, facetas, plantilla, movs, hitos, mediasTemp, copasAmbito] = await Promise.all([
     getTramos(e.codequipo, codgrupoSel),
     getFacetasGrupo(codgrupoSel, e.codequipo),
-    getPlantillaEquipoV2(e.codequipo, tempSel, e.rama),
+    getPlantillaEquipoV2(e.codequipo, tempSelStr, e.rama),
     getMovimientosEquipo(cod),
     getHitosEquipo(cod),
     getMediasPorTemporada(e.codequipo),
-    getCopasAmbito(e.codequipo, tempSel, e.nombre),
+    getCopasAmbito(e.codequipo, tempSelStr, e.nombre),
   ])
   // Escudos de los rivales de copa (por nombre, como en el gráfico de liga).
   const copaNombres = copasAmbito.flatMap((c) => c.rondas.map((r) => r.rivalNombre || '')).filter(Boolean)
@@ -220,8 +230,13 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
   const filaGoles = (label: ReactNode, gc: number, gf: number, pj: number | null, ratioOn: boolean) =>
     <FilaEspejo center={label} gc={gc} gf={gf} maxBar={maxBar} pj={ratioOn ? pj : null} />
 
-  const tempTxt = tempSel ? tempLabel(tempSel) : ''
+  const tempTxt = tempSel != null ? tempLabel(tempSel) : ''
   const echoTxt = [tempTxt, nombreComp].filter(Boolean).join(' · ')
+  // Hero sin identidad de liga (solo-copa, o equipo permanentemente solo-copa con codgrupo NULL): en vez de la
+  // pastilla de liga (ausente), se muestra la de la COPA de la temporada seleccionada (nombre de la competición
+  // del bloque Copas), con el sello/color de Copa que LigaPastilla deriva del nombre. Si tampoco hay copa, solo
+  // el nombre del equipo (no se usa club_root: es un código interno, no un nombre legible).
+  const copaHero = !nombreComp ? (copasAmbito[0]?.competicion ?? null) : null
 
   // Serie de ELO para el sparkline (cierre por temporada) — mismo formato {t,elo} que la ficha actual.
   const eloSerie = (e.elo_serie || []).filter((p): p is { t: string; elo: number } => !!p && typeof p.elo === 'number')
@@ -235,7 +250,7 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
 
   const secciones = ([
     { id: 's-nivel', label: 'Nivel', aside: true },
-    { id: 's-clasif', label: 'Clasificación', aside: true },
+    esSoloCopa ? null : { id: 's-clasif', label: 'Clasificación', aside: true },
     ultimos.length ? { id: 's-ultimos', label: 'Últimos partidos' } : null,
     jornadas.length ? { id: 's-jornadas', label: 'Jornadas' } : null,
     forma.racha.length ? { id: 's-forma', label: 'Forma' } : null,
@@ -269,18 +284,20 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
           <CompartirBtn titulo={`${e.nombre} · Fútbol11Stats`} variant="icon" />
         </div>
         <div className="hero-pills">
-          {nombreComp && (
-            <LigaPastilla nombreComp={nombreComp}
-              segments={[nombreComp, grupoNombre, inactivo || posSel == null ? null : `${posSel}º`]}
-              href={grupoUrl} muted={inactivo} />
-          )}
+          {nombreComp
+            ? <LigaPastilla nombreComp={nombreComp}
+                segments={[nombreComp, grupoNombre, inactivo || posSel == null ? null : `${posSel}º`]}
+                href={grupoUrl} muted={inactivo} />
+            : copaHero && <LigaPastilla nombreComp={copaHero} segments={[copaHero]} muted={inactivo} />}
           <CopasLinea copas={copas} />
           {e.temporada_elo_max && <span className="pill n">{badge11Sello}<span>ELO máx {mil(e.elo_max)} · {tempLabel(e.temporada_elo_max)}</span></span>}
         </div>
       </div>
 
       {/* KPIs — 5 columnas fijas (Pos·Pts·DG·Media F.·ELO). Icono encima del número, como en jugador:
-          Pos/Pts/DG con icono del dato; Media F./ELO (métricas F11S) con el badge (11). */}
+          Pos/Pts/DG con icono del dato; Media F./ELO (métricas F11S) con el badge (11). En solo-copa NO se pintan
+          (son métricas de liga: quedarían todas a «—»); el ELO sigue visible en la sección Nivel. */}
+      {!esSoloCopa && (
       <div className="kpis kpis-eq">
         <div className="kpi"><div className="kpi-i"><Tabla size={14} /></div><div className="v num">{posSel != null ? `${posSel}º` : '—'}</div><div className="k">Pos</div></div>
         <div className="kpi"><div className="kpi-i"><Estrella size={14} /></div><div className="v num">{mil(ptsSel)}</div><div className="k">Pts</div></div>
@@ -288,13 +305,14 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
         <div className="kpi"><div className="kpi-i">{badge11}</div><div className="v num" style={{ color: colorMedia(mediaFan) }}>{med1(mediaFan)}</div><div className="k">Media F.</div></div>
         <div className="kpi"><div className="kpi-i">{badge11}</div><div className="v num" style={{ color: colorElo(eloCierre) }}>{mil(eloCierre)}</div><div className="k">ELO</div></div>
       </div>
+      )}
 
       {/* SCOPE */}
       <div className="scope">
         <div className="scope-lbl">Temporada</div>
         <div className="track"><div className="rail">
-          {temporadas.map((t) => (
-            <Link key={t.codtemporada} href={`/madrid/equipo/${slug}/${tempLabel(t.codtemporada)}`} className={t.codtemporada === tempSel ? 'on' : ''}>{tempLabel(t.codtemporada)}</Link>
+          {cods.map((c) => (
+            <Link key={c} href={`/madrid/equipo/${slug}/${tempLabel(c)}`} className={c === tempSel ? 'on' : ''}>{tempLabel(c)}</Link>
           ))}
         </div></div>
         {chartComps.length > 0 && <>
@@ -314,7 +332,7 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
             <div className="box">
               <div className="elo-top">
                 <div><div className="cap">ELO F11S</div><div className="elo-v" style={{ color: colorElo(eloActual) }}>{mil(eloActual)}</div></div>
-                {posSel != null && <div style={{ textAlign: 'right' }}><div className="cap">En su grupo</div><div className="elo-v" style={{ color: colorElo(eloActual) }}>{posSel}º</div></div>}
+                {!esSoloCopa && posSel != null && <div style={{ textAlign: 'right' }}><div className="cap">En su grupo</div><div className="elo-v" style={{ color: colorElo(eloActual) }}>{posSel}º</div></div>}
               </div>
               {/* Percentil/batería degradados: web_percentiles no tiene métricas de equipo. */}
               {eloSerie.length > 1 && <EloSparkline serie={eloSerie} className="w-full h-9 mt-3" />}
@@ -338,7 +356,8 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
             </div>
           </section>
 
-          {/* CLASIFICACIÓN */}
+          {/* CLASIFICACIÓN — oculta en solo-copa (esa temporada no tiene liga: ni mini-clasif ni «Sin clasificación»). */}
+          {!esSoloCopa && (
           <section id="s-clasif">
             <div className="s-head"><div className="s-title">Clasificación</div><div className="s-sub">{echoTxt}</div></div>
             {mini.filas.length > 0 ? (
@@ -357,6 +376,7 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
               </>
             ) : <p style={{ padding: '0 var(--pad)', color: 'var(--ink-3)', fontSize: 'var(--t-sm)' }}>Sin clasificación en esta temporada.</p>}
           </section>
+          )}
         </div>
 
         <div className="main">

@@ -48,6 +48,20 @@ export async function getTemporadasEquipo(cod: string) {
   }, ['getTemporadasEquipo', cod], cod)
 }
 
+// Temporadas (cod, número) en las que el equipo tiene ACTA de copa (JSONB web_equipo.copas). El acta
+// construye la realidad: una temporada de SOLO-COPA es una temporada del equipo aunque no tenga fila de liga
+// en web_equipo_temporadas. Se une a las de liga para el selector y el default de la ficha (ver FichaEquipoV2).
+export async function getCopaTemporadas(cod: string): Promise<number[]> {
+  return cacheEquipo(async () => {
+    const { data } = await supabase.from('web_equipo').select('copas').eq('codequipo', cod).limit(1).maybeSingle()
+    const raw = (data as { copas?: unknown } | null)?.copas
+    if (!Array.isArray(raw)) return []
+    const set = new Set<number>()
+    for (const c of raw as any[]) { const n = Number((c as any)?.codtemporada); if (Number.isInteger(n)) set.add(n) }
+    return Array.from(set).sort((a, b) => b - a)
+  }, ['getCopaTemporadas', cod], cod)
+}
+
 // --- Serie de clasificación: una fila por jornada del equipo en su grupo de liga ---
 // pts_fantasy es ACUMULADO en web_clasificacion; el fantasy de UNA jornada = diferencia con la anterior.
 export type ClasifRow = {
