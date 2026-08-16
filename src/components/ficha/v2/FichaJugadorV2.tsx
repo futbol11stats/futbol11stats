@@ -27,7 +27,7 @@ import {
   Balon, Reloj, Escudo, Camiseta, CamisetaHueca, TarjetaAmarilla, TarjetaDoble, TarjetaRoja, Guante,
   Estrella, Calendario,
 } from '@/components/iconos'
-import { getEquipoActualInfo, getGrupoInfo, grupoHref } from '@/lib/equipo'
+import { getEquipoActualInfo, getGrupoInfo, grupoHref, getCopasPorTemporada } from '@/lib/equipo'
 import { graphLd, breadcrumbLd } from '@/lib/jsonld'
 import { SITE_URL } from '@/lib/seo'
 import {
@@ -92,7 +92,7 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
   const media = pj > 0 ? ptsF / pj : null
   const eloCierre = etapaUltima?.elo_final ?? j.elo_actual ?? null
 
-  const [equipoInfo, cortesElo, alerta, comps, partidosTemp, actuaciones, hitosRaw, grupoInfo, tarjetas] = await Promise.all([
+  const [equipoInfo, cortesElo, alerta, comps, partidosTemp, actuaciones, hitosRaw, grupoInfo, tarjetas, copasPorTempEquipo] = await Promise.all([
     inactivo ? Promise.resolve({ copas: [], posicionActual: null }) : getEquipoActualInfo(j.codequipo_actual),
     getCortesElo(categoriaElo, tempSel ? Number(tempSel) : null),   // cortes de la categoría que aporta el ELO (última etapa)
     getAlertaActual(cod),
@@ -102,8 +102,16 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
     getHitosV2(cod),
     getGrupoInfo(filaPrincipal?.codgrupo),
     getTarjetasTotales(cod),
+    // Copas del EQUIPO de la temporada seleccionada (no la viva) -> la línea de honores del hero sigue el
+    // selector, igual que en la ficha de equipo. Team = el de la etapa principal de esa temporada.
+    getCopasPorTemporada(filaPrincipal?.codequipo ?? j.codequipo_actual),
   ])
-  const { copas, posicionActual } = equipoInfo
+  const { posicionActual } = equipoInfo   // `copas` (viva) ya no se usa: el hero muestra las de la temporada seleccionada
+  // Honores de copa de la TEMPORADA seleccionada (vacío si el equipo no jugó copa esa temporada -> no se muestra nada).
+  const copasSelHero = (tempSel != null ? copasPorTempEquipo[String(tempSel)] : null) ?? []
+  // ¿La competición PRINCIPAL de la temporada es copa/playoff? (categoria_nivel NULL / codgrupo fam-*). En ese
+  // caso el hero NO pega la posición de liga a la pastilla (en copa no hay clasificación por puntos).
+  const esCopaPrincipal = filaPrincipal != null && filaPrincipal.categoria_nivel == null
   const grupoUrl = grupoHref(grupoInfo)
 
   // Reorden de las competiciones (pastillas): la INSTALADA (rank_principal) primero, luego el resto por
@@ -307,10 +315,12 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
           )}
           {filaPrincipal?.nombre_comp && (
             <LigaPastilla nombreComp={filaPrincipal?.nombre_comp ?? null}
-              segments={[filaPrincipal?.nombre_comp ?? null, filaPrincipal?.grupo_nombre ?? null, inactivo || posicionActual == null ? null : `${posicionActual}º`]}
+              segments={[filaPrincipal?.nombre_comp ?? null, filaPrincipal?.grupo_nombre ?? null, esCopaPrincipal || inactivo || posicionActual == null ? null : `${posicionActual}º`]}
               href={grupoUrl} muted={inactivo} />
           )}
-          <CopasLinea copas={copas} />
+          {/* Honores de copa de la temporada SELECCIONADA (no la viva). Vacío si el equipo no jugó copa esa
+              temporada -> CopasLinea no renderiza. Mismo criterio que la ficha de equipo. */}
+          <CopasLinea copas={copasSelHero} />
         </div>
         {alertaTxt && (
           <div className="alert">
