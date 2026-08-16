@@ -366,15 +366,26 @@ export async function getCifrasV2(codgrupo: string, codtemporada: number, jornad
   }, ['getCifrasV2', codgrupo, codtemporada, jornada, totalJornadas], [codgrupo], codtemporada)
 }
 
-// Goles por equipo en UNA jornada, derivados de web_resultados (no hay tabla). Cada equipo juega una vez.
+// Goles por equipo en la jornada, derivados de web_resultados (no hay tabla). Se AGREGA por equipo: en LIGA
+// cada equipo juega una vez (no-op), pero en COPA la fase de grupos se muestra como una sola "jornada" donde un
+// equipo juega VARIOS partidos -> sin agregar salían filas duplicadas (una por partido). Clave: codequipo, o el
+// nombre si no resuelve.
 export type GolEquipoRow = { nombre: string; escudo: string | null; codequipo: string | null; goles: number }
 export function golesEquipoJornada(res: ResultadoCompRow[], equiposMap: Map<string, string>): GolEquipoRow[] {
-  const out: GolEquipoRow[] = []
-  for (const r of res) {
-    if (r.goles_local != null) out.push({ nombre: r.nombre_local, escudo: r.escudo_local, codequipo: equiposMap.get(r.nombre_local) ?? null, goles: r.goles_local })
-    if (r.goles_visitante != null) out.push({ nombre: r.nombre_visitante, escudo: r.escudo_visitante, codequipo: equiposMap.get(r.nombre_visitante) ?? null, goles: r.goles_visitante })
+  const acc = new Map<string, GolEquipoRow>()
+  const add = (nombre: string, escudo: string | null, goles: number | null) => {
+    if (goles == null) return
+    const codequipo = equiposMap.get(nombre) ?? null
+    const key = codequipo ?? nombre
+    const prev = acc.get(key)
+    if (prev) prev.goles += goles
+    else acc.set(key, { nombre, escudo, codequipo, goles })
   }
-  return out.filter((g) => g.goles > 0).sort((a, b) => b.goles - a.goles)
+  for (const r of res) {
+    add(r.nombre_local, r.escudo_local, r.goles_local)
+    add(r.nombre_visitante, r.escudo_visitante, r.goles_visitante)
+  }
+  return Array.from(acc.values()).filter((g) => g.goles > 0).sort((a, b) => b.goles - a.goles)
 }
 
 // Suspendidos para la jornada SIGUIENTE a la seleccionada (web_suspendidos).

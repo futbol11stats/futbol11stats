@@ -72,7 +72,7 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
     inactivo ? Promise.resolve({ copas: [], posicionActual: null }) : getEquipoActualInfo(e.codequipo),
     getGrupoInfo(codgrupoSel),
   ])
-  const { copas, posicionActual } = equipoInfo
+  const { posicionActual } = equipoInfo   // `copas` (viva) ya no se usa: el hero muestra copasSel (temporada seleccionada)
   const grupoUrl = grupoHref(grupoInfo)
 
   const jornadas = buildJornadasEquipo(serie, resultados, e.nombre)
@@ -295,9 +295,10 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
               segments={[nombreComp, grupoNombre, inactivo || posSel == null ? null : `${posSel}º`]}
               href={grupoUrl} muted={inactivo} />
           )}
-          {/* Con liga: la línea de copas son las honores de la temporada VIVA (getEquipoActualInfo). Sin liga
-              (solo-copa): la copa de la temporada SELECCIONADA es la identidad -> se muestra esa, con su estado. */}
-          <CopasLinea copas={nombreComp ? copas : copasSel} />
+          {/* La línea de copas del hero refleja SIEMPRE la temporada seleccionada (copasSel), como el resto de
+              la ficha: el selector manda en todo. Antes, con liga, mostraba las copas de la temporada VIVA
+              (getEquipoActualInfo) aunque se estuviera viendo otra -> incoherente. */}
+          <CopasLinea copas={copasSel} />
           {e.temporada_elo_max && <span className="pill n">{badge11Sello}<span>ELO máx {mil(e.elo_max)} · {tempLabel(e.temporada_elo_max)}</span></span>}
         </div>
       </div>
