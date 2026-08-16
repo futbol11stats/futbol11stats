@@ -493,6 +493,23 @@ componente de render. Confirmar antes de ejecutar.
   la vista. Sería más barato (sin el EXISTS sobre 106k filas) y explícito. La vista funciona y no requiere
   mantenimiento, así que es opcional; el flag sería la versión definitiva si el escaneo llega a pesar.
 
+### Addendum (2026-08-16): conversión codtemporada<->slug también data-driven (fórmula) — commit 8532024
+La migración de arriba resolvió QUÉ temporada muestra cada competición, pero la conversión codtemporada<->slug
+de URL seguía en CINCO mapas estáticos topados a mano en T21 (competición TEMPORADA_MAP/COD_TO_LABEL/
+TEMPORADAS_ORD, seo TEMP_LABEL_BY_COD, jugador TEMP_LABEL + su inverso COD_FROM_LABEL en jugadorV2). Al publicar
+la Copa RFEF T22 (fam-copa-rfef-t22, 2026-2027) el enlace del índice salía con `undefined` (TEMP_LABEL_BY_COD[22])
+y la ruta daba 404 (TEMPORADA_MAP['2026-27'] -> notFound); mismo bug latente en /jugador|equipo/x/2026-27.
+- FUENTE ÚNICA: `src/lib/temporadaSlug.ts` con la relación LINEAL verificada contra web_grupos.nombre_temporada
+  (cod 17 = 2021-2022 ... 22 = 2026-2027, secuencial sin gaps): codToSlug/slugToCod (startYear = cod + 2004),
+  sin lista que mantener -> una temporada nueva funciona sola en cuanto el pipeline la carga.
+- El selector de temporadas de competición usa `universoTemporadas(top)` con techo DATA-DRIVEN: en grupo, la
+  temporada más nueva de `variantes` (getVariantesV2); en global, `getTemporadasCompV2` (distinct codtemporada
+  por slug_comp). El global ahora grisea las temporadas sin dato (antes enlazaba todas -> una liga sin T22
+  habría dado enlace vivo a un global vacío). Suelo del universo = TEMP_COD_MIN (17, inicio de datos).
+- Test: src/lib/temporadaSlug.test.ts (round-trip 17..25, T22, rechazo de 'undefined'/forma larga/malformados).
+- Verificado en producción: la copa T22 carga desde el índice, 12 partidos con hora/campo, selector conecta con
+  T17-21 (enlaces vivos); las ligas siguen en T21 (no asoman en T22 hasta tener dato).
+
 ## E-nivel-percentil-temporada · Percentil de ELO por temporada en el bloque Nivel (PENDIENTE de dato)
 Contexto: los rankings, la etiqueta y el ELO de Nivel ya son por temporada (fila rank_principal de
 web_jugador_carrera). El PERCENTIL sigue siendo el de web_jugador (snapshot de HOY) -> al ver un año
