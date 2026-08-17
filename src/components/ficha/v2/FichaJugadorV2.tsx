@@ -113,6 +113,15 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
   // caso el hero NO pega la posición de liga a la pastilla (en copa no hay clasificación por puntos).
   const esCopaPrincipal = filaPrincipal != null && filaPrincipal.categoria_nivel == null
   const grupoUrl = grupoHref(grupoInfo)
+  // FUSIÓN pastilla competición + honor de copa: si la principal es copa y existe un honor de la MISMA
+  // familia (mismo slug_comp de web_grupos que el grupo de la etapa, ambos ya de la temporada seleccionada),
+  // es la misma competición repetida -> se muestra UNA pastilla con nombre completo + estado. El honor fusionado
+  // se saca de CopasLinea (copasResto) para que no salga dos veces. Honor de OTRA familia (jugador de liga con
+  // copa) -> no se fusiona y siguen las dos pastillas.
+  const famPrincipal = esCopaPrincipal ? (grupoInfo?.slug_comp ?? null) : null
+  const idxHonorFusion = famPrincipal != null ? copasSelHero.findIndex((c) => c.slug_familia === famPrincipal) : -1
+  const honorFusion = idxHonorFusion >= 0 ? copasSelHero[idxHonorFusion] : null
+  const copasResto = honorFusion ? copasSelHero.filter((_, i) => i !== idxHonorFusion) : copasSelHero
 
   // Reorden de las competiciones (pastillas): la INSTALADA (rank_principal) primero, luego el resto por
   // categoria_nivel ascendente (menor nivel = categoría superior). El orden se COMPARTE con las pastillas y el
@@ -315,12 +324,15 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
           )}
           {filaPrincipal?.nombre_comp && (
             <LigaPastilla nombreComp={filaPrincipal?.nombre_comp ?? null}
-              segments={[filaPrincipal?.nombre_comp ?? null, filaPrincipal?.grupo_nombre ?? null, esCopaPrincipal || inactivo || posicionActual == null ? null : `${posicionActual}º`]}
-              href={grupoUrl} muted={inactivo} />
+              slugFamilia={honorFusion?.slug_familia ?? undefined}
+              segments={honorFusion
+                ? [filaPrincipal.nombre_comp, honorFusion.estado]   // fusionada: "Copa RFEF Fase Autonómica · En juego · Fase de grupos"
+                : [filaPrincipal?.nombre_comp ?? null, filaPrincipal?.grupo_nombre ?? null, esCopaPrincipal || inactivo || posicionActual == null ? null : `${posicionActual}º`]}
+              href={honorFusion?.href ?? grupoUrl} muted={inactivo} />
           )}
-          {/* Honores de copa de la temporada SELECCIONADA (no la viva). Vacío si el equipo no jugó copa esa
-              temporada -> CopasLinea no renderiza. Mismo criterio que la ficha de equipo. */}
-          <CopasLinea copas={copasSelHero} />
+          {/* Honores de copa de la temporada SELECCIONADA (no la viva). Sin la copa ya fusionada arriba. Vacío ->
+              CopasLinea no renderiza. Mismo criterio que la ficha de equipo. */}
+          <CopasLinea copas={copasResto} />
         </div>
         {alertaTxt && (
           <div className="alert">
