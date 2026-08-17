@@ -95,13 +95,17 @@ export type AlertaRow = {
   amarillas_ciclo: number | null; ciclo_umbral: number | null; dobles_amarillas: number | null
   rojas_directas: number | null; nombre_equipo: string | null
 }
-export async function getAlertaActual(cod: string): Promise<AlertaRow | null> {
+// `temp` = temporada de la ficha: los ciclos de tarjetas NO cruzan temporadas, así que la alerta debe ser de
+// ESA temporada (si no, en una ficha de 2026-27 se colaba la foto-final de un ciclo de T21). Sin temp -> la
+// más reciente de cualquier temporada (comportamiento antiguo, por si algún llamador lo necesita).
+export async function getAlertaActual(cod: string, temp?: number | null): Promise<AlertaRow | null> {
   return cacheJugador(async () => {
     const cols = 'estado, codtemporada, jornada, amarillas_ciclo, ciclo_umbral, dobles_amarillas, rojas_directas, nombre_equipo'
-    const { data } = await supabase.from('web_alertas_tarjetas').select(cols)
-      .eq('codjugador', cod).order('codtemporada', { ascending: false }).order('jornada', { ascending: false }).limit(1)
+    let q = supabase.from('web_alertas_tarjetas').select(cols).eq('codjugador', cod)
+    if (temp != null) q = q.eq('codtemporada', temp)
+    const { data } = await q.order('codtemporada', { ascending: false }).order('jornada', { ascending: false }).limit(1)
     return ((data && data[0]) as AlertaRow) || null
-  }, ['getAlertaActual', cod], cod)
+  }, ['getAlertaActual', cod, String(temp ?? '')], cod)
 }
 
 // Texto humano de la alerta disciplinaria. NUNCA muestra el código crudo (CICLO_COMPLETADO…) ni dice

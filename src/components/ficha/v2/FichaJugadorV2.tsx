@@ -95,7 +95,7 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
   const [equipoInfo, cortesElo, alerta, comps, partidosTemp, actuaciones, hitosRaw, grupoInfo, tarjetas, copasPorTempEquipo] = await Promise.all([
     inactivo ? Promise.resolve({ copas: [], posicionActual: null }) : getEquipoActualInfo(j.codequipo_actual),
     getCortesElo(categoriaElo, tempSel ? Number(tempSel) : null),   // cortes de la categoría que aporta el ELO (última etapa)
-    getAlertaActual(cod),
+    getAlertaActual(cod, tempSel ? Number(tempSel) : null),   // alerta SOLO de la temporada de la ficha: los ciclos no cruzan temporadas
     tempSel ? getAmbitoTemporada(cod, tempSel) : Promise.resolve([]),
     tempSel ? getPartidosTemporada(cod, tempSel) : Promise.resolve([] as any[]),
     getActuacionesV2(cod),
