@@ -229,6 +229,40 @@ export async function getCopasPorTemporada(codequipo: string | number | null | u
   }, ['getCopasPorTemporada', String(codequipo)], codequipo)
 }
 
+// Métricas propias de cada copa/playoff (para las tarjetas del bloque Temporadas de la ficha de equipo): PJ, GF,
+// GC del equipo en esa competición, agregados desde web_resultados bajo el codgrupo de FAMILIA (fam-*), donde
+// viven los partidos tras la limpieza de la legacy. La media fantasy de copa NO existe en el pipeline
+// (web_equipos_forma no trae filas de copa) -> no se incluye. Devuelve, por temporada, la lista de copas con sus
+// métricas (mismo orden y forma que getCopasPorTemporada + pj/gf/gc). Requiere el NOMBRE del equipo (web_resultados
+// no trae codequipo -> se filtra por nombre dentro del grupo, que es unívoco).
+export type CopaConMetricas = CopaEquipo & { pj: number; gf: number; gc: number }
+export async function getCopasConMetricas(codequipo: string | number | null | undefined, nombre: string | null): Promise<Record<string, CopaConMetricas[]>> {
+  if (!COPAS_HABILITADO || codequipo == null || !nombre) return {}
+  return cacheEquipo(async () => {
+    const { data } = await supabase.from('web_equipo').select('copas').eq('codequipo', String(codequipo)).limit(1).maybeSingle()
+    const raw = (data as { copas?: unknown } | null)?.copas
+    if (!Array.isArray(raw)) return {}
+    const rows = raw as CopaRaw[]
+    const resolved = await resolveCopaRows(rows)   // 1:1 con `rows` (map sin filtro)
+    const out: Record<string, CopaConMetricas[]> = {}
+    for (let i = 0; i < resolved.length; i++) {
+      const c = resolved[i]
+      const cg = codgrupoFamilia(rows[i]) ?? rows[i].codgrupo   // fam-* (o el código propio en copas sin familia)
+      let pj = 0, gf = 0, gc = 0
+      if (cg) {
+        const res = await getResultadosGrupo(nombre, String(cg))
+        for (const r of res) {
+          if (r.goles_local == null || r.goles_visitante == null) continue
+          const local = r.nombre_local === nombre
+          pj++; gf += (local ? r.goles_local : r.goles_visitante) as number; gc += (local ? r.goles_visitante : r.goles_local) as number
+        }
+      }
+      ;(out[c.codtemporada] ??= []).push({ nombre_comp: c.nombre_comp, slug_familia: c.slug_familia, estado: c.estado, href: c.href, pj, gf, gc })
+    }
+    return out
+  }, ['getCopasConMetricas', String(codequipo), nombre], codequipo)
+}
+
 export async function getCopasEquipo(codequipo: string | number | null | undefined): Promise<CopaEquipo[]> {
   if (!COPAS_HABILITADO || codequipo == null) return []
   return cacheEquipo(async () => {

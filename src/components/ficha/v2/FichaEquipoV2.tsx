@@ -23,7 +23,7 @@ import { escudoUrl, formatNombre } from '@/lib/supabase'
 import { jugadorHref, fechaCorta, fichasExistentes } from '@/lib/jugador'
 import { familiaSello, familiaCorto } from '@/lib/sellos'
 import {
-  equipoSlug, tempLabel, getGrupoInfo, grupoHref, getEquipoActualInfo, getCopasPorTemporada,
+  equipoSlug, tempLabel, getGrupoInfo, grupoHref, getEquipoActualInfo, getCopasPorTemporada, getCopasConMetricas,
   fechaCortaDMY, fechaCortaYMD, BADGE, HITO_EQUIPO,
 } from '@/lib/equipo'
 import {
@@ -82,7 +82,7 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
 
   const mini = await getMiniClasif(codgrupoSel, e.codequipo)
 
-  const [tramos, facetas, plantilla, movs, hitos, mediasTemp, copasAmbito] = await Promise.all([
+  const [tramos, facetas, plantilla, movs, hitos, mediasTemp, copasAmbito, copasMetricas] = await Promise.all([
     getTramos(e.codequipo, codgrupoSel),
     getFacetasGrupo(codgrupoSel, e.codequipo),
     getPlantillaEquipoV2(e.codequipo, tempSelStr, e.rama),
@@ -90,6 +90,7 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
     getHitosEquipo(cod),
     getMediasPorTemporada(e.codequipo),
     getCopasAmbito(e.codequipo, tempSelStr, e.nombre),
+    getCopasConMetricas(e.codequipo, e.nombre),   // PJ/GF/GC por copa para las tarjetas del bloque Temporadas
   ])
   // Escudos de los rivales de copa (por nombre, como en el gráfico de liga).
   const copaNombres = copasAmbito.flatMap((c) => c.rondas.map((r) => r.rivalNombre || '')).filter(Boolean)
@@ -537,7 +538,10 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
                   const t = temporadas.find((r) => Number(r.codtemporada) === c) || null   // fila de liga (null si no jugó liga)
                   const mt = mediasTemp[cStr]
                   const media = mt?.media ?? null
-                  const elo = mt?.elo ?? eloByTemp.get(cStr) ?? null   // ELO de la temporada (elo_serie cubre solo-copa)
+                  // ELO de la temporada: clasif (liga) -> elo_serie (cubre solo-copa) -> elo_actual para la
+                  // temporada VIVA (la más reciente, cods[0]), por si elo_serie aún no la publica. Así el ELO
+                  // aparece en TODAS las tarjetas, también la de la copa en curso.
+                  const elo = mt?.elo ?? eloByTemp.get(cStr) ?? (c === cods[0] ? (e.elo_actual ?? null) : null)
                   const cards: ReactNode[] = []
                   // LIGA (si la hubo): media, ELO, PTS/GF/GC y el badge de posición/ascenso/descenso/playoff.
                   if (t) {
@@ -563,12 +567,15 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
                       </div>
                     )
                   }
-                  // COPA / PLAYOFF: una tarjeta por competición. Dato principal = el DESENLACE (estado del JSONB),
-                  // equivalente a la posición de liga. Los campos de liga (PTS/GF/GC/media/posición) no existen -> ocultos.
-                  ;(copasPorTemp[cStr] ?? []).forEach((cp, ci) => {
+                  // COPA / PLAYOFF: una tarjeta por competición, con SUS PROPIAS métricas (PJ · ELO arriba, GF · GC ·
+                  // DG abajo) y el DESENLACE (estado del JSONB) como badge, equivalente a la posición de liga. Sin
+                  // PTS/media (no existen en copa). Si no hay partidos (PJ=0) se omiten las cifras y la tarjeta se
+                  // compacta -no deja huecos-. Métricas desde copasMetricas (web_resultados bajo el codgrupo fam-*).
+                  ;(copasMetricas[cStr] ?? []).forEach((cp, ci) => {
                     const est = cp.estado ?? ''
                     const estCls = /campe[oó]n/i.test(est) && !/subcampe/i.test(est) ? 'camp'
                       : /subcampe/i.test(est) ? 'po' : /en juego/i.test(est) ? 'asc' : 'neu'
+                    const hayStats = cp.pj > 0
                     cards.push(
                       <div className="season" key={`${cStr}-copa-${ci}`}>
                         <div className="accent" style={{ background: colorElo(elo) || 'var(--line)' }} />
@@ -579,10 +586,14 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
                             <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{familiaCorto(cp.slug_familia, cp.nombre_comp)}</span>
                           </span>
                         </div>
-                        {elo != null && (
-                          <div className="s-duo" style={{ gridTemplateColumns: '1fr' }}>
-                            <div><div className="d-v" style={{ color: colorElo(elo) }}>{mil(elo)}</div><div className="d-k">ELO</div></div>
+                        {(hayStats || elo != null) && (
+                          <div className="s-duo" style={{ gridTemplateColumns: hayStats && elo != null ? '1fr 1fr' : '1fr' }}>
+                            {hayStats && <div><div className="d-v">{cp.pj}</div><div className="d-k">PJ</div></div>}
+                            {elo != null && <div><div className="d-v" style={{ color: colorElo(elo) }}>{mil(elo)}</div><div className="d-k">ELO</div></div>}
                           </div>
+                        )}
+                        {hayStats && (
+                          <div className="s-stats"><div><b>{cp.gf}</b>GF</div><div><b>{cp.gc}</b>GC</div><div><b>{conSigno(cp.gf - cp.gc)}</b>DG</div></div>
                         )}
                         {/* Desenlace de la copa = "posición" de la tarjeta (al fondo, como el badge de liga). Puede ser
                             largo ("Eliminado en fase de grupos") -> se permite que envuelva en vez de recortar. */}
