@@ -97,7 +97,10 @@ export async function getGruposPorTemporada(codequipo: string, temporadasRows: {
     // Copa por FAMILIA: usa el codgrupo de la familia (fam-*), que tiene TODAS las rondas, los mismos
     // codacta y el tipo correcto (COPA/PLAYOFF). Así PartidosEquipo deja de depender de las filas viejas
     // de copa -> el pipeline puede borrarlas. Fallback al codgrupo viejo si aún no hubiera familia.
-    if (Array.isArray(copas)) for (const c of copas as any[]) add(c.codtemporada, c.codgrupo_familia ?? c.codgrupo)
+    // codgrupo de FAMILIA robusto (deriva fam-* aunque falte codgrupo_familia), con fallback al código de la
+    // edición SOLO para las copas sin familia (las 2 SEGUNDA JUVENIL COPA GRUPO 23 de T17, que conservan sus
+    // datos). Nunca el código legacy de una copa CON familia: el pipeline borró esas filas -> saldría vacío.
+    if (Array.isArray(copas)) for (const c of copas as any[]) add(c.codtemporada, codgrupoFamilia(c as any) ?? c.codgrupo)
     const out: Record<string, string[]> = {}
     for (const k in map) out[k] = Array.from(map[k])
     return out
