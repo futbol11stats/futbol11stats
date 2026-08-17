@@ -143,7 +143,7 @@
 /* Línea de resultado: a TODO el ancho de la columna (incluye el hueco del icono casa/avión), abajo del carril. */
 .fjv2 .resu{position:absolute;left:0;right:0;bottom:0;height:2px;border-radius:1px}
 .fjv2 .res-G{background:var(--e3)} .fjv2 .res-E{background:var(--ink-3)} .fjv2 .res-P{background:var(--e0)}
-.fjv2 .jlabel{font-family:var(--font-display),'Barlow Condensed',sans-serif;font-size:var(--t-sm);font-weight:600;color:var(--ink-2)}
+.fjv2 .jlabel{font-family:var(--font-display),'Barlow Condensed',sans-serif;font-size:var(--t-sm);font-weight:600;color:var(--ink-2);display:inline-block;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .fjv2 .col.now .jlabel{color:var(--ink)}
 
 .fjv2 .legend{margin:13px var(--pad) 0;padding:12px 13px;border:1px solid var(--line);border-radius:10px;background:rgba(255,255,255,.03)}

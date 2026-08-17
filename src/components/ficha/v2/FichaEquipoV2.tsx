@@ -401,7 +401,7 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
                       <div className="m-score" style={{ color: col }}>{m.marcador}</div>
                       <EscudoBox escudo={m.rivalEscudo} nombre={m.rivalNombre ?? undefined} size={26} radius={4} />
                       <div className="m-mid">
-                        <div className="m-riv"><NombreEquipo codequipo={null} nombre={m.rivalNombre} /></div>
+                        <div className="m-riv"><span className="m-vs">vs</span> <NombreEquipo codequipo={null} nombre={m.rivalNombre} /></div>
                         <div className="m-meta">{m.esLocal != null && <IndicadorLocal esLocal={m.esLocal} />}<span>{m.fecha ? `${fechaCorta(m.fecha)} · ` : ''}J{m.jornada}</span></div>
                       </div>
                       <div className="m-pts" style={{ background: m.fan != null ? colorFan(m.fan) : 'var(--pitch-700)' }}>{m.fan}</div>

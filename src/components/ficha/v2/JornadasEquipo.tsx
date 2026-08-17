@@ -67,7 +67,7 @@ export default function JornadasEquipo({ comps, cortes, temporada }: { comps: Co
               <div className="m-score" style={{ color: colRes(r.signo) }}>{r.marcador}</div>
               <EscudoBox escudo={r.rivalEscudo} nombre={r.rivalNombre ?? undefined} size={26} radius={4} />
               <div className="m-mid">
-                <div className="m-riv">{r.rivalNombre}</div>
+                <div className="m-riv"><span className="m-vs">vs</span> {r.rivalNombre}</div>
                 <div className="m-meta">{r.esLocal != null && <IndicadorLocal esLocal={r.esLocal} />}<span>{r.fecha ? fechaCorta(r.fecha) : ''}</span></div>
               </div>
               <div className="copa-ronda">{r.ronda}</div>

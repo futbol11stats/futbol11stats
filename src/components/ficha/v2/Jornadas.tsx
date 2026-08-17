@@ -23,6 +23,22 @@ function escalonPts(v: number, c: readonly [number, number, number, number]) {
 const cPts = (v: number, c: readonly [number, number, number, number]) => PAL[escalonPts(v, c)]
 const signoDe = (r: string | null | undefined) => (r || '').trim().match(/([GEP])$/i)?.[1]?.toUpperCase() || 'E'
 
+// Ronda de copa ABREVIADA para el eje del gráfico: la celda mide una línea (22px), y "Fase de grupos"
+// envolvía en dos y rompía la altura -> scroll vertical. Aquí va el token corto (una línea); el label
+// completo se conserva en el tooltip (title). Desconocidas: tal cual si es corta, primera palabra si es larga.
+const RONDA_CORTA: Record<string, string> = {
+  'fase de grupos': 'Grupos', 'fase de grupo': 'Grupos', 'primera fase': '1ª fase', 'segunda fase': '2ª fase',
+  'treintaidosavos de final': '1/32', 'dieciseisavos de final': '1/16', 'dieciseisavos': '1/16',
+  'octavos de final': 'Octavos', 'octavos': 'Octavos', 'cuartos de final': 'Cuartos', 'cuartos': 'Cuartos',
+  'semifinales': 'Semis', 'semifinal': 'Semis', 'final': 'Final',
+  'ronda preliminar': 'Prelim.', 'ronda previa': 'Previa', 'fase previa': 'Previa', 'repesca': 'Repesca',
+}
+function rondaCorta(r: string): string {
+  const k = r.trim().toLowerCase()
+  if (RONDA_CORTA[k]) return RONDA_CORTA[k]
+  return r.length <= 8 ? r : r.split(/\s+/)[0]
+}
+
 const POS_H = 86, NEG_H = 26
 
 export default function Jornadas({ comps, cortes }: { comps: CompAmbito[]; cortes: readonly [number, number, number, number] }) {
@@ -131,8 +147,9 @@ export default function Jornadas({ comps, cortes }: { comps: CompAmbito[]; corte
                     </div>
                     <div className={`resu res-${res}`} />
                   </div>
-                  {/* Copa: la ronda ("Fase de grupos", "Final") en vez del número de jornada (interno). */}
-                  <div className="lane"><span className="jlabel">{d.ronda ? d.ronda : `J${d.jornada}`}</span></div>
+                  {/* Copa: la ronda ABREVIADA ("Grupos", "Final") en vez del número de jornada (interno);
+                      el nombre completo va en el tooltip. Una sola línea (ver .jlabel) para no romper la celda. */}
+                  <div className="lane"><span className="jlabel" title={d.ronda || undefined}>{d.ronda ? rondaCorta(d.ronda) : `J${d.jornada}`}</span></div>
                 </div>
               )
             })}
