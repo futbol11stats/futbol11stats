@@ -247,6 +247,9 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
 
   // Serie de ELO para el sparkline (cierre por temporada) — mismo formato {t,elo} que la ficha actual.
   const eloSerie = (e.elo_serie || []).filter((p): p is { t: string; elo: number } => !!p && typeof p.elo === 'number')
+  // ELO de cierre por temporada (clave = codtemporada). Fuente para el ELO de tarjetas SOLO-COPA, donde
+  // mediasTemp (web_clasificacion, liga) no tiene fila. En liga se sigue usando mediasTemp.
+  const eloByTemp = new Map(eloSerie.map((p) => [p.t, p.elo]))
 
   // Deportividad: td_total puede venir NULL hasta que el pipeline lo pueble -> 0, sin fallback.
   const disc: Array<[ReactNode, number, string]> = [
@@ -262,7 +265,7 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
     jornadas.length ? { id: 's-jornadas', label: 'Jornadas' } : null,
     forma.racha.length ? { id: 's-forma', label: 'Forma' } : null,
     ana.pj ? { id: 's-analisis', label: 'Análisis' } : null,
-    temporadas.length ? { id: 's-temporadas', label: 'Temporadas' } : null,
+    cods.length ? { id: 's-temporadas', label: 'Temporadas' } : null,
     plantilla.length ? { id: 's-plantilla', label: 'Plantilla' } : null,
     movs.length ? { id: 's-movs', label: 'Movimientos' } : null,
     hitos.length ? { id: 's-hitos', label: 'Hitos' } : null,
@@ -521,21 +524,25 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
             </section>
           )}
 
-          {/* TEMPORADAS */}
-          {temporadas.length > 0 && (
+          {/* TEMPORADAS — la lista es la UNIÓN liga∪copa (misma `cods` que el selector). El acta construye la
+              realidad: una temporada de solo-copa es una temporada del equipo aunque no tenga fila de liga. */}
+          {cods.length > 0 && (
             <section id="s-temporadas">
               <div className="s-head"><div className="s-title">Temporadas</div><div className="s-sub"><span className="allscope">Todas las temporadas</span></div></div>
               <div className="track"><div className="rail" id="seasons">
-                {temporadas.map((t, i) => {
-                  const mt = mediasTemp[t.codtemporada]
-                  const media = mt?.media ?? null, elo = mt?.elo ?? null
-                  const badgeCls = t.badge ? BADGE_CLS[t.badge] : null
+                {cods.map((c, i) => {
+                  const cStr = String(c)
+                  const t = temporadas.find((r) => Number(r.codtemporada) === c) || null   // fila de liga (null = solo-copa)
+                  const mt = mediasTemp[cStr]
+                  const media = mt?.media ?? null
+                  const elo = mt?.elo ?? eloByTemp.get(cStr) ?? null   // solo-copa: ELO del elo_serie (mediasTemp es de liga)
+                  const badgeCls = t?.badge ? BADGE_CLS[t.badge] : null
                   return (
-                    <div className="season" key={`${t.codtemporada}-${i}`}>
-                      <div className="accent" style={{ background: colorMedia(media) || 'var(--line)' }} />
-                      <div className="s-top"><div className="s-yr">{tempLabel(t.codtemporada)}</div></div>
+                    <div className="season" key={`${cStr}-${i}`}>
+                      <div className="accent" style={{ background: (t ? colorMedia(media) : colorElo(elo)) || 'var(--line)' }} />
+                      <div className="s-top"><div className="s-yr">{tempLabel(c)}</div></div>
                       <div className="s-cat">
-                        {t.nombre_comp && (
+                        {t?.nombre_comp && (
                           <span className="pill n" style={{ maxWidth: '100%', overflow: 'hidden' }}>
                             <Sello nombreComp={t.nombre_comp} size={14} />
                             <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.nombre_comp}{t.grupo_nombre ? ` · ${t.grupo_nombre}` : ''}</span>
@@ -543,19 +550,31 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
                         )}
                         {/* Copa/playoff de esa temporada (mismo dato que el hero, copasPorTemp): en la ficha de
                             jugador cada etapa de copa ya salía como pastilla; aquí se pintan junto a la de liga. */}
-                        {(copasPorTemp[String(t.codtemporada)] ?? []).map((c, ci) => (
+                        {(copasPorTemp[cStr] ?? []).map((cp, ci) => (
                           <span className="pill n" style={{ maxWidth: '100%', overflow: 'hidden' }} key={`c${ci}`}>
-                            <Sello nombreComp={c.nombre_comp} src={c.slug_familia ? familiaSello(c.slug_familia, c.nombre_comp) : undefined} size={14} />
-                            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{familiaCorto(c.slug_familia, c.nombre_comp)}</span>
+                            <Sello nombreComp={cp.nombre_comp} src={cp.slug_familia ? familiaSello(cp.slug_familia, cp.nombre_comp) : undefined} size={14} />
+                            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{familiaCorto(cp.slug_familia, cp.nombre_comp)}</span>
                           </span>
                         ))}
                       </div>
-                      <div className="s-duo">
-                        <div><div className="d-v" style={{ color: colorMedia(media) }}>{med1(media)}</div><div className="d-k">MEDIA F.</div></div>
-                        <div><div className="d-v" style={{ color: colorElo(elo) }}>{mil(elo)}</div><div className="d-k">ELO</div></div>
-                      </div>
-                      <div className="s-stats"><div><b>{mil(t.pts)}</b>PTS</div><div><b>{mil(t.gf)}</b>GF</div><div><b>{mil(t.gc)}</b>GC</div></div>
-                      <div className="s-final"><span className={`badge ${badgeCls || 'neu'}`}>{badgeCls ? (BADGE[t.badge]?.label ?? t.badge) : (t.posicion_final != null ? `${t.posicion_final}º` : '—')}</span></div>
+                      {t ? (
+                        <>
+                          <div className="s-duo">
+                            <div><div className="d-v" style={{ color: colorMedia(media) }}>{med1(media)}</div><div className="d-k">MEDIA F.</div></div>
+                            <div><div className="d-v" style={{ color: colorElo(elo) }}>{mil(elo)}</div><div className="d-k">ELO</div></div>
+                          </div>
+                          <div className="s-stats"><div><b>{mil(t.pts)}</b>PTS</div><div><b>{mil(t.gf)}</b>GF</div><div><b>{mil(t.gc)}</b>GC</div></div>
+                          <div className="s-final"><span className={`badge ${badgeCls || 'neu'}`}>{badgeCls ? (BADGE[t.badge]?.label ?? t.badge) : (t.posicion_final != null ? `${t.posicion_final}º` : '—')}</span></div>
+                        </>
+                      ) : (
+                        /* SOLO-COPA: sin fila de liga no hay posición, PTS, GF, GC ni media -> se ocultan (no ceros).
+                           Queda el año, la(s) pastilla(s) de copa y el ELO si el pipeline lo publicó. */
+                        elo != null && (
+                          <div className="s-duo" style={{ gridTemplateColumns: '1fr' }}>
+                            <div><div className="d-v" style={{ color: colorElo(elo) }}>{mil(elo)}</div><div className="d-k">ELO</div></div>
+                          </div>
+                        )
+                      )}
                     </div>
                   )
                 })}
