@@ -524,59 +524,73 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
             </section>
           )}
 
-          {/* TEMPORADAS — la lista es la UNIÓN liga∪copa (misma `cods` que el selector). El acta construye la
-              realidad: una temporada de solo-copa es una temporada del equipo aunque no tenga fila de liga. */}
+          {/* TEMPORADAS — UNA TARJETA POR COMPETICIÓN (temporada×competición), como en la ficha de jugador: la
+              liga tiene la suya y cada copa/playoff la suya, porque muestran datos distintos. La lista recorre
+              la UNIÓN liga∪copa (`cods`, la misma del selector), descendente, y dentro de cada temporada la liga
+              va primero. El acta construye la realidad: una temporada de solo-copa es una temporada del equipo. */}
           {cods.length > 0 && (
             <section id="s-temporadas">
               <div className="s-head"><div className="s-title">Temporadas</div><div className="s-sub"><span className="allscope">Todas las temporadas</span></div></div>
               <div className="track"><div className="rail" id="seasons">
-                {cods.map((c, i) => {
+                {cods.flatMap((c) => {
                   const cStr = String(c)
-                  const t = temporadas.find((r) => Number(r.codtemporada) === c) || null   // fila de liga (null = solo-copa)
+                  const t = temporadas.find((r) => Number(r.codtemporada) === c) || null   // fila de liga (null si no jugó liga)
                   const mt = mediasTemp[cStr]
                   const media = mt?.media ?? null
-                  const elo = mt?.elo ?? eloByTemp.get(cStr) ?? null   // solo-copa: ELO del elo_serie (mediasTemp es de liga)
-                  const badgeCls = t?.badge ? BADGE_CLS[t.badge] : null
-                  return (
-                    <div className="season" key={`${cStr}-${i}`}>
-                      <div className="accent" style={{ background: (t ? colorMedia(media) : colorElo(elo)) || 'var(--line)' }} />
-                      <div className="s-top"><div className="s-yr">{tempLabel(c)}</div></div>
-                      <div className="s-cat">
-                        {t?.nombre_comp && (
+                  const elo = mt?.elo ?? eloByTemp.get(cStr) ?? null   // ELO de la temporada (elo_serie cubre solo-copa)
+                  const cards: ReactNode[] = []
+                  // LIGA (si la hubo): media, ELO, PTS/GF/GC y el badge de posición/ascenso/descenso/playoff.
+                  if (t) {
+                    const badgeCls = t.badge ? BADGE_CLS[t.badge] : null
+                    cards.push(
+                      <div className="season" key={`${cStr}-liga`}>
+                        <div className="accent" style={{ background: colorMedia(media) || 'var(--line)' }} />
+                        <div className="s-top"><div className="s-yr">{tempLabel(c)}</div></div>
+                        <div className="s-cat">
+                          {t.nombre_comp && (
+                            <span className="pill n" style={{ maxWidth: '100%', overflow: 'hidden' }}>
+                              <Sello nombreComp={t.nombre_comp} size={14} />
+                              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.nombre_comp}{t.grupo_nombre ? ` · ${t.grupo_nombre}` : ''}</span>
+                            </span>
+                          )}
+                        </div>
+                        <div className="s-duo">
+                          <div><div className="d-v" style={{ color: colorMedia(media) }}>{med1(media)}</div><div className="d-k">MEDIA F.</div></div>
+                          <div><div className="d-v" style={{ color: colorElo(elo) }}>{mil(elo)}</div><div className="d-k">ELO</div></div>
+                        </div>
+                        <div className="s-stats"><div><b>{mil(t.pts)}</b>PTS</div><div><b>{mil(t.gf)}</b>GF</div><div><b>{mil(t.gc)}</b>GC</div></div>
+                        <div className="s-final"><span className={`badge ${badgeCls || 'neu'}`}>{badgeCls ? (BADGE[t.badge]?.label ?? t.badge) : (t.posicion_final != null ? `${t.posicion_final}º` : '—')}</span></div>
+                      </div>
+                    )
+                  }
+                  // COPA / PLAYOFF: una tarjeta por competición. Dato principal = el DESENLACE (estado del JSONB),
+                  // equivalente a la posición de liga. Los campos de liga (PTS/GF/GC/media/posición) no existen -> ocultos.
+                  ;(copasPorTemp[cStr] ?? []).forEach((cp, ci) => {
+                    const est = cp.estado ?? ''
+                    const estCls = /campe[oó]n/i.test(est) && !/subcampe/i.test(est) ? 'camp'
+                      : /subcampe/i.test(est) ? 'po' : /en juego/i.test(est) ? 'asc' : 'neu'
+                    cards.push(
+                      <div className="season" key={`${cStr}-copa-${ci}`}>
+                        <div className="accent" style={{ background: colorElo(elo) || 'var(--line)' }} />
+                        <div className="s-top"><div className="s-yr">{tempLabel(c)}</div></div>
+                        <div className="s-cat">
                           <span className="pill n" style={{ maxWidth: '100%', overflow: 'hidden' }}>
-                            <Sello nombreComp={t.nombre_comp} size={14} />
-                            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.nombre_comp}{t.grupo_nombre ? ` · ${t.grupo_nombre}` : ''}</span>
-                          </span>
-                        )}
-                        {/* Copa/playoff de esa temporada (mismo dato que el hero, copasPorTemp): en la ficha de
-                            jugador cada etapa de copa ya salía como pastilla; aquí se pintan junto a la de liga. */}
-                        {(copasPorTemp[cStr] ?? []).map((cp, ci) => (
-                          <span className="pill n" style={{ maxWidth: '100%', overflow: 'hidden' }} key={`c${ci}`}>
                             <Sello nombreComp={cp.nombre_comp} src={cp.slug_familia ? familiaSello(cp.slug_familia, cp.nombre_comp) : undefined} size={14} />
                             <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{familiaCorto(cp.slug_familia, cp.nombre_comp)}</span>
                           </span>
-                        ))}
-                      </div>
-                      {t ? (
-                        <>
-                          <div className="s-duo">
-                            <div><div className="d-v" style={{ color: colorMedia(media) }}>{med1(media)}</div><div className="d-k">MEDIA F.</div></div>
-                            <div><div className="d-v" style={{ color: colorElo(elo) }}>{mil(elo)}</div><div className="d-k">ELO</div></div>
-                          </div>
-                          <div className="s-stats"><div><b>{mil(t.pts)}</b>PTS</div><div><b>{mil(t.gf)}</b>GF</div><div><b>{mil(t.gc)}</b>GC</div></div>
-                          <div className="s-final"><span className={`badge ${badgeCls || 'neu'}`}>{badgeCls ? (BADGE[t.badge]?.label ?? t.badge) : (t.posicion_final != null ? `${t.posicion_final}º` : '—')}</span></div>
-                        </>
-                      ) : (
-                        /* SOLO-COPA: sin fila de liga no hay posición, PTS, GF, GC ni media -> se ocultan (no ceros).
-                           Queda el año, la(s) pastilla(s) de copa y el ELO si el pipeline lo publicó. */
-                        elo != null && (
+                        </div>
+                        {elo != null && (
                           <div className="s-duo" style={{ gridTemplateColumns: '1fr' }}>
                             <div><div className="d-v" style={{ color: colorElo(elo) }}>{mil(elo)}</div><div className="d-k">ELO</div></div>
                           </div>
-                        )
-                      )}
-                    </div>
-                  )
+                        )}
+                        {/* Desenlace de la copa = "posición" de la tarjeta (al fondo, como el badge de liga). Puede ser
+                            largo ("Eliminado en fase de grupos") -> se permite que envuelva en vez de recortar. */}
+                        <div className="s-final"><span className={`badge ${estCls}`} style={{ whiteSpace: 'normal', height: 'auto', lineHeight: 1.2, padding: '5px 7px' }}>{est || '—'}</span></div>
+                      </div>
+                    )
+                  })
+                  return cards
                 })}
               </div></div>
             </section>
