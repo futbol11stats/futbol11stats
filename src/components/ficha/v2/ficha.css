@@ -191,7 +191,7 @@
 .fjv2 .season .s-crest{width:22px;height:22px;border-radius:3px;display:grid;place-items:center;background:#fff;padding:1px;flex:none}
 .fjv2 .season .s-crest img{width:100%;height:100%;object-fit:contain}
 .fjv2 .season .s-yr{font-family:var(--font-display),'Barlow Condensed',sans-serif;font-size:var(--t-lead);font-weight:700}
-.fjv2 .season .s-cat{margin-top:6px}
+.fjv2 .season .s-cat{margin-top:6px;display:flex;flex-direction:column;align-items:flex-start;gap:5px}
 .fjv2 .season .s-duo{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:10px}
 .fjv2 .season .s-duo .d-v{font-family:var(--font-display),'Barlow Condensed',sans-serif;font-size:var(--n-md);font-weight:700;line-height:1;font-variant-numeric:tabular-nums}
 .fjv2 .season .s-duo .d-k{font-size:var(--t-micro);color:var(--ink-3);letter-spacing:.06em;margin-top:4px}

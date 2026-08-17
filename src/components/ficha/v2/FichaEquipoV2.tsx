@@ -21,6 +21,7 @@ import { graphLd, breadcrumbLd, sportsTeamLd } from '@/lib/jsonld'
 import { SITE_URL } from '@/lib/seo'
 import { escudoUrl, formatNombre } from '@/lib/supabase'
 import { jugadorHref, fechaCorta, fichasExistentes } from '@/lib/jugador'
+import { familiaSello, familiaCorto } from '@/lib/sellos'
 import {
   equipoSlug, tempLabel, getGrupoInfo, grupoHref, getEquipoActualInfo, getCopasPorTemporada,
   fechaCortaDMY, fechaCortaYMD, BADGE, HITO_EQUIPO,
@@ -534,10 +535,20 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
                       <div className="accent" style={{ background: colorMedia(media) || 'var(--line)' }} />
                       <div className="s-top"><div className="s-yr">{tempLabel(t.codtemporada)}</div></div>
                       <div className="s-cat">
-                        <span className="pill n" style={{ maxWidth: '100%', overflow: 'hidden' }}>
-                          {t.nombre_comp ? <Sello nombreComp={t.nombre_comp} size={14} /> : null}
-                          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.nombre_comp}{t.grupo_nombre ? ` · ${t.grupo_nombre}` : ''}</span>
-                        </span>
+                        {t.nombre_comp && (
+                          <span className="pill n" style={{ maxWidth: '100%', overflow: 'hidden' }}>
+                            <Sello nombreComp={t.nombre_comp} size={14} />
+                            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.nombre_comp}{t.grupo_nombre ? ` · ${t.grupo_nombre}` : ''}</span>
+                          </span>
+                        )}
+                        {/* Copa/playoff de esa temporada (mismo dato que el hero, copasPorTemp): en la ficha de
+                            jugador cada etapa de copa ya salía como pastilla; aquí se pintan junto a la de liga. */}
+                        {(copasPorTemp[String(t.codtemporada)] ?? []).map((c, ci) => (
+                          <span className="pill n" style={{ maxWidth: '100%', overflow: 'hidden' }} key={`c${ci}`}>
+                            <Sello nombreComp={c.nombre_comp} src={c.slug_familia ? familiaSello(c.slug_familia, c.nombre_comp) : undefined} size={14} />
+                            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{familiaCorto(c.slug_familia, c.nombre_comp)}</span>
+                          </span>
+                        ))}
                       </div>
                       <div className="s-duo">
                         <div><div className="d-v" style={{ color: colorMedia(media) }}>{med1(media)}</div><div className="d-k">MEDIA F.</div></div>
