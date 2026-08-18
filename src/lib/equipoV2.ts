@@ -276,8 +276,12 @@ export async function getHitosEquipo(cod: string) {
 // filas de clasificación del equipo; en JS se toma la de mayor jornada de cada temporada.
 export async function getMediasPorTemporada(codequipo: string): Promise<Record<string, { media: number | null; elo: number | null }>> {
   return cacheEquipo(async () => {
+    // SOLO LIGA: esta query no fija codgrupo (barre todas las temporadas del equipo), así que hay que excluir
+    // las filas de clasificación de COPA (fase de grupos) que el pipeline añade a web_clasificacion -> se
+    // colarían por temporada y la "última jornada gana" podría coger una fila de copa. codgrupo_familia IS NULL
+    // = liga (mismo patrón que en web_resultados). Las métricas de copa se calculan aparte (getCopasConMetricas).
     const { data } = await supabase.from('web_clasificacion').select('codtemporada, jornada, pts_fantasy, pj, elo')
-      .eq('codequipo', String(codequipo)).order('jornada', { ascending: true })
+      .eq('codequipo', String(codequipo)).is('codgrupo_familia', null).order('jornada', { ascending: true })
     const last = new Map<string, any>()
     for (const r of ((data || []) as any[])) last.set(String(r.codtemporada), r)  // la última jornada gana
     const out: Record<string, { media: number | null; elo: number | null }> = {}
