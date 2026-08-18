@@ -308,13 +308,18 @@ export type CopaComp = { label: string; titulo: string; competicion: string; ron
 // Etiqueta corta del chip a partir de campos SEPARADOS (regla general, no recorte de string): tipo de
 // competición abreviado + ronda alcanzada. "Final Copa 1ª Autonómica" + "Final" -> "Copa · Final".
 function etiquetaCopa(competicion: string, rondaLabel: string | null): string {
-  const tipo = /copa/i.test(competicion) ? 'Copa' : (competicion.split(/\s+/)[0] || 'Copa')
+  // El nombre corto NO se recorta por el primer espacio (eso daba "PLAY" a partir de "PLAY OFF TERCERA
+  // FEDERACIÓN"): se detecta la familia. Playoff -> "Play Off"; copa -> "Copa"; resto -> primera palabra.
+  const tipo = /play\s*off/i.test(competicion) ? 'Play Off'
+    : /copa/i.test(competicion) ? 'Copa'
+    : (competicion.split(/\s+/)[0] || 'Copa')
   return rondaLabel ? `${tipo} · ${rondaLabel}` : tipo
 }
 export async function getCopasAmbito(codequipo: string, tempSel: string | null, nombre: string): Promise<CopaComp[]> {
   if (!tempSel) return []
   return cacheEquipo(async () => {
-    const { data } = await supabase.from('web_equipo').select('copas').eq('codequipo', String(codequipo)).limit(1).maybeSingle()
+    const { data, error } = await supabase.from('web_equipo').select('copas').eq('codequipo', String(codequipo)).limit(1).maybeSingle()
+    if (error) throw error   // no cachear [] por un error transitorio (ver checklist: caché envenenada)
     const raw = (data as { copas?: unknown } | null)?.copas
     if (!Array.isArray(raw)) return []
     const out: CopaComp[] = []
@@ -339,7 +344,9 @@ export async function getCopasAmbito(codequipo: string, tempSel: string | null, 
       if (rondas.length) out.push({ label: etiquetaCopa(c.competicion, c.ronda_label), titulo: c.competicion, competicion: c.competicion, rondas })
     }
     return out
-  }, ['getCopasAmbito', codequipo, String(tempSel)], codequipo, { codtemporada: tempSel })
+    // v2-playoff: bump para recalcular fresco (descarta cualquier ámbito cacheado sin el playoff, de cuando
+    // 'play-off-tercera-rfef' aún no derivaba a fam-playoff-tercera).
+  }, ['getCopasAmbito', 'v2-playoff', codequipo, String(tempSel)], codequipo, { codtemporada: tempSel })
 }
 
 export { getResultadosGrupo }

@@ -45,8 +45,11 @@ export async function getResultadosGrupo(nombre: string | null, codgrupo: string
       supabase.from('web_resultados').select(cols).eq('codgrupo', String(codgrupo)).eq('nombre_local', nombre),
       supabase.from('web_resultados').select(cols).eq('codgrupo', String(codgrupo)).eq('nombre_visitante', nombre),
     ])
+    if (loc.error) throw loc.error   // no cachear [] por un error transitorio (ver checklist: caché envenenada)
+    if (vis.error) throw vis.error
     return [...((loc.data || []) as any[]), ...((vis.data || []) as any[])] as ResultadoRow[]
-  }, ['getResultadosGrupo', String(nombre), String(codgrupo)], [`comp:${codgrupo}`])
+    // v2: bump para recalcular fresco (los resultados de copa/playoff se movieron a fam-* esta semana).
+  }, ['getResultadosGrupo', 'v2', String(nombre), String(codgrupo)], [`comp:${codgrupo}`])
 }
 
 // Un chip de racha/forma: signo (para color), jornada, marcador (orden absoluto local-visitante) y
