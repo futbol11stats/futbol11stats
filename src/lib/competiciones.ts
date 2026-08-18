@@ -60,6 +60,16 @@ export const OLD_A_FAMILIA: Record<string, string> = {
 export const esViejaCopa = (slugComp: string): boolean =>
   !!OLD_A_FAMILIA[slugComp] && !FAMILIA_SLUGS.has(slugComp)
 
+// FASE cronológica de una competición dentro de una temporada, para ORDENAR por el calendario real (mismo
+// criterio en ficha de equipo y de jugador): copa de pretemporada (0) -> LIGA (1) -> PLAYOFF (2), la fase
+// final que se juega cuando la liga ya terminó. La liga se reconoce por tener `categoria_nivel` (nivel de la
+// pirámide); copa y playoff lo traen NULL, y el playoff se distingue del resto de copas por el nombre. Se usa
+// como clave de sort (estable: dentro de una misma fase se respeta el orden de origen).
+export function faseCompeticion(nombreComp: string | null | undefined, categoriaNivel: number | null | undefined): number {
+  if (categoriaNivel != null) return 1
+  return /play\s*off/i.test(nombreComp || '') ? 2 : 0
+}
+
 // slug_grupo de cada familia: el play-off es 'playoff'; el resto, 'copa'. (Para construir el destino
 // del 308 sin consultar la BD.)
 export const familiaSlugGrupo = (familySlug: string): string =>

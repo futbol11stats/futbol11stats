@@ -14,6 +14,7 @@ import JsonLd from '@/components/JsonLd'
 import CompartirBtn from '@/components/ficha/v2/CompartirBtn'
 import NavSpy from '@/components/ficha/v2/NavSpy'
 import CompChips from '@/components/ficha/v2/CompChips'
+import { faseCompeticion } from '@/lib/competiciones'
 import JornadasEquipo from '@/components/ficha/v2/JornadasEquipo'
 import { FilaEspejo } from '@/components/ficha/v2/barrasGoles'
 import { TarjetaAmarilla, TarjetaDoble, TarjetaRoja, FlechaEntra, FlechaSale, Promocion, Escudo, Reloj, Balon, Guante, Tabla, Estrella } from '@/components/iconos'
@@ -109,8 +110,8 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
   // Chips de ámbito: etiqueta corta visible + nombre completo en `titulo` (tooltip). El sello se calcula
   // con el nombre completo de la competición, no con la etiqueta abreviada.
   const chipComps = [
-    ...(jornadas.length > 0 ? [{ label: nombreComp || 'Liga', titulo: nombreComp || 'Liga', count: jornadas.length, sello: <Sello nombreComp={nombreComp || 'Liga'} size={18} /> }] : []),
-    ...copasAmbito.map((c) => ({ label: c.label, titulo: c.titulo, count: c.rondas.length, sello: <Sello nombreComp={c.competicion} size={18} /> })),
+    ...(jornadas.length > 0 ? [{ label: nombreComp || 'Liga', titulo: nombreComp || 'Liga', count: jornadas.length, sello: <Sello nombreComp={nombreComp || 'Liga'} size={18} />, fase: 1 }] : []),
+    ...copasAmbito.map((c) => ({ label: c.label, titulo: c.titulo, count: c.rondas.length, sello: <Sello nombreComp={c.competicion} size={18} />, fase: faseCompeticion(c.competicion, null) })),
   ]
   const ana = analisisResultados(resultados, e.nombre)
   const forma = formaEquipo(jornadas)
@@ -542,11 +543,15 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
                   // temporada VIVA (la más reciente, cods[0]), por si elo_serie aún no la publica. Así el ELO
                   // aparece en TODAS las tarjetas, también la de la copa en curso.
                   const elo = mt?.elo ?? eloByTemp.get(cStr) ?? (c === cods[0] ? (e.elo_actual ?? null) : null)
-                  const cards: ReactNode[] = []
+                  // Orden CRONOLÓGICO dentro de la temporada: copas de pretemporada (fase 0) -> liga (1) ->
+                  // playoff (2), la fase final que se juega cuando la liga ya terminó. No hay fecha de inicio por
+                  // competición en la web, así que se ordena por FASE (regla por tipo); el sort es estable, así que
+                  // dentro de una misma fase se respeta el orden del JSONB.
+                  const cards: { phase: number; node: ReactNode }[] = []
                   // LIGA (si la hubo): media, ELO, PTS/GF/GC y el badge de posición/ascenso/descenso/playoff.
                   if (t) {
                     const badgeCls = t.badge ? BADGE_CLS[t.badge] : null
-                    cards.push(
+                    cards.push({ phase: faseCompeticion(t.nombre_comp, t.categoria_nivel), node: (
                       <div className="season" key={`${cStr}-liga`}>
                         <div className="accent" style={{ background: colorMedia(media) || 'var(--line)' }} />
                         <div className="s-top"><div className="s-yr">{tempLabel(c)}</div></div>
@@ -565,7 +570,7 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
                         <div className="s-stats"><div><b>{mil(t.pts)}</b>PTS</div><div><b>{mil(t.gf)}</b>GF</div><div><b>{mil(t.gc)}</b>GC</div></div>
                         <div className="s-final"><span className={`badge ${badgeCls || 'neu'}`}>{badgeCls ? (BADGE[t.badge]?.label ?? t.badge) : (t.posicion_final != null ? `${t.posicion_final}º` : '—')}</span></div>
                       </div>
-                    )
+                    ) })
                   }
                   // COPA / PLAYOFF: una tarjeta por competición con la MISMA estructura que la de liga -> MEDIA F. ·
                   // ELO arriba, PJ · GF · GC abajo, y el DESENLACE (estado del JSONB) como badge (equivalente a la
@@ -578,7 +583,8 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
                     const hayStats = cp.pj > 0
                     const topMedia = cp.media != null, topElo = elo != null
                     const nTop = (topMedia ? 1 : 0) + (topElo ? 1 : 0)
-                    cards.push(
+                    // Fase por tipo (copa pretemporada 0 / playoff post-liga 2); mismo helper que la liga y el jugador.
+                    cards.push({ phase: faseCompeticion(cp.nombre_comp, null), node: (
                       <div className="season" key={`${cStr}-copa-${ci}`}>
                         <div className="accent" style={{ background: (topMedia ? colorMedia(cp.media) : colorElo(elo)) || 'var(--line)' }} />
                         <div className="s-top"><div className="s-yr">{tempLabel(c)}</div></div>
@@ -601,9 +607,9 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
                             largo ("Eliminado en fase de grupos") -> se permite que envuelva en vez de recortar. */}
                         <div className="s-final"><span className={`badge ${estCls}`} style={{ whiteSpace: 'normal', height: 'auto', lineHeight: 1.2, padding: '5px 7px' }}>{est || '—'}</span></div>
                       </div>
-                    )
+                    ) })
                   })
-                  return cards
+                  return cards.sort((a, b) => a.phase - b.phase).map((x) => x.node)
                 })}
               </div></div>
             </section>
