@@ -416,6 +416,13 @@
 .fjv2 .cifra .ck{flex:1;font-size:var(--t-sm);color:var(--ink-2)}
 .fjv2 .cifra .cv{font-family:var(--font-display),'Barlow Condensed',sans-serif;font-size:var(--t-lead);font-weight:700;color:var(--ink);font-variant-numeric:tabular-nums}
 .fjv2 .vacio{padding:6px var(--pad) 18px;color:var(--ink-3);font-size:var(--t-sm)}
+/* Clasificación de copa: selector de matchday (máquina del tiempo) + título de grupo (A/B). Reutilizado por
+   los resultados agrupados por grupo. */
+.fjv2 .md-sel{display:flex;gap:6px;padding:10px var(--pad) 4px;flex-wrap:wrap}
+.fjv2 .md-sel button{font-family:var(--font-display),'Barlow Condensed',sans-serif;font-size:var(--t-sm);font-weight:600;color:var(--ink-2);background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:6px;padding:5px 12px;cursor:pointer}
+.fjv2 .md-sel button.on{background:var(--e2);color:#08111f;border-color:transparent}
+.fjv2 .grupo-tit{font-family:var(--font-display),'Barlow Condensed',sans-serif;font-size:var(--t-lead);font-weight:700;letter-spacing:.03em;color:var(--ink);padding:13px var(--pad) 7px}
+.fjv2 .grupo-clasif + .grupo-clasif,.fjv2 .grupo-res + .grupo-res{margin-top:4px;border-top:1px solid var(--line-2)}
 @media (min-width:1000px){
   .fjv2 .cfix{width:280px}.fjv2 .cc{width:42px}.fjv2 .cc.pts{width:52px}.fjv2 .cracha{width:96px}
   .fjv2 .cracha i{width:13px;height:13px}

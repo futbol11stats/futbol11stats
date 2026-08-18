@@ -216,22 +216,41 @@ export type ResultadoCompRow = {
   nombre_local: string; escudo_local: string | null; goles_local: number | null
   nombre_visitante: string; escudo_visitante: string | null; goles_visitante: number | null
   fecha: string | null; hora: string | null; campo: string | null
+  grupo_label: string | null   // copa fase de grupos: "Grupo A"/"Grupo B" (NULL en liga y eliminatorias)
 }
 export async function getResultadosV2(codgrupo: string, codtemporada: number, jornada: number): Promise<ResultadoCompRow[]> {
   return cacheComp(async () => {
     const { data } = await supabase.from('web_resultados')
-      .select('codacta, nombre_local, escudo_local, goles_local, goles_visitante, nombre_visitante, escudo_visitante, fecha, hora, campo')
+      .select('codacta, nombre_local, escudo_local, goles_local, goles_visitante, nombre_visitante, escudo_visitante, fecha, hora, campo, grupo_label')
       .eq('codgrupo', codgrupo).eq('codtemporada', codtemporada).eq('jornada', jornada).order('fecha').order('hora')
     return (data || []) as unknown as ResultadoCompRow[]
   }, ['getResultadosV2', codgrupo, codtemporada, jornada], [codgrupo], codtemporada)
+}
+
+// Clasificación de FASE DE GRUPOS de copa: TODOS los snapshots (matchdays 1..3) de los DOS grupos, de una vez.
+// Se filtra por codgrupo_familia (la clave del grupo suelto es el código federativo, distinto por grupo) y por
+// la ronda de grupos. El componente cliente elige el matchday (máquina del tiempo) y separa por grupo_label.
+export type ClasifCopaRow = ClasifCompRow & { jornada: number; grupo_label: string }
+export async function getClasifCopaV2(codgrupoFamilia: string, codtemporada: number, rondaSlug: string): Promise<ClasifCopaRow[]> {
+  return cacheComp(async () => {
+    const { data } = await supabase.from('web_clasificacion').select(`${COLS_CLASIFICACION}, jornada, grupo_label`)
+      .eq('codgrupo_familia', codgrupoFamilia).eq('codtemporada', codtemporada).eq('ronda_slug', rondaSlug)
+      .order('jornada', { ascending: true }).order('grupo_label', { ascending: true }).order('pos', { ascending: true })
+    return (data || []) as unknown as ClasifCopaRow[]
+  }, ['getClasifCopaV2', codgrupoFamilia, codtemporada, rondaSlug], [codgrupoFamilia], codtemporada)
 }
 
 // nombre_equipo -> codequipo (para enlazar equipos en Resultados; web_resultados no trae codequipo).
 // NO se envuelve en cacheComp: devuelve un Map y unstable_cache serializa el resultado (el Map se
 // perdería a {}). Se lee siempre junto a getResultadosV2 (ya etiquetada), así que la ruta queda cubierta.
 export async function getEquiposMapV2(codgrupo: string, codtemporada: number): Promise<Map<string, string>> {
-  const { data } = await supabase.from('web_clasificacion').select('codequipo, nombre_equipo')
-    .eq('codgrupo', codgrupo).eq('codtemporada', codtemporada).eq('jornada', 1)
+  // Copa: las filas de clasificación llevan el código FEDERATIVO por grupo (no el fam-*), así que para el grupo
+  // de familia se filtra por codgrupo_familia; en liga, por codgrupo. Así los equipos de resultados/goleadores
+  // de copa también enlazan.
+  const esFam = codgrupo.startsWith('fam-')
+  let q = supabase.from('web_clasificacion').select('codequipo, nombre_equipo').eq('codtemporada', codtemporada).eq('jornada', 1)
+  q = esFam ? q.eq('codgrupo_familia', codgrupo) : q.eq('codgrupo', codgrupo)
+  const { data } = await q
   const m = new Map<string, string>()
   for (const r of (data || []) as any[]) m.set(r.nombre_equipo, String(r.codequipo))
   return m

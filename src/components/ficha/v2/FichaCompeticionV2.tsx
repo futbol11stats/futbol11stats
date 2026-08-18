@@ -33,7 +33,9 @@ import {
   getResultadosV2, getEquiposMapV2, type ResultadoCompRow, getCarreraV2,
   getLideresV2, getCifrasV2, type CifrasComp, getSuspendidosV2, getPartidosJornadaV2, getTramosCompeticionV2,
   golesEquipoJornada, type GolEquipoRow, getJuegoLimpioV2, getAlertasV2,
+  getClasifCopaV2, type ClasifCopaRow,
 } from '@/lib/competicionV2'
+import MatchdaySelector from '@/components/ficha/v2/MatchdaySelector'
 
 
 // Pestañas por modo (ids de URL heredados). Copa degrada (sin clasificación ni Top-5 Equipos).
@@ -117,8 +119,18 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
   const jornadaNum = rondaSel ? rondaSel.idx : (parseInt(jornadaSeg.replace('jornada-', '')) || grupo.jornada_actual)
   const segJornada = rondaSel ? rondaSel.slug : `jornada-${jornadaNum}`
 
+  // Clasificación de FASE DE GRUPOS de copa (todos los matchdays de ambos grupos). Existe SOLO en la ronda de
+  // grupos (cada fila trae ronda_slug), así que su presencia gobierna la pestaña "Clasificación": no aparece en
+  // eliminatorias/playoff (sin tabla). Se pide aquí porque decide las pestañas visibles.
+  const clasifCopa = isCopa && rondaSel ? await getClasifCopaV2(grupo.codgrupo, codtemporada, rondaSel.slug) : []
+  const hayClasifCopa = clasifCopa.length > 0
+  const copaMatchdays = Array.from(new Set(clasifCopa.map((r) => r.jornada))).sort((a, b) => a - b)
+  const copaGrupos = Array.from(new Set(clasifCopa.map((r) => r.grupo_label))).sort()
+
   const modo: 'jornada' | 'temporada' = TEMP_IDS.has(tab) ? 'temporada' : 'jornada'
-  const tabsJ = isCopa ? TABS_JORNADA_COPA : TABS_JORNADA_LIGA
+  const tabsJ: ReadonlyArray<readonly [string, string]> = isCopa
+    ? (hayClasifCopa ? [['clasificacion', 'Clasificación'] as const, ...TABS_JORNADA_COPA] : TABS_JORNADA_COPA)
+    : TABS_JORNADA_LIGA
   const tabsT = isCopa ? TABS_TEMP_COPA : TABS_TEMP_LIGA
   const tabsActivas = modo === 'temporada' ? tabsT : tabsJ
   const tabEf = tabsActivas.some((t) => t[0] === tab) ? tab : tabsActivas[0][0]
@@ -302,6 +314,69 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
     }
   }
 
+  // Tabla de clasificación de UN grupo de copa: mismo markup flex que la de liga pero con el subconjunto de
+  // columnas que la copa tiene con dato (pos, escudo, equipo, PJ, PG, PE, PP, GF, GC, DG, Pts, Mov). Sin
+  // zona/ELO/PF/Forma/Racha/PO (NULL en copa).
+  const tablaCopa = (rows: ClasifCopaRow[]) => (
+    <div className="ctabla"><ScrollRail className="ctw" wrapClassName="srail-tabla">
+      <div className="ctr head">
+        <div className="cfix"><span className="cpos">#</span><span style={{ width: 24, flex: 'none' }} /><span className="ceq">Equipo</span></div>
+        {['PJ', 'PG', 'PE', 'PP', 'GF', 'GC', 'DG'].map((cc) => <span key={cc} className={`cc${cc === 'DG' ? ' dg' : ''}`}>{cc}</span>)}
+        <span className="cc pts">Pts</span>
+        <span className="cc">Mov</span>
+      </div>
+      {rows.map((r) => {
+        const movCol = r.mov?.startsWith('↑') ? 'var(--e3)' : r.mov?.startsWith('↓') ? 'var(--e0)' : 'var(--ink-3)'
+        return (
+          <div key={r.codequipo} className="ctr">
+            <div className="cfix">
+              <span className="cpos">{r.pos}</span>
+              <EscudoBox escudo={r.escudo} nombre={r.nombre_equipo} size={22} radius={5} />
+              <span className="ceq"><NombreEquipo codequipo={r.codequipo} nombre={r.nombre_equipo} /></span>
+            </div>
+            <span className="cc">{r.pj}</span><span className="cc">{r.pg}</span><span className="cc">{r.pe}</span><span className="cc">{r.pp}</span>
+            <span className="cc">{r.gf}</span><span className="cc">{r.gc}</span>
+            <span className="cc dg">{r.dg > 0 ? `+${r.dg}` : r.dg}</span>
+            <span className="cc pts">{r.pts}</span>
+            <span className="cc" style={{ color: movCol }}>{r.mov || '—'}</span>
+          </div>
+        )
+      })}
+    </ScrollRail></div>
+  )
+
+  // Un partido de la lista de Resultados (extraído para reutilizarlo agrupado por grupo_label en copa).
+  const renderPartido = (r: ResultadoCompRow, i: number) => {
+    const jugado = r.goles_local != null && r.goles_visitante != null
+    const meta = [r.fecha ? fechaCortaDMY(r.fecha) : null, r.hora || null, r.campo || null].filter(Boolean).join(' · ')
+    return (
+      <div className="rmatch-wrap" key={r.codacta ?? i}>
+        <div className="rmatch">
+          <div className="rside">
+            <EscudoBox escudo={r.escudo_local} nombre={r.nombre_local} size={26} radius={5} />
+            <span className={`rnm${jugado && (r.goles_local as number) > (r.goles_visitante as number) ? ' w' : ''}`}><NombreEquipo codequipo={equiposMap.get(r.nombre_local) ?? null} nombre={r.nombre_local} /></span>
+          </div>
+          <div className="rsc">{jugado ? (() => {
+            const gL = r.goles_local as number, gV = r.goles_visitante as number
+            const cL = gL > gV ? 'var(--e3)' : gL < gV ? 'var(--e0)' : 'var(--ink-2)'
+            const cV = gV > gL ? 'var(--e3)' : gV < gL ? 'var(--e0)' : 'var(--ink-2)'
+            return <><span style={{ color: cL }}>{gL}</span><span className="rsc-sep">-</span><span style={{ color: cV }}>{gV}</span></>
+          })() : 'vs'}</div>
+          <div className="rside v">
+            <EscudoBox escudo={r.escudo_visitante} nombre={r.nombre_visitante} size={26} radius={5} />
+            <span className={`rnm${jugado && (r.goles_visitante as number) > (r.goles_local as number) ? ' w' : ''}`}><NombreEquipo codequipo={equiposMap.get(r.nombre_visitante) ?? null} nombre={r.nombre_visitante} /></span>
+          </div>
+        </div>
+        {meta && <div className="rmeta">{meta}</div>}
+      </div>
+    )
+  }
+  // Copa fase de grupos: los resultados se agrupan por grupo_label (A y B no compiten entre sí). Solo cuando
+  // TODOS traen etiqueta (fase de grupos); en eliminatorias/liga -> lista plana.
+  const resGrupos = resultados.length > 0 && resultados.every((r) => r.grupo_label)
+    ? Array.from(new Set(resultados.map((r) => r.grupo_label as string))).sort()
+    : []
+
   return (
     <div className="fjv2 fcv2">
       {/* IDENTIDAD + SELECTORES (columna de rótulos a la izquierda) */}
@@ -383,8 +458,8 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
 
       <div className="full">
         <div className="main">
-          {/* CLASIFICACIÓN (increment 1) */}
-          {tabEf === 'clasificacion' && (
+          {/* CLASIFICACIÓN de LIGA (increment 1) */}
+          {tabEf === 'clasificacion' && !isCopa && (
             <section id="s-clasif">
               <div className="s-head"><div className="s-title">Clasificación</div><div className="s-sub">tras la jornada {jornadaNum}</div></div>
               {clasif.length > 0 ? (
@@ -437,6 +512,28 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
             </section>
           )}
 
+          {/* CLASIFICACIÓN de COPA (fase de grupos): una tabla por grupo, con selector de matchday (máquina del
+              tiempo) dentro de la pestaña. Los snapshots de cada matchday se renderizan en servidor y el cliente
+              alterna cuál se ve; por defecto, la última jornada disponible. */}
+          {tabEf === 'clasificacion' && isCopa && hayClasifCopa && (
+            <section id="s-clasif">
+              <div className="s-head"><div className="s-title">Clasificación</div><div className="s-sub">{rondaSel?.label ?? 'Fase de grupos'}</div></div>
+              <MatchdaySelector matchdays={copaMatchdays}>
+                {copaMatchdays.map((j) => (
+                  <div key={j}>
+                    {copaGrupos.map((gl) => (
+                      <div key={gl} className="grupo-clasif">
+                        <div className="grupo-tit">{gl}</div>
+                        {tablaCopa(clasifCopa.filter((r) => r.jornada === j && r.grupo_label === gl))}
+                      </div>
+                    ))}
+                  </div>
+                ))}
+              </MatchdaySelector>
+              <div className="leyenda" style={{ paddingTop: 10 }}><b>Mov</b> cambio de posición vs. la jornada anterior de la fase de grupos.</div>
+            </section>
+          )}
+
           {/* CARRERA DE POSICIONES — gráfico protagonista, bajo la clasificación. */}
           {tabEf === 'clasificacion' && carrera.series.length > 0 && (
             <section>
@@ -449,31 +546,15 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
           {tabEf === 'resultados' && (
             <section>
               <div className="s-head"><div className="s-title">Resultados</div><div className="s-sub">{esFamilia ? (rondaSel?.label ?? `jornada ${jornadaNum}`) : `jornada ${jornadaNum}`}</div></div>
-              {resultados.length > 0 ? resultados.map((r, i) => {
-                const jugado = r.goles_local != null && r.goles_visitante != null
-                const meta = [r.fecha ? fechaCortaDMY(r.fecha) : null, r.hora || null, r.campo || null].filter(Boolean).join(' · ')
-                return (
-                  <div className="rmatch-wrap" key={r.codacta ?? i}>
-                    <div className="rmatch">
-                      <div className="rside">
-                        <EscudoBox escudo={r.escudo_local} nombre={r.nombre_local} size={26} radius={5} />
-                        <span className={`rnm${jugado && (r.goles_local as number) > (r.goles_visitante as number) ? ' w' : ''}`}><NombreEquipo codequipo={equiposMap.get(r.nombre_local) ?? null} nombre={r.nombre_local} /></span>
-                      </div>
-                      <div className="rsc">{jugado ? (() => {
-                        const gL = r.goles_local as number, gV = r.goles_visitante as number
-                        const cL = gL > gV ? 'var(--e3)' : gL < gV ? 'var(--e0)' : 'var(--ink-2)'
-                        const cV = gV > gL ? 'var(--e3)' : gV < gL ? 'var(--e0)' : 'var(--ink-2)'
-                        return <><span style={{ color: cL }}>{gL}</span><span className="rsc-sep">-</span><span style={{ color: cV }}>{gV}</span></>
-                      })() : 'vs'}</div>
-                      <div className="rside v">
-                        <EscudoBox escudo={r.escudo_visitante} nombre={r.nombre_visitante} size={26} radius={5} />
-                        <span className={`rnm${jugado && (r.goles_visitante as number) > (r.goles_local as number) ? ' w' : ''}`}><NombreEquipo codequipo={equiposMap.get(r.nombre_visitante) ?? null} nombre={r.nombre_visitante} /></span>
-                      </div>
+              {resultados.length === 0 ? <p className="vacio">Sin resultados en esta jornada.</p>
+                : resGrupos.length > 0
+                  ? resGrupos.map((gl) => (
+                    <div key={gl} className="grupo-res">
+                      <div className="grupo-tit">{gl}</div>
+                      {resultados.filter((r) => r.grupo_label === gl).map(renderPartido)}
                     </div>
-                    {meta && <div className="rmeta">{meta}</div>}
-                  </div>
-                )
-              }) : <p className="vacio">Sin resultados en esta jornada.</p>}
+                  ))
+                  : resultados.map(renderPartido)}
             </section>
           )}
 

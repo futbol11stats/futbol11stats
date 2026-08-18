@@ -567,18 +567,20 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
                       </div>
                     )
                   }
-                  // COPA / PLAYOFF: una tarjeta por competición, con SUS PROPIAS métricas (PJ · ELO arriba, GF · GC ·
-                  // DG abajo) y el DESENLACE (estado del JSONB) como badge, equivalente a la posición de liga. Sin
-                  // PTS/media (no existen en copa). Si no hay partidos (PJ=0) se omiten las cifras y la tarjeta se
-                  // compacta -no deja huecos-. Métricas desde copasMetricas (web_resultados bajo el codgrupo fam-*).
+                  // COPA / PLAYOFF: una tarjeta por competición con la MISMA estructura que la de liga -> MEDIA F. ·
+                  // ELO arriba, PJ · GF · GC abajo, y el DESENLACE (estado del JSONB) como badge (equivalente a la
+                  // posición de liga). La media fantasy la publica el pipeline en el JSONB; GF/GC de web_resultados.
+                  // Si no hay partidos (PJ=0) se omiten las cifras y la tarjeta se compacta -sin huecos-.
                   ;(copasMetricas[cStr] ?? []).forEach((cp, ci) => {
                     const est = cp.estado ?? ''
                     const estCls = /campe[oó]n/i.test(est) && !/subcampe/i.test(est) ? 'camp'
                       : /subcampe/i.test(est) ? 'po' : /en juego/i.test(est) ? 'asc' : 'neu'
                     const hayStats = cp.pj > 0
+                    const topMedia = cp.media != null, topElo = elo != null
+                    const nTop = (topMedia ? 1 : 0) + (topElo ? 1 : 0)
                     cards.push(
                       <div className="season" key={`${cStr}-copa-${ci}`}>
-                        <div className="accent" style={{ background: colorElo(elo) || 'var(--line)' }} />
+                        <div className="accent" style={{ background: (topMedia ? colorMedia(cp.media) : colorElo(elo)) || 'var(--line)' }} />
                         <div className="s-top"><div className="s-yr">{tempLabel(c)}</div></div>
                         <div className="s-cat">
                           <span className="pill n" style={{ maxWidth: '100%', overflow: 'hidden' }}>
@@ -586,14 +588,14 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
                             <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{familiaCorto(cp.slug_familia, cp.nombre_comp)}</span>
                           </span>
                         </div>
-                        {(hayStats || elo != null) && (
-                          <div className="s-duo" style={{ gridTemplateColumns: hayStats && elo != null ? '1fr 1fr' : '1fr' }}>
-                            {hayStats && <div><div className="d-v">{cp.pj}</div><div className="d-k">PJ</div></div>}
-                            {elo != null && <div><div className="d-v" style={{ color: colorElo(elo) }}>{mil(elo)}</div><div className="d-k">ELO</div></div>}
+                        {nTop > 0 && (
+                          <div className="s-duo" style={{ gridTemplateColumns: nTop === 2 ? '1fr 1fr' : '1fr' }}>
+                            {topMedia && <div><div className="d-v" style={{ color: colorMedia(cp.media) }}>{med1(cp.media)}</div><div className="d-k">MEDIA F.</div></div>}
+                            {topElo && <div><div className="d-v" style={{ color: colorElo(elo) }}>{mil(elo)}</div><div className="d-k">ELO</div></div>}
                           </div>
                         )}
                         {hayStats && (
-                          <div className="s-stats"><div><b>{cp.gf}</b>GF</div><div><b>{cp.gc}</b>GC</div><div><b>{conSigno(cp.gf - cp.gc)}</b>DG</div></div>
+                          <div className="s-stats"><div><b>{cp.pj}</b>PJ</div><div><b>{cp.gf}</b>GF</div><div><b>{cp.gc}</b>GC</div></div>
                         )}
                         {/* Desenlace de la copa = "posición" de la tarjeta (al fondo, como el badge de liga). Puede ser
                             largo ("Eliminado en fase de grupos") -> se permite que envuelva en vez de recortar. */}

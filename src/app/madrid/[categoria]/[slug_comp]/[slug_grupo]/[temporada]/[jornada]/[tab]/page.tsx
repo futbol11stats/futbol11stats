@@ -127,7 +127,7 @@ export default async function GrupoPage({
   // BreadcrumbList (JSON-LD) con URLs canónicas (www). Copa: sin nivel de grupo ni global. El 0 del
   // time-machine se colapsa a la jornada/ronda ACTUAL (segJact). tab2 normaliza los tabs de copa.
   const COPA_TABS = new Set([
-    'resultados', 'goleadores-jornada', 'tarjetas-jornada', 'top5-jugadores-jornada', 'once-optimo-jornada',
+    'clasificacion', 'resultados', 'goleadores-jornada', 'tarjetas-jornada', 'top5-jugadores-jornada', 'once-optimo-jornada',
     'top10-goleadores-temporada', 'top10-porteros-temporada', 'top10-tarjetas-temporada',
     'top10-fantasy-temporada', 'once-optimo-temporada',
   ])
