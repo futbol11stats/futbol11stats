@@ -48,6 +48,31 @@ datos, que cubre los scripts de Python.)
    cp src/app/globals.css.bak src/app/globals.css   # o: git checkout -- <archivo>
    ```
 
+## Fallos silenciosos que devuelven vacío (sospechoso nº1 cuando algo sale vacío SIN dar error)
+
+Familia recurrente: una lectura falla o se degrada y devuelve `[]`/`{}` **sin lanzar error visible**, y algo
+desaparece de la web sin rastro. Tres casos vistos esta semana:
+
+1. **Count del sitemap con la anon key** — el permiso/RLS limita el count → menos URLs, sin error.
+2. **`getGrupoInfo` con `.maybeSingle()`** — con 0 o >1 filas devuelve null/error suave en vez de la fila.
+3. **Caché envenenada por cambio de esquema** — al añadir un filtro/`select` por una columna NUEVA sin haber
+   migrado antes el esquema, la query falla, la función devuelve `{}`/`[]` y `unstable_cache` **CONGELA ese
+   vacío 30 días** (persiste entre deploys; la revalidación del pipeline no lo toca si la clave no cambió).
+   Pasó con `getMediasPorTemporada` al añadir `.is('codgrupo_familia', null)` y **borró la MEDIA F. de TODAS
+   las tarjetas de liga del sitio**. Sin error en ningún log.
+
+Reglas:
+- (a) Migrar el esquema **ANTES** de desplegar el código que usa la columna nueva, **o** hacer **BUMP de la
+  clave de caché** (`keyParts`) en el MISMO commit que introduce el filtro/campo.
+- (b) **NUNCA cachear un resultado vacío que venga de un error**: `const { data, error } = await …; if (error)
+  throw error` — se propaga y se reintenta, en vez de congelarse. (Alternativa resiliente: reintentar sin la
+  columna nueva, como `getActuacionesV2`/`getPartidosTemporada` con `es_local`.)
+
+Relacionado (revalidación) — **etiquetas huérfanas**: un render viejo queda etiquetado con la etiqueta ANTIGUA
+de la entidad (p.ej. `comp:<código legacy>` de una copa migrada a `fam-*`); revalidar solo la etiqueta NUEVA no
+lo invalida y la página sirve el HTML viejo. Al renombrar/migrar la clave de una entidad, revalidar por PATH o
+por la etiqueta VIEJA, no solo por la nueva.
+
 ---
 
 ## Paleta y color

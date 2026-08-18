@@ -239,7 +239,8 @@ export type CopaConMetricas = CopaEquipo & { pj: number; gf: number; gc: number;
 export async function getCopasConMetricas(codequipo: string | number | null | undefined, nombre: string | null): Promise<Record<string, CopaConMetricas[]>> {
   if (!COPAS_HABILITADO || codequipo == null || !nombre) return {}
   return cacheEquipo(async () => {
-    const { data } = await supabase.from('web_equipo').select('copas').eq('codequipo', String(codequipo)).limit(1).maybeSingle()
+    const { data, error } = await supabase.from('web_equipo').select('copas').eq('codequipo', String(codequipo)).limit(1).maybeSingle()
+    if (error) throw error   // no cachear {} por un error transitorio (ver checklist: caché envenenada)
     const raw = (data as { copas?: unknown } | null)?.copas
     if (!Array.isArray(raw)) return {}
     const rows = raw as CopaRaw[]
@@ -264,7 +265,8 @@ export async function getCopasConMetricas(codequipo: string | number | null | un
       ;(out[c.codtemporada] ??= []).push({ nombre_comp: c.nombre_comp, slug_familia: c.slug_familia, estado: c.estado, href: c.href, pj, gf, gc, media: media != null && Number.isFinite(media) ? media : null })
     }
     return out
-  }, ['getCopasConMetricas', String(codequipo), nombre], codequipo)
+    // v2-media: bump al añadir el campo `media` (media_fantasy del JSONB); la clave no cambió al introducirlo.
+  }, ['getCopasConMetricas', 'v2-media', String(codequipo), nombre], codequipo)
 }
 
 export async function getCopasEquipo(codequipo: string | number | null | undefined): Promise<CopaEquipo[]> {
