@@ -42,10 +42,12 @@ export async function getEquipoV2(cod: string): Promise<EquipoFicha | null> {
 
 export async function getTemporadasEquipo(cod: string) {
   return cacheEquipo(async () => {
-    const cols = 'codtemporada, nombre_comp, categoria_nivel, rama, codgrupo, grupo_nombre, pj, pts, posicion_final, gf, gc, badge'
-    const { data } = await supabase.from('web_equipo_temporadas').select(cols).eq('codequipo', cod)
+    const cols = 'codtemporada, nombre_comp, categoria_nivel, rama, codgrupo, grupo_nombre, pj, pts, posicion_final, gf, gc, badge, fecha_inicio'
+    const { data, error } = await supabase.from('web_equipo_temporadas').select(cols).eq('codequipo', cod)
+    if (error) throw error   // fecha_inicio es columna NUEVA -> no cachear [] si la query falla (ver checklist)
     return ((data || []) as any[]).sort((a, b) => String(b.codtemporada).localeCompare(String(a.codtemporada)))
-  }, ['getTemporadasEquipo', cod], cod)
+    // v2-finicio: bump al añadir fecha_inicio al select.
+  }, ['getTemporadasEquipo', 'v2-finicio', cod], cod)
 }
 
 // Temporadas (cod, número) en las que el equipo tiene ACTA de copa (JSONB web_equipo.copas). El acta
@@ -304,7 +306,7 @@ export type RondaDatum = {
   marcador: string; signo: 'G' | 'E' | 'P'; rivalNombre: string | null; rivalEscudo: string | null
   esLocal: boolean; fecha: string | null; ronda: string
 }
-export type CopaComp = { label: string; titulo: string; competicion: string; rondas: RondaDatum[] }
+export type CopaComp = { label: string; titulo: string; competicion: string; rondas: RondaDatum[]; fechaInicio: string | null }
 // Etiqueta corta del chip a partir de campos SEPARADOS (regla general, no recorte de string): tipo de
 // competición abreviado + ronda alcanzada. "Final Copa 1ª Autonómica" + "Final" -> "Copa · Final".
 function etiquetaCopa(competicion: string, rondaLabel: string | null): string {
@@ -341,12 +343,11 @@ export async function getCopasAmbito(codequipo: string, tempSel: string | null, 
           esLocal: local, fecha: r.fecha, ronda: c.ronda_label || 'Ronda',
         }
       })
-      if (rondas.length) out.push({ label: etiquetaCopa(c.competicion, c.ronda_label), titulo: c.competicion, competicion: c.competicion, rondas })
+      if (rondas.length) out.push({ label: etiquetaCopa(c.competicion, c.ronda_label), titulo: c.competicion, competicion: c.competicion, rondas, fechaInicio: (c.fecha_inicio as string | null) || null })
     }
     return out
-    // v2-playoff: bump para recalcular fresco (descarta cualquier ámbito cacheado sin el playoff, de cuando
-    // 'play-off-tercera-rfef' aún no derivaba a fam-playoff-tercera).
-  }, ['getCopasAmbito', 'v2-playoff', codequipo, String(tempSel)], codequipo, { codtemporada: tempSel })
+    // v3-finicio: bump por el playoff (v2) y ahora `fechaInicio` (fecha_inicio del JSONB) en la salida.
+  }, ['getCopasAmbito', 'v3-finicio', codequipo, String(tempSel)], codequipo, { codtemporada: tempSel })
 }
 
 export { getResultadosGrupo }

@@ -16,7 +16,7 @@ import JsonLd from '@/components/JsonLd'
 import CompartirBtn from '@/components/ficha/v2/CompartirBtn'
 import NavSpy from '@/components/ficha/v2/NavSpy'
 import CompChips from '@/components/ficha/v2/CompChips'
-import { faseCompeticion } from '@/lib/competiciones'
+import { faseCompeticion, ordenPorFechaOFase } from '@/lib/competiciones'
 import NivelRankings, { type CompRank } from '@/components/ficha/v2/NivelRankings'
 import KpiJugador, { type CompKpi } from '@/components/ficha/v2/KpiJugador'
 import NivelElo, { type CompPct } from '@/components/ficha/v2/NivelElo'
@@ -177,7 +177,9 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
   // (de `carrera`), que definen etapaUltima -> ELO. orden_temporada queda como desempate dentro de una fase.
   const carreraTray = [...carrera].sort((a, b) =>
     String(b.codtemporada).localeCompare(String(a.codtemporada))
-    || faseCompeticion(a.nombre_comp, a.categoria_nivel) - faseCompeticion(b.nombre_comp, b.categoria_nivel)
+    || ordenPorFechaOFase(
+      { fechaInicio: a.fecha_inicio, fase: faseCompeticion(a.nombre_comp, a.categoria_nivel) },
+      { fechaInicio: b.fecha_inicio, fase: faseCompeticion(b.nombre_comp, b.categoria_nivel) })
     || (a.orden_temporada ?? 0) - (b.orden_temporada ?? 0))
 
   // Ficha SOLO-COPA: los agregados de VIDA (web_jugador) son estrictamente de LIGA -> en un jugador que solo ha
@@ -375,7 +377,7 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
         </div></div>
         {comps.length > 0 && <>
           <div className="scope-lbl" style={{ paddingTop: 11 }}>Competición</div>
-          <div className="track"><div className="rail"><CompChips comps={compsOrd.map((c) => ({ label: c.nombre_comp, count: c.jornadas.length, sello: <Sello nombreComp={c.nombre_comp} size={18} />, fase: faseCompeticion(c.nombre_comp, etapaPorGrupo.get(String(c.codgrupo))?.categoria_nivel) }))} /></div></div>
+          <div className="track"><div className="rail"><CompChips comps={compsOrd.map((c) => { const e = etapaPorGrupo.get(String(c.codgrupo)); return { label: c.nombre_comp, count: c.jornadas.length, sello: <Sello nombreComp={c.nombre_comp} size={18} />, fase: faseCompeticion(c.nombre_comp, e?.categoria_nivel), fechaInicio: e?.fecha_inicio ?? null } })} /></div></div>
         </>}
         <div className="scope-note">Las secciones marcadas «Todas las temporadas» no dependen de esta selección.</div>
       </div>

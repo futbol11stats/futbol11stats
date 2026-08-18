@@ -50,17 +50,20 @@ export type CarreraRow = {
   // Percentil de ELO por temporada (del elo_final de ESA etapa). El bloque Nivel lee el de la última etapa
   // cronológica (etapaUltima), la misma de la que sale el ELO.
   elo_percentil_temp: number | null
+  // Fecha del primer partido de la competición (ISO YYYY-MM-DD), para ordenar por calendario. NULL hasta el
+  // próximo re-export de fichas -> hasta entonces el orden cae en faseCompeticion.
+  fecha_inicio: string | null
 }
 // Carrera ordenada: temporada DESC, y dentro de la temporada orden_temporada ASC (lo decide el pipeline).
 export async function getCarreraV2(cod: string): Promise<CarreraRow[]> {
   return cacheJugador(async () => {
-    const { data } = await supabase.from('web_jugador_carrera').select(COLS_CARRERA).eq('codjugador', cod)
+    const { data, error } = await supabase.from('web_jugador_carrera').select(COLS_CARRERA).eq('codjugador', cod)
+    if (error) throw error   // fecha_inicio es columna NUEVA -> no cachear [] si la query falla (ver checklist)
     return ((data || []) as any[]).sort((a, b) =>
       String(b.codtemporada).localeCompare(String(a.codtemporada)) || (a.orden_temporada ?? 0) - (b.orden_temporada ?? 0)) as CarreraRow[]
-    // keyParts v3-copa: la copa/playoff entran como filas de carrera (categoria_nivel NULL, codgrupo fam-*).
-    // Bump para forzar cache-miss GLOBAL (el Data Cache persiste entre deploys; sin esto seguiría sirviendo la
-    // carrera sin las pastillas de copa). v2 fue elo_percentil_temp. Ver también E-cache.
-  }, ['getCarreraV2', 'v3-copa', cod], cod)
+    // keyParts: v3-copa (copa/playoff como filas de carrera) -> v4-finicio (fecha_inicio al select). Bump para
+    // forzar cache-miss GLOBAL (el Data Cache persiste entre deploys). Ver también E-cache.
+  }, ['getCarreraV2', 'v4-finicio', cod], cod)
 }
 
 export async function getActuacionesV2(cod: string): Promise<any[]> {

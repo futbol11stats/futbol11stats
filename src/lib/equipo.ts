@@ -238,7 +238,7 @@ export async function getCopasPorTemporada(codequipo: string | number | null | u
 // (web_equipos_forma no trae filas de copa) -> no se incluye. Devuelve, por temporada, la lista de copas con sus
 // métricas (mismo orden y forma que getCopasPorTemporada + pj/gf/gc). Requiere el NOMBRE del equipo (web_resultados
 // no trae codequipo -> se filtra por nombre dentro del grupo, que es unívoco).
-export type CopaConMetricas = CopaEquipo & { pj: number; gf: number; gc: number; media: number | null }
+export type CopaConMetricas = CopaEquipo & { pj: number; gf: number; gc: number; media: number | null; fechaInicio: string | null }
 export async function getCopasConMetricas(codequipo: string | number | null | undefined, nombre: string | null): Promise<Record<string, CopaConMetricas[]>> {
   if (!COPAS_HABILITADO || codequipo == null || !nombre) return {}
   return cacheEquipo(async () => {
@@ -256,6 +256,7 @@ export async function getCopasConMetricas(codequipo: string | number | null | un
       // JSONB -> se agregan desde web_resultados bajo el codgrupo de familia.
       const mediaRaw = (rows[i] as { media_fantasy?: unknown }).media_fantasy
       const media = mediaRaw == null || mediaRaw === '' ? null : Number(mediaRaw)
+      const fechaInicio = ((rows[i] as { fecha_inicio?: unknown }).fecha_inicio as string | null) || null
       let pj = 0, gf = 0, gc = 0
       if (cg) {
         const res = await getResultadosGrupo(nombre, String(cg))
@@ -265,11 +266,11 @@ export async function getCopasConMetricas(codequipo: string | number | null | un
           pj++; gf += (local ? r.goles_local : r.goles_visitante) as number; gc += (local ? r.goles_visitante : r.goles_local) as number
         }
       }
-      ;(out[c.codtemporada] ??= []).push({ nombre_comp: c.nombre_comp, slug_familia: c.slug_familia, estado: c.estado, href: c.href, pj, gf, gc, media: media != null && Number.isFinite(media) ? media : null })
+      ;(out[c.codtemporada] ??= []).push({ nombre_comp: c.nombre_comp, slug_familia: c.slug_familia, estado: c.estado, href: c.href, pj, gf, gc, media: media != null && Number.isFinite(media) ? media : null, fechaInicio })
     }
     return out
-    // v2-media: bump al añadir el campo `media` (media_fantasy del JSONB); la clave no cambió al introducirlo.
-  }, ['getCopasConMetricas', 'v2-media', String(codequipo), nombre], codequipo)
+    // v3-finicio: bump al añadir `media` (v2) y ahora `fechaInicio` (fecha_inicio del JSONB) a la salida.
+  }, ['getCopasConMetricas', 'v3-finicio', String(codequipo), nombre], codequipo)
 }
 
 export async function getCopasEquipo(codequipo: string | number | null | undefined): Promise<CopaEquipo[]> {
@@ -300,7 +301,7 @@ export const COLS_EQUIPO =
   'pj_total, gf_total, gc_total, temporadas'
 
 export const COLS_EQUIPO_TEMPORADAS =
-  'codtemporada, nombre_comp, categoria_nivel, rama, codgrupo, grupo_nombre, pj, pts, posicion_final, gf, gc, badge'
+  'codtemporada, nombre_comp, categoria_nivel, rama, codgrupo, grupo_nombre, pj, pts, posicion_final, gf, gc, badge, fecha_inicio'
 
 export const COLS_EQUIPO_MOV =
   'codtemporada, fecha, clase, direccion, intra_temporada, codjugador, nombre, ' +
