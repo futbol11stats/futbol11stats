@@ -212,8 +212,10 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
   const gcSel = ana.pj > 0 ? ana.casa.gc + ana.fuera.gc : null
   const dgSel = gfSel != null && gcSel != null ? gfSel - gcSel : null
   const mediaFan = ult && ult.pts_fantasy != null && ult.pj ? ult.pts_fantasy / ult.pj : null
-  const eloCierre = ult?.elo ?? e.elo_actual ?? null   // ELO de cierre de la temporada (KpiBar)
-  const eloActual = e.elo_actual ?? eloCierre           // ELO actual (Nivel)
+  // ELO de la temporada SELECCIONADA: el punto de elo_serie en tempSel (igual que las tarjetas tras 4b8b9ca) ->
+  // el KpiBar y el bloque Nivel reaccionan al selector. Fallback a la clasif de liga (ult.elo) si elo_serie no
+  // trajera esa temporada; NUNCA elo_actual, que es GLOBAL y mezclaba la temporada viva con la seleccionada.
+  const eloTemp = ((e.elo_serie || []).find((p: { t?: string; elo?: unknown } | null) => !!p && String(p.t) === tempSelStr && typeof p.elo === 'number')?.elo ?? ult?.elo ?? null) as number | null
 
   // Badge (11) del logo F11S para las métricas propias (Media F./ELO), igual que en la ficha de jugador.
   const badge11 = <span style={{ width: 20, height: 20, borderRadius: '50%', background: '#1a7a3c', display: 'grid', placeItems: 'center', fontFamily: 'var(--font-display), sans-serif', fontWeight: 700, color: '#fff', fontSize: 11, lineHeight: 1 }}>11</span>
@@ -318,7 +320,7 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
         <div className="kpi"><div className="kpi-i"><Estrella size={14} /></div><div className="v num">{mil(ptsSel)}</div><div className="k">Pts</div></div>
         <div className="kpi"><div className="kpi-i"><Balon size={14} /></div><div className="v num">{dgSel != null ? conSigno(dgSel) : '—'}</div><div className="k">DG</div></div>
         <div className="kpi"><div className="kpi-i">{badge11}</div><div className="v num" style={{ color: colorMedia(mediaFan) }}>{med1(mediaFan)}</div><div className="k">Media F.</div></div>
-        <div className="kpi"><div className="kpi-i">{badge11}</div><div className="v num" style={{ color: colorElo(eloCierre) }}>{mil(eloCierre)}</div><div className="k">ELO</div></div>
+        <div className="kpi"><div className="kpi-i">{badge11}</div><div className="v num" style={{ color: colorElo(eloTemp) }}>{mil(eloTemp)}</div><div className="k">ELO</div></div>
       </div>
       )}
 
@@ -346,8 +348,8 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
             <div className="s-head"><div className="s-title">Nivel</div><div className="s-sub"><span className="allscope">Situación actual</span></div></div>
             <div className="box">
               <div className="elo-top">
-                <div><div className="cap">ELO F11S</div><div className="elo-v" style={{ color: colorElo(eloActual) }}>{mil(eloActual)}</div></div>
-                {!esSoloCopa && posSel != null && <div style={{ textAlign: 'right' }}><div className="cap">En su grupo</div><div className="elo-v" style={{ color: colorElo(eloActual) }}>{posSel}º</div></div>}
+                <div><div className="cap">ELO F11S</div><div className="elo-v" style={{ color: colorElo(eloTemp) }}>{mil(eloTemp)}</div></div>
+                {!esSoloCopa && posSel != null && <div style={{ textAlign: 'right' }}><div className="cap">En su grupo</div><div className="elo-v" style={{ color: colorElo(eloTemp) }}>{posSel}º</div></div>}
               </div>
               {/* Percentil/batería degradados: web_percentiles no tiene métricas de equipo. */}
               {eloSerie.length > 1 && <EloSparkline serie={eloSerie} className="w-full h-9 mt-3" />}
