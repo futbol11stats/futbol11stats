@@ -46,8 +46,9 @@ export async function getTemporadasEquipo(cod: string) {
     const { data, error } = await supabase.from('web_equipo_temporadas').select(cols).eq('codequipo', cod)
     if (error) throw error   // fecha_inicio es columna NUEVA -> no cachear [] si la query falla (ver checklist)
     return ((data || []) as any[]).sort((a, b) => String(b.codtemporada).localeCompare(String(a.codtemporada)))
-    // v2-finicio: bump al añadir fecha_inicio al select.
-  }, ['getTemporadasEquipo', 'v2-finicio', cod], cod)
+    // v3-finicio: bump al añadir fecha_inicio (v2) y re-bump porque las claves anteriores cachearon el NULL
+    // (mis bumps se hicieron ANTES de que el pipeline poblara fecha_inicio) -> recalcular con la fecha real.
+  }, ['getTemporadasEquipo', 'v3-finicio', cod], cod)
 }
 
 // Temporadas (cod, número) en las que el equipo tiene ACTA de copa (JSONB web_equipo.copas). El acta
@@ -347,7 +348,7 @@ export async function getCopasAmbito(codequipo: string, tempSel: string | null, 
     }
     return out
     // v3-finicio: bump por el playoff (v2) y ahora `fechaInicio` (fecha_inicio del JSONB) en la salida.
-  }, ['getCopasAmbito', 'v3-finicio', codequipo, String(tempSel)], codequipo, { codtemporada: tempSel })
+  }, ['getCopasAmbito', 'v4-finicio', codequipo, String(tempSel)], codequipo, { codtemporada: tempSel })
 }
 
 export { getResultadosGrupo }

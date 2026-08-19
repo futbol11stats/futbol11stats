@@ -270,7 +270,7 @@ export async function getCopasConMetricas(codequipo: string | number | null | un
     }
     return out
     // v3-finicio: bump al añadir `media` (v2) y ahora `fechaInicio` (fecha_inicio del JSONB) a la salida.
-  }, ['getCopasConMetricas', 'v3-finicio', String(codequipo), nombre], codequipo)
+  }, ['getCopasConMetricas', 'v4-finicio', String(codequipo), nombre], codequipo)
 }
 
 export async function getCopasEquipo(codequipo: string | number | null | undefined): Promise<CopaEquipo[]> {

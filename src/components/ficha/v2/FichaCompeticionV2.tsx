@@ -566,7 +566,10 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
                 {golJ.length > 0
                   ? <RankingComp fichas={fichas} barColor="var(--e4)" items={golJ.map((j) => {
                     const p = partMap.get(String(j.codjugador))
-                    return { rank: j.rank, codjugador: j.codjugador, nombre: j.nombre, pos: j.posicion, escudo: j.escudo, nombreEquipo: j.nombre_equipo, valor: (p?.goles ?? j.goles) ?? 0, valorColor: 'var(--e4)', extra: p ? filaJornada(p) : <span className="cfj-none">Sin datos del partido</span> }
+                    // valor = goles del RANKING agregado (j.goles), NO del partido (p.goles): en copa la fase de
+                    // grupos agrega varios matchdays bajo jornada 1, y p.goles es solo el de un partido -> un
+                    // goleador que marcó en otro matchday saldría con 0. En liga j.goles == p.goles (una jornada).
+                    return { rank: j.rank, codjugador: j.codjugador, nombre: j.nombre, pos: j.posicion, escudo: j.escudo, nombreEquipo: j.nombre_equipo, valor: (j.goles ?? p?.goles) ?? 0, valorColor: 'var(--e4)', extra: p ? filaJornada(p) : <span className="cfj-none">Sin datos del partido</span> }
                   })} />
                   : <p className="vacio">Sin goleadores en esta jornada.</p>}
                 {golJ.length > 0 && <div className="leyenda">{leyJornada}</div>}

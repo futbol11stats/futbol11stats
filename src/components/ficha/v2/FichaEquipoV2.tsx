@@ -105,7 +105,7 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
   const ligaChart: CompEquipo[] = jornadas.length > 0 ? [{ label: nombreComp || 'Liga', tipo: 'liga', jornadas }] : []
   const chartComps: CompEquipo[] = [
     ...ligaChart,
-    ...copasAmbito.map((c) => ({ label: c.label, tipo: 'copa' as const, rondas: c.rondas })),
+    ...copasAmbito.map((c) => ({ label: c.label, tipo: 'copa' as const, rondas: c.rondas, competicion: c.competicion })),
   ]
   // Chips de ámbito: etiqueta corta visible + nombre completo en `titulo` (tooltip). El sello se calcula
   // con el nombre completo de la competición, no con la etiqueta abreviada.
@@ -543,10 +543,9 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
                   // temporada VIVA (la más reciente, cods[0]), por si elo_serie aún no la publica. Así el ELO
                   // aparece en TODAS las tarjetas, también la de la copa en curso.
                   const elo = mt?.elo ?? eloByTemp.get(cStr) ?? (c === cods[0] ? (e.elo_actual ?? null) : null)
-                  // Orden CRONOLÓGICO dentro de la temporada: copas de pretemporada (fase 0) -> liga (1) ->
-                  // playoff (2), la fase final que se juega cuando la liga ya terminó. No hay fecha de inicio por
-                  // competición en la web, así que se ordena por FASE (regla por tipo); el sort es estable, así que
-                  // dentro de una misma fase se respeta el orden del JSONB.
+                  // Orden CRONOLÓGICO dentro de la temporada por fecha_inicio (primer partido) con fallback a la
+                  // FASE (copa pretemporada 0 -> liga 1 -> playoff 2). Comparador común ordenPorFechaOFase; sort
+                  // estable -> empates respetan el orden del JSONB.
                   const cards: { fase: number; fechaInicio: string | null; node: ReactNode }[] = []
                   // LIGA (si la hubo): media, ELO, PTS/GF/GC y el badge de posición/ascenso/descenso/playoff.
                   if (t) {

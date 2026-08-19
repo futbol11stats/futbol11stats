@@ -22,7 +22,7 @@ const colRes = (s: string | null) => (s === 'G' ? 'var(--e3)' : s === 'E' ? 'var
 // porque en copa no hay pts_fantasy por jornada — ver DECISIONES E-copa).
 export type CompEquipo =
   | { label: string; tipo: 'liga'; jornadas: JornadaEquipoDatum[] }
-  | { label: string; tipo: 'copa'; rondas: RondaDatum[] }
+  | { label: string; tipo: 'copa'; rondas: RondaDatum[]; competicion?: string | null }
 
 const POS_H = 86
 
@@ -51,7 +51,7 @@ export default function JornadasEquipo({ comps, cortes, temporada }: { comps: Co
 
   const head = (
     <div className="s-head">
-      <div className="s-title">{comp.tipo === 'copa' ? 'Recorrido en copa' : 'Puntos por jornada'}</div>
+      <div className="s-title">{comp.tipo !== 'copa' ? 'Puntos por jornada' : /play\s*off/i.test(comp.competicion || comp.label) ? 'Recorrido en el play off' : 'Recorrido en copa'}</div>
       <div className="s-sub">{[temporada, comp.label].filter(Boolean).join(' · ')}</div>
     </div>
   )
