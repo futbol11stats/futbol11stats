@@ -35,9 +35,12 @@ export function cortesEquipoValidados(c: readonly [number, number, number, numbe
 
 export async function getEquipoV2(cod: string): Promise<EquipoFicha | null> {
   return cacheEquipo(async () => {
-    const { data } = await supabase.from('web_equipo').select(COLS_EQUIPO).eq('codequipo', cod).limit(1).maybeSingle()
+    const { data, error } = await supabase.from('web_equipo').select(COLS_EQUIPO).eq('codequipo', cod).limit(1).maybeSingle()
+    if (error) throw error   // no cachear null por un error transitorio (ver checklist: caché envenenada)
     return (data as unknown as EquipoFicha) || null
-  }, ['getEquipoV2', cod], cod)
+    // v2-eloserie: bump para recalcular con el elo_serie/elo_actual movidos por la copa (el Data Cache persiste
+    // entre deploys; la revalidación por PATH regenera el HTML pero no esta caché de datos si la clave no cambia).
+  }, ['getEquipoV2', 'v2-eloserie', cod], cod)
 }
 
 export async function getTemporadasEquipo(cod: string) {

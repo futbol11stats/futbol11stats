@@ -539,10 +539,11 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
                   const t = temporadas.find((r) => Number(r.codtemporada) === c) || null   // fila de liga (null si no jugó liga)
                   const mt = mediasTemp[cStr]
                   const media = mt?.media ?? null
-                  // ELO de la temporada: clasif (liga) -> elo_serie (cubre solo-copa) -> elo_actual para la
-                  // temporada VIVA (la más reciente, cods[0]), por si elo_serie aún no la publica. Así el ELO
-                  // aparece en TODAS las tarjetas, también la de la copa en curso.
-                  const elo = mt?.elo ?? eloByTemp.get(cStr) ?? (c === cods[0] ? (e.elo_actual ?? null) : null)
+                  // ELO de la temporada: SIEMPRE el punto de elo_serie de ESA temporada (t=cod) -> refleja el
+                  // movimiento post-copa (p.ej. Las Rozas T22 = 1163.4, distinto del T21 = 1125.5). Fallback a la
+                  // clasif de liga (mt.elo) solo si elo_serie no trajera esa temporada. NUNCA elo_actual: es un
+                  // valor GLOBAL y ponía el mismo ELO en la tarjeta de la copa en curso que en la temporada previa.
+                  const elo = eloByTemp.get(cStr) ?? mt?.elo ?? null
                   // Orden cronológico INVERSO dentro de la temporada (lo más reciente primero: playoff → liga →
                   // copa) por fecha_inicio con fallback a la fase. Comparador común ordenPorFechaOFase; sort estable.
                   const cards: { fase: number; fechaInicio: string | null; node: ReactNode }[] = []
