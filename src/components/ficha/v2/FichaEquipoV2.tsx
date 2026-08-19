@@ -543,9 +543,8 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
                   // temporada VIVA (la más reciente, cods[0]), por si elo_serie aún no la publica. Así el ELO
                   // aparece en TODAS las tarjetas, también la de la copa en curso.
                   const elo = mt?.elo ?? eloByTemp.get(cStr) ?? (c === cods[0] ? (e.elo_actual ?? null) : null)
-                  // Orden CRONOLÓGICO dentro de la temporada por fecha_inicio (primer partido) con fallback a la
-                  // FASE (copa pretemporada 0 -> liga 1 -> playoff 2). Comparador común ordenPorFechaOFase; sort
-                  // estable -> empates respetan el orden del JSONB.
+                  // Orden cronológico INVERSO dentro de la temporada (lo más reciente primero: playoff → liga →
+                  // copa) por fecha_inicio con fallback a la fase. Comparador común ordenPorFechaOFase; sort estable.
                   const cards: { fase: number; fechaInicio: string | null; node: ReactNode }[] = []
                   // LIGA (si la hubo): media, ELO, PTS/GF/GC y el badge de posición/ascenso/descenso/playoff.
                   if (t) {
