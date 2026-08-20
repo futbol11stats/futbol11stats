@@ -336,7 +336,11 @@ export async function getCopasAmbito(codequipo: string, tempSel: string | null, 
       const cg = codgrupoFamilia(c) ?? c.codgrupo
       if (!cg) continue
       const res = await getResultadosGrupo(nombre, String(cg))
-      const jugados = res.filter((r) => r.goles_local != null && r.goles_visitante != null).sort((a, b) => a.jornada - b.jornada)
+      // Orden CRONOLÓGICO INVERSO (reciente arriba), mismo criterio que el resto: por fecha del partido DESC
+      // (DD/MM/YYYY -> YYYYMMDD para comparar), con la jornada como desempate.
+      const ymd = (f: string | null) => { const m = (f || '').match(/^(\d{2})\/(\d{2})\/(\d{4})$/); return m ? `${m[3]}${m[2]}${m[1]}` : '' }
+      const jugados = res.filter((r) => r.goles_local != null && r.goles_visitante != null)
+        .sort((a, b) => ymd(b.fecha).localeCompare(ymd(a.fecha)) || ((b.jornada ?? 0) - (a.jornada ?? 0)))
       const rondas: RondaDatum[] = jugados.map((r) => {
         const local = r.nombre_local === nombre
         const gf = (local ? r.goles_local : r.goles_visitante) as number
@@ -351,7 +355,7 @@ export async function getCopasAmbito(codequipo: string, tempSel: string | null, 
     }
     return out
     // v3-finicio: bump por el playoff (v2) y ahora `fechaInicio` (fecha_inicio del JSONB) en la salida.
-  }, ['getCopasAmbito', 'v4-finicio', codequipo, String(tempSel)], codequipo, { codtemporada: tempSel })
+  }, ['getCopasAmbito', 'v5-orden', codequipo, String(tempSel)], codequipo, { codtemporada: tempSel })
 }
 
 export { getResultadosGrupo }
