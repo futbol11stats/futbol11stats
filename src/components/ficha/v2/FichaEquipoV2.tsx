@@ -153,11 +153,13 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
   // porteros), iconos en vez de etiquetas; tarjetas (TA/2TA/TR) solo cuando las hay, para que quepa.
   const filaDatos = (p: PlantillaEqRow) => (
     <div className="pl-stats">
+      {/* PJ y minutos SIEMPRE (un jugador de la plantilla ha jugado; el 0 ahí es información). El resto son
+          "hizo/no hizo": se omiten a cero (goles, porterías a cero, tarjetas), como en las fichas solo-copa. */}
       <span>{mil(p.pj)}<Escudo size={11} /></span>
       <span>{mil(p.minutos)}<Reloj size={11} /></span>
       {p.portero
-        ? <span>{mil(p.porteriasCero)}<span style={{ color: 'var(--amber)', display: 'inline-flex' }}><Guante size={11} /></span></span>
-        : <span>{mil(p.goles)}<span style={{ color: 'var(--e3)', display: 'inline-flex' }}><Balon size={11} /></span></span>}
+        ? (p.porteriasCero ?? 0) > 0 && <span>{mil(p.porteriasCero)}<span style={{ color: 'var(--amber)', display: 'inline-flex' }}><Guante size={11} /></span></span>
+        : (p.goles ?? 0) > 0 && <span>{mil(p.goles)}<span style={{ color: 'var(--e3)', display: 'inline-flex' }}><Balon size={11} /></span></span>}
       {p.ta > 0 && <span style={{ color: 'var(--card-y)' }}>{p.ta}<TarjetaAmarilla size={10} /></span>}
       {p.td > 0 && <span style={{ color: 'var(--card-y)' }}>{p.td}<TarjetaDoble size={11} /></span>}
       {p.tr > 0 && <span style={{ color: 'var(--card-r)' }}>{p.tr}<TarjetaRoja size={10} /></span>}
@@ -364,7 +366,8 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
                   ? <div className="elo-v" style={{ fontSize: 'var(--n-md)', color: 'var(--e3)' }}>{e.posicion_juego_limpio}º</div>
                   : <div className="elo-v" style={{ fontSize: 'var(--n-md)', color: 'var(--ink-3)' }}>—</div>}
                 <div style={{ display: 'flex', gap: 14, alignItems: 'center' }}>
-                  {disc.map(([ic, n, k]) => (
+                  {/* Se omiten los tipos de tarjeta a 0 (mismo criterio icono+número): un 0 no aporta. */}
+                  {disc.filter(([, n]) => n > 0).map(([ic, n, k]) => (
                     <span key={k} style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>{ic}<b className="num" style={{ fontSize: 'var(--n-sm)' }}>{mil(n)}</b></span>
                   ))}
                 </div>
