@@ -16,9 +16,13 @@ const num = (n: number | null | undefined) => (n ?? 0).toLocaleString('es-ES')
 
 async function getJugador(cod: string): Promise<JugadorFicha | null> {
   return cacheJugador(async () => {
-    const { data } = await supabase.from('web_jugador').select(COLS_JUGADOR).eq('codjugador', cod).limit(1).maybeSingle()
+    const { data, error } = await supabase.from('web_jugador').select(COLS_JUGADOR).eq('codjugador', cod).limit(1).maybeSingle()
+    if (error) throw error   // no cachear null por un error transitorio -> 404 falso persistente (ver checklist)
     return (data as unknown as JugadorFicha) || null
-  }, ['getJugador', cod], cod)
+    // v2: bump para invalidar los null cacheados durante el DELETE+timeout de la republicación (las filas
+    // faltaron un rato y quedaron cacheadas como 404). El Data Cache persiste entre deploys; sin esto seguirían
+    // los 404 aunque el dato ya esté. Ver [[fallos-silenciosos-vacio-y-cache]].
+  }, ['getJugador', 'v2', cod], cod)
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
