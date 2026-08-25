@@ -12,7 +12,7 @@ export const metadata: Metadata = {
 
 const CONTENIDO = `# AVISO LEGAL Y CONDICIONES DE USO
 
-**futbol11stats.com** · Última actualización: 9 de agosto de 2026
+**futbol11stats.com** · Última actualización: 25 de agosto de 2026
 
 ---
 
@@ -89,7 +89,7 @@ Esta prohibición recae sobre los elementos protegidos conforme al apartado 4.1 
 
 ## 5. Protección de menores de edad
 
-**Este sitio no publica fichas ni perfiles individuales de personas menores de edad, ni los enlaza desde ninguna sección del portal.** La comprobación de mayoría de edad opera con margen de seguridad y se aplica por igual a jugadores, cuerpo técnico y árbitros; quien no la supera no dispone de página propia ni es recuperable mediante el buscador del sitio.
+**Este sitio no publica fichas ni perfiles individuales de personas menores de edad, ni los enlaza desde ninguna sección del portal.** La comprobación de mayoría de edad se realiza contra la edad publicada por la propia federación y exige confirmación positiva, y se aplica por igual a jugadores, cuerpo técnico y árbitros; quien no la supera no dispone de página propia ni es recuperable mediante el buscador del sitio.
 
 Los nombres de menores sí figuran en los listados, alineaciones y clasificaciones de sus competiciones, tomados del acta arbitral oficial, acompañados únicamente de datos de actuación deportiva y sin edad ni ningún otro dato personal. **Ninguna de esas superficies es indexable por buscadores**: llevan instrucción de no indexación y quedan excluidas del mapa del sitio.
 

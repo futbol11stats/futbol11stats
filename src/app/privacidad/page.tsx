@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 
 const CONTENIDO = `# POLÍTICA DE PRIVACIDAD
 
-**futbol11stats.com** · Última actualización: 9 de agosto de 2026
+**futbol11stats.com** · Última actualización: 25 de agosto de 2026
 
 ---
 
@@ -65,7 +65,7 @@ Cuando el acta oficial contiene un **error de identificación** —un código de
 
 ### 2.6 Menores de edad
 
-**Este sitio no publica fichas ni perfiles individuales de personas menores de edad.** El perfil individual —la página propia de un jugador, con su trayectoria, sus estadísticas acumuladas y su historial— se genera únicamente cuando consta que la persona es mayor de edad, y se aplica un margen de seguridad: solo se publica el perfil de quien cumple diecinueve años en el año en curso. Quien no supera esa comprobación no tiene página propia, no es enlazable desde ninguna parte del sitio y no es recuperable mediante el buscador. La comprobación se repite en cada actualización, de modo que el perfil aparece por sí solo cuando la persona alcanza esa edad, y nunca antes.
+**Este sitio no publica fichas ni perfiles individuales de personas menores de edad.** El perfil individual —la página propia de un jugador, con su trayectoria, sus estadísticas acumuladas y su historial— se publica únicamente cuando consta que la persona es mayor de edad. La comprobación se realiza contra la edad que publica la propia federación en la ficha del jugador, de modo que el perfil aparece por sí solo el día en que cumple dieciocho años, y nunca antes. La verificación exige confirmación positiva y concluyente: si la consulta no puede realizarse o el dato no resulta inequívoco, el perfil no se publica. Quien no supera esa comprobación no tiene página propia, no es enlazable desde ninguna parte del sitio y no es recuperable mediante el buscador.
 
 **Sí figuran, en cambio, los nombres de menores en los listados y clasificaciones de sus competiciones.** Las alineaciones, los rankings de goleadores, los onces ideales, las relaciones de sancionados y las plantillas por temporada recogen el nombre y apellidos tal como constan en el acta arbitral oficial, que es un documento público. Junto al nombre figuran exclusivamente datos de la actuación deportiva de esa jornada o temporada —partidos, minutos, goles, tarjetas—; **no se publica su edad, su fecha de nacimiento ni ningún otro dato personal**, y su nombre no enlaza a ninguna página individual porque esta no existe.
 
