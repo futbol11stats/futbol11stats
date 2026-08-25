@@ -40,7 +40,8 @@ async function getGrupoBySlug(
   // Evita mezclar aficionados con juveniles (mismos slugs entre categorías).
   const cat = CATEGORIA_MAP[categoria]
   if (cat) query = query.eq('categoria', cat)
-  const { data } = await query
+  const { data, error } = await query
+  if (error) throw error   // un error transitorio NO debe volverse null -> notFound() congelado como 404 en el route cache
   if (!data || !data.length) return null
   // Prefiere la fila de FAMILIA (codgrupo fam-*) cuando coexiste con una vieja del mismo slug (p.ej.
   // 'copa-rffm' es slug de familia Y hubo un grupo viejo homónimo).

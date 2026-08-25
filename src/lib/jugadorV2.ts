@@ -26,9 +26,10 @@ export function labelToCod(label: string | null | undefined): string | null {
 // --- Fetchers base ---
 export async function getJugadorV2(cod: string): Promise<JugadorFicha | null> {
   return cacheJugador(async () => {
-    const { data } = await supabase.from('web_jugador').select(COLS_JUGADOR).eq('codjugador', cod).limit(1).maybeSingle()
+    const { data, error } = await supabase.from('web_jugador').select(COLS_JUGADOR).eq('codjugador', cod).limit(1).maybeSingle()
+    if (error) throw error   // no cachear null por un error transitorio -> 404 falso persistente (ver checklist)
     return (data as unknown as JugadorFicha) || null
-  }, ['getJugadorV2', 'copa', cod], cod)   // bump: es_portero/posicion/equipo_actual/elo pueden incluir copa; cache-miss global
+  }, ['getJugadorV2', 'copa2', cod], cod)   // copa2: + throw en error; bump para limpiar null envenenados del DELETE
 }
 
 export type CarreraRow = {

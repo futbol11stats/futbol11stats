@@ -95,7 +95,8 @@ export async function getGruposPorTemporada(codequipo: string, temporadasRows: {
       ;(map[String(t)] ??= new Set<string>()).add(String(g))
     }
     for (const r of temporadasRows) add(r.codtemporada, r.codgrupo)
-    const { data } = await supabase.from('web_equipo').select('copas').eq('codequipo', String(codequipo)).limit(1).maybeSingle()
+    const { data, error } = await supabase.from('web_equipo').select('copas').eq('codequipo', String(codequipo)).limit(1).maybeSingle()
+    if (error) throw error   // no cachear vacío por un error transitorio (ver checklist: caché envenenada)
     const copas = (data as { copas?: unknown } | null)?.copas
     // Copa por FAMILIA: usa el codgrupo de la familia (fam-*), que tiene TODAS las rondas, los mismos
     // codacta y el tipo correcto (COPA/PLAYOFF). Así PartidosEquipo deja de depender de las filas viejas
@@ -222,7 +223,8 @@ async function resolveCopas(raw: unknown): Promise<CopaEquipo[]> {
 export async function getCopasPorTemporada(codequipo: string | number | null | undefined): Promise<Record<string, CopaEquipo[]>> {
   if (!COPAS_HABILITADO || codequipo == null) return {}
   return cacheEquipo(async () => {
-    const { data } = await supabase.from('web_equipo').select('copas').eq('codequipo', String(codequipo)).limit(1).maybeSingle()
+    const { data, error } = await supabase.from('web_equipo').select('copas').eq('codequipo', String(codequipo)).limit(1).maybeSingle()
+    if (error) throw error   // no cachear vacío por un error transitorio (ver checklist: caché envenenada)
     const raw = (data as { copas?: unknown } | null)?.copas
     if (!Array.isArray(raw)) return {}
     const resolved = await resolveCopaRows(raw as CopaRaw[])
@@ -277,7 +279,8 @@ export async function getCopasEquipo(codequipo: string | number | null | undefin
   if (!COPAS_HABILITADO || codequipo == null) return []
   return cacheEquipo(async () => {
     const { data, error } = await supabase.from('web_equipo').select('copas').eq('codequipo', String(codequipo)).limit(1).maybeSingle()
-    if (error || !data) return []
+    if (error) throw error   // no cachear [] por un error transitorio (ver checklist: caché envenenada)
+    if (!data) return []
     return resolveCopas((data as { copas?: unknown }).copas)
   }, ['getCopasEquipo', String(codequipo)], codequipo)
 }
@@ -287,7 +290,8 @@ export async function getCopasEquipo(codequipo: string | number | null | undefin
 export async function getEquipoActualInfo(codequipo: string | number | null | undefined): Promise<{ copas: CopaEquipo[]; posicionActual: number | null }> {
   if (codequipo == null) return { copas: [], posicionActual: null }
   return cacheEquipo(async () => {
-    const { data } = await supabase.from('web_equipo').select('copas, posicion_actual').eq('codequipo', String(codequipo)).limit(1).maybeSingle()
+    const { data, error } = await supabase.from('web_equipo').select('copas, posicion_actual').eq('codequipo', String(codequipo)).limit(1).maybeSingle()
+    if (error) throw error   // no cachear vacío por un error transitorio (ver checklist: caché envenenada)
     if (!data) return { copas: [], posicionActual: null }
     return { copas: await resolveCopas((data as { copas?: unknown }).copas), posicionActual: (data as { posicion_actual?: number | null }).posicion_actual ?? null }
   }, ['getEquipoActualInfo', String(codequipo)], codequipo)

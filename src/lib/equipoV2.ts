@@ -59,7 +59,8 @@ export async function getTemporadasEquipo(cod: string) {
 // en web_equipo_temporadas. Se une a las de liga para el selector y el default de la ficha (ver FichaEquipoV2).
 export async function getCopaTemporadas(cod: string): Promise<number[]> {
   return cacheEquipo(async () => {
-    const { data } = await supabase.from('web_equipo').select('copas').eq('codequipo', cod).limit(1).maybeSingle()
+    const { data, error } = await supabase.from('web_equipo').select('copas').eq('codequipo', cod).limit(1).maybeSingle()
+    if (error) throw error   // no cachear [] por un error transitorio (ver checklist: caché envenenada)
     const raw = (data as { copas?: unknown } | null)?.copas
     if (!Array.isArray(raw)) return []
     const set = new Set<number>()

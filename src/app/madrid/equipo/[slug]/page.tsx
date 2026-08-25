@@ -15,9 +15,13 @@ import FichaEquipoV2 from '@/components/ficha/v2/FichaEquipoV2'
 
 async function getEquipo(cod: string): Promise<EquipoFicha | null> {
   return cacheEquipo(async () => {
-    const { data } = await supabase.from('web_equipo').select(COLS_EQUIPO).eq('codequipo', cod).limit(1).maybeSingle()
+    const { data, error } = await supabase.from('web_equipo').select(COLS_EQUIPO).eq('codequipo', cod).limit(1).maybeSingle()
+    if (error) throw error   // no cachear null por un error transitorio -> 404 falso persistente (ver checklist)
     return (data as unknown as EquipoFicha) || null
-  }, ['getEquipo', cod], cod)
+    // v2: bump para invalidar los null cacheados durante el DELETE de la republicación (mismo caso que jugador;
+    // el Data Cache persiste entre deploys -> sin bump seguirían los 404 aunque el dato ya esté). Ver
+    // [[fallos-silenciosos-vacio-y-cache]].
+  }, ['getEquipo', 'v2', cod], cod)
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {

@@ -31,7 +31,8 @@ async function getCompeticion(slugComp: string, categoria: string, codtemporada:
     .eq('codtemporada', codtemporada)
   const cat = CATEGORIA_MAP[categoria]
   if (cat) query = query.eq('categoria', cat)
-  const { data } = await query.limit(1).single()
+  const { data, error } = await query.limit(1).maybeSingle()
+  if (error) throw error   // maybeSingle: sin filas -> data null (404 legítimo); error real -> throw (no congelar un 404)
   return data
 }
 
