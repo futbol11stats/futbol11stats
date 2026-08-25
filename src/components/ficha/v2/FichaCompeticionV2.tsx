@@ -225,12 +225,15 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
   let rankView: RankView | null = null
   if (tabEf === 'top5-jugadores-jornada') {
     rankView = {
-      title: '5 mejores jugadores', sub: `puntos fantasy · jornada ${jornadaNum}`,
+      title: '5 mejores jugadores', sub: `puntos fantasy · ${esFamilia ? (rondaSel?.label ?? `jornada ${jornadaNum}`) : `jornada ${jornadaNum}`}`,
       items: mvpJ.map((j) => {
         const p = partMap.get(String(j.codjugador))
+        // valor = puntos del RANKING agregado (j.pts_fantasy), NO del partido (p.puntos): en copa el idx de ronda
+        // (final=2) NO es el matchday de web_jugador_partidos (1,2,3 de grupos), así que p sería otro partido y
+        // el orden descuadraría. En liga j.pts_fantasy == p.puntos (una jornada). Igual que el fix de goleadores.
         return {
           rank: j.rank, codjugador: j.codjugador, nombre: j.nombre, pos: j.posicion, escudo: j.escudo, nombreEquipo: j.nombre_equipo,
-          valor: Math.round((p?.puntos ?? j.pts_fantasy) ?? 0), valorColor: 'var(--e3)',
+          valor: Math.round((j.pts_fantasy ?? p?.puntos) ?? 0), valorColor: 'var(--e3)',
           extra: p ? filaJornada(p) : <span className="cfj-none">Sin datos del partido</span>,
         }
       }),
