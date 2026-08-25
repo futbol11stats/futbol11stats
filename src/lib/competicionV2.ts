@@ -424,13 +424,25 @@ export async function getSuspendidosV2(codgrupo: string, codtemporada: number, j
 // tarjetas, puntos, goles encajados. Para la fila completa del Top 5 (web_top_jugadores no los expone).
 // NO se envuelve en cacheComp: devuelve un Map (unstable_cache lo perdería a {}). Se lee junto a los
 // destacados/XI de jornada (ya etiquetados), así que la ruta queda cubierta.
-export async function getPartidosJornadaV2(codgrupo: string, codtemporada: number, jornada: number, codjugadores: string[]) {
+// Partido de cada jugador para el detalle (filaJornada) del ranking de jornada. LIGA: se cruza por número de
+// jornada (un partido por jugador). COPA: se cruza por RONDA (`ronda_label`), NO por número -> en copa la
+// `jornada` de web_jugador_partidos se numera por ronda (grupos 1-3, final 1) y el idx de ronda (final=2) no
+// coincide con ningún matchday; cruzar por número traía otro partido. Además, en un ranking AGREGADO (fase de
+// grupos: varios partidos por jugador) NO hay un único encuentro que lo represente -> se deja SIN dato (silencio,
+// no un partido cualquiera). Solo se asigna cuando el jugador tiene EXACTAMENTE UNO en la ronda (final/
+// eliminatoria, o una jornada de liga) -> detalle exacto.
+export async function getPartidosJornadaV2(codgrupo: string, codtemporada: number, jornada: number, codjugadores: string[], rondaLabel?: string | null) {
   const m = new Map<string, any>()
   if (!codjugadores.length) return m
-  const { data } = await supabase.from('web_jugador_partidos')
+  let q = supabase.from('web_jugador_partidos')
     .select('codjugador, titular, minutos, goles, amarillas, dobles_amarilla, rojas, puntos, goles_encajados, jugado')
-    .eq('codgrupo', codgrupo).eq('codtemporada', codtemporada).eq('jornada', jornada).eq('jugado', true).in('codjugador', codjugadores)
-  for (const r of (data || []) as any[]) if (!m.has(String(r.codjugador))) m.set(String(r.codjugador), r)
+    .eq('codgrupo', codgrupo).eq('codtemporada', codtemporada).eq('jugado', true).in('codjugador', codjugadores)
+  q = rondaLabel ? q.eq('ronda_label', rondaLabel) : q.eq('jornada', jornada)
+  const { data } = await q
+  const rows = (data || []) as any[]
+  const n = new Map<string, number>()
+  for (const r of rows) n.set(String(r.codjugador), (n.get(String(r.codjugador)) ?? 0) + 1)
+  for (const r of rows) if (n.get(String(r.codjugador)) === 1) m.set(String(r.codjugador), r)
   return m
 }
 

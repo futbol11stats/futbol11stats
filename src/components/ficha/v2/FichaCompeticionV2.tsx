@@ -170,7 +170,7 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
       getEquiposMapV2(grupo.codgrupo, codtemporada),
     ])
     golJ = gj; equiposMap = em; golesEquipo = golesEquipoJornada(res, em)
-    partMap = await getPartidosJornadaV2(grupo.codgrupo, codtemporada, jornadaNum, golJ.map((j: any) => String(j.codjugador)))
+    partMap = await getPartidosJornadaV2(grupo.codgrupo, codtemporada, jornadaNum, golJ.map((j: any) => String(j.codjugador)), esFamilia ? (rondaSel?.label ?? null) : null)
   } else if (tabEf === 'tarjetas-jornada') {
     const [tj, susp] = await Promise.all([
       getDestacadosV2(grupo.codgrupo, codtemporada, jornadaNum, 'tarjetas_jornada'),
@@ -179,12 +179,12 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
     tarjJ = tj; suspendidos = susp
   } else if (tabEf === 'top5-jugadores-jornada') {
     mvpJ = await getDestacadosV2(grupo.codgrupo, codtemporada, jornadaNum, 'mvp_jornada')
-    partMap = await getPartidosJornadaV2(grupo.codgrupo, codtemporada, jornadaNum, mvpJ.map((j: any) => String(j.codjugador)))
+    partMap = await getPartidosJornadaV2(grupo.codgrupo, codtemporada, jornadaNum, mvpJ.map((j: any) => String(j.codjugador)), esFamilia ? (rondaSel?.label ?? null) : null)
   }
   else if (tabEf === 'top5-equipos-jornada') equiposForma = await getEquiposFormaV2(grupo.codgrupo, codtemporada, jornadaNum)
   else if (tabEf === 'once-optimo-jornada') {
     xi = await getXiJornadaV2(grupo.codgrupo, codtemporada, jornadaNum, isCopa)
-    partMap = await getPartidosJornadaV2(grupo.codgrupo, codtemporada, jornadaNum, xi.map((j: any) => String(j.codjugador)))
+    partMap = await getPartidosJornadaV2(grupo.codgrupo, codtemporada, jornadaNum, xi.map((j: any) => String(j.codjugador)), esFamilia ? (rondaSel?.label ?? null) : null)
   }
   else if (tabEf === 'once-optimo-temporada') xi = await getXiTemporadaV2(grupo.codgrupo, codtemporada, jornadaNum)
   else if (tabEf === 'top10-tarjetas-temporada') {
