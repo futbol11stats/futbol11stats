@@ -7,8 +7,11 @@ import EscudoBox from '@/components/ficha/v2/EscudoBox'
 import NombreEquipo from '@/components/NombreEquipo'
 import { Escudo, Balon, Guante, TarjetaAmarilla, TarjetaDoble, TarjetaRoja, Camiseta, CamisetaHueca, Reloj } from '@/components/iconos'
 import { nombreOficial, denominacion, familiaSello } from '@/lib/sellos'
-import { ensureMadrid } from '@/lib/seo'
-import { fechaCortaDMY } from '@/lib/equipo'
+import { ensureMadrid, SITE_URL } from '@/lib/seo'
+import { fechaCortaDMY, equipoSlug } from '@/lib/equipo'
+import JsonLd from '@/components/JsonLd'
+import { graphLd, sportsEventLd } from '@/lib/jsonld'
+import { escudoUrl } from '@/lib/supabase'
 import { esTemporadaActiva } from '@/lib/temporadas'
 import { colorElo } from '@/lib/equipoV2'
 import { fichasInfo } from '@/lib/jugador'
@@ -95,6 +98,15 @@ function cardsSpan(ta: number, dob: number, rj: number) {
     </span>
   )
 }
+// fecha 'DD/MM/YYYY' (+ hora 'HH:MM' opcional) -> ISO 'YYYY-MM-DD' o 'YYYY-MM-DDTHH:MM' para SportsEvent.startDate.
+function fechaHoraIso(fecha: string | null, hora: string | null): string | null {
+  const f = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec((fecha || '').trim())
+  if (!f) return null
+  const dmy = `${f[3]}-${f[2]}-${f[1]}`
+  const h = hora ? /(\d{1,2}):(\d{2})/.exec(hora) : null
+  return h ? `${dmy}T${h[1].padStart(2, '0')}:${h[2]}` : dmy
+}
+
 // Icono de tarjeta según el motivo de la suspensión (texto de web_suspendidos).
 function motivoCard(motivo: string | null) {
   if (!motivo) return null
@@ -549,6 +561,24 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
           {tabEf === 'resultados' && (
             <section>
               <div className="s-head"><h2 className="s-title">Resultados</h2><div className="s-sub">{esFamilia ? (rondaSel?.label ?? `jornada ${jornadaNum}`) : `jornada ${jornadaNum}`}</div></div>
+              {/* SportsEvent a NIVEL DE EQUIPO por partido. LÍNEA ROJA: solo equipos/fecha/campo/marcador; NUNCA
+                  jugadores (athlete/performer/attendee) -> reintroduciría la entidad-persona descartada, y aquí,
+                  en resultados, que es indexable en juvenil por NO tener nombres de personas. Ver jsonld.ts. */}
+              {resultados.length > 0 && (
+                <JsonLd data={graphLd(...resultados.map((r) => sportsEventLd({
+                  local: r.nombre_local,
+                  visitante: r.nombre_visitante,
+                  localUrl: equiposMap.get(r.nombre_local) ? `${SITE_URL}/madrid/equipo/${equipoSlug(equiposMap.get(r.nombre_local)!, r.nombre_local)}` : null,
+                  visitanteUrl: equiposMap.get(r.nombre_visitante) ? `${SITE_URL}/madrid/equipo/${equipoSlug(equiposMap.get(r.nombre_visitante)!, r.nombre_visitante)}` : null,
+                  localLogo: escudoUrl(r.escudo_local),
+                  visitanteLogo: escudoUrl(r.escudo_visitante),
+                  golesLocal: r.goles_local,
+                  golesVisitante: r.goles_visitante,
+                  fechaIso: fechaHoraIso(r.fecha, r.hora),
+                  campo: r.campo,
+                  competicion: `${tituloGrupo} · ${temporada}${esFamilia && rondaSel ? ` · ${rondaSel.label}` : ''}`,
+                })))} />
+              )}
               {resultados.length === 0 ? <p className="vacio">Sin resultados en esta jornada.</p>
                 : resGrupos.length > 0
                   ? resGrupos.map((gl) => (

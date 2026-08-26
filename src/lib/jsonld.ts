@@ -64,6 +64,44 @@ export function sportsTeamLd(team: { name: string; url: string; sport?: string; 
   return node
 }
 
+// SportsEvent a NIVEL DE EQUIPO para los partidos de la pestaña de RESULTADOS.
+//
+// ⛔ LÍNEA ROJA (decisión cerrada 2026-08, ver PENDIENTES "Datos estructurados"): este nodo NUNCA lleva
+//    `athlete`, `performer` ni `attendee`, ni ahora ni como "mejora" futura. Adjuntar jugadores al evento
+//    reintroduce exactamente la entidad-persona que descartamos al rechazar Person/Athlete, y además lo haría
+//    en las páginas de RESULTADOS, que hoy son indexables INCLUSO EN JUVENIL precisamente porque no contienen
+//    nombres de personas. Solo EQUIPOS (organizaciones), fecha, campo (instalación pública) y marcador.
+//    Regla general: marcamos EVENTOS y ORGANIZACIONES; nunca PERSONAS.
+export function sportsEventLd(ev: {
+  local: string; visitante: string
+  localUrl?: string | null; visitanteUrl?: string | null
+  localLogo?: string | null; visitanteLogo?: string | null
+  golesLocal?: number | null; golesVisitante?: number | null
+  fechaIso?: string | null       // 'YYYY-MM-DD' o 'YYYY-MM-DDTHH:MM'
+  campo?: string | null
+  competicion?: string | null    // superEvent: nombre de la competición/ronda + temporada
+}) {
+  const team = (name: string, url?: string | null, logo?: string | null) => {
+    const t: Record<string, unknown> = { '@type': 'SportsTeam', name }
+    if (url) t.url = url
+    if (logo) t.logo = logo
+    return t
+  }
+  const jugado = ev.golesLocal != null && ev.golesVisitante != null
+  const node: Record<string, unknown> = {
+    '@type': 'SportsEvent',
+    name: `${ev.local}${jugado ? ` ${ev.golesLocal}-${ev.golesVisitante} ` : ' vs '}${ev.visitante}`,
+    sport: 'Soccer',
+    homeTeam: team(ev.local, ev.localUrl, ev.localLogo),
+    awayTeam: team(ev.visitante, ev.visitanteUrl, ev.visitanteLogo),
+    // NB: schema.org no tiene campo de marcador; el resultado va en `name`. NADA de personas (ver línea roja).
+  }
+  if (ev.fechaIso) node.startDate = ev.fechaIso
+  if (ev.campo) node.location = { '@type': 'Place', name: ev.campo }
+  if (ev.competicion) node.superEvent = { '@type': 'SportsEvent', name: ev.competicion }
+  return node
+}
+
 // Envuelve uno o varios nodos en un documento @graph con @context.
 export function graphLd(...nodes: object[]) {
   return { '@context': 'https://schema.org', '@graph': nodes }
