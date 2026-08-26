@@ -12,12 +12,12 @@ import { codToSlug } from '@/lib/temporadaSlug'
 
 // Marca neutral con Madrid como ámbito ACTUAL (preparada para ampliar a otras federaciones).
 export const metadata: Metadata = {
-  title: 'Fútbol11Stats — Estadísticas del fútbol amateur · Madrid',
-  description: 'Clasificaciones, goleadores, fantasy y ELO del fútbol amateur y juvenil. Todas las competiciones de la RFFM (Madrid): 5 temporadas, más de 110.000 partidos y 38.000 jugadores.',
+  title: 'Fútbol11Stats — Estadísticas del fútbol aficionado · Madrid',
+  description: 'Clasificaciones, goleadores, fantasy y ELO del fútbol aficionado y juvenil. Todas las competiciones de la RFFM (Madrid): 5 temporadas, más de 110.000 partidos y 38.000 jugadores.',
   alternates: { canonical: '/' },
   openGraph: {
-    title: 'Fútbol11Stats — Estadísticas del fútbol amateur · Madrid',
-    description: 'Clasificaciones, goleadores, fantasy y ELO del fútbol amateur y juvenil de Madrid.',
+    title: 'Fútbol11Stats — Estadísticas del fútbol aficionado · Madrid',
+    description: 'Clasificaciones, goleadores, fantasy y ELO del fútbol aficionado y juvenil de Madrid.',
     url: '/',
     siteName: 'Fútbol11Stats',
     locale: 'es_ES',

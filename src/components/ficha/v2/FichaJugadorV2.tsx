@@ -492,7 +492,8 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
                   const mi = nm.split(/\s+/).map((w) => w[0]).slice(0, 2).join('').toUpperCase()
                   return (
                     <Link key={c.codjugador} href={jugadorHref(c.codjugador, c.nombre)} className="mate">
-                      {escudoUrl(c.escudo_actual) ? <EscudoBox escudo={c.escudo_actual} nombre={c.equipo_actual ?? undefined} size={46} radius={9} /> : <div className="m-av">{mi}</div>}
+                      {/* El escudo representa al COMPAÑERO (persona): alt/title = "{jugador} en {equipo}". */}
+                      {escudoUrl(c.escudo_actual) ? <EscudoBox escudo={c.escudo_actual} nombre={c.equipo_actual ?? undefined} altText={`${nm}${c.equipo_actual ? ` en ${c.equipo_actual}` : ''}`} size={46} radius={9} /> : <div className="m-av">{mi}</div>}
                       <div className="m-n">{nm}</div>
                       <div className="m-e" style={{ color: cElo(c.elo ?? null) }}>ELO {c.elo != null ? mil(Math.round(c.elo)) : '—'}</div>
                     </Link>

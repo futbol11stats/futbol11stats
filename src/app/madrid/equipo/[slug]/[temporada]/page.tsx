@@ -20,7 +20,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const canonical = `/madrid/equipo/${equipoSlug(e.codequipo, e.nombre)}/${temporada}`
   const title = `${e.nombre} — temporada ${temporada} | Fútbol11Stats`
   const description = `${e.nombre} en ${temporada}: clasificación jornada a jornada, análisis, plantilla y ` +
-    `resultados del fútbol amateur de Madrid.`
+    `resultados del fútbol aficionado de Madrid.`
   return {
     title, description,
     alternates: { canonical },

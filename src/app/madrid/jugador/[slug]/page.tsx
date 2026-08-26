@@ -37,7 +37,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const cat = j.categoria_rama ? ` en ${j.categoria_rama}` : ''
   const title = `${nombre} — estadísticas, trayectoria e hitos | Fútbol11Stats`
   const description = `Estadísticas de ${nombre}${equipo}${cat}: ${num(j.pj_total)} partidos, ${num(j.goles_total)} goles, ` +
-    `ELO, ranking F11S y trayectoria completa en el fútbol amateur de Madrid.`
+    `ELO, ranking F11S y trayectoria completa en el fútbol aficionado de Madrid.`
   return {
     title,
     description,

@@ -19,11 +19,11 @@ const barlow = Barlow_Condensed({ subsets: ['latin'], weight: ['700', '800'], di
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
-  title: 'Fútbol11Stats — Estadísticas del fútbol amateur · Madrid',
-  description: 'Clasificaciones, goleadores, fantasy y ELO del fútbol amateur y juvenil de Madrid (RFFM).',
+  title: 'Fútbol11Stats — Estadísticas del fútbol aficionado · Madrid',
+  description: 'Clasificaciones, goleadores, fantasy y ELO del fútbol aficionado y juvenil de Madrid (RFFM).',
   openGraph: {
     title: 'Fútbol11Stats',
-    description: 'Estadísticas del fútbol amateur · Madrid',
+    description: 'Estadísticas del fútbol aficionado · Madrid',
     siteName: 'Fútbol11Stats',
     locale: 'es_ES',
     type: 'website',

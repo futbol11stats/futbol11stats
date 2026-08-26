@@ -7,9 +7,10 @@ import { escudoUrl } from '@/lib/supabase'
 // El padding es PROPORCIONAL al tamaño (~9%, como el p-1.5 del escudo grande de la ficha actual): con
 // 1px fijo un escudo casi cuadrado tocaba el borde y sus esquinas asomaban del marco redondeado. Se
 // puede forzar con la prop `pad`. `overflow:hidden` garantiza que nada sobresalga del marco.
-export default function EscudoBox({ escudo, nombre, size = 22, radius = 4, pad }: {
+export default function EscudoBox({ escudo, nombre, altText, size = 22, radius = 4, pad }: {
   escudo: string | null
   nombre?: string
+  altText?: string   // escudo que acompaña a una PERSONA -> alt/title = "{persona} en {equipo}" (ver EscudoImg)
   size?: number
   radius?: number
   pad?: number
@@ -21,7 +22,7 @@ export default function EscudoBox({ escudo, nombre, size = 22, radius = 4, pad }
       width: size, height: size, borderRadius: radius, background: '#fff', padding, overflow: 'hidden',
       display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flex: 'none', verticalAlign: 'middle',
     }}>
-      <EscudoImg escudo={escudo} nombre={nombre} />
+      <EscudoImg escudo={escudo} nombre={nombre} altText={altText} />
     </span>
   )
 }

@@ -22,7 +22,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const canonical = `/madrid/jugador/${jugadorSlug(j.codjugador, j.nombre)}/${temporada}`
   const title = `${nombre} — temporada ${temporada} | Fútbol11Stats`
   const description = `${nombre} en ${temporada}: partidos jornada a jornada, forma, goles, ELO y análisis del ` +
-    `fútbol amateur de Madrid.`
+    `fútbol aficionado de Madrid.`
   return { title, description, alternates: { canonical }, openGraph: { title, description, url: canonical, siteName: 'Fútbol11Stats', locale: 'es_ES', type: 'profile' } }
 }
 

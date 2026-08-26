@@ -5,7 +5,7 @@ import { getSueloVivo } from '@/lib/temporadas'
 // Página de búsqueda: NO debe indexarse (contenido dinámico por query), pero sí seguir enlaces.
 export const metadata: Metadata = {
   title: 'Buscar jugadores y equipos | Fútbol11Stats',
-  description: 'Busca cualquier jugador o equipo del fútbol amateur de Madrid en Fútbol11Stats.',
+  description: 'Busca cualquier jugador o equipo del fútbol aficionado de Madrid en Fútbol11Stats.',
   robots: { index: false, follow: true },
 }
 

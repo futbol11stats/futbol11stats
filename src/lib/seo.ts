@@ -35,7 +35,7 @@ export function tabLabel(tab: string): string {
 // `compGrp` = "{competición}{ grupo}" ya compuesto; `global` marca la vista de todos los grupos.
 export function descripcionCompeticion(tab: string, compGrp: string, temp: string, global = false): string {
   const ent = global ? `${compGrp} (todos los grupos)` : compGrp
-  const M = 'del fútbol amateur de Madrid en Fútbol11Stats'
+  const M = 'del fútbol aficionado de Madrid en Fútbol11Stats'
   switch (tab) {
     case 'clasificacion': return `Clasificación de ${ent}, temporada ${temp}: posiciones, puntos, victorias, empates, derrotas y goles ${M}.`
     case 'resultados': return `Resultados y calendario de ${ent}, temporada ${temp}: todos los partidos y marcadores, jornada a jornada, ${M}.`

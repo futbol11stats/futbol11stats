@@ -34,7 +34,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const title = `${e.nombre} — plantilla, resultados y trayectoria | Fútbol11Stats`
   const comp = e.nombre_comp ? `${e.nombre_comp}${e.grupo_nombre ? ` ${e.grupo_nombre}` : ''}` : ''
   const description = `${e.nombre}: plantilla, clasificación, altas y bajas, trayectoria por temporadas e hitos` +
-    `${comp ? ` en ${comp}` : ''}. Estadísticas del fútbol amateur de Madrid en Fútbol11Stats.`
+    `${comp ? ` en ${comp}` : ''}. Estadísticas del fútbol aficionado de Madrid en Fútbol11Stats.`
   return {
     title, description,
     alternates: { canonical },

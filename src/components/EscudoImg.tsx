@@ -9,10 +9,14 @@ import { escudoUrl, escudoThumbUrl } from '@/lib/supabase'
 export default function EscudoImg({
   escudo,
   nombre,
+  altText,
   className = 'w-full h-full object-contain',
 }: {
   escudo: string | null
   nombre?: string
+  // Cuando el escudo ACOMPAÑA A UNA PERSONA (compañeros, filas de ranking de jugador), `altText` describe a la
+  // persona + su equipo ("Raúl Sánchez Iglesias en E.D. Moratalaz") en alt Y title. Sin él, alt = "Escudo {equipo}".
+  altText?: string
   className?: string
 }) {
   const original = escudoUrl(escudo)
@@ -21,8 +25,8 @@ export default function EscudoImg({
   return (
     <img
       src={thumb}
-      alt={nombre ? `Escudo ${nombre}` : 'Escudo del equipo'}
-      title={nombre || undefined}
+      alt={altText ?? (nombre ? `Escudo ${nombre}` : 'Escudo del equipo')}
+      title={altText ?? (nombre || undefined)}
       loading="lazy"
       width={128}
       height={128}
