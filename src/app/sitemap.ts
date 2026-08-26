@@ -11,7 +11,7 @@ import {
 } from '@/lib/seo'
 import { codToSlug } from '@/lib/temporadaSlug'
 import { getTemporadasActivas, mapaActivas } from '@/lib/temporadas'
-import { getLastmodMaps } from '@/lib/sitemapLastmod'
+import { getSitemapDatos, tabTieneDatos, type GrupoStat } from '@/lib/sitemapLastmod'
 
 export const revalidate = 2592000 // ISR 30d (Fluid CPU): se regenera con cada deploy/re-export; el sitemap solo cambia al añadir grupos/temporadas nuevas
 
@@ -34,8 +34,27 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // vista final. Con todo en T21 hoy, la activa es 21 para todas -> idéntico al comportamiento anterior.
   const activas = mapaActivas(await getTemporadasActivas())
 
-  // lastmod REAL por grupo (última jornada jugada); maxIso = fecha más reciente del sitio (home/landings).
-  const { porGrupo, maxIso } = await getLastmodMaps()
+  // Datos por grupo (RPC web_sitemap_grupos): lastmod real + contadores para el GATE anti-thin.
+  // gateOn=false si el RPC falló/vino vacío -> NO se filtra nada (comportamiento anterior): el gate NUNCA
+  // vacía el sitemap. maxIso = fecha más reciente del sitio (home/landings).
+  const datos = await getSitemapDatos()
+  const gateOn = datos.grupo.size > 0
+  const maxIso = datos.maxIso
+
+  // Suma por COMPETICIÓN para el gate de las vistas GLOBALES (agregan todos los grupos): jugados+ranking
+  // sumados y la fecha más reciente.
+  const statComp = new Map<string, GrupoStat>()
+  for (const g of grupos) {
+    const cat0 = CATEGORIA_SLUG[g.categoria]
+    const st0 = cat0 ? datos.grupo.get(String(g.codgrupo)) : undefined
+    if (!cat0 || !st0) continue
+    const key = `${g.codtemporada}|${cat0}|${g.slug_comp}`
+    const acc = statComp.get(key) || { jugados: 0, ranking: 0, iso: undefined as string | undefined }
+    acc.jugados += st0.jugados
+    acc.ranking += st0.ranking
+    if (st0.iso && (!acc.iso || st0.iso > acc.iso)) acc.iso = st0.iso
+    statComp.set(key, acc)
+  }
 
   const urls: MetadataRoute.Sitemap = [
     { url: `${SITE_URL}/`, lastModified: maxIso, changeFrequency: 'weekly', priority: 1 },
@@ -50,7 +69,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     const temp = codToSlug(g.codtemporada)
     const cat = CATEGORIA_SLUG[g.categoria]
     if (!temp || !cat) continue
-    const lm = porGrupo.get(String(g.codgrupo))   // última jornada jugada de este grupo (lastmod real)
+    const st = datos.grupo.get(String(g.codgrupo))
+    const lm = st?.iso   // última jornada jugada de este grupo (lastmod real)
 
     const j = g.jornada_actual || 1
     const isLiga = !g.tipo || g.tipo === 'LIGA'
@@ -61,31 +81,35 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
     if (isLive) {
       for (const t of isLiga ? GROUP_TABS_LIGA : GROUP_TABS_COPA) {
-        if (noindexJuvenil(cat, t)) continue   // juvenil: fuera las pestañas con nombres de menores
+        if (noindexJuvenil(cat, t)) continue                 // juvenil: fuera las pestañas con nombres de menores
+        if (gateOn && !tabTieneDatos(t, st)) continue        // GATE anti-thin: la pestaña entra cuando su tabla tiene datos
         urls.push({ url: `${base}/${t}`, lastModified: lm, changeFrequency: 'weekly', priority: 0.7 })
       }
     } else {
-      urls.push({
-        url: `${base}/${isLiga ? 'clasificacion' : 'resultados'}`,
-        lastModified: lm,
-        changeFrequency: 'yearly',
-        priority: 0.4,
-      })
+      // Histórico: solo la vista final (clasificación/resultados). Temporadas completas -> jugados>=1 -> pasa el gate.
+      const ft = isLiga ? 'clasificacion' : 'resultados'
+      if (!gateOn || tabTieneDatos(ft, st)) {
+        urls.push({ url: `${base}/${ft}`, lastModified: lm, changeFrequency: 'yearly', priority: 0.4 })
+      }
     }
 
-    // Vista global de la competición (solo ligas; una vez por temporada+categoria+slug_comp).
+    // Vista global de la competición (solo ligas; una vez por temporada+categoria+slug_comp). El gate usa la
+    // SUMA de la competición (statComp), no un solo grupo.
     if (isLiga) {
       const key = `${g.codtemporada}|${cat}|${g.slug_comp}`
       if (!globalsSeen.has(key)) {
         globalsSeen.add(key)
+        const cst = statComp.get(key)
+        const glm = cst?.iso ?? lm
         const gbase = `${SITE_URL}/madrid/${cat}/${g.slug_comp}/global/${temp}/jornada-${j}`
         if (isLive) {
           for (const t of GLOBAL_TABS) {
-            if (noindexJuvenil(cat, t)) continue   // juvenil: fuera las pestañas globales con jugadores
-            urls.push({ url: `${gbase}/${t}`, lastModified: lm, changeFrequency: 'weekly', priority: 0.6 })
+            if (noindexJuvenil(cat, t)) continue
+            if (gateOn && !tabTieneDatos(t, cst)) continue
+            urls.push({ url: `${gbase}/${t}`, lastModified: glm, changeFrequency: 'weekly', priority: 0.6 })
           }
-        } else {
-          urls.push({ url: `${gbase}/clasificacion`, lastModified: lm, changeFrequency: 'yearly', priority: 0.4 })
+        } else if (!gateOn || tabTieneDatos('clasificacion', cst)) {
+          urls.push({ url: `${gbase}/clasificacion`, lastModified: glm, changeFrequency: 'yearly', priority: 0.4 })
         }
       }
     }

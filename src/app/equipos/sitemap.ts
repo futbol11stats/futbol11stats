@@ -2,7 +2,7 @@ import type { MetadataRoute } from 'next'
 import { supabase } from '@/lib/supabase'
 import { SITE_URL } from '@/lib/seo'
 import { equipoSlug } from '@/lib/equipo'
-import { getLastmodMaps } from '@/lib/sitemapLastmod'
+import { getSitemapDatos } from '@/lib/sitemapLastmod'
 
 export const revalidate = 2592000 // ISR 30d: solo cambia al reexportar el catálogo de equipos.
 
@@ -54,7 +54,7 @@ export default async function sitemap({ id }: { id: Promise<number> | number }):
     throw new Error(`[sitemap equipos] partición ${idNum} vacía (de ${n}; total ${total})`)
   }
 
-  const { porTemporada } = await getLastmodMaps()
+  const { porTemporada } = await getSitemapDatos()
   return trozo.map((eq) => ({
     url: `${SITE_URL}/madrid/equipo/${equipoSlug(eq.codequipo, eq.nombre)}`,
     lastModified: porTemporada.get(Number(eq.codtemporada)),   // último partido de la última temporada del equipo

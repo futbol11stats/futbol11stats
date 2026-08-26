@@ -2,7 +2,7 @@ import type { MetadataRoute } from 'next'
 import { supabase } from '@/lib/supabase'
 import { SITE_URL } from '@/lib/seo'
 import { jugadorSlug } from '@/lib/jugador'
-import { getLastmodMaps } from '@/lib/sitemapLastmod'
+import { getSitemapDatos } from '@/lib/sitemapLastmod'
 
 export const revalidate = 2592000 // ISR 30d: solo cambia al reexportar el catálogo de jugadores.
 
@@ -77,7 +77,7 @@ export default async function sitemap({ id }: { id: Promise<number> | number }):
     throw new Error(`[sitemap jugadores] partición ${idNum} vacía (de ${n}; total ${total})`)
   }
 
-  const { porTemporada } = await getLastmodMaps()
+  const { porTemporada } = await getSitemapDatos()
   return trozo.map((j) => ({
     url: `${SITE_URL}/madrid/jugador/${jugadorSlug(j.codjugador, j.nombre)}`,
     lastModified: porTemporada.get(Number(j.codtemporada_ultima)),   // último partido de su última temporada
