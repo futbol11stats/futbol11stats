@@ -2,18 +2,23 @@ import { supabase } from '@/lib/supabase'
 import { cacheIndices } from '@/lib/cacheComp'
 
 // Índice de clubes y páginas de club. La entidad "club" agrupa filiales y juveniles por `codclub` (id troncal
-// RFFM, estable a cambios de nombre). Metadatos ricos en `web_club`. PRIVACIDAD (decisión cerrada): se publican
-// nombre oficial, localidad, provincia, delegación, portal web y escudo; NUNCA domicilio, CIF ni código postal
-// (en clubes amateur el domicilio social suele ser la casa de un directivo). El CAMPO no es del club (sus
-// equipos juegan en instalaciones DISTINTAS): va por EQUIPO, derivado de SUS partidos como local (la
-// instalación pública más frecuente; NINGUNA si no hay una clara -> silencio antes que dato dudoso).
-// PERÍMETRO DE MENORES: las páginas de club listan equipos (incluidos juveniles) por su NOMBRE DE EQUIPO,
-// nunca personas. No hay plantillas ni nombres de jugador en ninguna superficie de club.
+// RFFM, estable a cambios de nombre). Metadatos en `web_club`. PRIVACIDAD (decisión cerrada): se publican
+// nombre oficial, localidad, provincia, delegación, portal web y escudo; NUNCA domicilio, CIF ni código postal.
+// PERÍMETRO DE MENORES: las páginas de club listan equipos (incl. juveniles) por su NOMBRE DE EQUIPO, nunca
+// personas; no consultan web_jugador.
+//
+// Notas de datos (verificadas 2026-08):
+//  - ESCUDO del club: web_club.escudo trae la RUTA RFFM cruda (/pnfg/pimg/Clubes/...), no el hash rehospedado
+//    que usan los escudos de equipo -> con escudoUrl() daría 404. Se usa el escudo del PRIMER EQUIPO (crest
+//    limpio del club) en su lugar. Pendiente en el pipeline: rehospedar los escudos de club (ver PENDIENTES).
+//  - NOMBRE del club: web_club.nombre_club viene NULL en 84 clubes; se cae a web_equipo.nombre_club (poblado).
+//  - CAMPO: no es del club (sus equipos juegan en instalaciones distintas). Va por EQUIPO, de su TEMPORADA MÁS
+//    RECIENTE con partidos (su último campo conocido); NINGUNO si no hay uno claro -> silencio.
 
 export { clubSlug, codclubFromSlug } from '@/lib/clubSlug'
 
-// Instalación DOMINANTE de un equipo: la más frecuente SOLO si es líder CLARO (su conteo > el 2º). Empate en
-// el máximo o sin datos -> null (silencio antes que dato dudoso).
+// Instalación DOMINANTE de un equipo en un conjunto de partidos: la más frecuente SOLO si es líder CLARO (su
+// conteo > el 2º). Empate en el máximo o sin datos -> null (silencio antes que dato dudoso).
 function campoDominante(m: Map<string, number>): string | null {
   let top: string | null = null, topN = 0, secondN = 0
   for (const [cp, n] of Array.from(m)) {
@@ -23,57 +28,78 @@ function campoDominante(m: Map<string, number>): string | null {
   return top && topN > secondN ? top : null
 }
 
+// Escudo del PRIMER EQUIPO = crest limpio del club (los filiales llevan el mismo diseño con una letra). Orden:
+// aficionados antes que juveniles, luego categoría más alta (categoria_nivel MENOR), luego más reciente. Toma
+// el primero con escudo; si ninguno tiene, null.
+function escudoPrimerEquipo(equipos: { rama: string | null; nivel: number | null; temp: number; escudo: string | null }[]): string | null {
+  const con = equipos.filter((e) => e.escudo)
+  if (!con.length) return null
+  con.sort((a, b) =>
+    (a.rama === 'juvenil' ? 1 : 0) - (b.rama === 'juvenil' ? 1 : 0) ||
+    ((a.nivel ?? 99) - (b.nivel ?? 99)) ||
+    (b.temp - a.temp))
+  return con[0].escudo
+}
+
 export type ClubIndexRow = {
   codclub: string; nombre: string; escudo: string | null
   localidad: string | null; provincia: string | null; nEquipos: number; maxTemp: number | null
 }
 
-// Índice: SOLO clubes con al menos un equipo en web_equipo (los 11 de web_club con n_equipos=0 quedan fuera;
-// son clubes sin equipos registrados —nuevos o inactivos—, no femenino/base). Conteo + última temporada por
-// club desde web_equipo (KEYSET), metadatos desde web_club.
+// Índice: SOLO clubes con equipos en web_equipo. Nombre y escudo se derivan de sus equipos (web_club.nombre_club
+// puede venir NULL y web_club.escudo es inservible); localidad/provincia de web_club. nEquipos = equipos DISTINTOS
+// (dedup por nombre+rama+categoría, igual que la ficha).
 export async function getClubesIndex(): Promise<ClubIndexRow[]> {
   return cacheIndices(async () => {
-    const conteo = new Map<string, { n: number; maxTemp: number }>()
+    type Acc = { nombre: string; equipos: { rama: string | null; nivel: number | null; temp: number; escudo: string | null }[]; ids: Set<string>; maxTemp: number }
+    const acc = new Map<string, Acc>()
     let ultimo = ''
     for (;;) {
-      let q = supabase.from('web_equipo').select('codequipo, codclub, codtemporada')
+      let q = supabase.from('web_equipo')
+        .select('codequipo, codclub, nombre_club, nombre, rama, nombre_comp, categoria_nivel, escudo, codtemporada')
         .not('codclub', 'is', null).order('codequipo', { ascending: true }).limit(1000)
       if (ultimo) q = q.gt('codequipo', ultimo)
       const { data, error } = await q
       if (error) throw error
       if (!data || data.length === 0) break
-      for (const r of data as { codequipo: string; codclub: string | null; codtemporada: number | null }[]) {
+      for (const r of data as any[]) {
         const cc = String(r.codclub || ''); if (!cc) continue
         const t = Number(r.codtemporada) || 0
-        const cur = conteo.get(cc) || { n: 0, maxTemp: 0 }
-        cur.n++; if (t > cur.maxTemp) cur.maxTemp = t
-        conteo.set(cc, cur)
+        let a = acc.get(cc)
+        if (!a) { a = { nombre: '', equipos: [], ids: new Set(), maxTemp: 0 }; acc.set(cc, a) }
+        if (!a.nombre && r.nombre_club) a.nombre = r.nombre_club
+        a.equipos.push({ rama: r.rama, nivel: r.categoria_nivel, temp: t, escudo: r.escudo })
+        a.ids.add(`${r.nombre}|${r.rama}|${r.nombre_comp}`)
+        if (t > a.maxTemp) a.maxTemp = t
       }
       ultimo = String((data[data.length - 1] as { codequipo: string }).codequipo)
       if (data.length < 1000) break
     }
-    const { data: clubs, error } = await supabase.from('web_club').select('codclub, nombre_club, escudo, localidad, provincia')
+    const { data: clubs, error } = await supabase.from('web_club').select('codclub, nombre_club, localidad, provincia')
     if (error) throw error
-    const meta = new Map<string, { nombre_club: string | null; escudo: string | null; localidad: string | null; provincia: string | null }>(
+    const meta = new Map<string, { nombre_club: string | null; localidad: string | null; provincia: string | null }>(
       (clubs || []).map((c: any) => [String(c.codclub), c]))
     const out: ClubIndexRow[] = []
-    for (const [cc, { n, maxTemp }] of Array.from(conteo)) {
+    for (const [cc, a] of Array.from(acc)) {
       const m = meta.get(cc)
       out.push({
-        codclub: cc, nombre: m?.nombre_club || '', escudo: m?.escudo ?? null,
-        localidad: m?.localidad ?? null, provincia: m?.provincia ?? null, nEquipos: n, maxTemp: maxTemp || null,
+        codclub: cc,
+        nombre: (m?.nombre_club) || a.nombre || '',
+        escudo: escudoPrimerEquipo(a.equipos),
+        localidad: m?.localidad ?? null, provincia: m?.provincia ?? null,
+        nEquipos: a.ids.size, maxTemp: a.maxTemp || null,
       })
     }
-    out.sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'))
+    out.sort((x, y) => x.nombre.localeCompare(y.nombre, 'es'))
     return out
-  }, ['getClubesIndex', 'v1'])
+  }, ['getClubesIndex', 'v2'])
 }
 
 export type ClubEquipoRow = {
   codequipo: string; nombre: string; rama: string | null
   nombre_comp: string | null; grupo_nombre: string | null; escudo: string | null
   activo: boolean | null; codtemporada: number | null
-  campo: string | null   // instalación habitual de ESTE equipo (más frecuente como local), o null si no hay una clara
+  campo: string | null   // instalación de ESTE equipo en su temporada más reciente con partidos, o null si no hay clara
 }
 export type ClubFicha = {
   codclub: string; nombre: string; escudo: string | null
@@ -83,51 +109,65 @@ export type ClubFicha = {
 
 export async function getClub(codclub: string): Promise<ClubFicha | null> {
   return cacheIndices(async () => {
-    // Metadatos del club (SIN domicilio/CIF/CP: privacidad). throw en error -> no cachear null falso (ver checklist).
-    const { data: c, error } = await supabase.from('web_club')
-      .select('codclub, nombre_club, escudo, localidad, provincia, delegacion, portal_web')
+    // web_club: metadatos publicables (SIN domicilio/CIF/CP). Puede faltar la fila o el nombre.
+    const { data: cRaw, error } = await supabase.from('web_club')
+      .select('codclub, nombre_club, localidad, provincia, delegacion, portal_web')
       .eq('codclub', codclub).limit(1).maybeSingle()
     if (error) throw error
-    if (!c) return null
-    // Equipos del club (todos: aficionado + juveniles). SOLO nombre de EQUIPO, nunca personas.
+    // Equipos del club (SOLO nombre de EQUIPO, nunca personas).
     const { data: eqs, error: e2 } = await supabase.from('web_equipo')
-      .select('codequipo, nombre, rama, nombre_comp, grupo_nombre, escudo, activo, codtemporada')
+      .select('codequipo, nombre, nombre_club, rama, nombre_comp, grupo_nombre, escudo, categoria_nivel, activo, codtemporada')
       .eq('codclub', codclub)
     if (e2) throw e2
-    const todos = (eqs || []) as unknown as ClubEquipoRow[]
-    if (todos.length === 0) return null   // club sin equipos -> no hay página
-    // Dedup por nombre: un mismo equipo puede tener 2 codequipo si la RFFM reasignó el código -> se conserva el
-    // más reciente (max codtemporada) para no listarlo dos veces.
+    const todos = (eqs || []) as any[]
+    if (todos.length === 0) return null   // sin equipos -> no hay página
+
+    const nombre = (cRaw as any)?.nombre_club || todos.find((e) => e.nombre_club)?.nombre_club || 'Club'
+    // Escudo del club = escudo del PRIMER EQUIPO (web_club.escudo es la ruta RFFM cruda, inservible).
+    const escudo = escudoPrimerEquipo(todos.map((e) => ({ rama: e.rama, nivel: e.categoria_nivel, temp: Number(e.codtemporada) || 0, escudo: e.escudo })))
+
+    // Dedup por (nombre+rama+categoría): colapsa códigos reasignados (mismo equipo, 2 codequipo), conserva
+    // equipos DISTINTOS que comparten nombre (p.ej. 'B' de 1ª Juvenil vs 'B' de 1ª Aficionada). Conserva el más reciente.
     const dd = new Map<string, ClubEquipoRow>()
     for (const e of todos) {
-      const ex = dd.get(e.nombre)
-      if (!ex || (Number(e.codtemporada) || 0) > (Number(ex.codtemporada) || 0)) dd.set(e.nombre, e)
+      const key = `${e.nombre}|${e.rama}|${e.nombre_comp}`
+      const ex = dd.get(key)
+      if (!ex || (Number(e.codtemporada) || 0) > (Number(ex.codtemporada) || 0)) dd.set(key, e as ClubEquipoRow)
     }
     const equipos = Array.from(dd.values())
-    // Campo POR EQUIPO: instalación más frecuente en SUS partidos como local; NULL si no hay una clara (empate
-    // en el máximo -> silencio). Una sola consulta a web_resultados por todos los equipos del club. Enriquecimiento:
-    // si falla, todos quedan sin campo (no rompe la página).
+
+    // Campo por EQUIPO de su TEMPORADA MÁS RECIENTE con partidos como local (o null si no hay una clara). Una
+    // sola consulta. NOTA: web_resultados indexa por nombre de equipo, no por codequipo -> dos equipos que
+    // comparten nombre mezclarían sus campos, pero son del mismo club (mismo recinto habitual). Enriquecimiento:
+    // si falla, todos quedan sin campo.
     const nombres = Array.from(new Set(equipos.map((e) => e.nombre).filter(Boolean)))
-    const porEquipo = new Map<string, Map<string, number>>()   // nombre_local -> (campo -> conteo)
     if (nombres.length) {
-      const { data: res } = await supabase.from('web_resultados').select('nombre_local, campo')
+      const { data: res } = await supabase.from('web_resultados').select('nombre_local, codtemporada, campo')
         .in('nombre_local', nombres).not('campo', 'is', null)
-      for (const r of (res || []) as { nombre_local: string | null; campo: string | null }[]) {
-        const nl = (r.nombre_local || '').trim(); const cp = (r.campo || '').trim()
-        if (!nl || !cp) continue
-        const m = porEquipo.get(nl) || new Map<string, number>()
-        m.set(cp, (m.get(cp) || 0) + 1); porEquipo.set(nl, m)
+      const porEqTemp = new Map<string, Map<number, Map<string, number>>>()
+      for (const r of (res || []) as { nombre_local: string | null; codtemporada: number | null; campo: string | null }[]) {
+        const nl = (r.nombre_local || '').trim(), t = Number(r.codtemporada) || 0, cp = (r.campo || '').trim()
+        if (!nl || !cp || !t) continue
+        let byT = porEqTemp.get(nl); if (!byT) { byT = new Map(); porEqTemp.set(nl, byT) }
+        let byC = byT.get(t); if (!byC) { byC = new Map(); byT.set(t, byC) }
+        byC.set(cp, (byC.get(cp) || 0) + 1)
       }
+      for (const e of equipos) {
+        const byT = porEqTemp.get((e.nombre || '').trim())
+        if (!byT) { e.campo = null; continue }
+        const maxT = Math.max(...Array.from(byT.keys()))   // temporada más reciente con partidos de ESE equipo
+        e.campo = campoDominante(byT.get(maxT)!)
+      }
+    } else {
+      for (const e of equipos) e.campo = null
     }
-    for (const e of equipos) {
-      const m = porEquipo.get((e.nombre || '').trim())
-      e.campo = m ? campoDominante(m) : null
-    }
+
     const maxTemp = equipos.reduce((m, e) => Math.max(m, Number(e.codtemporada) || 0), 0) || null
     return {
-      codclub: String(c.codclub), nombre: (c as any).nombre_club, escudo: (c as any).escudo,
-      localidad: (c as any).localidad, provincia: (c as any).provincia, delegacion: (c as any).delegacion,
-      portal_web: (c as any).portal_web, equipos, maxTemp,
+      codclub, nombre, escudo,
+      localidad: (cRaw as any)?.localidad ?? null, provincia: (cRaw as any)?.provincia ?? null,
+      delegacion: (cRaw as any)?.delegacion ?? null, portal_web: (cRaw as any)?.portal_web ?? null,
+      equipos, maxTemp,
     }
-  }, ['getClub', 'v1', codclub])
+  }, ['getClub', 'v2', codclub])
 }

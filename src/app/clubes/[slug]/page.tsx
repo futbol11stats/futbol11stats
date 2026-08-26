@@ -39,9 +39,13 @@ export default async function ClubPage({ params }: { params: Promise<{ slug: str
   const canonicalSlug = clubSlug(c.codclub, c.nombre)
   if (slug !== canonicalSlug) permanentRedirect(`/clubes/${canonicalSlug}`)
 
-  const byNombre = (a: { nombre: string }, b: { nombre: string }) => a.nombre.localeCompare(b.nombre, 'es')
-  const aficionado = c.equipos.filter((e) => e.rama !== 'juvenil').sort(byNombre)
-  const juvenil = c.equipos.filter((e) => e.rama === 'juvenil').sort(byNombre)
+  // Orden por el SUFIJO del equipo (A, B, C, D…) para que salga limpio aunque el primer equipo y los filiales
+  // tengan bases de nombre distintas ("…S.A.D. 'A'" vs "…PARACUELLOS 'B'"); desempate por nombre completo.
+  const sufijo = (n: string) => { const m = /'([A-Z0-9]+)'\s*$/i.exec(n); return (m ? m[1] : n).toUpperCase() }
+  const byEquipo = (a: { nombre: string }, b: { nombre: string }) =>
+    sufijo(a.nombre).localeCompare(sufijo(b.nombre), 'es', { numeric: true }) || a.nombre.localeCompare(b.nombre, 'es')
+  const aficionado = c.equipos.filter((e) => e.rama !== 'juvenil').sort(byEquipo)
+  const juvenil = c.equipos.filter((e) => e.rama === 'juvenil').sort(byEquipo)
   const geo = [c.localidad, c.provincia].filter(Boolean).join(' · ')
 
   // SportsOrganization: un CLUB es una organización (no una persona) -> markup honesto y on-theme. Sin domicilio
