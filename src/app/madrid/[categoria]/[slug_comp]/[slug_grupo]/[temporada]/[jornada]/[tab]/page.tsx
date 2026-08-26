@@ -3,7 +3,7 @@ export const revalidate = 2592000  // ISR 30d (Fluid CPU free tier): contenido c
 import type { Metadata } from 'next'
 import { notFound, permanentRedirect } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import { SITE_URL, ensureMadrid, tabLabel, noindexJuvenil } from '@/lib/seo'
+import { SITE_URL, ensureMadrid, tabLabel, noindexJuvenil, descripcionCompeticion } from '@/lib/seo'
 import JsonLd from '@/components/JsonLd'
 import { graphLd, breadcrumbLd } from '@/lib/jsonld'
 import { nombreOficial, denominacion } from '@/lib/sellos'
@@ -75,7 +75,7 @@ export async function generateMetadata({
   const grp = grupo.nombre_grupo ? ` ${grupo.nombre_grupo}` : ''
   const tl = tabLabel(tab)
   const title = `${tl} · ${comp}${grp} ${temporada} | Fútbol11Stats`
-  const description = `${tl} de ${comp}${grp}, temporada ${temporada}. Clasificación, resultados, goleadores, tarjetas y estadísticas del fútbol amateur de Madrid en Fútbol11Stats.`
+  const description = descripcionCompeticion(tab, `${comp}${grp}`, temporada)
   // Canonical: toda ronda/jornada apunta a la actual (máxima) -> mata la duplicación del time-machine.
   // Copa por familia: el segmento canónico es el slug de la ronda por defecto.
   const rondasMeta: Ronda[] = grupo.tipo !== 'LIGA' && Array.isArray(grupo.rondas) ? grupo.rondas : []

@@ -29,6 +29,12 @@ export function websiteLd() {
     url: `${SITE_URL}/`,
     inLanguage: 'es-ES',
     publisher: { '@id': `${SITE_URL}/#organization` },
+    // Sitelinks searchbox: /buscar acepta ?q=<término>. Habilita el cuadro de búsqueda de Google para la marca.
+    potentialAction: {
+      '@type': 'SearchAction',
+      target: { '@type': 'EntryPoint', urlTemplate: `${SITE_URL}/buscar?q={search_term_string}` },
+      'query-input': 'required name=search_term_string',
+    },
   }
 }
 

@@ -388,7 +388,7 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
           <span className="comp-sello"><Sello nombreComp={grupo.nombre_comp} src={esFamilia ? familiaSello(grupo.slug_comp, grupo.nombre_comp) : undefined} size={52} /></span>
           <div className="ident-name">
             <div className="over">RFFM · MADRID</div>
-            <div className="h1">{tituloGrupo}</div>
+            <h1 className="h1">{tituloGrupo}</h1>
             <div className="ident-meta">
               {enJuego
                 ? <span className="pill live">EN JUEGO · J{grupo.jornada_actual} DE {grupo.total_jornadas}</span>
@@ -464,7 +464,7 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
           {/* CLASIFICACIÓN de LIGA (increment 1) */}
           {tabEf === 'clasificacion' && !isCopa && (
             <section id="s-clasif">
-              <div className="s-head"><div className="s-title">Clasificación</div><div className="s-sub">tras la jornada {jornadaNum}</div></div>
+              <div className="s-head"><h2 className="s-title">Clasificación</h2><div className="s-sub">tras la jornada {jornadaNum}</div></div>
               {clasif.length > 0 ? (
                 <>
                   <div className="ctabla"><ScrollRail className="ctw" wrapClassName="srail-tabla">
@@ -520,7 +520,7 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
               alterna cuál se ve; por defecto, la última jornada disponible. */}
           {tabEf === 'clasificacion' && isCopa && hayClasifCopa && (
             <section id="s-clasif">
-              <div className="s-head"><div className="s-title">Clasificación</div><div className="s-sub">{rondaSel?.label ?? 'Fase de grupos'}</div></div>
+              <div className="s-head"><h2 className="s-title">Clasificación</h2><div className="s-sub">{rondaSel?.label ?? 'Fase de grupos'}</div></div>
               <MatchdaySelector matchdays={copaMatchdays}>
                 {copaMatchdays.map((j) => (
                   <div key={j}>
@@ -540,7 +540,7 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
           {/* CARRERA DE POSICIONES — gráfico protagonista, bajo la clasificación. */}
           {tabEf === 'clasificacion' && carrera.series.length > 0 && (
             <section>
-              <div className="s-head"><div className="s-title">Carrera de posiciones</div><div className="s-sub">jornada a jornada</div></div>
+              <div className="s-head"><h2 className="s-title">Carrera de posiciones</h2><div className="s-sub">jornada a jornada</div></div>
               <CarreraPosiciones key={grupo.codgrupo} series={carrera.series} jornadas={carrera.jornadas} bands={carrera.bands} />
             </section>
           )}
@@ -548,7 +548,7 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
           {/* RESULTADOS — marcador + escudos; campo/fecha/hora en la meta, omitiendo lo que falte. */}
           {tabEf === 'resultados' && (
             <section>
-              <div className="s-head"><div className="s-title">Resultados</div><div className="s-sub">{esFamilia ? (rondaSel?.label ?? `jornada ${jornadaNum}`) : `jornada ${jornadaNum}`}</div></div>
+              <div className="s-head"><h2 className="s-title">Resultados</h2><div className="s-sub">{esFamilia ? (rondaSel?.label ?? `jornada ${jornadaNum}`) : `jornada ${jornadaNum}`}</div></div>
               {resultados.length === 0 ? <p className="vacio">Sin resultados en esta jornada.</p>
                 : resGrupos.length > 0
                   ? resGrupos.map((gl) => (
@@ -565,7 +565,7 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
           {tabEf === 'goleadores-jornada' && (
             <>
               <section>
-                <div className="s-head"><div className="s-title">Goleadores de la jornada</div><div className="s-sub">{esFamilia ? (rondaSel?.label ?? `jornada ${jornadaNum}`) : `jornada ${jornadaNum}`}</div></div>
+                <div className="s-head"><h2 className="s-title">Goleadores de la jornada</h2><div className="s-sub">{esFamilia ? (rondaSel?.label ?? `jornada ${jornadaNum}`) : `jornada ${jornadaNum}`}</div></div>
                 {golJ.length > 0
                   ? <RankingComp fichas={fichas} barColor="var(--e4)" items={golJ.map((j) => {
                     const p = partMap.get(String(j.codjugador))
@@ -579,7 +579,7 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
               </section>
               {golesEquipo.length > 0 && (
                 <section>
-                  <div className="s-head"><div className="s-title">Goles de equipo</div><div className="s-sub">jornada {jornadaNum}</div></div>
+                  <div className="s-head"><h2 className="s-title">Goles de equipo</h2><div className="s-sub">jornada {jornadaNum}</div></div>
                   <RankingComp barColor="var(--e4)" items={golesEquipo.map((e, i) => ({ rank: i + 1, codequipo: e.codequipo, nombre: e.nombre, escudo: e.escudo, nombreEquipo: e.nombre, valor: e.goles, valorColor: 'var(--e4)' }))} />
                 </section>
               )}
@@ -590,7 +590,7 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
           {tabEf === 'tarjetas-jornada' && (
             <>
               <section>
-                <div className="s-head"><div className="s-title">Tarjetas de la jornada</div><div className="s-sub">{esFamilia ? (rondaSel?.label ?? `jornada ${jornadaNum}`) : `jornada ${jornadaNum}`}</div></div>
+                <div className="s-head"><h2 className="s-title">Tarjetas de la jornada</h2><div className="s-sub">{esFamilia ? (rondaSel?.label ?? `jornada ${jornadaNum}`) : `jornada ${jornadaNum}`}</div></div>
                 {tarjJ.length > 0
                   ? <RankingComp fichas={fichas} items={tarjJ.map((j) => {
                     const ta = j.goles || 0, dob = j.goles_enc || 0, rj = j.racha_5p || 0
@@ -600,7 +600,7 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
                 <div className="leyenda"><b>Amarilla</b> · <b>doble amarilla</b> (expulsión) · <b>roja directa</b>.</div>
               </section>
               <section>
-                <div className="s-head"><div className="s-title">Se pierden la próxima jornada</div><div className="s-sub">jornada {jornadaNum + 1}</div></div>
+                <div className="s-head"><h2 className="s-title">Se pierden la próxima jornada</h2><div className="s-sub">jornada {jornadaNum + 1}</div></div>
                 {suspendidos.length > 0
                   ? <RankingComp fichas={fichas} items={suspendidos.map((s, i) => ({ rank: i + 1, codjugador: s.codjugador, nombre: s.nombre, pos: s.posicion, escudo: s.escudo, nombreEquipo: s.nombre_equipo, valor: motivoCard(s.motivo), valorColor: 'transparent', extra: <span>{s.motivo}</span> }))} />
                   : <p className="vacio">Ningún jugador sancionado para la próxima jornada.</p>}
@@ -612,7 +612,7 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
           {/* ESTADÍSTICAS — reparto V/E/D + goles por equipo (espejo) + goles por tramo (solo verde). */}
           {tabEf === 'estadisticas' && (
             <section>
-              <div className="s-head"><div className="s-title">Estadísticas</div><div className="s-sub">acumulado hasta J{jornadaNum}</div></div>
+              <div className="s-head"><h2 className="s-title">Estadísticas</h2><div className="s-sub">acumulado hasta J{jornadaNum}</div></div>
               {cifras && (
                 <div className="statbox">
                   <div className="cap" style={{ marginBottom: 9 }}>Reparto de resultados</div>
@@ -657,7 +657,7 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
 
           {tabEf !== 'clasificacion' && tabEf !== 'resultados' && tabEf !== 'goleadores-jornada' && tabEf !== 'tarjetas-jornada' && tabEf !== 'estadisticas' && tabEf !== 'top10-tarjetas-temporada' && (rankView ? (
             <section>
-              <div className="s-head"><div className="s-title">{rankView.title}</div><div className="s-sub">{rankView.sub}</div></div>
+              <div className="s-head"><h2 className="s-title">{rankView.title}</h2><div className="s-sub">{rankView.sub}</div></div>
               {rankView.items.length > 0 ? (
                 <>
                   <RankingComp items={rankView.items} fichas={fichas} barColor={rankView.barColor} />
@@ -667,7 +667,7 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
             </section>
           ) : xiView ? (
             <section>
-              <div className="s-head"><div className="s-title">{xiView.title}</div><div className="s-sub">{xiView.sub}</div></div>
+              <div className="s-head"><h2 className="s-title">{xiView.title}</h2><div className="s-sub">{xiView.sub}</div></div>
               <div className="xi-wrap">
                 <div className="xi-campo">{campoXI(xiView.players)}</div>
                 <div className="xi-lista"><RankingComp items={xiView.items} fichas={fichas} /></div>
@@ -676,12 +676,12 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
             </section>
           ) : (tabEf === 'once-optimo-jornada' || tabEf === 'once-optimo-temporada') ? (
             <section>
-              <div className="s-head"><div className="s-title">{tabsActivas.find((t) => t[0] === tabEf)?.[1]}</div></div>
+              <div className="s-head"><h2 className="s-title">{tabsActivas.find((t) => t[0] === tabEf)?.[1]}</h2></div>
               <p className="vacio">Sin XI Óptimo en esta {modo === 'temporada' ? 'temporada' : 'jornada'}.</p>
             </section>
           ) : (
             <section>
-              <div className="s-head"><div className="s-title">{tabsActivas.find((t) => t[0] === tabEf)?.[1]}</div></div>
+              <div className="s-head"><h2 className="s-title">{tabsActivas.find((t) => t[0] === tabEf)?.[1]}</h2></div>
               <p className="vacio">Próximamente en la ficha v2.</p>
             </section>
           ))}

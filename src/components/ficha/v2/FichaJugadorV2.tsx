@@ -316,10 +316,10 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
       <div className="hero">
         <div className="hero-top">
           <div className="avatar" style={avatarStyle}>{ini}{j.dorsal_ultimo != null && <div className="dorsal">{j.dorsal_ultimo}</div>}</div>
-          <div className="hero-name">
-            <div className="first">{pila}</div>
-            <div className="last">{apellidos}</div>
-          </div>
+          <h1 className="hero-name">
+            <span className="first">{pila}</span>
+            <span className="last">{apellidos}</span>
+          </h1>
           <CompartirBtn titulo={`${nombre} · Fútbol11Stats`} variant="icon" />
         </div>
         <div className="hero-pills">
@@ -394,7 +394,7 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
                 etapa de la temporada (eloCierre; valor propio del jugador, mismo que la KpiBar), coloreado con
                 los cortes de SU categoría (categoriaElo). El percentil sigue siendo el de web_jugador (mide
                 ELO, otro KPI; pendiente uno por temporada — ver DECISIONES). El subtítulo indica la temporada. */}
-            <div className="s-head"><div className="s-title">Nivel</div><div className="s-sub"><span className="allscope">{tempTxt ? `en ${tempTxt}` : 'Situación actual'}</span></div></div>
+            <div className="s-head"><h2 className="s-title">Nivel</h2><div className="s-sub"><span className="allscope">{tempTxt ? `en ${tempTxt}` : 'Situación actual'}</span></div></div>
             <div className="box">
               {/* ELO + percentil REACTIVOS: el ELO no cambia (cierre de la temporada, última etapa); el percentil
                   sí sigue la competición del selector -> con la copa activa, el percentil es el de SU pool
@@ -440,7 +440,7 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
               (mismo criterio que la ficha de equipo solo-copa: ocultar, no mostrar ceros). */}
           {!esSoloCopa && (
           <section id="s-totales">
-            <div className="s-head"><div className="s-title">Totales</div><div className="s-sub"><span className="allscope">Todas las temporadas</span></div></div>
+            <div className="s-head"><h2 className="s-title">Totales</h2><div className="s-sub"><span className="allscope">Todas las temporadas</span></div></div>
             <div className="totales">
               {totales.map(([ic, v, k], i) => (
                 <div className="tot" key={i}><div className="t-i">{ic}</div><div className="t-v">{v}</div><div className="t-k">{k}</div></div>
@@ -485,7 +485,7 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
             <section id="s-mates">
               {/* slice(0,6) preparado para dos filas de tres, pero web_jugador.companeros_top viene con
                   exactamente 5 desde el pipeline: el subtítulo refleja el nº real y saldrá 6 solo. */}
-              <div className="s-head"><div className="s-title">Ha jugado con</div><div className="s-sub">top {companeros.length} por ELO</div></div>
+              <div className="s-head"><h2 className="s-title">Ha jugado con</h2><div className="s-sub">top {companeros.length} por ELO</div></div>
               <div className="track"><div className="rail">
                 {companeros.map((c: CompaneroTop) => {
                   const nm = formatNombre(c.nombre)
@@ -506,7 +506,7 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
         <div className="main">
           {/* JORNADAS */}
           <section id="s-jornadas">
-            <div className="s-head"><div className="s-title">Puntos por jornada</div><div className="s-sub"><Echo temporada={tempTxt} comps={compNames} /></div></div>
+            <div className="s-head"><h2 className="s-title">Puntos por jornada</h2><div className="s-sub"><Echo temporada={tempTxt} comps={compNames} /></div></div>
             {comps.length > 0
               ? <Jornadas comps={compsOrd} cortes={CORTES_FIJOS.puntosPartido} />
               : <p style={{ padding: '0 var(--pad)', color: 'var(--ink-3)', fontSize: 'var(--t-sm)' }}>Sin partidos en esta temporada.</p>}
@@ -514,7 +514,7 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
 
           {/* FORMA */}
           <section id="s-forma">
-            <div className="s-head"><div className="s-title">Forma</div><div className="s-sub">media de puntos por partido</div></div>
+            <div className="s-head"><h2 className="s-title">Forma</h2><div className="s-sub">media de puntos por partido</div></div>
             <div className="windows">
               {ventanas.map((v) => {
                 const d = v.delta
@@ -538,7 +538,7 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
 
           {/* ANÁLISIS */}
           <section id="s-analisis">
-            <div className="s-head"><div className="s-title">Análisis</div><div className="s-sub"><Echo temporada={tempTxt} comps={compNames} /></div></div>
+            <div className="s-head"><h2 className="s-title">Análisis</h2><div className="s-sub"><Echo temporada={tempTxt} comps={compNames} /></div></div>
             <div className="box">
               <div className="cap" style={{ marginBottom: 5 }}>Balance del equipo</div>
               {/* Línea base (Global) + con él, y sin él cuando hay contraparte suficiente (>=8 por lado).
@@ -569,7 +569,7 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
 
           {/* TEMPORADAS */}
           <section id="s-temporadas">
-            <div className="s-head"><div className="s-title">Temporadas</div><div className="s-sub"><span className="allscope">Todas las temporadas</span></div></div>
+            <div className="s-head"><h2 className="s-title">Temporadas</h2><div className="s-sub"><span className="allscope">Todas las temporadas</span></div></div>
             <div className="track"><div className="rail" id="seasons">
               {carrera.map((c, i) => {
                 const compartida = (cuentaTemp.get(c.codtemporada) ?? 0) > 1
@@ -604,7 +604,7 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
               muestra TODOS los partidos de esa etapa, liga y copa, no solo liga) */}
           {carrera.length > 0 && (
             <section id="s-trayectoria">
-              <div className="s-head"><div className="s-title">Trayectoria</div><div className="s-sub"><span className="allscope">Todas las temporadas</span></div></div>
+              <div className="s-head"><h2 className="s-title">Trayectoria</h2><div className="s-sub"><span className="allscope">Todas las temporadas</span></div></div>
               <div style={{ padding: '0 var(--pad)' }}>
                 <Trayectoria carrera={carreraTray} portero={portero} codjugador={j.codjugador} railWrap />
                 {/* #7 Reparto titular/suplente y minutos totales de la carrera (web_jugador.*_total, LIGA) -> fuera en solo-copa. */}
@@ -620,7 +620,7 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
 
           {/* MEJORES ACTUACIONES */}
           <section id="s-partidos">
-            <div className="s-head"><div className="s-title">Mejores actuaciones</div><div className="s-sub"><span className="allscope">Todas las temporadas</span></div></div>
+            <div className="s-head"><h2 className="s-title">Mejores actuaciones</h2><div className="s-sub"><span className="allscope">Todas las temporadas</span></div></div>
             <div>
               {actuaciones.slice(0, 3).map((a: any, i: number) => {
                 const { marcador, signo } = marcadorLocalVisitante(a.resultado, a.es_local)
@@ -648,7 +648,7 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
 
           {/* HITOS */}
           <section id="s-hitos" style={{ borderBottom: 0 }}>
-            <div className="s-head"><div className="s-title">Hitos</div><div className="s-sub"><span className="allscope">Todas las temporadas</span></div></div>
+            <div className="s-head"><h2 className="s-title">Hitos</h2><div className="s-sub"><span className="allscope">Todas las temporadas</span></div></div>
             <div>
               {curados.slice(0, 8).map((h: HitoRow, i: number) => {
                 const cfg = HITO_CONFIG[h.tipo_hito]

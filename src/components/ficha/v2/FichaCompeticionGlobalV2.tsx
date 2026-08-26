@@ -218,7 +218,7 @@ export default async function FichaCompeticionGlobalV2({ categoria, slugComp, te
       <div className="full"><div className="main">
         {tabEf === 'clasificacion' && (
         <section id="s-clasif">
-          <div className="s-head"><div className="s-title">Clasificación global</div><div className="s-sub">{nombre} · {grupos.length} grupos · tras J{jornadaNum}</div></div>
+          <div className="s-head"><h2 className="s-title">Clasificación global</h2><div className="s-sub">{nombre} · {grupos.length} grupos · tras J{jornadaNum}</div></div>
 
           <div className="cap" style={{ padding: '0 var(--pad) 8px' }}>Líderes de grupo</div>
           <ScrollRail><div className="lideres-g">
@@ -267,7 +267,7 @@ export default async function FichaCompeticionGlobalV2({ categoria, slugComp, te
 
         {gRank && (
           <section>
-            <div className="s-head"><div className="s-title">{gRank.title}</div><div className="s-sub">{gRank.sub}</div></div>
+            <div className="s-head"><h2 className="s-title">{gRank.title}</h2><div className="s-sub">{gRank.sub}</div></div>
             {gRank.items.length > 0
               ? <><RankingComp items={gRank.items} fichas={fichas} barColor={gRank.barColor} />{gRank.leyenda && <div className="leyenda">{gRank.leyenda}</div>}</>
               : <p className="vacio">Sin datos agregados en esta {modo === 'temporada' ? 'temporada' : 'jornada'}.</p>}
@@ -276,7 +276,7 @@ export default async function FichaCompeticionGlobalV2({ categoria, slugComp, te
 
         {xiG && (
           <section>
-            <div className="s-head"><div className="s-title">{xiG.title}</div><div className="s-sub">{xiG.sub}</div></div>
+            <div className="s-head"><h2 className="s-title">{xiG.title}</h2><div className="s-sub">{xiG.sub}</div></div>
             {xiG.items.length > 0 ? (
               <>
                 <div className="xi-wrap">
@@ -295,7 +295,7 @@ export default async function FichaCompeticionGlobalV2({ categoria, slugComp, te
 
         {estG && (
           <section>
-            <div className="s-head"><div className="s-title">Estadísticas</div><div className="s-sub">acumulado hasta J{jornadaNum} · toda la categoría</div></div>
+            <div className="s-head"><h2 className="s-title">Estadísticas</h2><div className="s-sub">acumulado hasta J{jornadaNum} · toda la categoría</div></div>
             {estG.cifras.disputados > 0 && (
               <div className="statbox">
                 <div className="cap" style={{ marginBottom: 9 }}>Reparto de resultados</div>
@@ -336,7 +336,7 @@ export default async function FichaCompeticionGlobalV2({ categoria, slugComp, te
 
         {tabEf !== 'clasificacion' && !gRank && !xiG && !tarG && !estG && (
           <section>
-            <div className="s-head"><div className="s-title">{tabsA.find((t) => t[0] === tabEf)?.[1]}</div></div>
+            <div className="s-head"><h2 className="s-title">{tabsA.find((t) => t[0] === tabEf)?.[1]}</h2></div>
             <p className="vacio">Vista global de esta pestaña: próximamente. Disponible por grupo.</p>
           </section>
         )}

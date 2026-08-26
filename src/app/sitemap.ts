@@ -11,6 +11,7 @@ import {
 } from '@/lib/seo'
 import { codToSlug } from '@/lib/temporadaSlug'
 import { getTemporadasActivas, mapaActivas } from '@/lib/temporadas'
+import { getLastmodMaps } from '@/lib/sitemapLastmod'
 
 export const revalidate = 2592000 // ISR 30d (Fluid CPU): se regenera con cada deploy/re-export; el sitemap solo cambia al añadir grupos/temporadas nuevas
 
@@ -23,7 +24,7 @@ export const revalidate = 2592000 // ISR 30d (Fluid CPU): se regenera con cada d
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const { data } = await supabase
     .from('web_grupos')
-    .select('codtemporada, categoria, slug_comp, slug_grupo, jornada_actual, tipo, rondas')
+    .select('codtemporada, codgrupo, categoria, slug_comp, slug_grupo, jornada_actual, tipo, rondas')
 
   // Copa por FAMILIA: no listar las páginas viejas por competición (redirigen 308 a la familia).
   const grupos = (data || []).filter((g: any) => !esViejaCopa(g.slug_comp))
@@ -33,10 +34,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // vista final. Con todo en T21 hoy, la activa es 21 para todas -> idéntico al comportamiento anterior.
   const activas = mapaActivas(await getTemporadasActivas())
 
+  // lastmod REAL por grupo (última jornada jugada); maxIso = fecha más reciente del sitio (home/landings).
+  const { porGrupo, maxIso } = await getLastmodMaps()
+
   const urls: MetadataRoute.Sitemap = [
-    { url: `${SITE_URL}/`, changeFrequency: 'weekly', priority: 1 },
-    { url: `${SITE_URL}/madrid/aficionados`, changeFrequency: 'weekly', priority: 0.8 },
-    { url: `${SITE_URL}/madrid/juveniles`, changeFrequency: 'weekly', priority: 0.8 },
+    { url: `${SITE_URL}/`, lastModified: maxIso, changeFrequency: 'weekly', priority: 1 },
+    { url: `${SITE_URL}/madrid/aficionados`, lastModified: maxIso, changeFrequency: 'weekly', priority: 0.8 },
+    { url: `${SITE_URL}/madrid/juveniles`, lastModified: maxIso, changeFrequency: 'weekly', priority: 0.8 },
     { url: `${SITE_URL}/sobre`, changeFrequency: 'yearly', priority: 0.6 },   // legales van con noindex y fuera
   ]
 
@@ -46,6 +50,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     const temp = codToSlug(g.codtemporada)
     const cat = CATEGORIA_SLUG[g.categoria]
     if (!temp || !cat) continue
+    const lm = porGrupo.get(String(g.codgrupo))   // última jornada jugada de este grupo (lastmod real)
 
     const j = g.jornada_actual || 1
     const isLiga = !g.tipo || g.tipo === 'LIGA'
@@ -57,11 +62,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     if (isLive) {
       for (const t of isLiga ? GROUP_TABS_LIGA : GROUP_TABS_COPA) {
         if (noindexJuvenil(cat, t)) continue   // juvenil: fuera las pestañas con nombres de menores
-        urls.push({ url: `${base}/${t}`, changeFrequency: 'weekly', priority: 0.7 })
+        urls.push({ url: `${base}/${t}`, lastModified: lm, changeFrequency: 'weekly', priority: 0.7 })
       }
     } else {
       urls.push({
         url: `${base}/${isLiga ? 'clasificacion' : 'resultados'}`,
+        lastModified: lm,
         changeFrequency: 'yearly',
         priority: 0.4,
       })
@@ -76,10 +82,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         if (isLive) {
           for (const t of GLOBAL_TABS) {
             if (noindexJuvenil(cat, t)) continue   // juvenil: fuera las pestañas globales con jugadores
-            urls.push({ url: `${gbase}/${t}`, changeFrequency: 'weekly', priority: 0.6 })
+            urls.push({ url: `${gbase}/${t}`, lastModified: lm, changeFrequency: 'weekly', priority: 0.6 })
           }
         } else {
-          urls.push({ url: `${gbase}/clasificacion`, changeFrequency: 'yearly', priority: 0.4 })
+          urls.push({ url: `${gbase}/clasificacion`, lastModified: lm, changeFrequency: 'yearly', priority: 0.4 })
         }
       }
     }

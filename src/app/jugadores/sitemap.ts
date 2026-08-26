@@ -2,6 +2,7 @@ import type { MetadataRoute } from 'next'
 import { supabase } from '@/lib/supabase'
 import { SITE_URL } from '@/lib/seo'
 import { jugadorSlug } from '@/lib/jugador'
+import { getLastmodMaps } from '@/lib/sitemapLastmod'
 
 export const revalidate = 2592000 // ISR 30d: solo cambia al reexportar el catálogo de jugadores.
 
@@ -17,7 +18,7 @@ export const revalidate = 2592000 // ISR 30d: solo cambia al reexportar el catá
 export const JUGADORES_SITEMAP_CHUNK = 10000  // URLs por partición (límite Google: 50k/sitemap)
 const PAGE = 1000                             // tope de filas por query en PostgREST
 
-type Fila = { codjugador: string; nombre: string }
+type Fila = { codjugador: string; nombre: string; codtemporada_ultima: number | string | null }
 
 // Recuento por KEYSET (nada de count:'exact'). Falla ruidoso si una página da error.
 export async function contarKeyset(tabla: string, key: string): Promise<number> {
@@ -41,7 +42,7 @@ async function todasLasFilas(): Promise<Fila[]> {
   const filas: Fila[] = []
   let ultimo = ''
   for (;;) {
-    let q = supabase.from('web_jugador').select('codjugador, nombre').order('codjugador', { ascending: true }).limit(PAGE)
+    let q = supabase.from('web_jugador').select('codjugador, nombre, codtemporada_ultima').order('codjugador', { ascending: true }).limit(PAGE)
     if (ultimo) q = q.gt('codjugador', ultimo)
     const { data, error } = await q
     if (error) throw new Error(`[sitemap jugadores] fallo paginando web_jugador tras ${filas.length} filas: ${error.message || 'error sin mensaje'}`)
@@ -76,8 +77,10 @@ export default async function sitemap({ id }: { id: Promise<number> | number }):
     throw new Error(`[sitemap jugadores] partición ${idNum} vacía (de ${n}; total ${total})`)
   }
 
+  const { porTemporada } = await getLastmodMaps()
   return trozo.map((j) => ({
     url: `${SITE_URL}/madrid/jugador/${jugadorSlug(j.codjugador, j.nombre)}`,
+    lastModified: porTemporada.get(Number(j.codtemporada_ultima)),   // último partido de su última temporada
     changeFrequency: 'monthly',
     priority: 0.5,
   }))

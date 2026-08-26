@@ -62,19 +62,19 @@ export default function TarjetasTemporadaV2({ equipos = [], jugadores = [], fich
   return (
     <>
       <section>
-        <div className="s-head"><div className="s-title">Juego limpio</div><div className="s-sub">menos expulsiones primero · {ambito}</div></div>
+        <div className="s-head"><h2 className="s-title">Juego limpio</h2><div className="s-sub">menos expulsiones primero · {ambito}</div></div>
         {jlItems.length > 0
           ? <><RankingComp items={jlItems} /><div className="leyenda">{leyJuegoLimpio}{limiteJL ? ` Los ${limiteJL} más deportivos de la categoría.` : ''}</div></>
           : <p className="vacio">Sin datos disciplinarios.</p>}
       </section>
       {banqItems.length > 0 && (
         <section>
-          <div className="s-head"><div className="s-title">Banquillos más calientes</div><div className="s-sub">amonestaciones al cuerpo técnico · {ambito}</div></div>
+          <div className="s-head"><h2 className="s-title">Banquillos más calientes</h2><div className="s-sub">amonestaciones al cuerpo técnico · {ambito}</div></div>
           <RankingComp items={banqItems} />
         </section>
       )}
       <section>
-        <div className="s-head"><div className="s-title">Jugadores expulsados/ciclos de amarillas</div><div className="s-sub">a fecha actual · {ambito}</div></div>
+        <div className="s-head"><h2 className="s-title">Jugadores expulsados/ciclos de amarillas</h2><div className="s-sub">a fecha actual · {ambito}</div></div>
         {sancItems.length > 0
           ? <><RankingComp items={sancItems} fichas={fichas} /><div className="leyenda">{leySancionados(umbral)} Jugadores con al menos un ciclo de {umbral} amarillas, una doble o una roja directa. No contempla sanciones adicionales del Comité.</div></>
           : <p className="vacio">Ningún jugador sancionado.</p>}

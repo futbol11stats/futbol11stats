@@ -3,7 +3,7 @@ export const revalidate = 2592000  // ISR 30d (Fluid CPU free tier): contenido c
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import { SITE_URL, ensureMadrid, tabLabel, noindexJuvenil } from '@/lib/seo'
+import { SITE_URL, ensureMadrid, tabLabel, noindexJuvenil, descripcionCompeticion } from '@/lib/seo'
 import JsonLd from '@/components/JsonLd'
 import { graphLd, breadcrumbLd } from '@/lib/jsonld'
 import { nombreOficial } from '@/lib/sellos'
@@ -56,7 +56,7 @@ export async function generateMetadata({
   const comp = nombreOficial(competicion.nombre_comp) ?? ensureMadrid(competicion.nombre_comp)
   const tl = tabLabel(tab)
   const title = `${tl} · ${comp} Global ${temporada} | Fútbol11Stats`
-  const description = `${tl} global de ${comp} (todos los grupos), temporada ${temporada}. Clasificación, goleadores y estadísticas del fútbol amateur de Madrid en Fútbol11Stats.`
+  const description = descripcionCompeticion(tab, comp, temporada, true)
   const canonical = `/madrid/${categoria}/${slug_comp}/global/${temporada}/jornada-${competicion.jornada_actual}/${tab}`
 
   return {

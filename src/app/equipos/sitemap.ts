@@ -2,6 +2,7 @@ import type { MetadataRoute } from 'next'
 import { supabase } from '@/lib/supabase'
 import { SITE_URL } from '@/lib/seo'
 import { equipoSlug } from '@/lib/equipo'
+import { getLastmodMaps } from '@/lib/sitemapLastmod'
 
 export const revalidate = 2592000 // ISR 30d: solo cambia al reexportar el catálogo de equipos.
 
@@ -11,7 +12,7 @@ export const revalidate = 2592000 // ISR 30d: solo cambia al reexportar el catá
 export const EQUIPOS_SITEMAP_CHUNK = 10000
 const PAGE = 1000
 
-type Fila = { codequipo: string; nombre: string }
+type Fila = { codequipo: string; nombre: string; codtemporada: number | string | null }
 
 // Solo fichas de AFICIONADOS: las JUVENILES llevan noindex (nombres de menores en la plantilla) -> fuera
 // del sitemap. El filtro se aplica en la query (keyset por codequipo compatible) para que el recuento de
@@ -20,7 +21,7 @@ async function todasLasFilas(): Promise<Fila[]> {
   const filas: Fila[] = []
   let ultimo = ''
   for (;;) {
-    let q = supabase.from('web_equipo').select('codequipo, nombre').neq('rama', 'juvenil').order('codequipo', { ascending: true }).limit(PAGE)
+    let q = supabase.from('web_equipo').select('codequipo, nombre, codtemporada').neq('rama', 'juvenil').order('codequipo', { ascending: true }).limit(PAGE)
     if (ultimo) q = q.gt('codequipo', ultimo)
     const { data, error } = await q
     if (error) throw new Error(`[sitemap equipos] fallo paginando web_equipo tras ${filas.length} filas: ${error.message || 'error sin mensaje'}`)
@@ -53,8 +54,10 @@ export default async function sitemap({ id }: { id: Promise<number> | number }):
     throw new Error(`[sitemap equipos] partición ${idNum} vacía (de ${n}; total ${total})`)
   }
 
+  const { porTemporada } = await getLastmodMaps()
   return trozo.map((eq) => ({
     url: `${SITE_URL}/madrid/equipo/${equipoSlug(eq.codequipo, eq.nombre)}`,
+    lastModified: porTemporada.get(Number(eq.codtemporada)),   // último partido de la última temporada del equipo
     changeFrequency: 'monthly',
     priority: 0.5,
   }))
