@@ -47,11 +47,11 @@ export type ClubIndexRow = {
 }
 
 // Índice: SOLO clubes con equipos en web_equipo. Nombre y escudo se derivan de sus equipos (web_club.nombre_club
-// puede venir NULL y web_club.escudo es inservible); localidad/provincia de web_club. nEquipos = equipos DISTINTOS
-// (dedup por nombre+rama+categoría, igual que la ficha).
+// puede venir NULL y web_club.escudo es inservible); localidad/provincia de web_club. nEquipos = nº de equipos
+// (codequipos), igual que la ficha, que ya no deduplica por nombre.
 export async function getClubesIndex(): Promise<ClubIndexRow[]> {
   return cacheIndices(async () => {
-    type Acc = { nombre: string; equipos: { rama: string | null; nivel: number | null; temp: number; escudo: string | null }[]; ids: Set<string>; maxTemp: number }
+    type Acc = { nombre: string; equipos: { rama: string | null; nivel: number | null; temp: number; escudo: string | null }[]; n: number; maxTemp: number }
     const acc = new Map<string, Acc>()
     let ultimo = ''
     for (;;) {
@@ -66,10 +66,10 @@ export async function getClubesIndex(): Promise<ClubIndexRow[]> {
         const cc = String(r.codclub || ''); if (!cc) continue
         const t = Number(r.codtemporada) || 0
         let a = acc.get(cc)
-        if (!a) { a = { nombre: '', equipos: [], ids: new Set(), maxTemp: 0 }; acc.set(cc, a) }
+        if (!a) { a = { nombre: '', equipos: [], n: 0, maxTemp: 0 }; acc.set(cc, a) }
         if (!a.nombre && r.nombre_club) a.nombre = r.nombre_club
         a.equipos.push({ rama: r.rama, nivel: r.categoria_nivel, temp: t, escudo: r.escudo })
-        a.ids.add(`${r.nombre}|${r.rama}|${r.nombre_comp}`)
+        a.n++
         if (t > a.maxTemp) a.maxTemp = t
       }
       ultimo = String((data[data.length - 1] as { codequipo: string }).codequipo)
@@ -87,12 +87,12 @@ export async function getClubesIndex(): Promise<ClubIndexRow[]> {
         nombre: (m?.nombre_club) || a.nombre || '',
         escudo: escudoPrimerEquipo(a.equipos),
         localidad: m?.localidad ?? null, provincia: m?.provincia ?? null,
-        nEquipos: a.ids.size, maxTemp: a.maxTemp || null,
+        nEquipos: a.n, maxTemp: a.maxTemp || null,
       })
     }
     out.sort((x, y) => x.nombre.localeCompare(y.nombre, 'es'))
     return out
-  }, ['getClubesIndex', 'v2'])
+  }, ['getClubesIndex', 'v3'])
 }
 
 export type ClubEquipoRow = {
@@ -126,15 +126,13 @@ export async function getClub(codclub: string): Promise<ClubFicha | null> {
     // Escudo del club = escudo del PRIMER EQUIPO (web_club.escudo es la ruta RFFM cruda, inservible).
     const escudo = escudoPrimerEquipo(todos.map((e) => ({ rama: e.rama, nivel: e.categoria_nivel, temp: Number(e.codtemporada) || 0, escudo: e.escudo })))
 
-    // Dedup por (nombre+rama+categoría): colapsa códigos reasignados (mismo equipo, 2 codequipo), conserva
-    // equipos DISTINTOS que comparten nombre (p.ej. 'B' de 1ª Juvenil vs 'B' de 1ª Aficionada). Conserva el más reciente.
-    const dd = new Map<string, ClubEquipoRow>()
-    for (const e of todos) {
-      const key = `${e.nombre}|${e.rama}|${e.nombre_comp}`
-      const ex = dd.get(key)
-      if (!ex || (Number(e.codtemporada) || 0) > (Number(ex.codtemporada) || 0)) dd.set(key, e as ClubEquipoRow)
-    }
-    const equipos = Array.from(dd.values())
+    // SIN dedup por nombre: cada codequipo es un equipo (una ficha) distinto. Deduplicar por (nombre+rama+categoría)
+    // BORRABA equipos reales cuando dos filiales comparten esa terna: p.ej. Nuevo Boadilla tiene dos equipos 'G'
+    // ACTIVOS en 2ª Juvenil (uno es en realidad el 'I' con la letra mal DERIVADA por el pipeline: la RFFM sí la
+    // distingue en actas, pero la tabla equipo la guardó como 'G') -> el dedup colapsaba los dos y desaparecía uno.
+    // La única clave que nunca pierde un equipo real es el codequipo. El coste (ver dos veces una letra) es
+    // preferible a borrar un equipo; la letra duplicada es una anomalía del dato a corregir en el pipeline.
+    const equipos = todos as ClubEquipoRow[]
 
     // Campo por EQUIPO de su TEMPORADA MÁS RECIENTE con partidos como local (o null si no hay una clara). Una
     // sola consulta. NOTA: web_resultados indexa por nombre de equipo, no por codequipo -> dos equipos que
@@ -169,5 +167,5 @@ export async function getClub(codclub: string): Promise<ClubFicha | null> {
       delegacion: (cRaw as any)?.delegacion ?? null, portal_web: (cRaw as any)?.portal_web ?? null,
       equipos, maxTemp,
     }
-  }, ['getClub', 'v2', codclub])
+  }, ['getClub', 'v3', codclub])
 }
