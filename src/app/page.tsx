@@ -77,12 +77,16 @@ export default async function Home() {
               Clasificaciones, goleadores, fantasy y ELO de las 10 competiciones RFFM.
               5 temporadas · 110.000+ partidos · 38.000+ jugadores.
             </p>
-            <div className="flex gap-3">
+            <div className="flex flex-wrap gap-3">
               <Link href="/madrid/aficionados" className="bg-grass-500 hover:bg-grass-400 text-white font-semibold px-5 py-2.5 rounded-lg transition-colors text-sm">
                 Aficionados
               </Link>
               <Link href="/madrid/juveniles" className="bg-pitch-700 hover:bg-pitch-600 text-white font-semibold px-5 py-2.5 rounded-lg transition-colors text-sm border border-pitch-600">
                 Juvenil
+              </Link>
+              {/* Eje distinto (directorio, no categoría): estilo propio. Hub que enlaza a las 40k fichas. */}
+              <Link href="/clubes" className="bg-pitch-800 hover:bg-grass-500 text-grass-300 hover:text-white font-semibold px-5 py-2.5 rounded-lg transition-colors text-sm border border-grass-500/40">
+                Clubes
               </Link>
             </div>
           </div>

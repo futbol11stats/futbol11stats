@@ -4,7 +4,8 @@ import { escudoUrl, formatNombre } from '@/lib/supabase'
 import { jugadorHref, tempLabel } from '@/lib/jugador'
 import { equipoHref } from '@/lib/equipo'
 import Pastilla from '@/components/Pastilla'
-import { normAlign, type JugadorHit, type EquipoHit } from '@/lib/buscador'
+import { clubSlug } from '@/lib/clubSlug'
+import { normAlign, type JugadorHit, type EquipoHit, type ClubHit } from '@/lib/buscador'
 
 // Resalta en verde los trozos del texto que coinciden con los tokens (insensible a acentos/mayúsculas).
 export function Highlight({ text, tokens }: { text: string; tokens: string[] }) {
@@ -81,6 +82,35 @@ export function ResultadoEquipo({ e, tokens, onNavigate, active }: {
           {inactivo
             ? `Último grupo: ${e.nombre_comp ?? ''}${e.grupo_nombre ? ` · ${e.grupo_nombre}` : ''}${e.codtemporada ? ` · ${tempLabel(e.codtemporada)}` : ''}`
             : `${e.nombre_comp ?? ''}${e.grupo_nombre ? ` · ${e.grupo_nombre}` : ''}`}
+        </span>
+      </span>
+    </Link>
+  )
+}
+
+// CLUB (organización): enlaza a /clubes/[slug]. Solo nombre de club + localidad + nº de equipos — sin personas.
+export function ResultadoClub({ c, tokens, onNavigate, active }: {
+  c: ClubHit; tokens: string[]; onNavigate?: () => void; active?: boolean
+}) {
+  return (
+    <Link
+      href={`/clubes/${clubSlug(c.codclub, c.nombre_club)}`}
+      onClick={onNavigate}
+      data-hit
+      className={`flex items-center gap-2.5 px-3 py-2.5 transition-colors ${active ? 'bg-pitch-700' : 'hover:bg-pitch-700/60'}`}
+    >
+      <span className="inline-flex items-center justify-center w-8 h-8 bg-white rounded-sm flex-shrink-0 p-0.5">
+        {escudoUrl(c.escudo) ? <EscudoImg escudo={c.escudo} nombre={c.nombre_club} /> : null}
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="flex items-center gap-1.5 min-w-0">
+          <span className="font-display font-semibold text-white uppercase truncate text-[15px] leading-tight">
+            <Highlight text={c.nombre_club} tokens={tokens} />
+          </span>
+          <span className="flex-shrink-0 text-[10px] font-semibold uppercase tracking-wide text-grass-300 bg-grass-500/15 rounded px-1 py-px">Club</span>
+        </span>
+        <span className="block text-xs truncate text-chalk-500">
+          {[c.localidad, `${c.n_equipos ?? 0} equipo${(c.n_equipos ?? 0) !== 1 ? 's' : ''}`].filter(Boolean).join(' · ')}
         </span>
       </span>
     </Link>

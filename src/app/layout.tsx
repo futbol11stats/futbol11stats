@@ -54,6 +54,7 @@ export default async function RootLayout({
               <nav className="hidden md:flex items-center gap-6 text-sm text-chalk-600">
                 <a href="/madrid/aficionados" className="hover:text-white transition-colors">Aficionados</a>
                 <a href="/madrid/juveniles" className="hover:text-white transition-colors">Juveniles</a>
+                <a href="/clubes" className="hover:text-white transition-colors">Clubes</a>
               </nav>
               <Buscador suelo={suelo} />
             </div>
@@ -66,6 +67,7 @@ export default async function RootLayout({
               Fútbol11Stats es un proyecto independiente, sin vinculación con ninguna federación ni club. Los datos proceden de fuentes públicas y pueden contener errores.
             </p>
             <p className="flex flex-wrap gap-x-4 gap-y-1 pt-1">
+              <a href="/clubes" className="underline hover:text-white transition-colors">Clubes</a>
               <a href="/sobre" className="underline hover:text-white transition-colors">Sobre el proyecto</a>
               <a href="/aviso-legal" className="underline hover:text-white transition-colors">Aviso legal</a>
               <a href="/privacidad" className="underline hover:text-white transition-colors">Privacidad</a>

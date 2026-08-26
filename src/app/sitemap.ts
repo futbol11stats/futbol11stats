@@ -12,6 +12,7 @@ import {
 import { codToSlug } from '@/lib/temporadaSlug'
 import { getTemporadasActivas, mapaActivas } from '@/lib/temporadas'
 import { getSitemapDatos, tabTieneDatos, type GrupoStat } from '@/lib/sitemapLastmod'
+import { getClubesIndex, clubSlug } from '@/lib/club'
 
 export const revalidate = 2592000 // ISR 30d (Fluid CPU): se regenera con cada deploy/re-export; el sitemap solo cambia al añadir grupos/temporadas nuevas
 
@@ -113,6 +114,18 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         }
       }
     }
+  }
+
+  // Clubes: índice + página por club (solo los que tienen equipos). lastmod = última temporada del club.
+  const clubes = await getClubesIndex()
+  urls.push({ url: `${SITE_URL}/clubes`, lastModified: maxIso, changeFrequency: 'weekly', priority: 0.7 })
+  for (const cl of clubes) {
+    urls.push({
+      url: `${SITE_URL}/clubes/${clubSlug(cl.codclub, cl.nombre)}`,
+      lastModified: cl.maxTemp ? datos.porTemporada.get(cl.maxTemp) : undefined,
+      changeFrequency: 'monthly',
+      priority: 0.5,
+    })
   }
 
   return urls

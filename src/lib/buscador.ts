@@ -64,8 +64,18 @@ export type EquipoHit = {
   pj_total: number | null
 }
 
+export type ClubHit = {
+  codclub: string
+  nombre_club: string
+  escudo: string | null
+  localidad: string | null
+  provincia: string | null
+  n_equipos: number | null
+}
+
 const COLS_J = 'codjugador, nombre, escudo_actual, posicion_pastilla, posicion_es_estimada, pj_total, equipo_actual_nombre, codtemporada_ultima'
 const COLS_E = 'codequipo, nombre, escudo, rama, nombre_comp, grupo_nombre, codtemporada, activo, pj_total'
+const COLS_C = 'codclub, nombre_club, escudo, localidad, provincia, n_equipos'
 
 // Prefijo primero (nombre normalizado empieza por la query), conservando el orden previo (pj_total).
 function rankPrefijo<T extends { nombre: string }>(rows: T[], q: string): T[] {
@@ -92,4 +102,18 @@ export async function buscarEquipos(q: string, limit: number, offset = 0): Promi
   for (const t of toks) query = query.ilike(COL_EQ, `%${t}%`)
   const { data, count } = await query.order('pj_total', { ascending: false, nullsFirst: false }).range(offset, offset + limit - 1)
   return { rows: rankPrefijo((data || []) as unknown as EquipoHit[], q), count: count || 0 }
+}
+
+// Clubes: se busca contra `nombre_club` (mayúsculas sin acentos, como jugador/equipo -> los tokens normalizados
+// casan). `.gt('n_equipos', 0)` deja fuera los clubes sin equipos (sin página). Prefijo primero por nombre.
+export async function buscarClubes(q: string, limit: number, offset = 0): Promise<{ rows: ClubHit[]; count: number }> {
+  const toks = queryTokens(q)
+  if (normFull(q).length < 2 || toks.length === 0) return { rows: [], count: 0 }
+  let query = supabase.from('web_club').select(COLS_C, { count: 'exact' }).gt('n_equipos', 0)
+  for (const t of toks) query = query.ilike('nombre_club', `%${t}%`)
+  const { data, count } = await query.order('n_equipos', { ascending: false, nullsFirst: false }).range(offset, offset + limit - 1)
+  const rows = (data || []) as unknown as ClubHit[]
+  const nq = normFull(q)
+  rows.sort((a, b) => Number(normFull(b.nombre_club || '').startsWith(nq)) - Number(normFull(a.nombre_club || '').startsWith(nq)))
+  return { rows, count: count || 0 }
 }

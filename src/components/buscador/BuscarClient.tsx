@@ -2,19 +2,24 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { Search, Loader2 } from 'lucide-react'
-import { buscarJugadores, buscarEquipos, highlightTokens, normFull, type JugadorHit, type EquipoHit } from '@/lib/buscador'
-import { ResultadoJugador, ResultadoEquipo } from './Resultados'
+import { buscarJugadores, buscarEquipos, buscarClubes, highlightTokens, normFull, type JugadorHit, type EquipoHit, type ClubHit } from '@/lib/buscador'
+import { ResultadoJugador, ResultadoEquipo, ResultadoClub } from './Resultados'
+
+type Tab = 'jugadores' | 'equipos' | 'clubes'
+const TAB_LABEL: Record<Tab, string> = { jugadores: 'Jugadores', equipos: 'Equipos', clubes: 'Clubes' }
 
 const PAGE = 20
 
 // Página /buscar: caja editable + pestañas EQUIPOS | JUGADORES con recuentos + listas con "cargar más".
 export default function BuscarClient({ initialQ, suelo }: { initialQ: string; suelo: number }) {
   const [q, setQ] = useState(initialQ)
-  const [tab, setTab] = useState<'jugadores' | 'equipos'>('jugadores')
+  const [tab, setTab] = useState<Tab>('jugadores')
   const [jug, setJug] = useState<JugadorHit[]>([])
   const [eq, setEq] = useState<EquipoHit[]>([])
+  const [clu, setClu] = useState<ClubHit[]>([])
   const [nJug, setNJug] = useState(0)
   const [nEq, setNEq] = useState(0)
+  const [nClu, setNClu] = useState(0)
   const [loading, setLoading] = useState(false)
   const [masLoading, setMasLoading] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -28,15 +33,15 @@ export default function BuscarClient({ initialQ, suelo }: { initialQ: string; su
   useEffect(() => {
     const url = q ? `/buscar?q=${encodeURIComponent(q)}` : '/buscar'
     window.history.replaceState(null, '', url)
-    if (!valida) { setJug([]); setEq([]); setNJug(0); setNEq(0); setLoading(false); return }
+    if (!valida) { setJug([]); setEq([]); setClu([]); setNJug(0); setNEq(0); setNClu(0); setLoading(false); return }
     setLoading(true)
     const id = setTimeout(async () => {
       const query = q
-      const [re, rj] = await Promise.all([buscarEquipos(query, PAGE), buscarJugadores(query, PAGE)])
+      const [re, rc, rj] = await Promise.all([buscarEquipos(query, PAGE), buscarClubes(query, PAGE), buscarJugadores(query, PAGE)])
       if (query !== q) return
-      setEq(re.rows); setNEq(re.count); setJug(rj.rows); setNJug(rj.count)
-      // Pestaña por defecto: la que tenga resultados (jugadores si ambas).
-      setTab(rj.count > 0 ? 'jugadores' : re.count > 0 ? 'equipos' : 'jugadores')
+      setEq(re.rows); setNEq(re.count); setClu(rc.rows); setNClu(rc.count); setJug(rj.rows); setNJug(rj.count)
+      // Pestaña por defecto: la que tenga resultados (jugadores > equipos > clubes).
+      setTab(rj.count > 0 ? 'jugadores' : re.count > 0 ? 'equipos' : rc.count > 0 ? 'clubes' : 'jugadores')
       setLoading(false)
     }, 250)
     return () => clearTimeout(id)
@@ -45,12 +50,13 @@ export default function BuscarClient({ initialQ, suelo }: { initialQ: string; su
   const cargarMas = async () => {
     setMasLoading(true)
     if (tab === 'jugadores') { const r = await buscarJugadores(q, PAGE, jug.length); setJug((x) => [...x, ...r.rows]) }
-    else { const r = await buscarEquipos(q, PAGE, eq.length); setEq((x) => [...x, ...r.rows]) }
+    else if (tab === 'equipos') { const r = await buscarEquipos(q, PAGE, eq.length); setEq((x) => [...x, ...r.rows]) }
+    else { const r = await buscarClubes(q, PAGE, clu.length); setClu((x) => [...x, ...r.rows]) }
     setMasLoading(false)
   }
 
-  const lista = tab === 'jugadores' ? jug : eq
-  const total = tab === 'jugadores' ? nJug : nEq
+  const lista = tab === 'jugadores' ? jug : tab === 'equipos' ? eq : clu
+  const total = tab === 'jugadores' ? nJug : tab === 'equipos' ? nEq : nClu
 
   return (
     <div>
@@ -63,7 +69,7 @@ export default function BuscarClient({ initialQ, suelo }: { initialQ: string; su
           ref={inputRef}
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          placeholder="Buscar jugador o equipo…"
+          placeholder="Buscar jugador, equipo o club…"
           className="flex-1 min-w-0 bg-transparent text-base text-white placeholder:text-chalk-600 focus:outline-none font-display"
           autoComplete="off"
           spellCheck={false}
@@ -75,7 +81,7 @@ export default function BuscarClient({ initialQ, suelo }: { initialQ: string; su
         <>
           {/* Pestañas */}
           <div className="flex gap-1 border-b border-pitch-700 mt-5 mb-2">
-            {(['jugadores', 'equipos'] as const).map((t) => (
+            {(['jugadores', 'equipos', 'clubes'] as const).map((t) => (
               <button
                 key={t}
                 type="button"
@@ -84,7 +90,7 @@ export default function BuscarClient({ initialQ, suelo }: { initialQ: string; su
                   tab === t ? 'border-grass-400 text-white' : 'border-transparent text-chalk-600 hover:text-white'
                 }`}
               >
-                {t === 'jugadores' ? 'Jugadores' : 'Equipos'} <span className="text-chalk-600">({t === 'jugadores' ? nJug : nEq})</span>
+                {TAB_LABEL[t]} <span className="text-chalk-600">({t === 'jugadores' ? nJug : t === 'equipos' ? nEq : nClu})</span>
               </button>
             ))}
           </div>
@@ -96,7 +102,9 @@ export default function BuscarClient({ initialQ, suelo }: { initialQ: string; su
             )}
             {tab === 'jugadores'
               ? jug.map((j) => <ResultadoJugador key={j.codjugador} j={j} tokens={tokens} suelo={suelo} />)
-              : eq.map((e) => <ResultadoEquipo key={e.codequipo} e={e} tokens={tokens} />)}
+              : tab === 'equipos'
+                ? eq.map((e) => <ResultadoEquipo key={e.codequipo} e={e} tokens={tokens} />)
+                : clu.map((c) => <ResultadoClub key={c.codclub} c={c} tokens={tokens} />)}
           </div>
 
           {lista.length < total && (
