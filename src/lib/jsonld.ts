@@ -79,6 +79,7 @@ export function sportsEventLd(ev: {
   golesLocal?: number | null; golesVisitante?: number | null
   fechaIso?: string | null       // 'YYYY-MM-DD' o 'YYYY-MM-DDTHH:MM'
   campo?: string | null
+  campoLat?: number | null; campoLng?: number | null   // coords del PARTIDO (web_resultados.campo_*) -> Place.geo
   competicion?: string | null    // superEvent: nombre de la competición/ronda + temporada
 }) {
   const team = (name: string, url?: string | null, logo?: string | null) => {
@@ -97,7 +98,16 @@ export function sportsEventLd(ev: {
     // NB: schema.org no tiene campo de marcador; el resultado va en `name`. NADA de personas (ver línea roja).
   }
   if (ev.fechaIso) node.startDate = ev.fechaIso
-  if (ev.campo) node.location = { '@type': 'Place', name: ev.campo }
+  if (ev.campo) {
+    // location = Place con el nombre del campo; + GeoCoordinates cuando el PARTIDO trae coords (los buscadores las
+    // usan para ubicar el evento). Sin coords (p.ej. partidos futuros sin cabecera): solo el nombre, NUNCA las del
+    // equipo local (el partido puede jugarse en otro campo). Sigue sin personas: solo lugar. Ver línea roja arriba.
+    const place: Record<string, unknown> = { '@type': 'Place', name: ev.campo }
+    if (ev.campoLat != null && ev.campoLng != null) {
+      place.geo = { '@type': 'GeoCoordinates', latitude: ev.campoLat, longitude: ev.campoLng }
+    }
+    node.location = place
+  }
   if (ev.competicion) node.superEvent = { '@type': 'SportsEvent', name: ev.competicion }
   return node
 }

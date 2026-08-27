@@ -592,6 +592,7 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
                   golesVisitante: r.goles_visitante,
                   fechaIso: fechaHoraIso(r.fecha, r.hora),
                   campo: r.campo,
+                  campoLat: r.campo_lat ?? null, campoLng: r.campo_lng ?? null,   // coords del partido -> Place.geo
                   competicion: `${tituloGrupo} · ${temporada}${esFamilia && rondaSel ? ` · ${rondaSel.label}` : ''}`,
                 })))} />
               )}
