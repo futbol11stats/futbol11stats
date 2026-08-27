@@ -222,6 +222,19 @@ export type ResultadoCompRow = {
   // Hasta entonces vienen undefined y el campo se muestra como texto plano (sin enlace). Ver CHECKLIST.
   codigo_campo?: string | null; campo_lat?: number | null; campo_lng?: number | null; campo_localidad?: string | null
 }
+// ¿La competición tiene ALGÚN partido jugado? Discriminante del estado de la cabecera (sin empezar vs en juego/
+// finalizada): jornada_actual/total_jornadas NO basta -> una temporada sin empezar trae el calendario cargado
+// (jornada_actual >= total) con 0 resultados. Uniforme para liga y copa (por codgrupo). limit(1), no count (el
+// count con anon key falla en silencio, ver checklist).
+export async function tienePartidosJugados(codgrupo: string, codtemporada: number): Promise<boolean> {
+  return cacheComp(async () => {
+    const { data, error } = await supabase.from('web_resultados').select('codacta')
+      .eq('codgrupo', codgrupo).eq('codtemporada', codtemporada).not('goles_local', 'is', null).limit(1)
+    if (error) throw error   // no cachear false por un error transitorio (ver checklist: caché envenenada)
+    return (data?.length ?? 0) > 0
+  }, ['tienePartidosJugados', 'v1', codgrupo, codtemporada], [codgrupo], codtemporada)
+}
+
 export async function getResultadosV2(codgrupo: string, codtemporada: number, jornada: number): Promise<ResultadoCompRow[]> {
   return cacheComp(async () => {
     const { data, error } = await supabase.from('web_resultados')
