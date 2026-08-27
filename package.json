@@ -30,5 +30,15 @@
     "tailwindcss": "^3.4.1",
     "typescript": "^5",
     "vitest": "^4.1.10"
-  }
+  },
+  "//browserslist": "Target moderno: el mínimo que soporta las features que Next transpilaba con polyfills (Array.at/flat/flatMap, Object.fromEntries/hasOwn, String.trimStart/trimEnd = ES2019/2022). Safari 15.4 = mar-2022. Quita ~14KiB de polyfills para navegadores que ya nadie usa. NO bajar de estos pisos sin motivo.",
+  "browserslist": [
+    "chrome >= 93",
+    "edge >= 93",
+    "firefox >= 92",
+    "safari >= 15.4",
+    "ios_saf >= 15.4",
+    "not dead",
+    "not op_mini all"
+  ]
 }
