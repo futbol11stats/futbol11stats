@@ -41,6 +41,22 @@ function escudoPrimerEquipo(equipos: { rama: string | null; nivel: number | null
   return con[0].escudo
 }
 
+// CAPA 1 de la validación de portal_web: SOLO formato. La RFFM guarda ahí a menudo emails, @handles, '.',
+// nombres con espacios o esquemas rotos ('www://'). Devuelve una URL absoluta bien formada, o null (y entonces
+// ni se enlaza ni va en sameAs). CAPA 2 (que RESPONDE y no está parqueado/en venta) llegará de
+// web_club.portal_web_ok cuando el pipeline la publique -> ver PENDIENTES; entonces, además de esto, exigir ok.
+export function portalWebValido(raw: string | null | undefined): string | null {
+  const s = (raw || '').trim()
+  if (!s || s.includes('@') || /\s/.test(s)) return null   // email, @handle, o con espacios -> no es URL
+  let u = /^www:\/\//i.test(s) ? s.replace(/^www:\/\//i, 'https://') : s
+  if (!/^https?:\/\//i.test(u)) u = 'https://' + u
+  let host: string
+  try { host = new URL(u).hostname } catch { return null }
+  // dominio con TLD alfabético de 2+ (descarta '.', '.CD.MORATA' con punto inicial, hosts sin TLD)
+  if (!/^([a-z0-9¡-￿-]+\.)+[a-z¡-￿]{2,}$/i.test(host)) return null
+  return u
+}
+
 export type ClubIndexRow = {
   codclub: string; nombre: string; escudo: string | null
   localidad: string | null; provincia: string | null; nEquipos: number; maxTemp: number | null
@@ -164,7 +180,7 @@ export async function getClub(codclub: string): Promise<ClubFicha | null> {
     return {
       codclub, nombre, escudo,
       localidad: (cRaw as any)?.localidad ?? null, provincia: (cRaw as any)?.provincia ?? null,
-      delegacion: (cRaw as any)?.delegacion ?? null, portal_web: (cRaw as any)?.portal_web ?? null,
+      delegacion: (cRaw as any)?.delegacion ?? null, portal_web: portalWebValido((cRaw as any)?.portal_web),
       equipos, maxTemp,
     }
   }, ['getClub', 'v3', codclub])
