@@ -21,7 +21,7 @@ import { FilaEspejo } from '@/components/ficha/v2/barrasGoles'
 import { TarjetaAmarilla, TarjetaDoble, TarjetaRoja, FlechaEntra, FlechaSale, Promocion, Escudo, Reloj, Balon, Guante, Tabla, Estrella } from '@/components/iconos'
 import { graphLd, breadcrumbLd, sportsTeamLd } from '@/lib/jsonld'
 import { SITE_URL } from '@/lib/seo'
-import { getCampoEquipo, campoMapsUrl } from '@/lib/club'
+import { getCampoEquipo, campoMapsUrl, parseCampo } from '@/lib/club'
 import { escudoUrl, formatNombre } from '@/lib/supabase'
 import { jugadorHref, fechaCorta, fichasExistentes } from '@/lib/jugador'
 import { familiaSello, familiaCorto } from '@/lib/sellos'
@@ -301,15 +301,19 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
             {/* H1: el nombre del equipo es el encabezado principal de la página (uno solo). Tailwind preflight
                 resetea el h1 -> la clase .last controla el estilo, idéntico al div anterior. */}
             <h1 className="last">{e.nombre}</h1>
-            {/* Campo bajo el nombre (contexto, discreto): chincheta + nombre del campo CON su superficie (HA/HN =
-                info deportiva). Enlaza a Maps por el nombre (sin el código de superficie) + localidad. Silencio si
-                no hay campo claro. */}
-            {campoInfo.campo && (
-              <a className="hero-campo" href={campoMapsUrl(campoInfo.campo, campoInfo.localidad)}
-                target="_blank" rel="noopener noreferrer">
-                <MapPin size={12} strokeWidth={2.25} />{campoInfo.campo}
-              </a>
-            )}
+            {/* Campo bajo el nombre (contexto, discreto): chincheta + nombre del campo + superficie legible en
+                pequeño (hierba artificial/natural/tierra). Enlaza a Maps por el nombre (sin el código) + localidad.
+                Silencio si no hay campo claro. */}
+            {campoInfo.campo && (() => {
+              const { nombre, superficie } = parseCampo(campoInfo.campo)
+              return (
+                <a className="hero-campo" href={campoMapsUrl(campoInfo.campo, campoInfo.localidad)}
+                  target="_blank" rel="noopener noreferrer">
+                  <MapPin size={12} strokeWidth={2.25} /><span>{nombre}</span>
+                  {superficie && <span className="campo-sup">· {superficie}</span>}
+                </a>
+              )
+            })()}
           </div>
           <CompartirBtn titulo={`${e.nombre} · Fútbol11Stats`} variant="icon" />
         </div>

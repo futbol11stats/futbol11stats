@@ -57,13 +57,31 @@ export async function getCampoEquipo(codequipo: string): Promise<CampoEquipo> {
   }, ['getCampoEquipo', 'v1', String(codequipo)], codequipo)
 }
 
-// URL de búsqueda de Google Maps para el campo: el nombre SIN el código de SUPERFICIE final (HA/H.A./HB/T/HN ->
-// mejor geocoding; se quita SOLO si el paréntesis es EXACTAMENTE ese código, nunca partes reales del nombre del
-// recinto) + la localidad del club para desambiguar. Codificado (acentos, espacios). El texto VISIBLE conserva
-// el sufijo de superficie (es info deportiva: hierba artificial/natural); esta limpieza es solo para el enlace.
+// Códigos de SUPERFICIE del acta RFFM (verificados en el dato 2026-08: HA/H.A. y HB/T; no existe HN). Se
+// traducen a etiqueta legible. Cualquier otro paréntesis final (p.ej. "(CONDESA CHINCHON 1)") NO es superficie
+// -> se deja como parte del nombre.
+const SUPERFICIE: Record<string, string> = { HA: 'hierba artificial', HN: 'hierba natural', HB: 'hierba natural', T: 'tierra' }
+// Separa el nombre del campo de su código de superficie final. `nombre` sin el código; `superficie` legible o null.
+export function parseCampo(campo: string | null): { nombre: string; superficie: string | null } {
+  if (!campo) return { nombre: '', superficie: null }
+  const m = campo.match(/\s*\(([A-Za-z.]{1,4})\)\s*$/)   // paréntesis final de 1-4 letras/puntos (posible código)
+  if (m) {
+    const code = m[1].replace(/\./g, '').toUpperCase()   // "H.A." -> "HA"
+    if (SUPERFICIE[code]) return { nombre: campo.slice(0, m.index).trim(), superficie: SUPERFICIE[code] }
+  }
+  return { nombre: campo.trim(), superficie: null }
+}
+// Texto para listas (página de club): "NOMBRE · superficie" (o solo nombre si no hay superficie conocida).
+export function campoLabel(campo: string | null): string {
+  const { nombre, superficie } = parseCampo(campo)
+  return superficie ? `${nombre} · ${superficie}` : nombre
+}
+// URL de búsqueda de Google Maps: el nombre del campo SIN el código de superficie (mejor geocoding) + la
+// localidad del club para desambiguar. Codificado (acentos, espacios). El texto VISIBLE sí muestra la superficie
+// (info deportiva); esta limpieza es solo para el enlace.
 export function campoMapsUrl(campo: string, localidad: string | null): string {
-  const limpio = campo.replace(/\s*\((?:H\.?A\.?|HN|HB|T)\)\s*$/i, '').trim()
-  const q = localidad ? `${limpio}, ${localidad}` : limpio
+  const nombre = parseCampo(campo).nombre
+  const q = localidad ? `${nombre}, ${localidad}` : nombre
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(q)}`
 }
 

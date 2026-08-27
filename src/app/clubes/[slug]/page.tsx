@@ -5,7 +5,7 @@ export function generateStaticParams() { return [] }  // ISR on-demand: 0 en bui
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound, permanentRedirect } from 'next/navigation'
-import { getClub, clubSlug, codclubFromSlug } from '@/lib/club'
+import { getClub, clubSlug, codclubFromSlug, campoLabel } from '@/lib/club'
 import { equipoSlug } from '@/lib/equipo'
 import EscudoBox from '@/components/ficha/v2/EscudoBox'
 import JsonLd from '@/components/JsonLd'
@@ -69,7 +69,7 @@ export default async function ClubPage({ params }: { params: Promise<{ slug: str
               <span className="min-w-0">
                 <span className="block text-sm font-semibold text-white truncate">{e.nombre}{e.activo === false && <span className="text-chalk-600 font-normal"> · inactivo</span>}</span>
                 <span className="block text-xs text-chalk-600 truncate">
-                  {[e.nombre_comp, e.campo].filter(Boolean).join(' · ') || '—'}
+                  {[e.nombre_comp, e.campo ? campoLabel(e.campo) : null].filter(Boolean).join(' · ') || '—'}
                 </span>
               </span>
             </Link>
