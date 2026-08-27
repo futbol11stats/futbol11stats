@@ -43,8 +43,8 @@ function escudoPrimerEquipo(equipos: { rama: string | null; nivel: number | null
 
 // CAPA 1 de la validación de portal_web: SOLO formato. La RFFM guarda ahí a menudo emails, @handles, '.',
 // nombres con espacios o esquemas rotos ('www://'). Devuelve una URL absoluta bien formada, o null (y entonces
-// ni se enlaza ni va en sameAs). CAPA 2 (que RESPONDE y no está parqueado/en venta) llegará de
-// web_club.portal_web_ok cuando el pipeline la publique -> ver PENDIENTES; entonces, además de esto, exigir ok.
+// ni se enlaza ni va en sameAs). CAPA 2 (que RESPONDE y no está parqueado/en venta): el flag web_club.portal_web_ok
+// que publica el pipeline (re-verificado semanal en cola rodante); getClub exige ok===true además de este formato.
 export function portalWebValido(raw: string | null | undefined): string | null {
   const s = (raw || '').trim()
   if (!s || s.includes('@') || /\s/.test(s)) return null   // email, @handle, o con espacios -> no es URL
@@ -127,7 +127,7 @@ export async function getClub(codclub: string): Promise<ClubFicha | null> {
   return cacheIndices(async () => {
     // web_club: metadatos publicables (SIN domicilio/CIF/CP). Puede faltar la fila o el nombre.
     const { data: cRaw, error } = await supabase.from('web_club')
-      .select('codclub, nombre_club, localidad, provincia, delegacion, portal_web')
+      .select('codclub, nombre_club, localidad, provincia, delegacion, portal_web, portal_web_ok')
       .eq('codclub', codclub).limit(1).maybeSingle()
     if (error) throw error
     // Equipos del club (SOLO nombre de EQUIPO, nunca personas).
@@ -180,8 +180,11 @@ export async function getClub(codclub: string): Promise<ClubFicha | null> {
     return {
       codclub, nombre, escudo,
       localidad: (cRaw as any)?.localidad ?? null, provincia: (cRaw as any)?.provincia ?? null,
-      delegacion: (cRaw as any)?.delegacion ?? null, portal_web: portalWebValido((cRaw as any)?.portal_web),
+      // Enlace del club: lo manda el flag del pipeline (portal_web_ok = responde y no es tóxico), con el filtro de
+      // FORMATO como primera línea. Si el flag no es TRUE -> null (ni enlace ni sameAs).
+      delegacion: (cRaw as any)?.delegacion ?? null,
+      portal_web: (cRaw as any)?.portal_web_ok === true ? portalWebValido((cRaw as any)?.portal_web) : null,
       equipos, maxTemp,
     }
-  }, ['getClub', 'v4-campo-codequipo', codclub])
+  }, ['getClub', 'v5-portalok', codclub])
 }
