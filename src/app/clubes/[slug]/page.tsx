@@ -69,7 +69,7 @@ export default async function ClubPage({ params }: { params: Promise<{ slug: str
               <span className="min-w-0">
                 <span className="block text-sm font-semibold text-white truncate">{e.nombre}{e.activo === false && <span className="text-chalk-600 font-normal"> · inactivo</span>}</span>
                 <span className="block text-xs text-chalk-600 truncate">
-                  {[e.nombre_comp, e.campo ? campoLabel(e.campo) : null].filter(Boolean).join(' · ') || '—'}
+                  {[e.nombre_comp, e.campo_codigo && e.campo_nombre ? campoLabel(e.campo_nombre) : null].filter(Boolean).join(' · ') || '—'}
                 </span>
               </span>
             </Link>

@@ -17,44 +17,19 @@ import { cacheIndices, cacheEquipo } from '@/lib/cacheComp'
 
 export { clubSlug, codclubFromSlug } from '@/lib/clubSlug'
 
-// Instalación DOMINANTE de un equipo en un conjunto de partidos: la más frecuente SOLO si es líder CLARO (su
-// conteo > el 2º). Empate en el máximo o sin datos -> null (silencio antes que dato dudoso).
-export function campoDominante(m: Map<string, number>): string | null {
-  let top: string | null = null, topN = 0, secondN = 0
-  for (const [cp, n] of Array.from(m)) {
-    if (n > topN) { secondN = topN; topN = n; top = cp }
-    else if (n > secondN) { secondN = n }
-  }
-  return top && topN > secondN ? top : null
-}
-
-// Campo (+ localidad del club) de UN equipo, para la ficha de equipo. MISMA lógica que la página de club:
-// instalación dominante de la temporada MÁS RECIENTE con partidos como local (por codequipo_local), o null si no
-// hay una clara -> silencio. La localidad (web_club) desambigua el enlace a Maps. Cacheado con tag equipo:<cod>.
-export type CampoEquipo = { campo: string | null; localidad: string | null }
+// Campo de UN equipo (para la ficha de equipo). El pipeline ya lo publica en web_equipo (columnas campo_*): no se
+// deriva. `codigo` presente = el equipo tiene campo identificado; `lat`/`lng` dan el PIN exacto en Maps (resuelve
+// el problema del topónimo). `localidad` es la del CAMPO (campo_localidad), NUNCA la del club (puede estar en otro
+// municipio). Cacheado con tag equipo:<cod>.
+export type CampoEquipo = { codigo: string | null; nombre: string | null; localidad: string | null; lat: number | null; lng: number | null }
 export async function getCampoEquipo(codequipo: string): Promise<CampoEquipo> {
   return cacheEquipo(async () => {
-    const { data: res } = await supabase.from('web_resultados').select('codtemporada, campo')
-      .eq('codequipo_local', String(codequipo)).not('campo', 'is', null)
-    const byT = new Map<number, Map<string, number>>()
-    for (const r of (res || []) as { codtemporada: number | null; campo: string | null }[]) {
-      const t = Number(r.codtemporada) || 0, cp = (r.campo || '').trim()
-      if (!t || !cp) continue
-      let m = byT.get(t); if (!m) { m = new Map(); byT.set(t, m) }
-      m.set(cp, (m.get(cp) || 0) + 1)
-    }
-    const campo = byT.size ? campoDominante(byT.get(Math.max(...Array.from(byT.keys())))!) : null
-    let localidad: string | null = null
-    if (campo) {   // solo hace falta la localidad si hay campo que enlazar
-      const { data: eq } = await supabase.from('web_equipo').select('codclub').eq('codequipo', String(codequipo)).limit(1).maybeSingle()
-      const codclub = (eq as { codclub?: string } | null)?.codclub
-      if (codclub) {
-        const { data: cl } = await supabase.from('web_club').select('localidad').eq('codclub', codclub).limit(1).maybeSingle()
-        localidad = (cl as { localidad?: string } | null)?.localidad ?? null
-      }
-    }
-    return { campo, localidad }
-  }, ['getCampoEquipo', 'v1', String(codequipo)], codequipo)
+    const { data } = await supabase.from('web_equipo')
+      .select('campo_codigo, campo_nombre, campo_localidad, campo_lat, campo_lng')
+      .eq('codequipo', String(codequipo)).limit(1).maybeSingle()
+    const c = data as { campo_codigo?: string | null; campo_nombre?: string | null; campo_localidad?: string | null; campo_lat?: number | null; campo_lng?: number | null } | null
+    return { codigo: c?.campo_codigo ?? null, nombre: c?.campo_nombre ?? null, localidad: c?.campo_localidad ?? null, lat: c?.campo_lat ?? null, lng: c?.campo_lng ?? null }
+  }, ['getCampoEquipo', 'v2-webequipo', String(codequipo)], codequipo)
 }
 
 // Códigos de SUPERFICIE del acta RFFM (verificados en el dato 2026-08: HA/H.A. y HB/T; no existe HN). Se
@@ -76,13 +51,17 @@ export function campoLabel(campo: string | null): string {
   const { nombre, superficie } = parseCampo(campo)
   return superficie ? `${nombre} · ${superficie}` : nombre
 }
-// URL de búsqueda de Google Maps: el nombre del campo SIN el código de superficie (mejor geocoding) + la
-// localidad del club para desambiguar. Codificado (acentos, espacios). El texto VISIBLE sí muestra la superficie
-// (info deportiva); esta limpieza es solo para el enlace.
-export function campoMapsUrl(campo: string, localidad: string | null): string {
-  const nombre = parseCampo(campo).nombre
-  const q = localidad ? `${nombre}, ${localidad}` : nombre
-  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(q)}`
+// Enlace a Google Maps del campo, EN ESTE ORDEN (nunca cae a la localidad del CLUB — ése era el bug del topónimo):
+//   1. lat+lng -> PIN EXACTO (maps?q=lat,lng). Resuelve de raíz la ambigüedad del nombre.
+//   2. sin coords pero con nombre -> búsqueda "campo de fútbol <nombre sin código superficie>, <campo_localidad>".
+//   3. sin campo (ni coords ni nombre) -> null: NO se enlaza.
+export function campoMapsUrl(c: CampoEquipo): string | null {
+  if (c.lat != null && c.lng != null) return `https://www.google.com/maps?q=${c.lat},${c.lng}`
+  if (c.nombre) {
+    const q = `campo de fútbol ${parseCampo(c.nombre).nombre}${c.localidad ? `, ${c.localidad}` : ''}`
+    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(q)}`
+  }
+  return null
 }
 
 // Escudo del PRIMER EQUIPO = crest limpio del club (los filiales llevan el mismo diseño con una letra). Orden:
@@ -175,7 +154,9 @@ export type ClubEquipoRow = {
   codequipo: string; nombre: string; rama: string | null
   nombre_comp: string | null; grupo_nombre: string | null; escudo: string | null
   activo: boolean | null; codtemporada: number | null
-  campo: string | null   // instalación de ESTE equipo en su temporada más reciente con partidos, o null si no hay clara
+  // Campo del equipo (del pipeline, web_equipo.campo_*): codigo presente = tiene campo; lat/lng para el pin en Maps.
+  campo_codigo: string | null; campo_nombre: string | null; campo_localidad: string | null
+  campo_lat: number | null; campo_lng: number | null
 }
 export type ClubFicha = {
   codclub: string; nombre: string; escudo: string | null
@@ -192,7 +173,8 @@ export async function getClub(codclub: string): Promise<ClubFicha | null> {
     if (error) throw error
     // Equipos del club (SOLO nombre de EQUIPO, nunca personas).
     const { data: eqs, error: e2 } = await supabase.from('web_equipo')
-      .select('codequipo, nombre, nombre_club, rama, nombre_comp, grupo_nombre, escudo, categoria_nivel, activo, codtemporada')
+      .select('codequipo, nombre, nombre_club, rama, nombre_comp, grupo_nombre, escudo, categoria_nivel, activo, codtemporada, ' +
+        'campo_codigo, campo_nombre, campo_localidad, campo_lat, campo_lng')
       .eq('codclub', codclub)
     if (e2) throw e2
     const todos = (eqs || []) as any[]
@@ -208,33 +190,9 @@ export async function getClub(codclub: string): Promise<ClubFicha | null> {
     // distingue en actas, pero la tabla equipo la guardó como 'G') -> el dedup colapsaba los dos y desaparecía uno.
     // La única clave que nunca pierde un equipo real es el codequipo. El coste (ver dos veces una letra) es
     // preferible a borrar un equipo; la letra duplicada es una anomalía del dato a corregir en el pipeline.
+    // Campo por EQUIPO: ya viene en web_equipo.campo_* (columnas del select), no se deriva. Cada equipo trae su
+    // campo_codigo/nombre/localidad/lat/lng directamente.
     const equipos = todos as ClubEquipoRow[]
-
-    // Campo por EQUIPO de su TEMPORADA MÁS RECIENTE con partidos como local (o null si no hay una clara). Se casa
-    // por CODEQUIPO (web_resultados ya lo trae en liga): así dos equipos del club con el MISMO nombre (p.ej. las
-    // dos 'G'/'B' homónimas) no mezclan sus campos. Copa (sin codequipo) queda fuera: el campo sale de la liga.
-    // Enriquecimiento: si falla, todos quedan sin campo.
-    const codequipos = Array.from(new Set(equipos.map((e) => String(e.codequipo)).filter(Boolean)))
-    if (codequipos.length) {
-      const { data: res } = await supabase.from('web_resultados').select('codequipo_local, codtemporada, campo')
-        .in('codequipo_local', codequipos).not('campo', 'is', null)
-      const porEqTemp = new Map<string, Map<number, Map<string, number>>>()
-      for (const r of (res || []) as { codequipo_local: string | null; codtemporada: number | null; campo: string | null }[]) {
-        const cq = String(r.codequipo_local || ''), t = Number(r.codtemporada) || 0, cp = (r.campo || '').trim()
-        if (!cq || !cp || !t) continue
-        let byT = porEqTemp.get(cq); if (!byT) { byT = new Map(); porEqTemp.set(cq, byT) }
-        let byC = byT.get(t); if (!byC) { byC = new Map(); byT.set(t, byC) }
-        byC.set(cp, (byC.get(cp) || 0) + 1)
-      }
-      for (const e of equipos) {
-        const byT = porEqTemp.get(String(e.codequipo))
-        if (!byT) { e.campo = null; continue }
-        const maxT = Math.max(...Array.from(byT.keys()))   // temporada más reciente con partidos de ESE equipo
-        e.campo = campoDominante(byT.get(maxT)!)
-      }
-    } else {
-      for (const e of equipos) e.campo = null
-    }
 
     const maxTemp = equipos.reduce((m, e) => Math.max(m, Number(e.codtemporada) || 0), 0) || null
     return {
@@ -246,5 +204,5 @@ export async function getClub(codclub: string): Promise<ClubFicha | null> {
       portal_web: (cRaw as any)?.portal_web_ok === true ? portalWebValido((cRaw as any)?.portal_web) : null,
       equipos, maxTemp,
     }
-  }, ['getClub', 'v5-portalok', codclub])
+  }, ['getClub', 'v6-campo-webequipo', codclub])
 }

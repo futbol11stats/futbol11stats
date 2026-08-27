@@ -304,15 +304,13 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
             {/* Campo bajo el nombre (contexto, discreto): chincheta + nombre del campo + superficie legible en
                 pequeño (hierba artificial/natural/tierra). Enlaza a Maps por el nombre (sin el código) + localidad.
                 Silencio si no hay campo claro. */}
-            {campoInfo.campo && (() => {
-              const { nombre, superficie } = parseCampo(campoInfo.campo)
-              return (
-                <a className="hero-campo" href={campoMapsUrl(campoInfo.campo, campoInfo.localidad)}
-                  target="_blank" rel="noopener noreferrer">
-                  <MapPin size={12} strokeWidth={2.25} /><span>{nombre}</span>
-                  {superficie && <span className="campo-sup">· {superficie}</span>}
-                </a>
-              )
+            {campoInfo.codigo && campoInfo.nombre && (() => {
+              const { nombre, superficie } = parseCampo(campoInfo.nombre)
+              const href = campoMapsUrl(campoInfo)
+              const inner = <><MapPin size={12} strokeWidth={2.25} /><span>{nombre}</span>{superficie && <span className="campo-sup">· {superficie}</span>}</>
+              return href
+                ? <a className="hero-campo" href={href} target="_blank" rel="noopener noreferrer">{inner}</a>
+                : <span className="hero-campo">{inner}</span>
             })()}
           </div>
           <CompartirBtn titulo={`${e.nombre} · Fútbol11Stats`} variant="icon" />
