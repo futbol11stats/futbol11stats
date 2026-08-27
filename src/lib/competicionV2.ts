@@ -217,16 +217,21 @@ export type ResultadoCompRow = {
   nombre_visitante: string; escudo_visitante: string | null; goles_visitante: number | null
   fecha: string | null; hora: string | null; campo: string | null
   grupo_label: string | null   // copa fase de grupos: "Grupo A"/"Grupo B" (NULL en liga y eliminatorias)
+  // Enlace a Maps del campo del PARTIDO (no la instalación habitual del equipo). PENDIENTE de cableado: el
+  // pipeline publicará codigo_campo (y quizá campo_lat/campo_lng) en web_resultados -> añadir al select de abajo.
+  // Hasta entonces vienen undefined y el campo se muestra como texto plano (sin enlace). Ver CHECKLIST.
+  codigo_campo?: string | null; campo_lat?: number | null; campo_lng?: number | null; campo_localidad?: string | null
 }
 export async function getResultadosV2(codgrupo: string, codtemporada: number, jornada: number): Promise<ResultadoCompRow[]> {
   return cacheComp(async () => {
     const { data, error } = await supabase.from('web_resultados')
-      .select('codacta, nombre_local, escudo_local, goles_local, goles_visitante, nombre_visitante, escudo_visitante, fecha, hora, campo, grupo_label')
+      .select('codacta, nombre_local, escudo_local, goles_local, goles_visitante, nombre_visitante, escudo_visitante, ' +
+        'fecha, hora, campo, grupo_label, codigo_campo, campo_lat, campo_lng')
       .eq('codgrupo', codgrupo).eq('codtemporada', codtemporada).eq('jornada', jornada).order('fecha').order('hora')
     if (error) throw error   // no cachear [] por un error transitorio (ver checklist: caché envenenada)
     return (data || []) as unknown as ResultadoCompRow[]
-    // v2-glabel: bump al añadir grupo_label al select; la clave no cambió y quedaban filas cacheadas sin él.
-  }, ['getResultadosV2', 'v2-glabel', codgrupo, codtemporada, jornada], [codgrupo], codtemporada)
+    // v3-campo: bump al añadir codigo_campo/campo_lat/campo_lng (enlace a Maps del campo del partido, pin exacto).
+  }, ['getResultadosV2', 'v3-campo', codgrupo, codtemporada, jornada], [codgrupo], codtemporada)
 }
 
 // Clasificación de FASE DE GRUPOS de copa: TODOS los snapshots (matchdays 1..3) de los DOS grupos, de una vez.

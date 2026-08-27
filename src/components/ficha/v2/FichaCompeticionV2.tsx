@@ -1,5 +1,6 @@
 import './ficha.css'
 import type { ReactNode } from 'react'
+import { MapPin } from 'lucide-react'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import Sello from '@/components/Sello'
@@ -9,6 +10,7 @@ import { Escudo, Balon, Guante, TarjetaAmarilla, TarjetaDoble, TarjetaRoja, Cami
 import { nombreOficial, denominacion, familiaSello } from '@/lib/sellos'
 import { ensureMadrid, SITE_URL } from '@/lib/seo'
 import { fechaCortaDMY, equipoSlug } from '@/lib/equipo'
+import { campoMapsUrl, parseCampo } from '@/lib/club'
 import JsonLd from '@/components/JsonLd'
 import { graphLd, sportsEventLd } from '@/lib/jsonld'
 import { escudoUrl } from '@/lib/supabase'
@@ -361,9 +363,23 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
   )
 
   // Un partido de la lista de Resultados (extraído para reutilizarlo agrupado por grupo_label en copa).
+  // Campo del PARTIDO (dato de la fila web_resultados, NO la instalación habitual del equipo local). Enlace a Maps
+  // discreto (chincheta) + superficie legible como en la ficha de equipo. Enlace SOLO cuando el pipeline publique
+  // coords/código del partido (r.campo_lat / r.codigo_campo); hasta entonces (o si no se resuelve) -> texto plano.
+  const renderCampoPartido = (r: ResultadoCompRow): ReactNode => {
+    if (!r.campo) return null
+    const { nombre, superficie } = parseCampo(r.campo)
+    const canLink = r.campo_lat != null || r.codigo_campo != null
+    const href = canLink ? campoMapsUrl({ codigo: r.codigo_campo ?? null, nombre: r.campo, localidad: r.campo_localidad ?? null, lat: r.campo_lat ?? null, lng: r.campo_lng ?? null }) : null
+    const txt = <>{nombre}{superficie && <span className="campo-sup"> · {superficie}</span>}</>
+    return href
+      ? <a className="rmeta-campo" href={href} target="_blank" rel="noopener noreferrer"><MapPin size={11} strokeWidth={2.25} />{txt}</a>
+      : txt
+  }
   const renderPartido = (r: ResultadoCompRow, i: number) => {
     const jugado = r.goles_local != null && r.goles_visitante != null
-    const meta = [r.fecha ? fechaCortaDMY(r.fecha) : null, r.hora || null, r.campo || null].filter(Boolean).join(' · ')
+    const metaFH = [r.fecha ? fechaCortaDMY(r.fecha) : null, r.hora || null].filter(Boolean).join(' · ')
+    const campoEl = renderCampoPartido(r)
     return (
       <div className="rmatch-wrap" key={r.codacta ?? i}>
         <div className="rmatch">
@@ -382,7 +398,7 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
             <span className={`rnm${jugado && (r.goles_visitante as number) > (r.goles_local as number) ? ' w' : ''}`}><NombreEquipo codequipo={equiposMap.get(r.nombre_visitante) ?? null} nombre={r.nombre_visitante} /></span>
           </div>
         </div>
-        {meta && <div className="rmeta">{meta}</div>}
+        {(metaFH || campoEl) && <div className="rmeta">{metaFH}{campoEl && <>{metaFH ? ' · ' : ''}{campoEl}</>}</div>}
       </div>
     )
   }

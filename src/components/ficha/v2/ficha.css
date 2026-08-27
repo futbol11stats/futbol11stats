@@ -44,7 +44,7 @@
 .fjv2 .hero-campo{display:inline-flex;align-items:center;gap:4px;margin-top:4px;font-size:var(--t-cap);color:var(--ink-3);text-decoration:none;line-height:1.2}
 .fjv2 .hero-campo:hover{color:var(--ink-2)}
 .fjv2 .hero-campo svg{flex:none;opacity:.8}
-.fjv2 .hero-campo .campo-sup{color:var(--ink-4);font-size:var(--t-micro)}
+.fjv2 .campo-sup{color:var(--ink-4);font-size:var(--t-micro)}
 .fjv2 .share{width:38px;height:38px;border-radius:10px;flex:none;display:grid;place-items:center;border:1px solid var(--line);background:rgba(255,255,255,.05);color:var(--ink-2);cursor:pointer}
 /* align-items:stretch -> todas las pastillas de una fila quedan al mismo alto (posición, edad, equipo,
    competición…), con su contenido centrado verticalmente. */
@@ -469,6 +469,10 @@
 .fjv2 .rmatch .rnm.w{font-weight:700;color:var(--ink)}
 .fjv2 .rmatch .rsc{font-family:var(--font-display),'Barlow Condensed',sans-serif;font-size:var(--n-sm);font-weight:700;font-variant-numeric:tabular-nums;padding:3px 9px;border-radius:6px;background:rgba(255,255,255,.06);flex:none}
 .fjv2 .rmeta{padding:0 var(--pad) 9px;font-size:var(--t-cap);color:var(--ink-3);text-align:center}
+/* Campo del partido como enlace discreto (chincheta) en la línea de metadatos; hereda el tono muted de .rmeta. */
+.fjv2 .rmeta-campo{display:inline-flex;align-items:center;gap:3px;color:inherit;text-decoration:none}
+.fjv2 .rmeta-campo:hover{color:var(--ink-2);text-decoration:underline;text-decoration-style:dotted}
+.fjv2 .rmeta-campo svg{flex:none;opacity:.75;vertical-align:-1px}
 
 /* Global por grupos: líderes + bloques por zona. */
 .fjv2 .lideres-g{display:flex;gap:7px;padding:0 var(--pad) 4px}
