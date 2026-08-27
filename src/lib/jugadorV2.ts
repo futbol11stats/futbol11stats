@@ -168,8 +168,13 @@ export async function getPercentilCortes(
     if (c.some((x) => x == null)) return null
     return c as [number, number, number, number]
     // keyParts v2: el pipeline recalculó web_percentiles.elo_jugador (de elo_actual a elo_final por temporada).
-    // Bump para forzar cache-miss GLOBAL de los cortes (persisten entre deploys, tag temporada:).
-  }, ['getPercentilCortes', 'v2', metrica, String(categoria), codtempInt], [`temporada:${codtempInt}`])
+    // TAG PROPIO `cortes:<metrica>:<t>` (NO temporada:): estos cortes son de la FICHA (color del ELO). Con
+    // temporada:<t> heredaban el temporada:<activa> nocturno y enfriaban TODAS las fichas activas cada noche por
+    // un dato que apenas se mueve noche a noche (percentiles de una categoría entera). Con el tag propio, el ciclo
+    // nocturno NO los toca; se refrescan cuando de verdad cambian: en un REBAREMO (el pipeline debe emitir
+    // `cortes:elo_jugador:<t>`), y opcionalmente un barrido SEMANAL. Ver CHECKLIST (cobertura rebaremo). El key
+    // sigue con codtempInt (caché por temporada) y el bump 'v2' fuerza refresco global si cambia la fórmula.
+  }, ['getPercentilCortes', 'v2', metrica, String(categoria), codtempInt], [`cortes:${metrica}:${codtempInt}`])
 }
 
 // Cortes de ELO por categoría/temporada, validados; si son degenerados o no hay, cae a CORTES_FIJOS.elo.
@@ -189,7 +194,11 @@ export async function getPartidosTemporada(cod: string, codtemp: string): Promis
     let r = await q(COLS_PART + ', es_local')
     if (r.error) r = await q(COLS_PART)
     return (r.data || []) as any[]
-  }, ['getPartidosTemporada', 'copa', cod, String(codtemp)], cod, codtemp)   // bump: ronda_label + partidos de copa
+    // Tag SOLO jugador:<cod> (NO temporada:): son hechos de partido del jugador, cambian cuando JUEGA (y entonces
+    // el censo nocturno emite jugador:<cod>). Quitarle temporada: evita que el temporada:<activa> del ELO nocturno
+    // enfríe la ficha cada noche en balde. Rebaremo (reescribe pts_fantasy): cubierto por el censo jugador: que
+    // ya emite `_revalidar.py --temporada <c>` — ver CHECKLIST. La clave conserva codtemp (caché por temporada).
+  }, ['getPartidosTemporada', 'copa', cod, String(codtemp)], cod)   // detag temporada: (2026-08-27)
 }
 
 // --- Ámbito: por competición de la temporada, la secuencia de jornadas con estado (incluidas ausencias) ---
@@ -284,7 +293,10 @@ export async function getAmbitoTemporada(cod: string, codtemp: string): Promise<
   }
   // Liga (más jornadas) primero.
   return comps.sort((a, b) => b.jornadas.length - a.jornadas.length)
-  }, ['getAmbitoTemporada', 'copa', cod, String(codtemp)], cod, codtemp)   // bump: ronda + gráfico de jornadas de copa
+    // Tag SOLO jugador:<cod> (NO temporada:), como getPartidosTemporada: hechos de partido del jugador; el
+    // temporada:<activa> nocturno los invalidaba en balde y enfriaba la ficha. Rebaremo cubierto por el censo
+    // jugador: de `_revalidar.py --temporada <c>`. Clave conserva codtemp (caché por temporada).
+  }, ['getAmbitoTemporada', 'copa', cod, String(codtemp)], cod)   // detag temporada: (2026-08-27)
 }
 
 // --- Forma: ventanas de últimas 5 / 10 / temporada sobre los partidos JUGADOS de la temporada ---
