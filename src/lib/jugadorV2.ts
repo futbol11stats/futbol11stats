@@ -10,7 +10,7 @@ import {
   type JugadorFicha, type HitoRow,
 } from '@/lib/jugador'
 import { slugToCod } from '@/lib/temporadaSlug'
-import { getResultadosGrupo, type ChipRacha } from '@/lib/equipo'
+import { getResultadosGrupo, filaEsLocal, type ChipRacha } from '@/lib/equipo'
 import { derivarRol, escalon, cortesValidos, CORTES_FIJOS, type RolPartido } from '@/lib/escala'
 
 export type { JugadorFicha, HitoRow }
@@ -204,19 +204,26 @@ export type JornadaDatum = {
 export type CompAmbito = { codgrupo: string; nombre_comp: string; jornadas: JornadaDatum[] }
 
 // Resultados del grupo con escudos y nombres (para pintar el rival también en jornadas NO jugadas).
-// web_resultados no trae codequipo -> se filtra por nombre (local o visitante), como en @/lib/equipo.
-type ResRich = { jornada: number; gl: number | null; gv: number | null; nl: string; nv: string; el: string | null; ev: string | null }
-async function resultadosGrupoRich(nombre: string | null, codgrupo: string): Promise<ResRich[]> {
-  if (!nombre) return []
-  const cols = 'jornada, goles_local, goles_visitante, nombre_local, nombre_visitante, escudo_local, escudo_visitante'
-  const [loc, vis] = await Promise.all([
-    supabase.from('web_resultados').select(cols).eq('codgrupo', codgrupo).eq('nombre_local', nombre),
-    supabase.from('web_resultados').select(cols).eq('codgrupo', codgrupo).eq('nombre_visitante', nombre),
-  ])
-  return [...((loc.data || []) as any[]), ...((vis.data || []) as any[])].map((r) => ({
-    jornada: r.jornada, gl: r.goles_local, gv: r.goles_visitante, nl: r.nombre_local, nv: r.nombre_visitante,
-    el: r.escudo_local, ev: r.escudo_visitante,
-  }))
+// Partidos del equipo en el grupo (para pintar rival en jornadas NO jugadas). Se casa por CODEQUIPO (estable),
+// con fallback a nombre en filas sin codequipo (copa), igual que getResultadosGrupo en @/lib/equipo.
+type ResRich = { jornada: number; gl: number | null; gv: number | null; nl: string; nv: string; el: string | null; ev: string | null; cl: string | null; cv: string | null }
+async function resultadosGrupoRich(codequipo: string | number | null, nombre: string | null, codgrupo: string): Promise<ResRich[]> {
+  if (codequipo == null && !nombre) return []
+  const cols = 'jornada, goles_local, goles_visitante, nombre_local, nombre_visitante, escudo_local, escudo_visitante, codequipo_local, codequipo_visitante'
+  const base = () => supabase.from('web_resultados').select(cols).eq('codgrupo', codgrupo)
+  // UNIÓN codequipo ∪ nombre (dedup): code casa liga; nombre casa copa y códigos reasignados viejos. Unívoco en el grupo.
+  const qs: PromiseLike<{ data: unknown }>[] = []
+  if (codequipo != null) qs.push(base().eq('codequipo_local', String(codequipo)), base().eq('codequipo_visitante', String(codequipo)))
+  if (nombre) qs.push(base().eq('nombre_local', nombre), base().eq('nombre_visitante', nombre))
+  const rs = await Promise.all(qs)
+  const seen = new Set<string>(), out: ResRich[] = []
+  for (const rr of rs) for (const r of ((rr.data || []) as any[])) {
+    const k = `${r.jornada}|${r.nombre_local}|${r.nombre_visitante}`
+    if (seen.has(k)) continue; seen.add(k)
+    out.push({ jornada: r.jornada, gl: r.goles_local, gv: r.goles_visitante, nl: r.nombre_local, nv: r.nombre_visitante,
+      el: r.escudo_local, ev: r.escudo_visitante, cl: r.codequipo_local, cv: r.codequipo_visitante })
+  }
+  return out
 }
 
 // Cruza partidos jugados con las jornadas reales del equipo (web_resultados) para materializar las
@@ -238,9 +245,10 @@ export async function getAmbitoTemporada(cod: string, codtemp: string): Promise<
   const comps: CompAmbito[] = []
   for (const [codgrupo, ps] of Array.from(porGrupo.entries())) {
     const nombreEquipo: string | null = ps[0]?.equipo_nombre ?? null
+    const codeqEquipo: string | null = ps[0]?.codequipo ?? null
     const nombreComp: string = ps[0]?.competicion ?? 'Competición'
     // Jornadas reales del equipo en ese grupo (para las ausencias), con rival/escudo/resultado.
-    const teamRows = await resultadosGrupoRich(nombreEquipo, codgrupo)
+    const teamRows = await resultadosGrupoRich(codeqEquipo, nombreEquipo, codgrupo)
     const teamPorJornada = new Map<number, ResRich>()
     for (const r of teamRows) if (r.gl != null) teamPorJornada.set(r.jornada, r)
     const jornadasEquipo = new Set<number>(Array.from(teamPorJornada.keys()))
@@ -254,7 +262,7 @@ export async function getAmbitoTemporada(cod: string, codtemp: string): Promise<
         // Ausencia: rival y resultado desde los resultados del equipo (perspectiva del equipo).
         const r = teamPorJornada.get(jornada)
         if (!r) return { jornada, estado: { tipo: 'no_jugo' } }
-        const local = r.nl === nombreEquipo
+        const local = filaEsLocal({ codequipo_local: r.cl, codequipo_visitante: r.cv, nombre_local: r.nl }, nombreEquipo, codeqEquipo)
         const gf = (local ? r.gl : r.gv) ?? 0, gc = (local ? r.gv : r.gl) ?? 0
         return {
           jornada, estado: { tipo: 'no_jugo' },
@@ -334,21 +342,21 @@ export async function balanceEquipo(partidos: any[]): Promise<{ con: Balance; si
   const zero = (): Balance => ({ pg: 0, pe: 0, pp: 0, pj: 0 })
   const con = zero(), sin = zero()
   // Un grupo/nombre por competición (misma temporada). Cruce por codgrupo.
-  const grupos = new Map<string, { nombre: string | null }>()
+  const grupos = new Map<string, { nombre: string | null; codequipo: string | null }>()
   const jugadasPorGrupo = new Map<string, Set<number>>()
   for (const p of partidos) {
     const g = String(p.codgrupo ?? '')
-    if (!grupos.has(g)) grupos.set(g, { nombre: p.equipo_nombre ?? null })
+    if (!grupos.has(g)) grupos.set(g, { nombre: p.equipo_nombre ?? null, codequipo: p.codequipo ?? null })
     if (!jugadasPorGrupo.has(g)) jugadasPorGrupo.set(g, new Set())
     jugadasPorGrupo.get(g)!.add(p.jornada)
   }
-  for (const [g, { nombre }] of Array.from(grupos.entries())) {
-    if (!nombre) continue
-    const rows = await getResultadosGrupo(nombre, g)
+  for (const [g, { nombre, codequipo }] of Array.from(grupos.entries())) {
+    if (!nombre && codequipo == null) continue
+    const rows = await getResultadosGrupo(codequipo, nombre, g)
     const jugadas = jugadasPorGrupo.get(g)!
     for (const r of rows) {
       if (r.goles_local == null || r.goles_visitante == null) continue
-      const local = r.nombre_local === nombre
+      const local = filaEsLocal(r, nombre, codequipo)
       const gf = (local ? r.goles_local : r.goles_visitante) as number
       const gc = (local ? r.goles_visitante : r.goles_local) as number
       const bucket = jugadas.has(r.jornada) ? con : sin

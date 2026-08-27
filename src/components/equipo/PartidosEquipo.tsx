@@ -32,19 +32,32 @@ type Partido = {
 const tipoDeGrupo = (t: string | null | undefined): TipoComp =>
   t === 'PLAYOFF' ? 'playoff' : t && t !== 'LIGA' ? 'copa' : 'liga'
 
-async function fetchPartidos(nombre: string, rama: string, codtemporada: string, grupos: string[]): Promise<Partido[]> {
+// Perspectiva local/visitante robusta: si el codequipo casa un lado es definitivo; si no casa ninguno (copa sin
+// codequipo, o fila con código reasignado viejo) cae al nombre (unívoco dentro del grupo).
+const esLocalFila = (r: any, nombre: string, codequipo?: string | number | null) => {
+  if (codequipo != null) {
+    if (r.codequipo_local != null && String(r.codequipo_local) === String(codequipo)) return true
+    if (r.codequipo_visitante != null && String(r.codequipo_visitante) === String(codequipo)) return false
+  }
+  return r.nombre_local === nombre
+}
+
+async function fetchPartidos(nombre: string, rama: string, codtemporada: string, grupos: string[], codequipo?: string | number | null): Promise<Partido[]> {
   if (!grupos || grupos.length === 0) return []
-  const cols = 'codgrupo, jornada, codacta, nombre_local, escudo_local, goles_local, goles_visitante, nombre_visitante, escudo_visitante, fecha'
-  const [loc, vis] = await Promise.all([
-    supabase.from('web_resultados').select(cols).eq('codtemporada', Number(codtemporada)).in('codgrupo', grupos).eq('nombre_local', nombre),
-    supabase.from('web_resultados').select(cols).eq('codtemporada', Number(codtemporada)).in('codgrupo', grupos).eq('nombre_visitante', nombre),
-  ])
+  // UNIÓN codequipo ∪ nombre (dedup por codacta), acotada a los codgrupos PROPIOS + temporada: codequipo casa liga
+  // (estable a renombrados/corrección de letra); nombre casa copa (sin codequipo) y códigos reasignados viejos.
+  const cols = 'codgrupo, jornada, codacta, nombre_local, escudo_local, goles_local, goles_visitante, nombre_visitante, escudo_visitante, fecha, codequipo_local, codequipo_visitante'
+  const base = () => supabase.from('web_resultados').select(cols).eq('codtemporada', Number(codtemporada)).in('codgrupo', grupos)
+  const qs: PromiseLike<{ data: unknown }>[] = []
+  if (codequipo != null) qs.push(base().eq('codequipo_local', String(codequipo)), base().eq('codequipo_visitante', String(codequipo)))
+  qs.push(base().eq('nombre_local', nombre), base().eq('nombre_visitante', nombre))
+  const rs = await Promise.all(qs)
   const uniq = new Map<string, any>()
-  for (const r of [...((loc.data || []) as any[]), ...((vis.data || []) as any[])]) uniq.set(r.codacta, r)
+  for (const rr of rs) for (const r of ((rr.data || []) as any[])) uniq.set(r.codacta, r)
   const list = Array.from(uniq.values())
   if (list.length === 0) return []
   const codgrupos = Array.from(new Set(list.map((r) => String(r.codgrupo))))
-  const pares = list.map((r) => ({ codgrupo: String(r.codgrupo), rival: (r.nombre_local === nombre ? r.nombre_visitante : r.nombre_local) as string }))
+  const pares = list.map((r) => ({ codgrupo: String(r.codgrupo), rival: (esLocalFila(r, nombre, codequipo) ? r.nombre_visitante : r.nombre_local) as string }))
   // Resolución rival -> codequipo. El nombre choca entre ramas (juvenil/aficionado homónimos), así que
   // NO se resuelve contra web_equipo global. (1) Clasificación del PROPIO grupo (codgrupo+nombre es
   // unívoco: un grupo de liga = una sola rama). (2) Copa/Playoff no tienen tabla -> se resuelve por
@@ -67,7 +80,7 @@ async function fetchPartidos(nombre: string, rama: string, codtemporada: string,
   const grMap = new Map<string, any>((gr.data || []).map((g: any) => [String(g.codgrupo), g]))
   return list
     .map((r): Partido => {
-      const local = r.nombre_local === nombre
+      const local = esLocalFila(r, nombre, codequipo)
       const rival = local ? r.nombre_visitante : r.nombre_local
       const g = grMap.get(String(r.codgrupo))
       const rivalCod = codPorGrupoNombre.get(`${r.codgrupo}|${rival}`) ?? codPorNombreRama.get(rival)
@@ -111,7 +124,7 @@ function Fila({ p }: { p: Partido }) {
 
 type Filtro = 'todas' | TipoComp
 
-export default function PartidosEquipo({ nombre, rama, gruposPorTemporada }: { nombre: string; rama: string; gruposPorTemporada: Record<string, string[]> }) {
+export default function PartidosEquipo({ nombre, rama, codequipo, gruposPorTemporada }: { nombre: string; rama: string; codequipo?: string | number | null; gruposPorTemporada: Record<string, string[]> }) {
   const { sel } = useTemporada()
   const [cache, setCache] = useState<Record<string, { loading: boolean; partidos: Partido[] }>>({})
   const [filtro, setFiltro] = useState<Filtro>('todas')
@@ -120,8 +133,8 @@ export default function PartidosEquipo({ nombre, rama, gruposPorTemporada }: { n
   useEffect(() => {
     if (cache[key]) return
     setCache((m) => ({ ...m, [key]: { loading: true, partidos: [] } }))
-    fetchPartidos(nombre, rama, key, gruposPorTemporada[key] || []).then((partidos) => setCache((m) => ({ ...m, [key]: { loading: false, partidos } })))
-  }, [key, nombre, rama, cache, gruposPorTemporada])
+    fetchPartidos(nombre, rama, key, gruposPorTemporada[key] || [], codequipo).then((partidos) => setCache((m) => ({ ...m, [key]: { loading: false, partidos } })))
+  }, [key, nombre, rama, codequipo, cache, gruposPorTemporada])
 
   const box = cache[key]
   // El Playoff NO es copa: pestaña propia (nunca se lo engulle [Copa]). Cada pestaña solo si hay.

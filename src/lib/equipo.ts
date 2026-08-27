@@ -30,26 +30,46 @@ export function equipoHref(codequipo: string | number | null | undefined, nombre
 // juvenil) -> pastilla sí, enlace no.
 export type FichaMov = { nombre: string | null; pos: string | null; estimada: boolean; enlazable: boolean }
 
-// FORMA del hero: resultados del equipo en su grupo (web_resultados no trae codequipo -> se filtra por
-// NOMBRE, como local o visitante; dos .eq en vez de .or para no pelear con comillas/comas del nombre).
+// FORMA del hero: partidos del equipo en su grupo. Se casa por CODEQUIPO (estable: sobrevive a renombrados de
+// club y a correcciones de letra de filial, que dejaban los partidos colgando del nombre viejo); para las filas
+// SIN codequipo (copa, aún no reexportada con codequipo) se cae al NOMBRE. Dos .eq por lado en vez de .or para
+// no pelear con comillas/comas del nombre.
 export type ResultadoRow = {
   jornada: number; fecha: string | null
   goles_local: number | null; goles_visitante: number | null
   nombre_local: string; nombre_visitante: string
+  codequipo_local: string | null; codequipo_visitante: string | null
 }
-export async function getResultadosGrupo(nombre: string | null, codgrupo: string | null | undefined): Promise<ResultadoRow[]> {
-  if (!nombre || !codgrupo) return []
+// Perspectiva local/visitante robusta: si el codequipo del equipo casa un lado de la fila, es definitivo; si no
+// casa ninguno (copa sin codequipo, o fila con código REASIGNADO viejo), cae al nombre. El nombre es unívoco
+// dentro de un codgrupo, así que esto es correcto en todas las superficies acotadas por grupo.
+export function filaEsLocal(r: Pick<ResultadoRow, 'codequipo_local' | 'codequipo_visitante' | 'nombre_local'>, nombre: string | null, codequipo: string | number | null | undefined): boolean {
+  if (codequipo != null) {
+    if (r.codequipo_local != null && String(r.codequipo_local) === String(codequipo)) return true
+    if (r.codequipo_visitante != null && String(r.codequipo_visitante) === String(codequipo)) return false
+  }
+  return r.nombre_local === nombre
+}
+export async function getResultadosGrupo(codequipo: string | number | null | undefined, nombre: string | null, codgrupo: string | null | undefined): Promise<ResultadoRow[]> {
+  if (!codgrupo || (codequipo == null && !nombre)) return []
   return cacheTagged(async () => {
-    const cols = 'jornada, fecha, goles_local, goles_visitante, nombre_local, nombre_visitante'
-    const [loc, vis] = await Promise.all([
-      supabase.from('web_resultados').select(cols).eq('codgrupo', String(codgrupo)).eq('nombre_local', nombre),
-      supabase.from('web_resultados').select(cols).eq('codgrupo', String(codgrupo)).eq('nombre_visitante', nombre),
-    ])
-    if (loc.error) throw loc.error   // no cachear [] por un error transitorio (ver checklist: caché envenenada)
-    if (vis.error) throw vis.error
-    return [...((loc.data || []) as any[]), ...((vis.data || []) as any[])] as ResultadoRow[]
-    // v2: bump para recalcular fresco (los resultados de copa/playoff se movieron a fam-* esta semana).
-  }, ['getResultadosGrupo', 'v2', String(nombre), String(codgrupo)], [`comp:${codgrupo}`])
+    const cols = 'jornada, fecha, goles_local, goles_visitante, nombre_local, nombre_visitante, codequipo_local, codequipo_visitante'
+    const base = () => supabase.from('web_resultados').select(cols).eq('codgrupo', String(codgrupo))
+    // UNIÓN codequipo ∪ nombre (deduplicada): codequipo casa liga (estable a renombrados); nombre casa copa (sin
+    // codequipo) y filas con código REASIGNADO viejo (nombre estable). Dentro del codgrupo el nombre es unívoco,
+    // así que no re-mezcla homónimos de otras ramas (viven en otros grupos).
+    const qs: PromiseLike<{ data: unknown; error: unknown }>[] = []
+    if (codequipo != null) qs.push(base().eq('codequipo_local', String(codequipo)), base().eq('codequipo_visitante', String(codequipo)))
+    if (nombre) qs.push(base().eq('nombre_local', nombre), base().eq('nombre_visitante', nombre))
+    const rs = await Promise.all(qs)
+    for (const r of rs) if (r.error) throw r.error   // no cachear [] por un error transitorio (ver checklist: caché envenenada)
+    const seen = new Set<string>(), out: ResultadoRow[] = []   // la unión solapa liga (code+nombre); dedup por partido
+    for (const r of rs) for (const row of ((r.data || []) as ResultadoRow[])) {
+      const k = `${row.jornada}|${row.nombre_local}|${row.nombre_visitante}|${row.fecha ?? ''}`
+      if (!seen.has(k)) { seen.add(k); out.push(row) }
+    }
+    return out
+  }, ['getResultadosGrupo', 'v4-union', String(codequipo ?? ''), String(nombre), String(codgrupo)], [`comp:${codgrupo}`])
 }
 
 // Un chip de racha/forma: signo (para color), jornada, marcador (orden absoluto local-visitante) y
@@ -58,7 +78,7 @@ export type ChipRacha = { signo: 'G' | 'E' | 'P'; jornada: number | null; marcad
 
 // Resumen de forma (últimos 5 JUGADOS, orden jornada ASC = más reciente a la derecha) + última victoria
 // (por JORNADA, entero — nunca comparando el string DD/MM/YYYY). Perspectiva del equipo por su nombre.
-export function resumenForma(rows: ResultadoRow[], nombre: string): {
+export function resumenForma(rows: ResultadoRow[], nombre: string, codequipo?: string | number | null): {
   forma: ChipRacha[]
   ultimaVictoria: { fecha: string | null; jornada: number } | null
 } {
@@ -66,7 +86,7 @@ export function resumenForma(rows: ResultadoRow[], nombre: string): {
     .filter((r) => r.goles_local != null && r.goles_visitante != null)
     .sort((a, b) => a.jornada - b.jornada)
   const persp = jugados.map((r) => {
-    const local = r.nombre_local === nombre
+    const local = filaEsLocal(r, nombre, codequipo)
     const gf = (local ? r.goles_local : r.goles_visitante) as number
     const gc = (local ? r.goles_visitante : r.goles_local) as number
     return {
@@ -261,10 +281,10 @@ export async function getCopasConMetricas(codequipo: string | number | null | un
       const fechaInicio = ((rows[i] as { fecha_inicio?: unknown }).fecha_inicio as string | null) || null
       let pj = 0, gf = 0, gc = 0
       if (cg) {
-        const res = await getResultadosGrupo(nombre, String(cg))
+        const res = await getResultadosGrupo(codequipo, nombre, String(cg))
         for (const r of res) {
           if (r.goles_local == null || r.goles_visitante == null) continue
-          const local = r.nombre_local === nombre
+          const local = filaEsLocal(r, nombre, codequipo)
           pj++; gf += (local ? r.goles_local : r.goles_visitante) as number; gc += (local ? r.goles_visitante : r.goles_local) as number
         }
       }

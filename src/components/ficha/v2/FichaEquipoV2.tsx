@@ -70,14 +70,14 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
 
   const [serie, resultados, equipoInfo, grupoInfo] = await Promise.all([
     getSerieLiga(e.codequipo, codgrupoSel),
-    getResultadosGrupo(e.nombre, codgrupoSel),
+    getResultadosGrupo(e.codequipo, e.nombre, codgrupoSel),
     inactivo ? Promise.resolve({ copas: [], posicionActual: null }) : getEquipoActualInfo(e.codequipo),
     getGrupoInfo(codgrupoSel),
   ])
   const { posicionActual } = equipoInfo   // `copas` (viva) ya no se usa: el hero muestra copasSel (temporada seleccionada)
   const grupoUrl = grupoHref(grupoInfo)
 
-  const jornadas = buildJornadasEquipo(serie, resultados, e.nombre)
+  const jornadas = buildJornadasEquipo(serie, resultados, e.nombre, e.codequipo)
   const escMap = await escudosPorNombre(jornadas.map((j) => j.rivalNombre || ''))
   for (const j of jornadas) if (j.rivalNombre) j.rivalEscudo = escMap.get(j.rivalNombre) ?? null
 
@@ -113,7 +113,7 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
     ...(jornadas.length > 0 ? [{ label: nombreComp || 'Liga', titulo: nombreComp || 'Liga', count: jornadas.length, sello: <Sello nombreComp={nombreComp || 'Liga'} size={18} />, fase: 1, fechaInicio: (tempRow?.fecha_inicio as string | null) || null }] : []),
     ...copasAmbito.map((c) => ({ label: c.label, titulo: c.titulo, count: c.rondas.length, sello: <Sello nombreComp={c.competicion} size={18} />, fase: faseCompeticion(c.competicion, null), fechaInicio: c.fechaInicio })),
   ]
-  const ana = analisisResultados(resultados, e.nombre)
+  const ana = analisisResultados(resultados, e.nombre, e.codequipo)
   const forma = formaEquipo(jornadas)
   const anaTot = ana.pj || 1
   const pc = (n: number) => Math.round((n / anaTot) * 100)

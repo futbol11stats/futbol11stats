@@ -3,7 +3,7 @@
 // de equipo actual ni sus componentes.
 
 import { supabase } from '@/lib/supabase'
-import { getResultadosGrupo, codgrupoFamilia, type ResultadoRow, type EquipoFicha, COLS_EQUIPO } from '@/lib/equipo'
+import { getResultadosGrupo, filaEsLocal, codgrupoFamilia, type ResultadoRow, type EquipoFicha, COLS_EQUIPO } from '@/lib/equipo'
 import { cortesValidos } from '@/lib/escala'
 import { cacheEquipo } from '@/lib/cacheComp'
 
@@ -104,7 +104,7 @@ export type JornadaEquipoDatum = {
 }
 
 // Cruza la serie de clasificación (fantasy/pos/mov) con los resultados del grupo (marcador/rival/localía).
-export function buildJornadasEquipo(serie: ClasifRow[], resultados: ResultadoRow[], nombre: string): JornadaEquipoDatum[] {
+export function buildJornadasEquipo(serie: ClasifRow[], resultados: ResultadoRow[], nombre: string, codequipo?: string | number | null): JornadaEquipoDatum[] {
   const resPorJornada = new Map<number, ResultadoRow>()
   for (const r of resultados) if (r.goles_local != null && r.goles_visitante != null) resPorJornada.set(r.jornada, r)
   return serie.map((c, i) => {
@@ -114,7 +114,7 @@ export function buildJornadasEquipo(serie: ClasifRow[], resultados: ResultadoRow
     let rivalNombre: string | null = null, rivalEscudo: string | null = null
     let marcador: string | null = null, signo: 'G' | 'E' | 'P' | null = null, esLocal: boolean | null = null
     if (r) {
-      const local = r.nombre_local === nombre
+      const local = filaEsLocal(r, nombre, codequipo)
       esLocal = local
       const gf = (local ? r.goles_local : r.goles_visitante) as number
       const gc = (local ? r.goles_visitante : r.goles_local) as number
@@ -159,13 +159,13 @@ export async function getMiniClasif(codgrupo: string | null, codequipo: string):
 
 // --- Análisis: balance V/E/D + casa/fuera + goles, todo desde los resultados del grupo ---
 export type LadoEq = { v: number; e: number; d: number; gf: number; gc: number; pj: number }
-export function analisisResultados(resultados: ResultadoRow[], nombre: string): { v: number; e: number; d: number; pj: number; casa: LadoEq; fuera: LadoEq } {
+export function analisisResultados(resultados: ResultadoRow[], nombre: string, codequipo?: string | number | null): { v: number; e: number; d: number; pj: number; casa: LadoEq; fuera: LadoEq } {
   const zero = (): LadoEq => ({ v: 0, e: 0, d: 0, gf: 0, gc: 0, pj: 0 })
   const casa = zero(), fuera = zero()
   let v = 0, e = 0, d = 0
   for (const r of resultados) {
     if (r.goles_local == null || r.goles_visitante == null) continue
-    const local = r.nombre_local === nombre
+    const local = filaEsLocal(r, nombre, codequipo)
     const gf = (local ? r.goles_local : r.goles_visitante) as number
     const gc = (local ? r.goles_visitante : r.goles_local) as number
     const s = gf > gc ? 'v' : gf < gc ? 'd' : 'e'
@@ -336,14 +336,14 @@ export async function getCopasAmbito(codequipo: string, tempSel: string | null, 
       // entradas, p.ej. equipos permanentemente solo-copa). Mismo helper que resolveCopaRows.
       const cg = codgrupoFamilia(c) ?? c.codgrupo
       if (!cg) continue
-      const res = await getResultadosGrupo(nombre, String(cg))
+      const res = await getResultadosGrupo(codequipo, nombre, String(cg))
       // Orden CRONOLÓGICO INVERSO (reciente arriba), mismo criterio que el resto: por fecha del partido DESC
       // (DD/MM/YYYY -> YYYYMMDD para comparar), con la jornada como desempate.
       const ymd = (f: string | null) => { const m = (f || '').match(/^(\d{2})\/(\d{2})\/(\d{4})$/); return m ? `${m[3]}${m[2]}${m[1]}` : '' }
       const jugados = res.filter((r) => r.goles_local != null && r.goles_visitante != null)
         .sort((a, b) => ymd(b.fecha).localeCompare(ymd(a.fecha)) || ((b.jornada ?? 0) - (a.jornada ?? 0)))
       const rondas: RondaDatum[] = jugados.map((r) => {
-        const local = r.nombre_local === nombre
+        const local = filaEsLocal(r, nombre, codequipo)
         const gf = (local ? r.goles_local : r.goles_visitante) as number
         const gc = (local ? r.goles_visitante : r.goles_local) as number
         return {

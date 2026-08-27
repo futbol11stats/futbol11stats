@@ -150,24 +150,24 @@ export async function getClub(codclub: string): Promise<ClubFicha | null> {
     // preferible a borrar un equipo; la letra duplicada es una anomalía del dato a corregir en el pipeline.
     const equipos = todos as ClubEquipoRow[]
 
-    // Campo por EQUIPO de su TEMPORADA MÁS RECIENTE con partidos como local (o null si no hay una clara). Una
-    // sola consulta. NOTA: web_resultados indexa por nombre de equipo, no por codequipo -> dos equipos que
-    // comparten nombre mezclarían sus campos, pero son del mismo club (mismo recinto habitual). Enriquecimiento:
-    // si falla, todos quedan sin campo.
-    const nombres = Array.from(new Set(equipos.map((e) => e.nombre).filter(Boolean)))
-    if (nombres.length) {
-      const { data: res } = await supabase.from('web_resultados').select('nombre_local, codtemporada, campo')
-        .in('nombre_local', nombres).not('campo', 'is', null)
+    // Campo por EQUIPO de su TEMPORADA MÁS RECIENTE con partidos como local (o null si no hay una clara). Se casa
+    // por CODEQUIPO (web_resultados ya lo trae en liga): así dos equipos del club con el MISMO nombre (p.ej. las
+    // dos 'G'/'B' homónimas) no mezclan sus campos. Copa (sin codequipo) queda fuera: el campo sale de la liga.
+    // Enriquecimiento: si falla, todos quedan sin campo.
+    const codequipos = Array.from(new Set(equipos.map((e) => String(e.codequipo)).filter(Boolean)))
+    if (codequipos.length) {
+      const { data: res } = await supabase.from('web_resultados').select('codequipo_local, codtemporada, campo')
+        .in('codequipo_local', codequipos).not('campo', 'is', null)
       const porEqTemp = new Map<string, Map<number, Map<string, number>>>()
-      for (const r of (res || []) as { nombre_local: string | null; codtemporada: number | null; campo: string | null }[]) {
-        const nl = (r.nombre_local || '').trim(), t = Number(r.codtemporada) || 0, cp = (r.campo || '').trim()
-        if (!nl || !cp || !t) continue
-        let byT = porEqTemp.get(nl); if (!byT) { byT = new Map(); porEqTemp.set(nl, byT) }
+      for (const r of (res || []) as { codequipo_local: string | null; codtemporada: number | null; campo: string | null }[]) {
+        const cq = String(r.codequipo_local || ''), t = Number(r.codtemporada) || 0, cp = (r.campo || '').trim()
+        if (!cq || !cp || !t) continue
+        let byT = porEqTemp.get(cq); if (!byT) { byT = new Map(); porEqTemp.set(cq, byT) }
         let byC = byT.get(t); if (!byC) { byC = new Map(); byT.set(t, byC) }
         byC.set(cp, (byC.get(cp) || 0) + 1)
       }
       for (const e of equipos) {
-        const byT = porEqTemp.get((e.nombre || '').trim())
+        const byT = porEqTemp.get(String(e.codequipo))
         if (!byT) { e.campo = null; continue }
         const maxT = Math.max(...Array.from(byT.keys()))   // temporada más reciente con partidos de ESE equipo
         e.campo = campoDominante(byT.get(maxT)!)
@@ -183,5 +183,5 @@ export async function getClub(codclub: string): Promise<ClubFicha | null> {
       delegacion: (cRaw as any)?.delegacion ?? null, portal_web: portalWebValido((cRaw as any)?.portal_web),
       equipos, maxTemp,
     }
-  }, ['getClub', 'v3', codclub])
+  }, ['getClub', 'v4-campo-codequipo', codclub])
 }
