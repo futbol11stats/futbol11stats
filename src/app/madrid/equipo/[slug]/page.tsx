@@ -1,5 +1,6 @@
 export const revalidate = 2592000   // ISR 30d (Fluid CPU): ~1.9k fichas de contenido congelado.
-export const dynamicParams = true   // no se pre-renderizan en build; on-demand + cacheadas.
+export const dynamicParams = true
+export function generateStaticParams() { return [] }  // ISR on-demand: 0 en build, se generan y CACHEAN en la 1a visita (revalidate 30d)   // no se pre-renderizan en build; on-demand + cacheadas.
 
 import type { Metadata } from 'next'
 import { notFound, permanentRedirect } from 'next/navigation'

@@ -1,5 +1,6 @@
 export const revalidate = 2592000
 export const dynamicParams = true
+export function generateStaticParams() { return [] }  // ISR on-demand: 0 en build, se generan y CACHEAN en la 1a visita (revalidate 30d)
 
 import type { Metadata } from 'next'
 import { notFound, permanentRedirect } from 'next/navigation'

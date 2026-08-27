@@ -1,5 +1,6 @@
 export const revalidate = 2592000   // ISR 30d (Fluid CPU): 25k fichas de contenido congelado; cada deploy/re-export invalida la caché.
-export const dynamicParams = true   // 25k páginas NO se pre-renderizan en build; se generan on-demand y quedan cacheadas (SIN generateStaticParams).
+export const dynamicParams = true
+export function generateStaticParams() { return [] }  // ISR on-demand: 0 en build, se generan y CACHEAN en la 1a visita (revalidate 30d)   // 25k páginas NO se pre-renderizan en build; se generan on-demand y quedan cacheadas (SIN generateStaticParams).
 
 import type { Metadata } from 'next'
 import { notFound, permanentRedirect } from 'next/navigation'
