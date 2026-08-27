@@ -222,7 +222,12 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
 
   const nombre = nombreOficial(grupo.nombre_comp) ?? ensureMadrid(denominacion(grupo.nombre_comp))
   const tituloGrupo = `${nombre}${grupo.nombre_grupo ? ` · ${grupo.nombre_grupo}` : ''}`
-  const enJuego = await esTemporadaActiva(categoria, slugComp, codtemporada)
+  // "En juego" = temporada activa Y la competición NO ha terminado. esTemporadaActiva solo dice si es la temporada
+  // más RECIENTE con partidos (una competición acabada lo sigue siendo hasta que aparezca otra) -> por sí sola
+  // marcaba "en juego" competiciones ya terminadas (en pretemporada, TODAS: las ligas de la temporada pasada, las
+  // copas del verano). Terminada = ha alcanzado su última jornada/ronda (jornada_actual >= total).
+  const terminada = !!grupo.total_jornadas && grupo.jornada_actual >= grupo.total_jornadas
+  const enJuego = !terminada && await esTemporadaActiva(categoria, slugComp, codtemporada)
   const base = `/madrid/${categoria}/${slugComp}/${slugGrupo}/${temporada}`
   const baseTab = `${base}/${segJornada}`
   const jlbl = modo === 'temporada' ? 'Acumulado hasta' : (esFamilia ? 'Ronda' : 'Jornada')
@@ -418,9 +423,14 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
             <div className="over">RFFM · MADRID</div>
             <h1 className="h1">{tituloGrupo}</h1>
             <div className="ident-meta">
+              {/* Copa/playoff: total_jornadas cuenta RONDAS (fase de grupos=1, final=2), no jornadas reales -> el
+                  contador "J2 DE 2" engaña. Se muestra la RONDA en curso ("Final", "Fase de grupos") sin numerar.
+                  Liga: el contador de jornadas sí es real. */}
               {enJuego
-                ? <span className="pill live">EN JUEGO · J{grupo.jornada_actual} DE {grupo.total_jornadas}</span>
-                : <span className="pill n">Finalizada · {grupo.total_jornadas} jornadas</span>}
+                ? <span className="pill live">EN JUEGO · {isCopa
+                    ? (rondas.find((r) => r.idx === grupo.jornada_actual)?.label ?? 'En curso')
+                    : `J${grupo.jornada_actual} DE ${grupo.total_jornadas}`}</span>
+                : <span className="pill n">{isCopa ? 'Finalizada' : `Finalizada · ${grupo.total_jornadas} jornadas`}</span>}
               {kpis.equipos > 0 && <span className="pill n">{kpis.equipos} equipos</span>}
               <span className="pill n">{temporada}</span>
             </div>
