@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/supabase'
-import { cacheIndices } from '@/lib/cacheComp'
+import { cacheIndices, cacheEquipo } from '@/lib/cacheComp'
 
 // Índice de clubes y páginas de club. La entidad "club" agrupa filiales y juveniles por `codclub` (id troncal
 // RFFM, estable a cambios de nombre). Metadatos en `web_club`. PRIVACIDAD (decisión cerrada): se publican
@@ -19,13 +19,52 @@ export { clubSlug, codclubFromSlug } from '@/lib/clubSlug'
 
 // Instalación DOMINANTE de un equipo en un conjunto de partidos: la más frecuente SOLO si es líder CLARO (su
 // conteo > el 2º). Empate en el máximo o sin datos -> null (silencio antes que dato dudoso).
-function campoDominante(m: Map<string, number>): string | null {
+export function campoDominante(m: Map<string, number>): string | null {
   let top: string | null = null, topN = 0, secondN = 0
   for (const [cp, n] of Array.from(m)) {
     if (n > topN) { secondN = topN; topN = n; top = cp }
     else if (n > secondN) { secondN = n }
   }
   return top && topN > secondN ? top : null
+}
+
+// Campo (+ localidad del club) de UN equipo, para la ficha de equipo. MISMA lógica que la página de club:
+// instalación dominante de la temporada MÁS RECIENTE con partidos como local (por codequipo_local), o null si no
+// hay una clara -> silencio. La localidad (web_club) desambigua el enlace a Maps. Cacheado con tag equipo:<cod>.
+export type CampoEquipo = { campo: string | null; localidad: string | null }
+export async function getCampoEquipo(codequipo: string): Promise<CampoEquipo> {
+  return cacheEquipo(async () => {
+    const { data: res } = await supabase.from('web_resultados').select('codtemporada, campo')
+      .eq('codequipo_local', String(codequipo)).not('campo', 'is', null)
+    const byT = new Map<number, Map<string, number>>()
+    for (const r of (res || []) as { codtemporada: number | null; campo: string | null }[]) {
+      const t = Number(r.codtemporada) || 0, cp = (r.campo || '').trim()
+      if (!t || !cp) continue
+      let m = byT.get(t); if (!m) { m = new Map(); byT.set(t, m) }
+      m.set(cp, (m.get(cp) || 0) + 1)
+    }
+    const campo = byT.size ? campoDominante(byT.get(Math.max(...Array.from(byT.keys())))!) : null
+    let localidad: string | null = null
+    if (campo) {   // solo hace falta la localidad si hay campo que enlazar
+      const { data: eq } = await supabase.from('web_equipo').select('codclub').eq('codequipo', String(codequipo)).limit(1).maybeSingle()
+      const codclub = (eq as { codclub?: string } | null)?.codclub
+      if (codclub) {
+        const { data: cl } = await supabase.from('web_club').select('localidad').eq('codclub', codclub).limit(1).maybeSingle()
+        localidad = (cl as { localidad?: string } | null)?.localidad ?? null
+      }
+    }
+    return { campo, localidad }
+  }, ['getCampoEquipo', 'v1', String(codequipo)], codequipo)
+}
+
+// URL de búsqueda de Google Maps para el campo: el nombre SIN el código de SUPERFICIE final (HA/H.A./HB/T/HN ->
+// mejor geocoding; se quita SOLO si el paréntesis es EXACTAMENTE ese código, nunca partes reales del nombre del
+// recinto) + la localidad del club para desambiguar. Codificado (acentos, espacios). El texto VISIBLE conserva
+// el sufijo de superficie (es info deportiva: hierba artificial/natural); esta limpieza es solo para el enlace.
+export function campoMapsUrl(campo: string, localidad: string | null): string {
+  const limpio = campo.replace(/\s*\((?:H\.?A\.?|HN|HB|T)\)\s*$/i, '').trim()
+  const q = localidad ? `${limpio}, ${localidad}` : limpio
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(q)}`
 }
 
 // Escudo del PRIMER EQUIPO = crest limpio del club (los filiales llevan el mismo diseño con una letra). Orden:

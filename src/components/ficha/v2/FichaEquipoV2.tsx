@@ -1,5 +1,6 @@
 import './ficha.css'
 import { Fragment, type ReactNode } from 'react'
+import { MapPin } from 'lucide-react'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import EscudoBox from '@/components/ficha/v2/EscudoBox'
@@ -20,6 +21,7 @@ import { FilaEspejo } from '@/components/ficha/v2/barrasGoles'
 import { TarjetaAmarilla, TarjetaDoble, TarjetaRoja, FlechaEntra, FlechaSale, Promocion, Escudo, Reloj, Balon, Guante, Tabla, Estrella } from '@/components/iconos'
 import { graphLd, breadcrumbLd, sportsTeamLd } from '@/lib/jsonld'
 import { SITE_URL } from '@/lib/seo'
+import { getCampoEquipo, campoMapsUrl } from '@/lib/club'
 import { escudoUrl, formatNombre } from '@/lib/supabase'
 import { jugadorHref, fechaCorta, fichasExistentes } from '@/lib/jugador'
 import { familiaSello, familiaCorto } from '@/lib/sellos'
@@ -68,11 +70,12 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
   const nombreComp = esSoloCopa ? null : (tempRow?.nombre_comp ?? e.nombre_comp ?? null)
   const grupoNombre = esSoloCopa ? null : (tempRow?.grupo_nombre ?? e.grupo_nombre ?? null)
 
-  const [serie, resultados, equipoInfo, grupoInfo] = await Promise.all([
+  const [serie, resultados, equipoInfo, grupoInfo, campoInfo] = await Promise.all([
     getSerieLiga(e.codequipo, codgrupoSel),
     getResultadosGrupo(e.codequipo, e.nombre, codgrupoSel),
     inactivo ? Promise.resolve({ copas: [], posicionActual: null }) : getEquipoActualInfo(e.codequipo),
     getGrupoInfo(codgrupoSel),
+    getCampoEquipo(e.codequipo),   // campo (instalación dominante última temporada) + localidad, para el hero
   ])
   const { posicionActual } = equipoInfo   // `copas` (viva) ya no se usa: el hero muestra copasSel (temporada seleccionada)
   const grupoUrl = grupoHref(grupoInfo)
@@ -298,6 +301,15 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
             {/* H1: el nombre del equipo es el encabezado principal de la página (uno solo). Tailwind preflight
                 resetea el h1 -> la clase .last controla el estilo, idéntico al div anterior. */}
             <h1 className="last">{e.nombre}</h1>
+            {/* Campo bajo el nombre (contexto, discreto): chincheta + nombre del campo CON su superficie (HA/HN =
+                info deportiva). Enlaza a Maps por el nombre (sin el código de superficie) + localidad. Silencio si
+                no hay campo claro. */}
+            {campoInfo.campo && (
+              <a className="hero-campo" href={campoMapsUrl(campoInfo.campo, campoInfo.localidad)}
+                target="_blank" rel="noopener noreferrer">
+                <MapPin size={12} strokeWidth={2.25} />{campoInfo.campo}
+              </a>
+            )}
           </div>
           <CompartirBtn titulo={`${e.nombre} · Fútbol11Stats`} variant="icon" />
         </div>
