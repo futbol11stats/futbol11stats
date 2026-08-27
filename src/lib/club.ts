@@ -60,6 +60,7 @@ export function portalWebValido(raw: string | null | undefined): string | null {
 export type ClubIndexRow = {
   codclub: string; nombre: string; escudo: string | null
   localidad: string | null; provincia: string | null; nEquipos: number; maxTemp: number | null
+  codgrupos: string[]   // grupos de todos sus equipos -> lastmod real del sitemap (última jornada jugada del club)
 }
 
 // Índice: SOLO clubes con equipos en web_equipo. Nombre y escudo se derivan de sus equipos (web_club.nombre_club
@@ -67,12 +68,12 @@ export type ClubIndexRow = {
 // (codequipos), igual que la ficha, que ya no deduplica por nombre.
 export async function getClubesIndex(): Promise<ClubIndexRow[]> {
   return cacheIndices(async () => {
-    type Acc = { nombre: string; equipos: { rama: string | null; nivel: number | null; temp: number; escudo: string | null }[]; n: number; maxTemp: number }
+    type Acc = { nombre: string; equipos: { rama: string | null; nivel: number | null; temp: number; escudo: string | null }[]; n: number; maxTemp: number; codgrupos: Set<string> }
     const acc = new Map<string, Acc>()
     let ultimo = ''
     for (;;) {
       let q = supabase.from('web_equipo')
-        .select('codequipo, codclub, nombre_club, nombre, rama, nombre_comp, categoria_nivel, escudo, codtemporada')
+        .select('codequipo, codclub, nombre_club, nombre, rama, nombre_comp, categoria_nivel, escudo, codtemporada, codgrupo')
         .not('codclub', 'is', null).order('codequipo', { ascending: true }).limit(1000)
       if (ultimo) q = q.gt('codequipo', ultimo)
       const { data, error } = await q
@@ -82,10 +83,11 @@ export async function getClubesIndex(): Promise<ClubIndexRow[]> {
         const cc = String(r.codclub || ''); if (!cc) continue
         const t = Number(r.codtemporada) || 0
         let a = acc.get(cc)
-        if (!a) { a = { nombre: '', equipos: [], n: 0, maxTemp: 0 }; acc.set(cc, a) }
+        if (!a) { a = { nombre: '', equipos: [], n: 0, maxTemp: 0, codgrupos: new Set() }; acc.set(cc, a) }
         if (!a.nombre && r.nombre_club) a.nombre = r.nombre_club
         a.equipos.push({ rama: r.rama, nivel: r.categoria_nivel, temp: t, escudo: r.escudo })
         a.n++
+        if (r.codgrupo) a.codgrupos.add(String(r.codgrupo))
         if (t > a.maxTemp) a.maxTemp = t
       }
       ultimo = String((data[data.length - 1] as { codequipo: string }).codequipo)
@@ -104,11 +106,12 @@ export async function getClubesIndex(): Promise<ClubIndexRow[]> {
         escudo: escudoPrimerEquipo(a.equipos),
         localidad: m?.localidad ?? null, provincia: m?.provincia ?? null,
         nEquipos: a.n, maxTemp: a.maxTemp || null,
+        codgrupos: Array.from(a.codgrupos),
       })
     }
     out.sort((x, y) => x.nombre.localeCompare(y.nombre, 'es'))
     return out
-  }, ['getClubesIndex', 'v3'])
+  }, ['getClubesIndex', 'v4-codgrupos'])
 }
 
 export type ClubEquipoRow = {

@@ -116,13 +116,16 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     }
   }
 
-  // Clubes: índice + página por club (solo los que tienen equipos). lastmod = última temporada del club.
+  // Clubes: índice + página por club (solo los que tienen equipos -> anti-thin, un club sin equipos no entra).
+  // lastmod REAL: la jornada jugada más reciente entre los grupos del club (last_iso del RPC por grupo), no la
+  // fecha de generación ni una fecha por temporada. Fallback a la fecha de su última temporada si no hay grupo.
   const clubes = await getClubesIndex()
   urls.push({ url: `${SITE_URL}/clubes`, lastModified: maxIso, changeFrequency: 'weekly', priority: 0.7 })
   for (const cl of clubes) {
+    const isoClub = cl.codgrupos.map((cg) => datos.grupo.get(cg)?.iso).filter(Boolean).sort().pop()
     urls.push({
       url: `${SITE_URL}/clubes/${clubSlug(cl.codclub, cl.nombre)}`,
-      lastModified: cl.maxTemp ? datos.porTemporada.get(cl.maxTemp) : undefined,
+      lastModified: isoClub ?? (cl.maxTemp ? datos.porTemporada.get(cl.maxTemp) : undefined),
       changeFrequency: 'monthly',
       priority: 0.5,
     })
