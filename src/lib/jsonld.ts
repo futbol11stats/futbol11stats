@@ -78,7 +78,8 @@ export function sportsEventLd(ev: {
   localLogo?: string | null; visitanteLogo?: string | null
   golesLocal?: number | null; golesVisitante?: number | null
   fechaIso?: string | null       // 'YYYY-MM-DD' o 'YYYY-MM-DDTHH:MM'
-  campo?: string | null
+  campo?: string | null          // nombre de lugar (Place.name) para MÁQUINAS -> pásalo LIMPIO, sin el código de
+                                 // superficie (parseCampo().nombre). La superficie (HA/HN/T) es info de lector, va en la vista.
   campoLat?: number | null; campoLng?: number | null   // coords del PARTIDO (web_resultados.campo_*) -> Place.geo
   competicion?: string | null    // superEvent: nombre de la competición/ronda + temporada
 }) {

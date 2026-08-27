@@ -591,7 +591,9 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
                   golesLocal: r.goles_local,
                   golesVisitante: r.goles_visitante,
                   fechaIso: fechaHoraIso(r.fecha, r.hora),
-                  campo: r.campo,
+                  // location.name = nombre LIMPIO (sin código de superficie): es un nombre de LUGAR para máquinas,
+                  // no texto para lector. La superficie (HA/HN/T) se conserva en la vista (renderCampoPartido), no aquí.
+                  campo: r.campo ? parseCampo(r.campo).nombre : null,
                   campoLat: r.campo_lat ?? null, campoLng: r.campo_lng ?? null,   // coords del partido -> Place.geo
                   competicion: `${tituloGrupo} · ${temporada}${esFamilia && rondaSel ? ` · ${rondaSel.label}` : ''}`,
                 })))} />
