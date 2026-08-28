@@ -1,4 +1,4 @@
-import { supabase } from '@/lib/supabase'
+import { supabase, mapaCampoUrl } from '@/lib/supabase'
 import { cacheIndices } from '@/lib/cacheComp'
 
 // Directorio y páginas de CAMPO (instalaciones). Datos: web_campo (nombre/dirección/localidad/provincia/CP/coords).
@@ -44,6 +44,7 @@ export type CampoFicha = {
   codigo: string; nombre: string
   direccion: string | null; localidad: string | null; provincia: string | null; cp: string | null
   lat: number | null; lng: number | null
+  mapaUrl: string | null   // mapa estático OSM del bucket (solo si el campo está en el manifiesto web_campo_mapa)
   equipos: CampoEquipoRow[]
 }
 
@@ -63,10 +64,14 @@ export async function getCampo(codigo: string): Promise<CampoFicha | null> {
     const equipos: CampoEquipoRow[] = ((eqs || []) as { codequipo: string; nombre_equipo: string | null; nombre_comp: string | null; rama: string | null; n_partidos: number }[])
       .map((e) => ({ codequipo: String(e.codequipo), nombre: e.nombre_equipo || '', nombre_comp: e.nombre_comp ?? null, rama: e.rama ?? null, nPartidos: e.n_partidos }))
     if (equipos.length === 0) return null   // anti-thin: sin equipos, no hay página
+    // ¿Tiene mapa estático generado? (manifiesto). Opcional: si la consulta fallara, la ficha se sirve sin mapa.
+    const { data: mapaRow } = await supabase.from('web_campo_mapa').select('codigo_campo').eq('codigo_campo', codigo).maybeSingle()
     return {
       codigo: String(c.codigo_campo), nombre: c.nombre_campo || '',
       direccion: c.direccion ?? null, localidad: c.localidad ?? null, provincia: c.provincia ?? null, cp: c.codigo_postal ?? null,
-      lat: c.lat ?? null, lng: c.lng ?? null, equipos,
+      lat: c.lat ?? null, lng: c.lng ?? null,
+      mapaUrl: mapaRow ? mapaCampoUrl(codigo) : null,
+      equipos,
     }
   }, ['getCampo', 'v1', codigo])
 }

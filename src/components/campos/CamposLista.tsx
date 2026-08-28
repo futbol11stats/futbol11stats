@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { MapPin } from 'lucide-react'
 
@@ -13,6 +13,13 @@ const norm = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCa
 export default function CamposLista({ campos }: { campos: CampoCard[] }) {
   const [q, setQ] = useState('')
   const [loc, setLoc] = useState('')
+
+  // Pre-selección por ?loc= (miga de la ficha de campo -> "campos de esa población"). Se lee tras montar
+  // para no romper la hidratación de la página estática (el primer render coincide con el servidor: sin filtro).
+  useEffect(() => {
+    const v = new URLSearchParams(window.location.search).get('loc') || ''
+    if (v) setLoc(v)
+  }, [])
 
   const localidades = useMemo(
     () => Array.from(new Set(campos.map((c) => c.localidad).filter((l): l is string => !!l))).sort((a, b) => a.localeCompare(b, 'es')),

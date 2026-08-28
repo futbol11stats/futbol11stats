@@ -11,6 +11,13 @@ export function escudoUrl(filename: string | null): string | null {
   return `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/escudos/${filename}`
 }
 
+// URL pública del mapa estático del campo (bucket `mapas`, PNG compuesto de teselas OSM con chincheta +
+// atribución, generado por gen_mapas.py). Determinista por codigo_campo; solo existe para los campos del
+// manifiesto web_campo_mapa -> se pinta condicionado a ese flag (getCampo), nunca a ciegas (evita 404).
+export function mapaCampoUrl(codigo: string | number): string {
+  return `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/mapas/campos/${codigo}.png`
+}
+
 // Miniatura WebP (128px, prefijo escudos_thumb/) generada por el pipeline (escudos_storage.py).
 // La web la sirve por defecto; si un escudo no tuviera thumb todavía, EscudoImg hace fallback
 // al original (onError). Devuelve null si no hay filename.

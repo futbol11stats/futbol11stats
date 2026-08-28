@@ -9,6 +9,7 @@ import { MapPin, Navigation } from 'lucide-react'
 import { getCampo, campoSlug, codigoCampoFromSlug } from '@/lib/campo'
 import { parseCampo, campoMapsUrl, campoDirUrl } from '@/lib/club'
 import { equipoSlug } from '@/lib/equipo'
+import { Escudo } from '@/components/iconos'
 import JsonLd from '@/components/JsonLd'
 import { graphLd, breadcrumbLd } from '@/lib/jsonld'
 import { SITE_URL } from '@/lib/seo'
@@ -65,6 +66,12 @@ export default async function CampoPage({ params }: { params: Promise<{ slug: st
       <nav className="text-sm text-chalk-600 mb-4 flex items-center gap-2">
         <Link href="/" className="hover:text-white transition-colors">Inicio</Link><span>·</span>
         <Link href="/campos" className="hover:text-white transition-colors">Campos</Link><span>·</span>
+        {c.localidad && (
+          <>
+            {/* Población -> vuelve al directorio filtrado por esa localidad. */}
+            <Link href={`/campos?loc=${encodeURIComponent(c.localidad)}`} className="hover:text-white transition-colors">{c.localidad}</Link><span>·</span>
+          </>
+        )}
         <span className="text-white truncate">{nombre}</span>
       </nav>
 
@@ -72,6 +79,23 @@ export default async function CampoPage({ params }: { params: Promise<{ slug: st
       <p className="text-chalk-600 text-sm mt-1">
         {[direccionLinea, superficie].filter(Boolean).join(' · ') || '—'}
       </p>
+
+      {/* Mapa estático (imagen del bucket, teselas OSM): 0 coste por visita, sin API key. Es CONTEXTO: alt
+          descriptivo, lazy, y toda la imagen abre la ubicación en Google Maps (mismo destino que "Ver ubicación").
+          Atribución OSM (ODbL) incrustada en la imagen y, además, enlazada en el pie. */}
+      {c.mapaUrl && (
+        <figure className="mt-4">
+          <a href={pin ?? undefined} target="_blank" rel="noopener noreferrer"
+            className="block rounded-xl overflow-hidden border border-pitch-700 hover:border-grass-500/50 transition-colors">
+            <img src={c.mapaUrl} width={600} height={340} loading="lazy"
+              alt={`Mapa de ${nombre}${direccionLinea ? `, ${direccionLinea}` : ''}. Ubicación del campo sobre el callejero de OpenStreetMap.`}
+              className="w-full h-auto block" />
+          </a>
+          <figcaption className="text-[11px] text-chalk-600 mt-1">
+            Mapa: <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer" className="underline hover:text-white transition-colors">© OpenStreetMap contributors</a>
+          </figcaption>
+        </figure>
+      )}
 
       {/* Dos enlaces a Maps. Ver ubicación = pin exacto; Cómo llegar = direcciones (Google pide el origen). */}
       {(pin || dir) && (
@@ -106,7 +130,9 @@ export default async function CampoPage({ params }: { params: Promise<{ slug: st
                   <span className="block text-sm font-semibold text-white truncate">{e.nombre}</span>
                   {e.nombre_comp && <span className="block text-xs text-chalk-600 truncate">{e.nombre_comp}</span>}
                 </span>
-                <span className="flex-none text-xs text-chalk-500 tabular-nums">{e.nPartidos} <span className="text-chalk-700">pj</span></span>
+                <span className="flex-none inline-flex items-center gap-1 text-xs text-chalk-500 tabular-nums" title="Partidos jugados">
+                  <Escudo size={11} className="text-chalk-600" />{e.nPartidos}<span className="text-chalk-700">PJ</span>
+                </span>
               </Link>
             </li>
           ))}
