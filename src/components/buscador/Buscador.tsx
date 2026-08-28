@@ -4,11 +4,12 @@ import { useEffect, useRef, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Search, X, Loader2 } from 'lucide-react'
-import { buscarJugadores, buscarEquipos, buscarClubes, highlightTokens, normFull, type JugadorHit, type EquipoHit, type ClubHit } from '@/lib/buscador'
+import { buscarJugadores, buscarEquipos, buscarClubes, buscarCampos, highlightTokens, normFull, type JugadorHit, type EquipoHit, type ClubHit, type CampoHit } from '@/lib/buscador'
 import { jugadorHref } from '@/lib/jugador'
 import { equipoHref } from '@/lib/equipo'
 import { clubSlug } from '@/lib/clubSlug'
-import { ResultadoJugador, ResultadoEquipo, ResultadoClub } from './Resultados'
+import { campoSlug, parseCampo } from '@/lib/campoSlug'
+import { ResultadoJugador, ResultadoEquipo, ResultadoClub, ResultadoCampo } from './Resultados'
 
 // Buscador del header (client): lupa siempre visible; al abrir despliega caja + resultados agrupados.
 // Consulta directa a Supabase con debounce 250ms y mínimo 2 caracteres. Teclado (flechas+Enter) en
@@ -20,9 +21,11 @@ export default function Buscador({ suelo }: { suelo: number }) {
   const [jug, setJug] = useState<JugadorHit[]>([])
   const [eq, setEq] = useState<EquipoHit[]>([])
   const [clu, setClu] = useState<ClubHit[]>([])
+  const [cam, setCam] = useState<CampoHit[]>([])
   const [nJug, setNJug] = useState(0)
   const [nEq, setNEq] = useState(0)
   const [nClu, setNClu] = useState(0)
+  const [nCam, setNCam] = useState(0)
   const [loading, setLoading] = useState(false)
   const [active, setActive] = useState(-1)
   const boxRef = useRef<HTMLDivElement>(null)
@@ -34,19 +37,20 @@ export default function Buscador({ suelo }: { suelo: number }) {
   const hits = [
     ...eq.map((e) => ({ href: equipoHref(e.codequipo, e.nombre) || '#' })),
     ...clu.map((c) => ({ href: `/clubes/${clubSlug(c.codclub, c.nombre_club)}` })),
+    ...cam.map((c) => ({ href: `/campos/${campoSlug(c.codigo_campo, parseCampo(c.nombre_campo).nombre)}` })),
     ...jug.map((j) => ({ href: jugadorHref(j.codjugador, j.nombre) })),
   ]
 
   // Debounce de la consulta.
   useEffect(() => {
-    if (!valida) { setJug([]); setEq([]); setClu([]); setNJug(0); setNEq(0); setNClu(0); setLoading(false); return }
+    if (!valida) { setJug([]); setEq([]); setClu([]); setCam([]); setNJug(0); setNEq(0); setNClu(0); setNCam(0); setLoading(false); return }
     setLoading(true)
     const id = setTimeout(async () => {
       const query = q
-      const [re, rc, rj] = await Promise.all([buscarEquipos(query, 4), buscarClubes(query, 4), buscarJugadores(query, 8)])
+      const [re, rc, rk, rj] = await Promise.all([buscarEquipos(query, 4), buscarClubes(query, 4), buscarCampos(query, 4), buscarJugadores(query, 8)])
       // Evita pisar con una respuesta vieja si la query ya cambió.
       if (query !== q) return
-      setEq(re.rows); setNEq(re.count); setClu(rc.rows); setNClu(rc.count); setJug(rj.rows); setNJug(rj.count)
+      setEq(re.rows); setNEq(re.count); setClu(rc.rows); setNClu(rc.count); setCam(rk.rows); setNCam(rk.count); setJug(rj.rows); setNJug(rj.count)
       setActive(-1); setLoading(false)
     }, 250)
     return () => clearTimeout(id)
@@ -63,7 +67,7 @@ export default function Buscador({ suelo }: { suelo: number }) {
     return () => document.removeEventListener('mousedown', onDown)
   }, [open])
 
-  const cerrar = useCallback(() => { setOpen(false); setQ(''); setJug([]); setEq([]); setClu([]); setActive(-1) }, [])
+  const cerrar = useCallback(() => { setOpen(false); setQ(''); setJug([]); setEq([]); setClu([]); setCam([]); setActive(-1) }, [])
 
   const irABuscar = () => { if (valida) { router.push(`/buscar?q=${encodeURIComponent(q)}`); cerrar() } }
 
@@ -78,7 +82,7 @@ export default function Buscador({ suelo }: { suelo: number }) {
     }
   }
 
-  const total = nEq + nClu + nJug
+  const total = nEq + nClu + nCam + nJug
 
   return (
     <div ref={boxRef} className="relative flex items-center">
@@ -137,11 +141,20 @@ export default function Buscador({ suelo }: { suelo: number }) {
                 </div>
               )}
 
+              {cam.length > 0 && (
+                <div>
+                  <p className="px-3 pt-2.5 pb-1 text-[10px] font-semibold uppercase tracking-widest text-chalk-600">Campos ({nCam})</p>
+                  {cam.map((c, i) => (
+                    <ResultadoCampo key={c.codigo_campo} c={c} tokens={tokens} active={active === eq.length + clu.length + i} onNavigate={cerrar} />
+                  ))}
+                </div>
+              )}
+
               {jug.length > 0 && (
                 <div>
                   <p className="px-3 pt-2.5 pb-1 text-[10px] font-semibold uppercase tracking-widest text-chalk-600">Jugadores ({nJug})</p>
                   {jug.map((j, i) => (
-                    <ResultadoJugador key={j.codjugador} j={j} tokens={tokens} active={active === eq.length + clu.length + i} onNavigate={cerrar} suelo={suelo} />
+                    <ResultadoJugador key={j.codjugador} j={j} tokens={tokens} active={active === eq.length + clu.length + cam.length + i} onNavigate={cerrar} suelo={suelo} />
                   ))}
                 </div>
               )}

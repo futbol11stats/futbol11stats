@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase'
 import { cacheIndices, cacheEquipo } from '@/lib/cacheComp'
+import { parseCampo, campoLabel } from '@/lib/campoSlug'   // para campoMapsUrl; se re-exportan más abajo
 
 // Índice de clubes y páginas de club. La entidad "club" agrupa filiales y juveniles por `codclub` (id troncal
 // RFFM, estable a cambios de nombre). Metadatos en `web_club`. PRIVACIDAD (decisión cerrada): se publican
@@ -32,25 +33,9 @@ export async function getCampoEquipo(codequipo: string): Promise<CampoEquipo> {
   }, ['getCampoEquipo', 'v2-webequipo', String(codequipo)], codequipo)
 }
 
-// Códigos de SUPERFICIE del acta RFFM (verificados en el dato 2026-08: HA/H.A. y HB/T; no existe HN). Se
-// traducen a etiqueta legible. Cualquier otro paréntesis final (p.ej. "(CONDESA CHINCHON 1)") NO es superficie
-// -> se deja como parte del nombre.
-const SUPERFICIE: Record<string, string> = { HA: 'hierba artificial', HN: 'hierba natural', HB: 'hierba natural', T: 'tierra' }
-// Separa el nombre del campo de su código de superficie final. `nombre` sin el código; `superficie` legible o null.
-export function parseCampo(campo: string | null): { nombre: string; superficie: string | null } {
-  if (!campo) return { nombre: '', superficie: null }
-  const m = campo.match(/\s*\(([A-Za-z.]{1,4})\)\s*$/)   // paréntesis final de 1-4 letras/puntos (posible código)
-  if (m) {
-    const code = m[1].replace(/\./g, '').toUpperCase()   // "H.A." -> "HA"
-    if (SUPERFICIE[code]) return { nombre: campo.slice(0, m.index).trim(), superficie: SUPERFICIE[code] }
-  }
-  return { nombre: campo.trim(), superficie: null }
-}
-// Texto para listas (página de club): "NOMBRE · superficie" (o solo nombre si no hay superficie conocida).
-export function campoLabel(campo: string | null): string {
-  const { nombre, superficie } = parseCampo(campo)
-  return superficie ? `${nombre} · ${superficie}` : nombre
-}
+// parseCampo/campoLabel/superficie viven ahora en el módulo PURO campoSlug.ts (client-safe, los usa el buscador).
+// Se re-exportan aquí (bindings locales importados arriba) para no romper los imports existentes.
+export { parseCampo, campoLabel }
 // Enlace a Google Maps del campo, EN ESTE ORDEN (nunca cae a la localidad del CLUB — ése era el bug del topónimo):
 //   1. lat+lng -> PIN EXACTO (maps?q=lat,lng). Resuelve de raíz la ambigüedad del nombre.
 //   2. sin coords pero con nombre -> búsqueda "campo de fútbol <nombre sin código superficie>, <campo_localidad>".
@@ -62,6 +47,10 @@ export function campoMapsUrl(c: CampoEquipo): string | null {
     return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(q)}`
   }
   return null
+}
+// URL de DIRECCIONES ("cómo llegar"): destino por coordenadas; Google resuelve el ORIGEN preguntando al usuario.
+export function campoDirUrl(lat: number | null, lng: number | null): string | null {
+  return lat != null && lng != null ? `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}` : null
 }
 
 // Escudo del PRIMER EQUIPO = crest limpio del club (los filiales llevan el mismo diseño con una letra). Orden:

@@ -13,6 +13,8 @@ import { codToSlug } from '@/lib/temporadaSlug'
 import { getTemporadasActivas, mapaActivas } from '@/lib/temporadas'
 import { getSitemapDatos, tabTieneDatos, type GrupoStat } from '@/lib/sitemapLastmod'
 import { getClubesIndex, clubSlug } from '@/lib/club'
+import { getCamposIndex, campoSlug } from '@/lib/campo'
+import { parseCampo } from '@/lib/campoSlug'
 
 export const revalidate = 2592000 // ISR 30d (Fluid CPU): se regenera con cada deploy/re-export; el sitemap solo cambia al añadir grupos/temporadas nuevas
 
@@ -126,6 +128,20 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     urls.push({
       url: `${SITE_URL}/clubes/${clubSlug(cl.codclub, cl.nombre)}`,
       lastModified: isoClub ?? (cl.maxTemp ? datos.porTemporada.get(cl.maxTemp) : undefined),
+      changeFrequency: 'monthly',
+      priority: 0.5,
+    })
+  }
+
+  // Campos: índice + página por campo (solo los que tienen equipos que juegan allí -> anti-thin). lastmod = fecha
+  // del partido más reciente jugado en el campo (last_iso de la vista web_campo_equipo, YYYYMMDD -> ISO).
+  const campos = await getCamposIndex()
+  urls.push({ url: `${SITE_URL}/campos`, lastModified: maxIso, changeFrequency: 'weekly', priority: 0.7 })
+  for (const cp of campos) {
+    const nombre = parseCampo(cp.nombre).nombre
+    urls.push({
+      url: `${SITE_URL}/campos/${campoSlug(cp.codigo, nombre)}`,
+      lastModified: cp.lastIso ? `${cp.lastIso.slice(0, 4)}-${cp.lastIso.slice(4, 6)}-${cp.lastIso.slice(6, 8)}` : undefined,
       changeFrequency: 'monthly',
       priority: 0.5,
     })

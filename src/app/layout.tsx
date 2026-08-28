@@ -55,6 +55,7 @@ export default async function RootLayout({
                 <a href="/madrid/aficionados" className="hover:text-white transition-colors">Aficionados</a>
                 <a href="/madrid/juveniles" className="hover:text-white transition-colors">Juveniles</a>
                 <a href="/clubes" className="hover:text-white transition-colors">Clubes</a>
+                <a href="/campos" className="hover:text-white transition-colors">Campos</a>
               </nav>
               <Buscador suelo={suelo} />
             </div>
@@ -68,6 +69,7 @@ export default async function RootLayout({
             </p>
             <p className="flex flex-wrap gap-x-4 gap-y-1 pt-1">
               <a href="/clubes" className="underline hover:text-white transition-colors">Clubes</a>
+              <a href="/campos" className="underline hover:text-white transition-colors">Campos</a>
               <a href="/sobre" className="underline hover:text-white transition-colors">Sobre el proyecto</a>
               <a href="/aviso-legal" className="underline hover:text-white transition-colors">Aviso legal</a>
               <a href="/privacidad" className="underline hover:text-white transition-colors">Privacidad</a>

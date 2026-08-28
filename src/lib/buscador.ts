@@ -73,9 +73,17 @@ export type ClubHit = {
   n_equipos: number | null
 }
 
+export type CampoHit = {
+  codigo_campo: string
+  nombre_campo: string
+  localidad: string | null
+  provincia: string | null
+}
+
 const COLS_J = 'codjugador, nombre, escudo_actual, posicion_pastilla, posicion_es_estimada, pj_total, equipo_actual_nombre, codtemporada_ultima'
 const COLS_E = 'codequipo, nombre, escudo, rama, nombre_comp, grupo_nombre, codtemporada, activo, pj_total'
 const COLS_C = 'codclub, nombre_club, escudo, localidad, provincia, n_equipos'
+const COLS_CAMPO = 'codigo_campo, nombre_campo, localidad, provincia'
 
 // Prefijo primero (nombre normalizado empieza por la query), conservando el orden previo (pj_total).
 function rankPrefijo<T extends { nombre: string }>(rows: T[], q: string): T[] {
@@ -115,5 +123,20 @@ export async function buscarClubes(q: string, limit: number, offset = 0): Promis
   const rows = (data || []) as unknown as ClubHit[]
   const nq = normFull(q)
   rows.sort((a, b) => Number(normFull(b.nombre_club || '').startsWith(nq)) - Number(normFull(a.nombre_club || '').startsWith(nq)))
+  return { rows, count: count || 0 }
+}
+
+// Campos: se busca contra `nombre_campo` (mayúsculas sin acentos, como club -> los tokens normalizados casan).
+// Prefijo primero. (web_campo no trae nº de equipos; el único campo sin equipos que existe daría un enlace a 404,
+// borde asumible; si el pipeline añade n_equipos a web_campo se puede anti-thin como en clubes.)
+export async function buscarCampos(q: string, limit: number, offset = 0): Promise<{ rows: CampoHit[]; count: number }> {
+  const toks = queryTokens(q)
+  if (normFull(q).length < 2 || toks.length === 0) return { rows: [], count: 0 }
+  let query = supabase.from('web_campo').select(COLS_CAMPO, { count: 'exact' })
+  for (const t of toks) query = query.ilike('nombre_campo', `%${t}%`)
+  const { data, count } = await query.order('nombre_campo', { ascending: true }).range(offset, offset + limit - 1)
+  const rows = (data || []) as unknown as CampoHit[]
+  const nq = normFull(q)
+  rows.sort((a, b) => Number(normFull(b.nombre_campo || '').startsWith(nq)) - Number(normFull(a.nombre_campo || '').startsWith(nq)))
   return { rows, count: count || 0 }
 }

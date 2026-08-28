@@ -1,11 +1,13 @@
 import Link from 'next/link'
+import { MapPin } from 'lucide-react'
 import EscudoImg from '@/components/EscudoImg'
 import { escudoUrl, formatNombre } from '@/lib/supabase'
 import { jugadorHref, tempLabel } from '@/lib/jugador'
 import { equipoHref } from '@/lib/equipo'
 import Pastilla from '@/components/Pastilla'
 import { clubSlug } from '@/lib/clubSlug'
-import { normAlign, type JugadorHit, type EquipoHit, type ClubHit } from '@/lib/buscador'
+import { campoSlug, parseCampo } from '@/lib/campoSlug'
+import { normAlign, type JugadorHit, type EquipoHit, type ClubHit, type CampoHit } from '@/lib/buscador'
 
 // Resalta en verde los trozos del texto que coinciden con los tokens (insensible a acentos/mayúsculas).
 export function Highlight({ text, tokens }: { text: string; tokens: string[] }) {
@@ -112,6 +114,34 @@ export function ResultadoClub({ c, tokens, onNavigate, active }: {
         <span className="block text-xs truncate text-chalk-500">
           {[c.localidad, `${c.n_equipos ?? 0} equipo${(c.n_equipos ?? 0) !== 1 ? 's' : ''}`].filter(Boolean).join(' · ')}
         </span>
+      </span>
+    </Link>
+  )
+}
+
+// CAMPO (lugar): enlaza a /campos/[slug]. Nombre limpio (sin superficie) + localidad. Sin personas.
+export function ResultadoCampo({ c, tokens, onNavigate, active }: {
+  c: CampoHit; tokens: string[]; onNavigate?: () => void; active?: boolean
+}) {
+  const nombre = parseCampo(c.nombre_campo).nombre
+  return (
+    <Link
+      href={`/campos/${campoSlug(c.codigo_campo, nombre)}`}
+      onClick={onNavigate}
+      data-hit
+      className={`flex items-center gap-2.5 px-3 py-2.5 transition-colors ${active ? 'bg-pitch-700' : 'hover:bg-pitch-700/60'}`}
+    >
+      <span className="inline-flex items-center justify-center w-8 h-8 rounded-sm flex-shrink-0 bg-pitch-700 text-chalk-500">
+        <MapPin size={16} strokeWidth={2.25} />
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="flex items-center gap-1.5 min-w-0">
+          <span className="font-display font-semibold text-white uppercase truncate text-[15px] leading-tight">
+            <Highlight text={nombre} tokens={tokens} />
+          </span>
+          <span className="flex-shrink-0 text-[10px] font-semibold uppercase tracking-wide text-grass-300 bg-grass-500/15 rounded px-1 py-px">Campo</span>
+        </span>
+        <span className="block text-xs truncate text-chalk-500">{[c.localidad, c.provincia].filter(Boolean).join(' · ') || '—'}</span>
       </span>
     </Link>
   )

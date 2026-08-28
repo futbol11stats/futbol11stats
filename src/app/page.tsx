@@ -88,6 +88,9 @@ export default async function Home() {
               <Link href="/clubes" className="bg-pitch-800 hover:bg-grass-500 text-grass-300 hover:text-white font-semibold px-5 py-2.5 rounded-lg transition-colors text-sm border border-grass-500/40">
                 Clubes
               </Link>
+              <Link href="/campos" className="bg-pitch-800 hover:bg-grass-500 text-grass-300 hover:text-white font-semibold px-5 py-2.5 rounded-lg transition-colors text-sm border border-grass-500/40">
+                Campos
+              </Link>
             </div>
           </div>
         </div>
