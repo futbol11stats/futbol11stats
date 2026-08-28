@@ -93,12 +93,15 @@ export async function getCampo(codigo: string): Promise<CampoFicha | null> {
     }).filter((e) => e.nombre)   // descarta cualquier codequipo sin fila en web_equipo (no debería ocurrir)
     if (equipos.length === 0) return null
     // ¿Tiene mapa estático generado? (manifiesto). Opcional: si la consulta fallara, la ficha se sirve sin mapa.
-    const { data: mapaRow } = await supabase.from('web_campo_mapa').select('codigo_campo').eq('codigo_campo', codigo).maybeSingle()
+    // updated_at -> token de versión (epoch) para la URL del PNG: cambia si se re-genera tras mover el campo.
+    const { data: mapaRow } = await supabase.from('web_campo_mapa').select('codigo_campo, updated_at').eq('codigo_campo', codigo).maybeSingle()
+    const mr = mapaRow as { updated_at: string | null } | null
+    const mapaVer = mr?.updated_at ? Date.parse(mr.updated_at) : NaN
     return {
       codigo: String(c.codigo_campo), nombre: c.nombre_campo || '',
       direccion: c.direccion ?? null, localidad: c.localidad ?? null, provincia: c.provincia ?? null, cp: c.codigo_postal ?? null,
       lat: c.lat ?? null, lng: c.lng ?? null,
-      mapaUrl: mapaRow ? mapaCampoUrl(codigo) : null,
+      mapaUrl: mr ? mapaCampoUrl(codigo, Number.isFinite(mapaVer) ? mapaVer : null) : null,
       equipos,
     }
   }, ['getCampo', 'v1', codigo])

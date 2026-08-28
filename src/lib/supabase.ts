@@ -14,8 +14,12 @@ export function escudoUrl(filename: string | null): string | null {
 // URL pública del mapa estático del campo (bucket `mapas`, PNG compuesto de teselas OSM con chincheta +
 // atribución, generado por gen_mapas.py). Determinista por codigo_campo; solo existe para los campos del
 // manifiesto web_campo_mapa -> se pinta condicionado a ese flag (getCampo), nunca a ciegas (evita 404).
-export function mapaCampoUrl(codigo: string | number): string {
-  return `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/mapas/campos/${codigo}.png`
+// `version` (epoch de web_campo_mapa.updated_at) va como ?v= para ROMPER LA CACHÉ del CDN/navegador cuando se
+// re-genera el PNG tras cambiar las coordenadas: la URL es la misma ({codigo}.png), así que sin este token el
+// mapa viejo persistiría hasta expirar el cache-control. Regenerar PNG + bump updated_at + revalidar -> imagen nueva.
+export function mapaCampoUrl(codigo: string | number, version?: string | number | null): string {
+  const base = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/mapas/campos/${codigo}.png`
+  return version != null && version !== '' ? `${base}?v=${encodeURIComponent(String(version))}` : base
 }
 
 // Miniatura WebP (128px, prefijo escudos_thumb/) generada por el pipeline (escudos_storage.py).
