@@ -39,7 +39,14 @@ export async function getCamposIndex(): Promise<CampoIndexRow[]> {
   }, ['getCamposIndex', 'v2-resumen'])
 }
 
-export type CampoEquipoRow = { codequipo: string; nombre: string; nombre_comp: string | null; rama: string | null; nPartidos: number }
+// Se pinta EXACTAMENTE como un resultado de búsqueda de equipo -> mismos campos que EquipoHit (escudo, categoría
+// = nombre_comp, grupo = grupo_nombre, rama, activo, codtemporada), leídos de web_equipo (misma fuente que el
+// buscador). nPartidos viene de la vista del campo (ordena la lista: habituales primero).
+export type CampoEquipoRow = {
+  codequipo: string; nombre: string; escudo: string | null; rama: string | null
+  nombre_comp: string | null; grupo_nombre: string | null; codtemporada: string | null; activo: boolean | null
+  nPartidos: number
+}
 export type CampoFicha = {
   codigo: string; nombre: string
   direccion: string | null; localidad: string | null; provincia: string | null; cp: string | null
@@ -56,14 +63,35 @@ export async function getCampo(codigo: string): Promise<CampoFicha | null> {
     if (error) throw error
     const c = cRaw as { codigo_campo: string; nombre_campo: string | null; direccion: string | null; localidad: string | null; provincia: string | null; codigo_postal: string | null; lat: number | null; lng: number | null } | null
     if (!c) return null
-    // Equipos que juegan allí como LOCAL, por nº de partidos (habituales primero).
+    // Equipos que juegan allí como LOCAL, por nº de partidos (habituales primero). La vista solo aporta el orden
+    // (codequipo + n_partidos); los atributos para pintarlos se leen de web_equipo, la MISMA fuente que el buscador.
     const { data: eqs, error: e2 } = await supabase.from('web_campo_equipo')
-      .select('codequipo, nombre_equipo, nombre_comp, rama, n_partidos')
+      .select('codequipo, n_partidos')
       .eq('codigo_campo', codigo).order('n_partidos', { ascending: false })
     if (e2) throw e2
-    const equipos: CampoEquipoRow[] = ((eqs || []) as { codequipo: string; nombre_equipo: string | null; nombre_comp: string | null; rama: string | null; n_partidos: number }[])
-      .map((e) => ({ codequipo: String(e.codequipo), nombre: e.nombre_equipo || '', nombre_comp: e.nombre_comp ?? null, rama: e.rama ?? null, nPartidos: e.n_partidos }))
-    if (equipos.length === 0) return null   // anti-thin: sin equipos, no hay página
+    const orden = (eqs || []) as { codequipo: string; n_partidos: number }[]
+    if (orden.length === 0) return null   // anti-thin: sin equipos, no hay página
+    const codeqs = orden.map((o) => String(o.codequipo))
+    const { data: metaEq } = await supabase.from('web_equipo')
+      .select('codequipo, nombre, escudo, rama, nombre_comp, grupo_nombre, codtemporada, activo')
+      .in('codequipo', codeqs)
+    const metaMap = new Map<string, { nombre: string | null; escudo: string | null; rama: string | null; nombre_comp: string | null; grupo_nombre: string | null; codtemporada: number | string | null; activo: boolean | null }>(
+      ((metaEq || []) as { codequipo: string }[]).map((m) => [String(m.codequipo), m as never]))
+    const equipos: CampoEquipoRow[] = orden.map((o) => {
+      const m = metaMap.get(String(o.codequipo))
+      return {
+        codequipo: String(o.codequipo),
+        nombre: m?.nombre || '',
+        escudo: m?.escudo ?? null,
+        rama: m?.rama ?? null,
+        nombre_comp: m?.nombre_comp ?? null,
+        grupo_nombre: m?.grupo_nombre ?? null,
+        codtemporada: m?.codtemporada != null ? String(m.codtemporada) : null,
+        activo: m?.activo ?? null,
+        nPartidos: o.n_partidos,
+      }
+    }).filter((e) => e.nombre)   // descarta cualquier codequipo sin fila en web_equipo (no debería ocurrir)
+    if (equipos.length === 0) return null
     // ¿Tiene mapa estático generado? (manifiesto). Opcional: si la consulta fallara, la ficha se sirve sin mapa.
     const { data: mapaRow } = await supabase.from('web_campo_mapa').select('codigo_campo').eq('codigo_campo', codigo).maybeSingle()
     return {

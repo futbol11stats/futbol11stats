@@ -9,6 +9,9 @@ import { MapPin, Navigation } from 'lucide-react'
 import { getCampo, campoSlug, codigoCampoFromSlug } from '@/lib/campo'
 import { parseCampo, campoMapsUrl, campoDirUrl } from '@/lib/club'
 import { equipoSlug } from '@/lib/equipo'
+import { tempLabel } from '@/lib/jugador'
+import { escudoUrl } from '@/lib/supabase'
+import EscudoImg from '@/components/EscudoImg'
 import { Escudo } from '@/components/iconos'
 import JsonLd from '@/components/JsonLd'
 import { graphLd, breadcrumbLd } from '@/lib/jsonld'
@@ -121,21 +124,37 @@ export default async function CampoPage({ params }: { params: Promise<{ slug: st
         <h2 className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-widest text-chalk-600 mb-2">
           Equipos que juegan aquí · {c.equipos.length}
         </h2>
-        <ul className="grid sm:grid-cols-2 gap-2">
-          {c.equipos.map((e) => (
-            <li key={e.codequipo}>
-              <Link href={`/madrid/equipo/${equipoSlug(e.codequipo, e.nombre)}`}
-                className="flex items-center justify-between gap-3 p-2.5 rounded-lg bg-pitch-800 border border-pitch-700 hover:border-grass-500/50 transition-colors">
-                <span className="min-w-0">
-                  <span className="block text-sm font-semibold text-white truncate">{e.nombre}</span>
-                  {e.nombre_comp && <span className="block text-xs text-chalk-600 truncate">{e.nombre_comp}</span>}
-                </span>
-                <span className="flex-none inline-flex items-center gap-1 text-xs text-chalk-500 tabular-nums" title="Partidos jugados">
-                  <Escudo size={11} className="text-chalk-600" />{e.nPartidos}<span className="text-chalk-700">PJ</span>
-                </span>
-              </Link>
-            </li>
-          ))}
+        {/* Cada equipo se pinta EXACTAMENTE como un resultado de búsqueda (escudo · nombre · Juvenil · categoría ·
+            grupo), leído de web_equipo. A la derecha, los PJ en este campo (métrica del orden: habituales primero). */}
+        <ul className="bg-pitch-800 rounded-xl border border-pitch-700 divide-y divide-pitch-700/60 overflow-hidden">
+          {c.equipos.map((e) => {
+            const inactivo = !e.activo
+            const juvenil = e.rama === 'juvenil'
+            return (
+              <li key={e.codequipo}>
+                <Link href={`/madrid/equipo/${equipoSlug(e.codequipo, e.nombre)}`}
+                  className="flex items-center gap-2.5 px-3 py-2.5 hover:bg-pitch-700/60 transition-colors">
+                  <span className={`inline-flex items-center justify-center w-8 h-8 bg-white rounded-sm flex-shrink-0 p-0.5 ${inactivo ? 'opacity-60' : ''}`}>
+                    {escudoUrl(e.escudo) ? <EscudoImg escudo={e.escudo} nombre={e.nombre} /> : null}
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="flex items-center gap-1.5 min-w-0">
+                      <span className="font-display font-semibold text-white uppercase truncate text-[15px] leading-tight">{e.nombre}</span>
+                      {juvenil && <span className="flex-shrink-0 text-[10px] font-semibold uppercase tracking-wide text-blue-300 bg-blue-500/15 rounded px-1 py-px">Juvenil</span>}
+                    </span>
+                    <span className={`block text-xs truncate ${inactivo ? 'text-chalk-600' : 'text-chalk-500'}`}>
+                      {inactivo
+                        ? `Último grupo: ${e.nombre_comp ?? ''}${e.grupo_nombre ? ` · ${e.grupo_nombre}` : ''}${e.codtemporada ? ` · ${tempLabel(e.codtemporada)}` : ''}`
+                        : `${e.nombre_comp ?? ''}${e.grupo_nombre ? ` · ${e.grupo_nombre}` : ''}`}
+                    </span>
+                  </span>
+                  <span className="flex-none inline-flex items-center gap-1 text-xs text-chalk-500 tabular-nums" title="Partidos jugados en este campo">
+                    <Escudo size={11} className="text-chalk-600" />{e.nPartidos}<span className="text-chalk-700">PJ</span>
+                  </span>
+                </Link>
+              </li>
+            )
+          })}
         </ul>
       </section>
     </div>
