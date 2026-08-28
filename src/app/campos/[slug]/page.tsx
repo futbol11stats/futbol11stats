@@ -142,14 +142,18 @@ export default async function CampoPage({ params }: { params: Promise<{ slug: st
                       <span className="font-display font-semibold text-white uppercase truncate text-[15px] leading-tight">{e.nombre}</span>
                       {juvenil && <span className="flex-shrink-0 text-[10px] font-semibold uppercase tracking-wide text-blue-300 bg-blue-500/15 rounded px-1 py-px">Juvenil</span>}
                     </span>
-                    <span className={`block text-xs truncate ${inactivo ? 'text-chalk-600' : 'text-chalk-500'}`}>
-                      {inactivo
-                        ? `Último grupo: ${e.nombre_comp ?? ''}${e.grupo_nombre ? ` · ${e.grupo_nombre}` : ''}${e.codtemporada ? ` · ${tempLabel(e.codtemporada)}` : ''}`
-                        : `${e.nombre_comp ?? ''}${e.grupo_nombre ? ` · ${e.grupo_nombre}` : ''}`}
+                    {/* Categoría · grupo · PJ del equipo EN ESTE campo, seguido en la misma línea (el nº ordena la
+                        lista: habituales primero). La categoría/grupo trunca; los PJ se mantienen visibles. */}
+                    <span className={`flex items-center gap-1.5 text-xs ${inactivo ? 'text-chalk-600' : 'text-chalk-500'}`}>
+                      <span className="truncate">
+                        {inactivo
+                          ? `Último grupo: ${e.nombre_comp ?? ''}${e.grupo_nombre ? ` · ${e.grupo_nombre}` : ''}${e.codtemporada ? ` · ${tempLabel(e.codtemporada)}` : ''}`
+                          : `${e.nombre_comp ?? ''}${e.grupo_nombre ? ` · ${e.grupo_nombre}` : ''}`}
+                      </span>
+                      <span className="flex-none inline-flex items-center gap-1 tabular-nums" title="Partidos jugados en este campo">
+                        <span className="text-chalk-700">·</span><Escudo size={11} className="text-chalk-600" />{e.nPartidos}<span className="text-chalk-700"> PJ</span>
+                      </span>
                     </span>
-                  </span>
-                  <span className="flex-none inline-flex items-center gap-1 text-xs text-chalk-500 tabular-nums" title="Partidos jugados en este campo">
-                    <Escudo size={11} className="text-chalk-600" />{e.nPartidos}<span className="text-chalk-700">PJ</span>
                   </span>
                 </Link>
               </li>
