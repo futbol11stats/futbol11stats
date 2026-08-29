@@ -23,6 +23,7 @@ import { graphLd, breadcrumbLd, sportsTeamLd } from '@/lib/jsonld'
 import { SITE_URL } from '@/lib/seo'
 import { getCampoEquipo, campoMapsUrl, parseCampo } from '@/lib/club'
 import { getCamposConFicha, campoSlug } from '@/lib/campo'
+import SuperficieCampo from '@/components/SuperficieCampo'
 import { escudoUrl, formatNombre } from '@/lib/supabase'
 import { jugadorHref, fechaCorta, fichasExistentes } from '@/lib/jugador'
 import { familiaSello, familiaCorto } from '@/lib/sellos'
@@ -308,7 +309,7 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
                 equipos, mapa, dirección y los dos enlaces); si no, cae a Maps (externo). Silencio si no hay campo. */}
             {campoInfo.codigo && campoInfo.nombre && (() => {
               const { nombre, superficie } = parseCampo(campoInfo.nombre)
-              const inner = <><MapPin size={12} strokeWidth={2.25} /><span>{nombre}</span>{superficie && <span className="campo-sup">· {superficie}</span>}</>
+              const inner = <><MapPin size={12} strokeWidth={2.25} /><span>{nombre}</span>{superficie && <span className="campo-sup">· <SuperficieCampo superficie={superficie} /></span>}</>
               const tieneFicha = camposConFicha.has(String(campoInfo.codigo))
               if (tieneFicha) {
                 return <Link className="hero-campo" href={`/campos/${campoSlug(campoInfo.codigo, nombre)}`}>{inner}</Link>

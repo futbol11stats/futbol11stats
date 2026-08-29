@@ -5,7 +5,8 @@ export function generateStaticParams() { return [] }  // ISR on-demand: 0 en bui
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound, permanentRedirect } from 'next/navigation'
-import { getClub, clubSlug, codclubFromSlug, campoLabel } from '@/lib/club'
+import { getClub, clubSlug, codclubFromSlug, parseCampo } from '@/lib/club'
+import SuperficieCampo from '@/components/SuperficieCampo'
 import { equipoSlug } from '@/lib/equipo'
 import EscudoBox from '@/components/ficha/v2/EscudoBox'
 import JsonLd from '@/components/JsonLd'
@@ -69,7 +70,16 @@ export default async function ClubPage({ params }: { params: Promise<{ slug: str
               <span className="min-w-0">
                 <span className="block text-sm font-semibold text-white truncate">{e.nombre}{e.activo === false && <span className="text-chalk-600 font-normal"> · inactivo</span>}</span>
                 <span className="block text-xs text-chalk-600 truncate">
-                  {[e.nombre_comp, e.campo_codigo && e.campo_nombre ? campoLabel(e.campo_nombre) : null].filter(Boolean).join(' · ') || '—'}
+                  {(() => {
+                    const cp = e.campo_codigo && e.campo_nombre ? parseCampo(e.campo_nombre) : null
+                    if (!e.nombre_comp && !cp) return '—'
+                    return (<>
+                      {e.nombre_comp}
+                      {e.nombre_comp && cp ? ' · ' : ''}
+                      {cp ? cp.nombre : ''}
+                      {cp?.superficie ? <> · <SuperficieCampo superficie={cp.superficie} /></> : ''}
+                    </>)
+                  })()}
                 </span>
               </span>
             </Link>

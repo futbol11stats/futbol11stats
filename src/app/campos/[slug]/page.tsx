@@ -13,6 +13,7 @@ import { tempLabel } from '@/lib/jugador'
 import { escudoUrl } from '@/lib/supabase'
 import EscudoImg from '@/components/EscudoImg'
 import { Escudo } from '@/components/iconos'
+import SuperficieCampo from '@/components/SuperficieCampo'
 import JsonLd from '@/components/JsonLd'
 import { graphLd, breadcrumbLd } from '@/lib/jsonld'
 import { SITE_URL } from '@/lib/seo'
@@ -80,7 +81,11 @@ export default async function CampoPage({ params }: { params: Promise<{ slug: st
 
       <h1 className="font-display text-3xl font-bold text-white leading-tight">{nombre}</h1>
       <p className="text-chalk-600 text-sm mt-1">
-        {[direccionLinea, superficie].filter(Boolean).join(' · ') || '—'}
+        {!direccionLinea && !superficie ? '—' : (<>
+          {direccionLinea}
+          {direccionLinea && superficie ? ' · ' : ''}
+          {superficie ? <SuperficieCampo superficie={superficie} /> : null}
+        </>)}
       </p>
 
       {/* Mapa estático (imagen del bucket, teselas OSM): 0 coste por visita, sin API key. Es CONTEXTO: alt

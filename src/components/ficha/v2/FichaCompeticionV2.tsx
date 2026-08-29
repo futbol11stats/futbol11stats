@@ -12,6 +12,7 @@ import { ensureMadrid, SITE_URL } from '@/lib/seo'
 import { fechaCortaDMY, equipoSlug } from '@/lib/equipo'
 import { campoMapsUrl, parseCampo } from '@/lib/club'
 import { getCamposConFicha, campoSlug } from '@/lib/campo'
+import SuperficieCampo from '@/components/SuperficieCampo'
 import JsonLd from '@/components/JsonLd'
 import { graphLd, sportsEventLd } from '@/lib/jsonld'
 import { escudoUrl } from '@/lib/supabase'
@@ -382,7 +383,7 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
   const renderCampoPartido = (r: ResultadoCompRow): ReactNode => {
     if (!r.campo) return null
     const { nombre, superficie } = parseCampo(r.campo)
-    const txt = <>{nombre}{superficie && <span className="campo-sup"> · {superficie}</span>}</>
+    const txt = <>{nombre}{superficie && <span className="campo-sup"> · <SuperficieCampo superficie={superficie} /></span>}</>
     if (r.codigo_campo != null && camposConFicha.has(String(r.codigo_campo))) {
       return <Link className="rmeta-campo" href={`/campos/${campoSlug(String(r.codigo_campo), nombre)}`}><MapPin size={11} strokeWidth={2.25} />{txt}</Link>
     }
