@@ -22,6 +22,7 @@ import { TarjetaAmarilla, TarjetaDoble, TarjetaRoja, FlechaEntra, FlechaSale, Pr
 import { graphLd, breadcrumbLd, sportsTeamLd } from '@/lib/jsonld'
 import { SITE_URL } from '@/lib/seo'
 import { getCampoEquipo, campoMapsUrl, parseCampo } from '@/lib/club'
+import { getCamposConFicha, campoSlug } from '@/lib/campo'
 import { escudoUrl, formatNombre } from '@/lib/supabase'
 import { jugadorHref, fechaCorta, fichasExistentes } from '@/lib/jugador'
 import { familiaSello, familiaCorto } from '@/lib/sellos'
@@ -70,12 +71,13 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
   const nombreComp = esSoloCopa ? null : (tempRow?.nombre_comp ?? e.nombre_comp ?? null)
   const grupoNombre = esSoloCopa ? null : (tempRow?.grupo_nombre ?? e.grupo_nombre ?? null)
 
-  const [serie, resultados, equipoInfo, grupoInfo, campoInfo] = await Promise.all([
+  const [serie, resultados, equipoInfo, grupoInfo, campoInfo, camposConFicha] = await Promise.all([
     getSerieLiga(e.codequipo, codgrupoSel),
     getResultadosGrupo(e.codequipo, e.nombre, codgrupoSel),
     inactivo ? Promise.resolve({ copas: [], posicionActual: null }) : getEquipoActualInfo(e.codequipo),
     getGrupoInfo(codgrupoSel),
     getCampoEquipo(e.codequipo),   // campo (instalación dominante última temporada) + localidad, para el hero
+    getCamposConFicha(),           // ¿el campo tiene ficha propia? -> enlace interno vs Maps
   ])
   const { posicionActual } = equipoInfo   // `copas` (viva) ya no se usa: el hero muestra copasSel (temporada seleccionada)
   const grupoUrl = grupoHref(grupoInfo)
@@ -302,12 +304,16 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
                 resetea el h1 -> la clase .last controla el estilo, idéntico al div anterior. */}
             <h1 className="last">{e.nombre}</h1>
             {/* Campo bajo el nombre (contexto, discreto): chincheta + nombre del campo + superficie legible en
-                pequeño (hierba artificial/natural/tierra). Enlaza a Maps por el nombre (sin el código) + localidad.
-                Silencio si no hay campo claro. */}
+                pequeño. Enlace INTERNO a nuestra ficha /campos/[slug] si el campo la tiene (más rico que Maps:
+                equipos, mapa, dirección y los dos enlaces); si no, cae a Maps (externo). Silencio si no hay campo. */}
             {campoInfo.codigo && campoInfo.nombre && (() => {
               const { nombre, superficie } = parseCampo(campoInfo.nombre)
-              const href = campoMapsUrl(campoInfo)
               const inner = <><MapPin size={12} strokeWidth={2.25} /><span>{nombre}</span>{superficie && <span className="campo-sup">· {superficie}</span>}</>
+              const tieneFicha = camposConFicha.has(String(campoInfo.codigo))
+              if (tieneFicha) {
+                return <Link className="hero-campo" href={`/campos/${campoSlug(campoInfo.codigo, nombre)}`}>{inner}</Link>
+              }
+              const href = campoMapsUrl(campoInfo)
               return href
                 ? <a className="hero-campo" href={href} target="_blank" rel="noopener noreferrer">{inner}</a>
                 : <span className="hero-campo">{inner}</span>

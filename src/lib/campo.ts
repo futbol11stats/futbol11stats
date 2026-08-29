@@ -42,6 +42,17 @@ export async function getCamposIndex(): Promise<CampoIndexRow[]> {
 // Se pinta EXACTAMENTE como un resultado de búsqueda de equipo -> mismos campos que EquipoHit (escudo, categoría
 // = nombre_comp, grupo = grupo_nombre, rama, activo, codtemporada), leídos de web_equipo (misma fuente que el
 // buscador). nPartidos viene de la vista del campo (ordena la lista: habituales primero).
+// Set de codigo_campo que TIENEN ficha (>=1 equipo -> anti-thin, están en web_campo_resumen). Para decidir si el
+// campo de un equipo/partido enlaza a NUESTRA ficha /campos/[slug] (enlace interno) o cae a Google Maps. Se cachea
+// el ARRAY (los Set no sobreviven a unstable_cache -> se reconstruye el Set en cada llamada, fuera de la caché).
+export async function getCamposConFicha(): Promise<Set<string>> {
+  const arr = await cacheIndices(async () => {
+    const { data } = await supabase.from('web_campo_resumen').select('codigo_campo')
+    return ((data || []) as { codigo_campo: string }[]).map((r) => String(r.codigo_campo))
+  }, ['getCamposConFicha', 'v1'])
+  return new Set(arr)
+}
+
 export type CampoEquipoRow = {
   codequipo: string; nombre: string; escudo: string | null; rama: string | null
   nombre_comp: string | null; grupo_nombre: string | null; codtemporada: string | null; activo: boolean | null
