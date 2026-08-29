@@ -1,6 +1,6 @@
 import './ficha.css'
 import type { ReactNode } from 'react'
-import { MapPin } from 'lucide-react'
+import { MapPin, CalendarPlus } from 'lucide-react'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import Sello from '@/components/Sello'
@@ -397,6 +397,11 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
     const jugado = r.goles_local != null && r.goles_visitante != null
     const metaFH = [r.fecha ? fechaCortaDMY(r.fecha) : null, r.hora || null].filter(Boolean).join(' · ')
     const campoEl = renderCampoPartido(r)
+    // Botón "Añadir a mi calendario": solo partido NO jugado, con fecha Y hora (no 00:00). El .ics lo sirve
+    // /api/ics/<id> (LOCATION+GEO del campo si los hay). Discreto, bajo el "vs", sin tocar los marcadores.
+    const puedeIcs = !jugado
+      && !!r.fecha && /^\d{2}\/\d{2}\/\d{4}$/.test(r.fecha)
+      && !!r.hora && /^\d{1,2}:\d{2}$/.test(r.hora) && r.hora !== '00:00'
     return (
       <div className="rmatch-wrap" key={r.codacta ?? i}>
         <div className="rmatch">
@@ -404,12 +409,12 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
             <EscudoBox escudo={r.escudo_local} nombre={r.nombre_local} size={26} radius={5} />
             <span className={`rnm${jugado && (r.goles_local as number) > (r.goles_visitante as number) ? ' w' : ''}`}><NombreEquipo codequipo={equiposMap.get(r.nombre_local) ?? null} nombre={r.nombre_local} /></span>
           </div>
-          <div className="rsc">{jugado ? (() => {
+          <div className={`rsc${jugado ? '' : ' fut'}`}>{jugado ? (() => {
             const gL = r.goles_local as number, gV = r.goles_visitante as number
             const cL = gL > gV ? 'var(--e3)' : gL < gV ? 'var(--e0)' : 'var(--ink-2)'
             const cV = gV > gL ? 'var(--e3)' : gV < gL ? 'var(--e0)' : 'var(--ink-2)'
             return <><span style={{ color: cL }}>{gL}</span><span className="rsc-sep">-</span><span style={{ color: cV }}>{gV}</span></>
-          })() : 'vs'}</div>
+          })() : <><span>vs</span>{puedeIcs && <a className="rics" href={`/api/ics/${r.id}`} aria-label={`Añadir ${r.nombre_local} vs ${r.nombre_visitante} a mi calendario`} title="Añadir a mi calendario"><CalendarPlus size={13} strokeWidth={2.25} /></a>}</>}</div>
           <div className="rside v">
             <EscudoBox escudo={r.escudo_visitante} nombre={r.nombre_visitante} size={26} radius={5} />
             <span className={`rnm${jugado && (r.goles_visitante as number) > (r.goles_local as number) ? ' w' : ''}`}><NombreEquipo codequipo={equiposMap.get(r.nombre_visitante) ?? null} nombre={r.nombre_visitante} /></span>

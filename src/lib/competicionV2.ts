@@ -212,6 +212,7 @@ export async function getXiJornadaV2(codgrupo: string, codtemporada: number, jor
 
 // --- Resultados de una jornada (web_resultados). campo ya poblado; fecha/hora pueden venir NULL. ---
 export type ResultadoCompRow = {
+  id: number   // PK de la fila -> href del botón "Añadir a mi calendario" (/api/ics/<id>)
   codacta: string | null
   nombre_local: string; escudo_local: string | null; goles_local: number | null
   nombre_visitante: string; escudo_visitante: string | null; goles_visitante: number | null
@@ -238,13 +239,13 @@ export async function tienePartidosJugados(codgrupo: string, codtemporada: numbe
 export async function getResultadosV2(codgrupo: string, codtemporada: number, jornada: number): Promise<ResultadoCompRow[]> {
   return cacheComp(async () => {
     const { data, error } = await supabase.from('web_resultados')
-      .select('codacta, nombre_local, escudo_local, goles_local, goles_visitante, nombre_visitante, escudo_visitante, ' +
+      .select('id, codacta, nombre_local, escudo_local, goles_local, goles_visitante, nombre_visitante, escudo_visitante, ' +
         'fecha, hora, campo, grupo_label, codigo_campo, campo_lat, campo_lng')
       .eq('codgrupo', codgrupo).eq('codtemporada', codtemporada).eq('jornada', jornada).order('fecha').order('hora')
     if (error) throw error   // no cachear [] por un error transitorio (ver checklist: caché envenenada)
     return (data || []) as unknown as ResultadoCompRow[]
-    // v3-campo: bump al añadir codigo_campo/campo_lat/campo_lng (enlace a Maps del campo del partido, pin exacto).
-  }, ['getResultadosV2', 'v3-campo', codgrupo, codtemporada, jornada], [codgrupo], codtemporada)
+    // v4-id: bump al añadir id (href del .ics por partido). v3: codigo_campo/campo_lat/campo_lng (Maps del campo).
+  }, ['getResultadosV2', 'v4-id', codgrupo, codtemporada, jornada], [codgrupo], codtemporada)
 }
 
 // Clasificación de FASE DE GRUPOS de copa: TODOS los snapshots (matchdays 1..3) de los DOS grupos, de una vez.

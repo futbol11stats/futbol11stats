@@ -647,6 +647,11 @@
 
 /* Resultados: separador del marcador siempre neutro (los goles se colorean por resultado). */
 .fjv2 .rsc-sep{color:var(--ink-3);margin:0 1px}
+/* Partido futuro: "vs" + botón discreto de calendario apilado debajo (tamaño del vs, sin competir con marcadores). */
+.fjv2 .rsc.fut{display:inline-flex;flex-direction:column;align-items:center;gap:1px;line-height:1}
+.fjv2 .rics{display:inline-flex;color:var(--ink-4);transition:color .12s}
+.fjv2 .rics:hover{color:var(--e3)}
+.fjv2 .rics svg{display:block}
 
 /* Trayectoria v2: la tabla de partidos en ScrollRail. La caja (borde/fondo/redondeo) va en el wrap; el
    degradado de los bordes se tiñe del fondo de la tabla (pitch-800), no del pitch-900 por defecto. */
