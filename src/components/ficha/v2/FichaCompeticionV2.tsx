@@ -11,6 +11,7 @@ import { nombreOficial, denominacion, familiaSello } from '@/lib/sellos'
 import { ensureMadrid, SITE_URL } from '@/lib/seo'
 import { fechaCortaDMY, equipoSlug } from '@/lib/equipo'
 import { campoMapsUrl, parseCampo } from '@/lib/club'
+import { getCamposConFicha, campoSlug } from '@/lib/campo'
 import JsonLd from '@/components/JsonLd'
 import { graphLd, sportsEventLd } from '@/lib/jsonld'
 import { escudoUrl } from '@/lib/supabase'
@@ -372,15 +373,21 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
   )
 
   // Un partido de la lista de Resultados (extraído para reutilizarlo agrupado por grupo_label en copa).
-  // Campo del PARTIDO (dato de la fila web_resultados, NO la instalación habitual del equipo local). Enlace a Maps
-  // discreto (chincheta) + superficie legible como en la ficha de equipo. Enlace SOLO cuando el pipeline publique
-  // coords/código del partido (r.campo_lat / r.codigo_campo); hasta entonces (o si no se resuelve) -> texto plano.
+  // Campo del PARTIDO (dato de la fila web_resultados, NO la instalación habitual del equipo local). Chincheta +
+  // superficie legible como en la ficha de equipo. Enlace INTERNO a nuestra ficha /campos/[slug] si el campo la
+  // tiene (lleva dentro "Cómo llegar" + dirección + mapa + equipos habituales; la sede puntual no incluye a los de
+  // hoy, pero dirección/mapa/ruta siguen siendo válidos). Si no tiene ficha, cae a Maps (externo) cuando hay
+  // coords/código; sin dato -> texto plano.
+  const camposConFicha = await getCamposConFicha()
   const renderCampoPartido = (r: ResultadoCompRow): ReactNode => {
     if (!r.campo) return null
     const { nombre, superficie } = parseCampo(r.campo)
+    const txt = <>{nombre}{superficie && <span className="campo-sup"> · {superficie}</span>}</>
+    if (r.codigo_campo != null && camposConFicha.has(String(r.codigo_campo))) {
+      return <Link className="rmeta-campo" href={`/campos/${campoSlug(String(r.codigo_campo), nombre)}`}><MapPin size={11} strokeWidth={2.25} />{txt}</Link>
+    }
     const canLink = r.campo_lat != null || r.codigo_campo != null
     const href = canLink ? campoMapsUrl({ codigo: r.codigo_campo ?? null, nombre: r.campo, localidad: r.campo_localidad ?? null, lat: r.campo_lat ?? null, lng: r.campo_lng ?? null }) : null
-    const txt = <>{nombre}{superficie && <span className="campo-sup"> · {superficie}</span>}</>
     return href
       ? <a className="rmeta-campo" href={href} target="_blank" rel="noopener noreferrer"><MapPin size={11} strokeWidth={2.25} />{txt}</a>
       : txt
