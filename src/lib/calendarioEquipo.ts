@@ -30,6 +30,13 @@ export async function buildTeamCalendar(codequipo: string, nowMs: number): Promi
   const rows = all.filter((r) => Number(r.codtemporada) === maxSeason)
   if (!rows.length) return null
 
+  // ¿La temporada del equipo NO es la activa del sitio? (transitorio: 2ª Juvenil/2ª Aficionada aún sin ingerir en
+  // la activa -> su última temporada es la anterior). Se etiqueta el calendario con su temporada para no hacer
+  // pasar lo viejo por actual. Desaparece solo cuando el pipeline ingiera esas categorías.
+  const { data: actRaw } = await supabase.from('web_grupos').select('codtemporada').order('codtemporada', { ascending: false }).limit(1)
+  const activeSeason = Number((actRaw?.[0] as { codtemporada?: number } | undefined)?.codtemporada) || maxSeason
+  const esVieja = maxSeason < activeSeason
+
   // Nombre del equipo (lado que le corresponde).
   let nombre = ''
   for (const r of rows) { nombre = String(r.codequipo_local) === cod ? String(r.nombre_local) : String(r.nombre_visitante); if (nombre) break }
@@ -81,5 +88,6 @@ export async function buildTeamCalendar(codequipo: string, nowMs: number): Promi
     if (ve) vevents.push(ve)
   }
   if (!vevents.length) return null
-  return { ics: wrapCalendar(vevents, { name: `${nombre} · Fútbol11Stats`, ttlHours: 2 }), nombre }
+  const calName = esVieja ? `${nombre} · ${tempSlug} · Fútbol11Stats` : `${nombre} · Fútbol11Stats`
+  return { ics: wrapCalendar(vevents, { name: calName, ttlHours: 2 }), nombre }
 }

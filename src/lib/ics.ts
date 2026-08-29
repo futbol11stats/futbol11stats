@@ -2,8 +2,11 @@
 // y el feed suscribible por equipo (/api/calendario/equipo/[slug]). Puro salvo Date (válido en route handlers).
 
 const CRLF = '\r\n'
-const HOME = '🏠'
-const AWAY = '✈️'
+// Texto en vez de emoji: los calendarios de Android (Google Calendar, el cliente más usado por nuestro público)
+// filtran los emojis en eventos importados -> un adorno que no se ve no comunica. "Casa"/"Fuera" se lee en todas
+// partes y da claridad en la vista mensual ("Casa · LAS ROZAS 'A'").
+const HOME_LABEL = 'Casa'
+const AWAY_LABEL = 'Fuera'
 const HHMM = /^\d{1,2}:\d{2}$/
 const DDMMYYYY = /^(\d{2})\/(\d{2})\/(\d{4})$/
 
@@ -85,14 +88,15 @@ export function matchVevent(m: MatchIcsInput, nowMs: number): string | null {
     dtLines = [`DTSTART;VALUE=DATE:${fmtDate(startMs)}`, `DTEND;VALUE=DATE:${fmtDate(startMs + 24 * 3600 * 1000)}`]
   }
 
-  // TÍTULO: emoji casa/avión según el equipo del feed. Jugado -> marcador completo; futuro -> "vs Rival".
-  // Neutro (botón): sin emoji, "Local vs Visitante". Nada de competición/jornada aquí (se corta en móvil).
-  const emoji = m.perspectiva === 'local' ? HOME : m.perspectiva === 'visitante' ? AWAY : ''
+  // TÍTULO: "Casa/Fuera" según el lado del equipo del feed. Jugado -> marcador completo; futuro -> "Casa · Rival".
+  // Neutro (botón por partido): "Local vs Visitante". Nada de competición/jornada aquí (se corta en móvil).
+  const label = m.perspectiva === 'local' ? HOME_LABEL : m.perspectiva === 'visitante' ? AWAY_LABEL : ''
   let summary: string
   if (jugado) {
-    summary = `${emoji ? emoji + ' ' : ''}${m.nombreLocal} ${m.golesLocal}-${m.golesVisitante} ${m.nombreVisitante}`
+    const marcador = `${m.nombreLocal} ${m.golesLocal}-${m.golesVisitante} ${m.nombreVisitante}`
+    summary = label ? `${label} · ${marcador}` : marcador
   } else if (m.perspectiva) {
-    summary = `${emoji} vs ${m.perspectiva === 'local' ? m.nombreVisitante : m.nombreLocal}`
+    summary = `${label} · ${m.perspectiva === 'local' ? m.nombreVisitante : m.nombreLocal}`
   } else {
     summary = `${m.nombreLocal} vs ${m.nombreVisitante}`
   }
@@ -143,4 +147,19 @@ export function buildMatchIcs(m: MatchIcsInput, nowMs: number): string | null {
   const ve = matchVevent(m, nowMs)
   if (!ve) return null
   return wrapCalendar([ve])
+}
+
+// URL "crear evento" de Google Calendar: un toque abre la pantalla ya rellena (Android, sin descargar nada).
+// Vía principal en Android/escritorio; el .ics queda para Apple y otras apps (lo elige la detección de plataforma).
+// null si no hay fecha/hora válidas. `dates` en hora local + ctz=Europe/Madrid (Google resuelve el DST).
+export function googleRenderUrl(m: { title: string; fecha: string; hora: string; campo: string | null; details: string }): string | null {
+  const md = DDMMYYYY.exec(m.fecha || '')
+  const mt = /^(\d{1,2}):(\d{2})$/.exec(m.hora || '')
+  if (!md || !mt) return null
+  const [, dd, mmm, yyyy] = md
+  const startMs = Date.UTC(+yyyy, +mmm - 1, +dd, +mt[1], +mt[2])
+  const f = (ms: number) => { const d = new Date(ms); return `${d.getUTCFullYear()}${pad(d.getUTCMonth() + 1)}${pad(d.getUTCDate())}T${pad(d.getUTCHours())}${pad(d.getUTCMinutes())}00` }
+  const p = new URLSearchParams({ action: 'TEMPLATE', text: m.title, dates: `${f(startMs)}/${f(startMs + 2 * 3600 * 1000)}`, ctz: 'Europe/Madrid', details: m.details })
+  if (m.campo) p.set('location', m.campo)
+  return `https://calendar.google.com/calendar/render?${p.toString()}`
 }

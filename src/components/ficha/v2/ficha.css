@@ -468,7 +468,7 @@
 .fjv2 .rmatch .rnm a{color:inherit;text-decoration:none}
 .fjv2 .rmatch .rnm.w{font-weight:700;color:var(--ink)}
 .fjv2 .rmatch .rsc{font-family:var(--font-display),'Barlow Condensed',sans-serif;font-size:var(--n-sm);font-weight:700;font-variant-numeric:tabular-nums;padding:3px 9px;border-radius:6px;background:rgba(255,255,255,.06);flex:none}
-.fjv2 .rmeta{padding:0 var(--pad) 9px;font-size:var(--t-cap);color:var(--ink-3);text-align:center}
+.fjv2 .rmeta{padding:0 var(--pad) 9px;font-size:var(--t-cap);color:var(--ink-3);text-align:center;display:flex;flex-direction:column;align-items:center;gap:3px}
 /* Campo del partido como enlace discreto (chincheta) en la línea de metadatos; hereda el tono muted de .rmeta. */
 .fjv2 .rmeta-campo{display:inline-flex;align-items:center;gap:3px;color:inherit;text-decoration:none}
 .fjv2 .rmeta-campo:hover{color:var(--ink-2);text-decoration:underline;text-decoration-style:dotted}
@@ -647,17 +647,13 @@
 
 /* Resultados: separador del marcador siempre neutro (los goles se colorean por resultado). */
 .fjv2 .rsc-sep{color:var(--ink-3);margin:0 1px}
-/* Partido futuro: "vs" + botón discreto de calendario apilado debajo (tamaño del vs, sin competir con marcadores). */
-.fjv2 .rsc.fut{display:inline-flex;flex-direction:column;align-items:center;gap:1px;line-height:1}
-.fjv2 .rics{display:inline-flex;color:var(--ink-4);transition:color .12s}
-.fjv2 .rics:hover{color:var(--e3)}
-.fjv2 .rics svg{display:block}
-/* Suscripción del calendario del equipo (hero). Discreto, bajo el campo. */
-.fjv2 .cal-follow{display:flex;align-items:baseline;gap:8px;margin-top:6px;font-size:var(--t-cap)}
-.fjv2 .cal-follow>a:first-child{color:var(--ink-2);text-decoration:none;font-weight:600}
-.fjv2 .cal-follow>a:first-child:hover{color:var(--ink)}
-.fjv2 .cal-follow .cal-alt{color:var(--ink-4);text-decoration:underline;text-decoration-style:dotted}
-.fjv2 .cal-follow .cal-alt:hover{color:var(--ink-2)}
+/* Botón "Añade este partido a tu calendario" en la línea de metadatos (icono + texto, todo enlace). */
+.fjv2 .rmeta-cal{display:inline-flex;align-items:center;gap:5px;color:var(--ink-4);text-decoration:none;font-weight:600}
+.fjv2 .rmeta-cal:hover{color:var(--e3)}
+.fjv2 .rmeta-cal svg{flex:none;vertical-align:-1px}
+/* Suscripción del calendario del equipo (hero): la frase completa es el enlace. */
+.fjv2 a.cal-follow{display:inline-flex;align-items:center;gap:5px;margin-top:6px;font-size:var(--t-cap);color:var(--ink-2);text-decoration:none;font-weight:600}
+.fjv2 a.cal-follow:hover{color:var(--ink)}
 
 /* Trayectoria v2: la tabla de partidos en ScrollRail. La caja (borde/fondo/redondeo) va en el wrap; el
    degradado de los bordes se tiñe del fondo de la tabla (pitch-800), no del pitch-900 por defecto. */

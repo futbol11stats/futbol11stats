@@ -13,6 +13,8 @@ import { fechaCortaDMY, equipoSlug } from '@/lib/equipo'
 import { campoMapsUrl, parseCampo } from '@/lib/club'
 import { getCamposConFicha, campoSlug } from '@/lib/campo'
 import SuperficieCampo from '@/components/SuperficieCampo'
+import { googleRenderUrl } from '@/lib/ics'
+import CalendarLink from '@/components/calendario/CalendarLink'
 import JsonLd from '@/components/JsonLd'
 import { graphLd, sportsEventLd } from '@/lib/jsonld'
 import { escudoUrl } from '@/lib/supabase'
@@ -402,6 +404,15 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
     const puedeIcs = !jugado
       && !!r.fecha && /^\d{2}\/\d{2}\/\d{4}$/.test(r.fecha)
       && !!r.hora && /^\d{1,2}:\d{2}$/.test(r.hora) && r.hora !== '00:00'
+    // Botón de calendario: vía principal Google Calendar (crear evento, un toque en Android); Apple -> .ics.
+    // Con TEXTO (no cabe en la pastilla del marcador) -> va en la línea de metadatos, bajo fecha/campo.
+    const icsUrl = `/api/ics/${r.id}`
+    const googleUrl = puedeIcs ? googleRenderUrl({
+      title: `${r.nombre_local} vs ${r.nombre_visitante}`,
+      fecha: r.fecha as string, hora: r.hora as string,
+      campo: r.campo ? (parseCampo(r.campo).nombre || null) : null,
+      details: `${grupo.nombre_comp} · ${temporada}\n${SITE_URL}/madrid/${categoria}/${slugComp}/${slugGrupo}/${temporada}/${jornadaSeg}/resultados`,
+    }) : null
     return (
       <div className="rmatch-wrap" key={r.codacta ?? i}>
         <div className="rmatch">
@@ -409,18 +420,27 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
             <EscudoBox escudo={r.escudo_local} nombre={r.nombre_local} size={26} radius={5} />
             <span className={`rnm${jugado && (r.goles_local as number) > (r.goles_visitante as number) ? ' w' : ''}`}><NombreEquipo codequipo={equiposMap.get(r.nombre_local) ?? null} nombre={r.nombre_local} /></span>
           </div>
-          <div className={`rsc${jugado ? '' : ' fut'}`}>{jugado ? (() => {
+          <div className="rsc">{jugado ? (() => {
             const gL = r.goles_local as number, gV = r.goles_visitante as number
             const cL = gL > gV ? 'var(--e3)' : gL < gV ? 'var(--e0)' : 'var(--ink-2)'
             const cV = gV > gL ? 'var(--e3)' : gV < gL ? 'var(--e0)' : 'var(--ink-2)'
             return <><span style={{ color: cL }}>{gL}</span><span className="rsc-sep">-</span><span style={{ color: cV }}>{gV}</span></>
-          })() : <><span>vs</span>{puedeIcs && <a className="rics" href={`/api/ics/${r.id}`} aria-label={`Añadir ${r.nombre_local} vs ${r.nombre_visitante} a mi calendario`} title="Añadir a mi calendario"><CalendarPlus size={13} strokeWidth={2.25} /></a>}</>}</div>
+          })() : 'vs'}</div>
           <div className="rside v">
             <EscudoBox escudo={r.escudo_visitante} nombre={r.nombre_visitante} size={26} radius={5} />
             <span className={`rnm${jugado && (r.goles_visitante as number) > (r.goles_local as number) ? ' w' : ''}`}><NombreEquipo codequipo={equiposMap.get(r.nombre_visitante) ?? null} nombre={r.nombre_visitante} /></span>
           </div>
         </div>
-        {(metaFH || campoEl) && <div className="rmeta">{metaFH}{campoEl && <>{metaFH ? ' · ' : ''}{campoEl}</>}</div>}
+        {(metaFH || campoEl || puedeIcs) && (
+          <div className="rmeta">
+            {(metaFH || campoEl) && <span>{metaFH}{campoEl && <>{metaFH ? ' · ' : ''}{campoEl}</>}</span>}
+            {puedeIcs && (
+              <CalendarLink appleHref={icsUrl} otherHref={googleUrl || icsUrl} className="rmeta-cal">
+                <CalendarPlus size={12} strokeWidth={2.25} /> Añade este partido a tu calendario
+              </CalendarLink>
+            )}
+          </div>
+        )}
       </div>
     )
   }

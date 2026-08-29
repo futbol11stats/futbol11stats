@@ -24,6 +24,7 @@ import { SITE_URL } from '@/lib/seo'
 import { getCampoEquipo, campoMapsUrl, parseCampo } from '@/lib/club'
 import { getCamposConFicha, campoSlug } from '@/lib/campo'
 import SuperficieCampo from '@/components/SuperficieCampo'
+import CalendarLink from '@/components/calendario/CalendarLink'
 import { escudoUrl, formatNombre } from '@/lib/supabase'
 import { jugadorHref, fechaCorta, fichasExistentes } from '@/lib/jugador'
 import { familiaSello, familiaCorto } from '@/lib/sellos'
@@ -324,12 +325,12 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
                 enlace https:// es el reserva para móviles que no abren webcal://. */}
             {e.codequipo && (() => {
               const https = `${SITE_URL}/api/calendario/equipo/${e.codequipo}.ics`
-              const webcal = https.replace(/^https?:/, 'webcal:')
+              const webcal = https.replace(/^https?:/, 'webcal:')                      // Apple: suscripción nativa
+              const googleAdd = `https://calendar.google.com/calendar/render?cid=${encodeURIComponent(https)}`  // Android/escritorio: añadir por URL
               return (
-                <div className="cal-follow">
-                  <a href={webcal}>📅 Sigue a este equipo en tu calendario</a>
-                  <a className="cal-alt" href={https} target="_blank" rel="noopener noreferrer" title="Si tu móvil no abre webcal://, usa este enlace">enlace</a>
-                </div>
+                <CalendarLink appleHref={webcal} otherHref={googleAdd} className="cal-follow">
+                  📅 Sigue a este equipo en tu calendario
+                </CalendarLink>
               )
             })()}
           </div>
