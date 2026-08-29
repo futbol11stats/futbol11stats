@@ -23,13 +23,13 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   if (!Number.isInteger(idNum) || idNum <= 0) return new Response('Not found', { status: 404 })
 
   const { data: rRaw } = await supabase.from('web_resultados')
-    .select('id, codtemporada, codgrupo, jornada, nombre_local, nombre_visitante, codequipo_local, codequipo_visitante, goles_local, goles_visitante, fecha, hora, campo, campo_lat, campo_lng, ronda_slug, ronda_label')
+    .select('id, codtemporada, codgrupo, jornada, nombre_local, nombre_visitante, codequipo_local, codequipo_visitante, goles_local, goles_visitante, fecha, hora, campo, codigo_campo, campo_lat, campo_lng, ronda_slug, ronda_label')
     .eq('id', idNum).maybeSingle()
   const r = rRaw as {
     codtemporada: number; codgrupo: string; jornada: number
     nombre_local: string; nombre_visitante: string; codequipo_local: string | null; codequipo_visitante: string | null
     goles_local: number | null; goles_visitante: number | null; fecha: string | null; hora: string | null
-    campo: string | null; campo_lat: number | null; campo_lng: number | null; ronda_slug: string | null; ronda_label: string | null
+    campo: string | null; codigo_campo: string | null; campo_lat: number | null; campo_lng: number | null; ronda_slug: string | null; ronda_label: string | null
   } | null
   if (!r) return new Response('Not found', { status: 404 })
 
@@ -58,6 +58,15 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     tempSlug,
   ].filter(Boolean).join(' · ')
 
+  // Dirección completa del campo (web_campo, por codigo_campo) para LOCATION/DESCRIPTION.
+  let direccion: string | null = null
+  if (r.codigo_campo) {
+    const { data: cRaw } = await supabase.from('web_campo')
+      .select('direccion, localidad, provincia').eq('codigo_campo', r.codigo_campo).maybeSingle()
+    const c = cRaw as { direccion: string | null; localidad: string | null; provincia: string | null } | null
+    if (c) direccion = [c.direccion, c.localidad, c.provincia].filter(Boolean).join(', ') || null
+  }
+
   const ics = buildMatchIcs({
     codgrupo: r.codgrupo,
     jornada: r.jornada,
@@ -65,11 +74,14 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     codequipoVisitante: String(r.codequipo_visitante ?? r.nombre_visitante),
     nombreLocal: r.nombre_local,
     nombreVisitante: r.nombre_visitante,
+    golesLocal: r.goles_local, golesVisitante: r.goles_visitante,
     fecha: r.fecha as string,
-    hora: r.hora as string,
+    hora: r.hora,
     campoNombre: r.campo ? (parseCampo(r.campo).nombre || null) : null,
+    direccion,
     lat: r.campo_lat, lng: r.campo_lng,
     competicion, url,
+    perspectiva: null,   // botón neutro (sin equipo de referencia)
   }, Date.now())
   if (!ics) return new Response('Evento no disponible', { status: 404 })
 

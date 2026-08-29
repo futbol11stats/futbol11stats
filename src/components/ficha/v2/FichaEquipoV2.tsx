@@ -319,6 +319,19 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
                 ? <a className="hero-campo" href={href} target="_blank" rel="noopener noreferrer">{inner}</a>
                 : <span className="hero-campo">{inner}</span>
             })()}
+            {/* Suscripción del CALENDARIO del equipo (webcal). El feed .ics recoge cada semana los horarios que la
+                RFFM publica lunes/martes -> es la función principal (el usuario no descarga partido a partido). El
+                enlace https:// es el reserva para móviles que no abren webcal://. */}
+            {e.codequipo && (() => {
+              const https = `${SITE_URL}/api/calendario/equipo/${e.codequipo}.ics`
+              const webcal = https.replace(/^https?:/, 'webcal:')
+              return (
+                <div className="cal-follow">
+                  <a href={webcal}>📅 Sigue a este equipo en tu calendario</a>
+                  <a className="cal-alt" href={https} target="_blank" rel="noopener noreferrer" title="Si tu móvil no abre webcal://, usa este enlace">enlace</a>
+                </div>
+              )
+            })()}
           </div>
           <CompartirBtn titulo={`${e.nombre} · Fútbol11Stats`} variant="icon" />
         </div>

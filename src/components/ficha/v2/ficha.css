@@ -652,6 +652,12 @@
 .fjv2 .rics{display:inline-flex;color:var(--ink-4);transition:color .12s}
 .fjv2 .rics:hover{color:var(--e3)}
 .fjv2 .rics svg{display:block}
+/* Suscripción del calendario del equipo (hero). Discreto, bajo el campo. */
+.fjv2 .cal-follow{display:flex;align-items:baseline;gap:8px;margin-top:6px;font-size:var(--t-cap)}
+.fjv2 .cal-follow>a:first-child{color:var(--ink-2);text-decoration:none;font-weight:600}
+.fjv2 .cal-follow>a:first-child:hover{color:var(--ink)}
+.fjv2 .cal-follow .cal-alt{color:var(--ink-4);text-decoration:underline;text-decoration-style:dotted}
+.fjv2 .cal-follow .cal-alt:hover{color:var(--ink-2)}
 
 /* Trayectoria v2: la tabla de partidos en ScrollRail. La caja (borde/fondo/redondeo) va en el wrap; el
    degradado de los bordes se tiñe del fondo de la tabla (pitch-800), no del pitch-900 por defecto. */
