@@ -9,7 +9,15 @@ export async function GET(_req: Request, { params }: { params: Promise<{ slug: s
   const cod = String(slug).replace(/\.ics$/i, '')
   if (!/^\d+$/.test(cod)) return new Response('Not found', { status: 404 })
 
-  const res = await buildTeamCalendar(cod, Date.now())
+  let res
+  try {
+    res = await buildTeamCalendar(cod, Date.now())
+  } catch {
+    // Error transitorio (p.ej. timeout de consulta): reintentable, NUNCA "no tiene partidos".
+    return new Response('Temporalmente no disponible, reinténtalo', {
+      status: 503, headers: { 'Cache-Control': 'no-store', 'Retry-After': '30' },
+    })
+  }
   if (!res) return new Response('El equipo no tiene partidos', { status: 404 })
 
   return new Response(res.ics, {

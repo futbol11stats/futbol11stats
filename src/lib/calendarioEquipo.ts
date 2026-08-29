@@ -15,9 +15,13 @@ const iso = (f: string | null) => (f && DDMMYYYY.test(f) ? f.slice(6, 10) + f.sl
 
 export async function buildTeamCalendar(codequipo: string, nowMs: number): Promise<{ ics: string; nombre: string } | null> {
   const cod = String(codequipo)
-  const { data: allRaw } = await supabase.from('web_resultados')
+  const { data: allRaw, error } = await supabase.from('web_resultados')
     .select('codtemporada, codgrupo, jornada, nombre_local, nombre_visitante, codequipo_local, codequipo_visitante, goles_local, goles_visitante, fecha, hora, campo, codigo_campo, campo_lat, campo_lng, ronda_slug, ronda_label')
     .or(`codequipo_local.eq.${cod},codequipo_visitante.eq.${cod}`)
+  // NO tragarse el error como "sin partidos": un timeout/error transitorio debe propagarse (503 reintentado),
+  // nunca convertirse en 404. Devolver null SOLO cuando de verdad no hay filas. (Ver: fallos silenciosos que
+  // devuelven vacío — este era el bug de "El equipo no tiene partidos" con equipos que sí tienen calendario.)
+  if (error) throw error
   const all = (allRaw || []) as Array<Record<string, unknown>>
   if (!all.length) return null
 
