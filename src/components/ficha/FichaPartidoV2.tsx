@@ -1,178 +1,166 @@
+import './v2/ficha.css'
 import Link from 'next/link'
-import { MapPin, Trophy, CalendarPlus } from 'lucide-react'
-import EscudoImg from '@/components/EscudoImg'
+import { CalendarPlus, MapPin } from 'lucide-react'
+import EscudoBox from '@/components/ficha/v2/EscudoBox'
+import NombreEquipo from '@/components/NombreEquipo'
+import Pastilla from '@/components/Pastilla'
 import SuperficieCampo from '@/components/SuperficieCampo'
 import CalendarLink from '@/components/calendario/CalendarLink'
-import { Balon, TarjetaAmarilla, TarjetaDoble, TarjetaRoja, Escudo } from '@/components/iconos'
-import { escudoUrl, formatNombre } from '@/lib/supabase'
+import { Balon, TarjetaAmarilla, TarjetaDoble, TarjetaRoja, Reloj } from '@/components/iconos'
+import { formatNombre } from '@/lib/supabase'
 import { googleRenderUrl } from '@/lib/ics'
 import { SITE_URL } from '@/lib/seo'
 import { partidoSlug } from '@/lib/partidoSlug'
 import type { PartidoFicha, PartidoJugador, PartidoMini, PartidoLado } from '@/lib/partido'
 
-const POS_LBL: Record<string, string> = { POR: 'POR', DEF: 'DEF', MED: 'MED', DEL: 'DEL' }
-const POS_COL: Record<string, string> = { POR: 'text-amber-300 bg-amber-500/15', DEF: 'text-grass-300 bg-grass-500/15', MED: 'text-sky-300 bg-sky-500/15', DEL: 'text-rose-300 bg-rose-500/15' }
-// Color de los puntos fantasy del partido (baza propia): destacado si es una buena actuación.
-const fantasyCol = (p: number | null) => p == null ? 'text-chalk-600' : p >= 8 ? 'text-grass-300' : p >= 4 ? 'text-chalk-200' : p < 0 ? 'text-rose-400' : 'text-chalk-500'
+// Puntos fantasy del partido (baza propia): VERDE de la escala del sitio para lo bueno; el ámbar está reservado a
+// playoff/copa/disciplina, así que NO se usa aquí.
+const ptsCls = (p: number | null) => p == null ? 'mid' : p >= 8 ? 'hi' : p >= 4 ? 'mid' : p < 0 ? 'neg' : 'lo'
 
-function Crest({ escudo, nombre, size = 22 }: { escudo: string | null; nombre: string; size?: number }) {
+// Eventos del jugador en el partido (conteos; el minuto llegará con el dato del acta del pipeline).
+function Eventos({ j }: { j: PartidoJugador }) {
   return (
-    <span className="inline-flex items-center justify-center bg-white rounded-sm flex-none p-0.5" style={{ width: size, height: size }}>
-      {escudoUrl(escudo) ? <EscudoImg escudo={escudo} nombre={nombre} /> : null}
+    <span className="al-ev">
+      {j.goles > 0 && <span className="al-gol" title={`${j.goles} gol${j.goles > 1 ? 'es' : ''}`}>{j.goles > 1 && <b>{j.goles}</b>}<Balon size={12} /></span>}
+      {j.dobles > 0
+        ? <span style={{ color: 'var(--card-y)', display: 'inline-flex' }} title="Doble amarilla"><TarjetaDoble size={12} /></span>
+        : j.amarillas > 0 && <span style={{ color: 'var(--card-y)', display: 'inline-flex' }} title={`${j.amarillas} amarilla${j.amarillas > 1 ? 's' : ''}`}><TarjetaAmarilla size={12} /></span>}
+      {j.rojas > 0 && <span style={{ color: 'var(--card-r)', display: 'inline-flex' }} title="Roja"><TarjetaRoja size={12} /></span>}
     </span>
   )
 }
 
-function Jugador({ j }: { j: PartidoJugador }) {
+function Fila({ j }: { j: PartidoJugador }) {
   const nombre = formatNombre(j.nombre) || j.nombre
-  const inactivo = !j.jugado
   return (
-    <li className={`flex items-center gap-2 py-1.5 ${inactivo ? 'opacity-55' : ''}`}>
-      <span className="w-5 text-right text-xs text-chalk-600 tabular-nums flex-none">{j.dorsal || '·'}</span>
-      {j.pos && <span className={`flex-none text-[9px] font-bold rounded px-1 py-px ${POS_COL[j.pos] || 'text-chalk-500 bg-pitch-700'}`}>{POS_LBL[j.pos] || j.pos}</span>}
-      <span className="min-w-0 flex-1 truncate text-sm">
-        {j.href ? <Link href={j.href} className="text-chalk-100 hover:text-white transition-colors">{nombre}</Link> : <span className="text-chalk-200">{nombre}</span>}
-      </span>
-      {/* Eventos del partido (conteos; el minuto llegará con el dato del acta del pipeline). */}
-      <span className="flex-none inline-flex items-center gap-1 text-chalk-500">
-        {j.goles > 0 && <span className="inline-flex items-center text-grass-300" title={`${j.goles} gol${j.goles > 1 ? 'es' : ''}`}>{j.goles > 1 && <span className="text-[10px] mr-0.5 tabular-nums">{j.goles}</span>}<Balon size={12} /></span>}
-        {j.dobles > 0 ? <TarjetaDoble size={12} /> : j.amarillas > 0 && <span title={`${j.amarillas} amarilla${j.amarillas > 1 ? 's' : ''}`}><TarjetaAmarilla size={12} /></span>}
-        {j.rojas > 0 && <TarjetaRoja size={12} />}
-      </span>
-      {j.jugado && <span className="w-8 text-right text-[11px] text-chalk-600 tabular-nums flex-none">{j.minutos}′</span>}
-      {/* PUNTOS FANTASY — la baza: nadie más los muestra. */}
-      <span className={`w-8 text-right text-sm font-bold tabular-nums flex-none ${fantasyCol(j.puntos)}`} title="Puntos fantasy en este partido">{j.puntos != null ? j.puntos : '—'}</span>
-    </li>
-  )
-}
-
-function Lado({ lado }: { lado: PartidoLado }) {
-  return (
-    <div className="bg-pitch-800 rounded-xl border border-pitch-700 overflow-hidden">
-      <div className="flex items-center gap-2 px-3 py-2.5 border-b border-pitch-700">
-        <Crest escudo={lado.escudo} nombre={lado.nombre} size={24} />
-        <span className="font-display font-bold text-white text-sm uppercase truncate">{lado.nombre}</span>
-        <span className="ml-auto text-[10px] font-semibold uppercase tracking-wider text-chalk-600 flex items-center gap-1"><Escudo size={11} /> PTS</span>
-      </div>
-      <ul className="px-3 py-1.5 divide-y divide-pitch-700/50">
-        {lado.titulares.map((j) => <Jugador key={j.codjugador} j={j} />)}
-      </ul>
-      {lado.suplentes.length > 0 && (
-        <>
-          <div className="px-3 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-widest text-chalk-600 border-t border-pitch-700">Suplentes</div>
-          <ul className="px-3 pb-2 divide-y divide-pitch-700/50">
-            {lado.suplentes.map((j) => <Jugador key={j.codjugador} j={j} />)}
-          </ul>
-        </>
-      )}
+    <div className={`al-row${j.jugado ? '' : ' out'}`}>
+      <span className="al-dorsal">{j.dorsal || '·'}</span>
+      <Pastilla pos={j.pos} estimada={undefined} size="mini" />
+      <span className="al-nm">{j.href ? <Link href={j.href}>{nombre}</Link> : nombre}</span>
+      <Eventos j={j} />
+      {j.jugado && <span className="al-min">{j.minutos}′</span>}
+      <span className={`al-pts ${ptsCls(j.puntos)}`} title="Puntos fantasy en este partido">{j.puntos != null ? j.puntos : '—'}</span>
     </div>
   )
 }
 
+function Alineacion({ lado }: { lado: PartidoLado }) {
+  return (
+    <div>
+      <div className="al-team">
+        <EscudoBox escudo={lado.escudo} nombre={lado.nombre} size={24} radius={5} />
+        <span className="tn"><NombreEquipo codequipo={lado.codequipo} nombre={lado.nombre} /></span>
+        <span className="cap al-ptshead"><Reloj size={11} /> Pts F.</span>
+      </div>
+      {lado.titulares.map((j) => <Fila key={j.codjugador} j={j} />)}
+      {lado.suplentes.length > 0 && <div className="al-sub">Suplentes</div>}
+      {lado.suplentes.map((j) => <Fila key={j.codjugador} j={j} />)}
+    </div>
+  )
+}
+
+// Fila de resultado reutilizando el componente del sitio (.rmatch), enlazada a la ficha del partido.
 function MiniPartido({ m }: { m: PartidoMini }) {
   const jugado = m.golesLocal != null && m.golesVisitante != null
+  const gL = m.golesLocal as number, gV = m.golesVisitante as number
   return (
-    <Link href={`/madrid/partido/${partidoSlug(m.codacta, m.local, m.visitante)}`} className="flex items-center gap-2 px-2.5 py-2 rounded-lg bg-pitch-800 border border-pitch-700 hover:border-grass-500/50 transition-colors text-xs">
-      <span className="text-chalk-600 flex-none w-14 tabular-nums">{m.fecha || ''}</span>
-      <span className="min-w-0 flex-1 flex items-center gap-1.5 justify-end"><span className="truncate text-chalk-300">{m.local}</span><Crest escudo={m.escudoLocal} nombre={m.local} size={16} /></span>
-      <span className="flex-none font-bold text-white tabular-nums px-1">{jugado ? `${m.golesLocal}-${m.golesVisitante}` : 'vs'}</span>
-      <span className="min-w-0 flex-1 flex items-center gap-1.5"><Crest escudo={m.escudoVisitante} nombre={m.visitante} size={16} /><span className="truncate text-chalk-300">{m.visitante}</span></span>
+    <Link className="rmatch-wrap mini-link" href={`/madrid/partido/${partidoSlug(m.codacta, m.local, m.visitante)}`}>
+      <div className="rmatch">
+        <div className="rside"><EscudoBox escudo={m.escudoLocal} nombre={m.local} size={22} radius={5} /><span className={`rnm${jugado && gL > gV ? ' w' : ''}`}>{m.local}</span></div>
+        <div className="rsc">{jugado ? <><span style={{ color: gL > gV ? 'var(--e3)' : gL < gV ? 'var(--e0)' : 'var(--ink-2)' }}>{gL}</span><span className="rsc-sep">-</span><span style={{ color: gV > gL ? 'var(--e3)' : gV < gL ? 'var(--e0)' : 'var(--ink-2)' }}>{gV}</span></> : 'vs'}</div>
+        <div className="rside v"><EscudoBox escudo={m.escudoVisitante} nombre={m.visitante} size={22} radius={5} /><span className={`rnm${jugado && gV > gL ? ' w' : ''}`}>{m.visitante}</span></div>
+      </div>
+      {m.fecha && <div className="rmeta">{m.fecha}</div>}
     </Link>
   )
 }
 
 export default function FichaPartidoV2({ p }: { p: PartidoFicha }) {
-  const estado = p.jugado ? 'FINAL' : (p.hora || 'Por jugar')
   const puedeIcs = !p.jugado && !!p.fecha && /^\d{2}\/\d{2}\/\d{4}$/.test(p.fecha) && !!p.hora && /^\d{1,2}:\d{2}$/.test(p.hora) && p.hora !== '00:00'
   const icsUrl = `/api/ics/${p.codacta}`
   const googleUrl = puedeIcs ? googleRenderUrl({ title: `${p.local.nombre} vs ${p.visitante.nombre}`, fecha: p.fecha as string, hora: p.hora as string, campo: p.campoNombre, details: `${p.nombreComp} · Jornada ${p.jornada}\n${SITE_URL}/madrid/partido/${partidoSlug(p.codacta, p.local.nombre, p.visitante.nombre)}` }) : null
+  const gL = p.golesLocal ?? 0, gV = p.golesVisitante ?? 0
+  const colL = p.jugado ? (gL > gV ? 'var(--e3)' : gL < gV ? 'var(--e0)' : 'var(--ink)') : 'var(--ink)'
+  const colV = p.jugado ? (gV > gL ? 'var(--e3)' : gV < gL ? 'var(--e0)' : 'var(--ink)') : 'var(--ink)'
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-6">
-      {/* CABECERA / MARCADOR */}
-      <div className="text-center text-xs text-chalk-600 mb-3">
-        <Link href={p.compHref} className="hover:text-white transition-colors">{p.nombreComp}</Link> · Jornada {p.jornada}
-      </div>
-      <div className="bg-pitch-800 rounded-2xl border border-pitch-700 p-4 md:p-6">
-        <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
-          <div className="flex flex-col items-center gap-2 text-center min-w-0">
-            <Crest escudo={p.local.escudo} nombre={p.local.nombre} size={56} />
-            <span className="font-display font-bold text-white text-sm md:text-base uppercase leading-tight">{p.local.nombre}</span>
+    <div className="fjv2 fpv2">
+      {/* HERO / MARCADOR */}
+      <div className="mhero">
+        <div className="over"><Link href={p.compHref}>{p.nombreComp}</Link> · Jornada {p.jornada}</div>
+        <div className="mscore">
+          <div className="mteam">
+            <EscudoBox escudo={p.local.escudo} nombre={p.local.nombre} size={54} radius={12} />
+            <span className="tn"><NombreEquipo codequipo={p.local.codequipo} nombre={p.local.nombre} /></span>
           </div>
-          <div className="flex flex-col items-center gap-1 px-2">
+          <div className="mmid">
             {p.jugado
-              ? <span className="font-display font-extrabold text-white text-4xl md:text-5xl tabular-nums leading-none">{p.golesLocal}<span className="text-chalk-600 mx-1">-</span>{p.golesVisitante}</span>
-              : <span className="font-display font-bold text-chalk-500 text-3xl">vs</span>}
-            <span className={`text-[11px] font-semibold uppercase tracking-wider ${p.jugado ? 'text-chalk-500' : 'text-grass-400'}`}>{estado}</span>
+              ? <span className="mres"><span style={{ color: colL }}>{gL}</span><span className="sep">-</span><span style={{ color: colV }}>{gV}</span></span>
+              : <span className="mvs">vs</span>}
+            <span className={`pill ${p.jugado ? 'n' : 'live'}`}>{p.jugado ? 'FINAL' : (p.hora || 'Por jugar')}</span>
           </div>
-          <div className="flex flex-col items-center gap-2 text-center min-w-0">
-            <Crest escudo={p.visitante.escudo} nombre={p.visitante.nombre} size={56} />
-            <span className="font-display font-bold text-white text-sm md:text-base uppercase leading-tight">{p.visitante.nombre}</span>
+          <div className="mteam">
+            <EscudoBox escudo={p.visitante.escudo} nombre={p.visitante.nombre} size={54} radius={12} />
+            <span className="tn"><NombreEquipo codequipo={p.visitante.codequipo} nombre={p.visitante.nombre} /></span>
           </div>
         </div>
-        {/* Meta: fecha·hora + campo (→ nuestra ficha de campo si la tiene) */}
-        <div className="mt-4 pt-3 border-t border-pitch-700 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-xs text-chalk-500">
+        <div className="mmeta">
           {(p.fecha || p.hora) && <span>{[p.fecha, p.hora].filter(Boolean).join(' · ')}</span>}
-          {p.campoNombre && (p.fecha || p.hora) && <span className="text-chalk-700">·</span>}
           {p.campoNombre && (
             p.campoHref
-              ? <a href={p.campoHref} {...(p.campoHref.startsWith('/') ? {} : { target: '_blank', rel: 'noopener noreferrer' })} className="inline-flex items-center gap-1 hover:text-white transition-colors"><MapPin size={12} strokeWidth={2.25} />{p.campoNombre}{p.campoSuperficie && <span> · <SuperficieCampo superficie={p.campoSuperficie} /></span>}</a>
-              : <span className="inline-flex items-center gap-1"><MapPin size={12} strokeWidth={2.25} />{p.campoNombre}</span>
+              ? <a className="hero-campo" href={p.campoHref} {...(p.campoHref.startsWith('/') ? {} : { target: '_blank', rel: 'noopener noreferrer' })}><MapPin size={12} /><span>{p.campoNombre}</span>{p.campoSuperficie && <span className="campo-sup">· <SuperficieCampo superficie={p.campoSuperficie} /></span>}</a>
+              : <span className="hero-campo"><MapPin size={12} /><span>{p.campoNombre}</span></span>
           )}
         </div>
-        {/* Partido SIN JUGAR: botón de calendario (no hay alineación que mostrar) */}
         {!p.jugado && puedeIcs && (
-          <div className="mt-4 flex justify-center">
-            <CalendarLink appleHref={icsUrl} otherHref={googleUrl || icsUrl} className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-grass-500/15 border border-grass-500/40 text-sm text-grass-300 hover:bg-grass-500/25 transition-colors font-semibold">
-              <CalendarPlus size={16} /> Añade este partido a tu calendario
-            </CalendarLink>
+          <div className="cal-wrap">
+            <CalendarLink appleHref={icsUrl} otherHref={googleUrl || icsUrl} className="cal-btn"><CalendarPlus size={15} /> Añade este partido a tu calendario</CalendarLink>
           </div>
         )}
       </div>
 
-      {/* MVP del partido por fantasy — la baza */}
+      {/* MVP fantasy — la baza (acento verde) */}
       {p.jugado && p.mvp && (
-        <div className="mt-4 flex items-center gap-3 px-4 py-3 rounded-xl bg-gradient-to-r from-amber-500/15 to-transparent border border-amber-500/30">
-          <Trophy size={20} className="text-amber-400 flex-none" />
-          <div className="min-w-0">
-            <div className="text-[10px] font-semibold uppercase tracking-widest text-amber-400/90">MVP del partido · fantasy</div>
-            <div className="text-sm text-white truncate">{p.mvp.href ? <Link href={p.mvp.href} className="hover:underline">{formatNombre(p.mvp.nombre) || p.mvp.nombre}</Link> : (formatNombre(p.mvp.nombre) || p.mvp.nombre)} <span className="text-chalk-500">· {p.mvp.lado === 'local' ? p.local.nombre : p.visitante.nombre}</span></div>
+        <div className="mvp">
+          <div>
+            <div className="mvp-k">MVP del partido · fantasy</div>
+            <div className="mvp-n">{p.mvp.href ? <Link href={p.mvp.href}>{formatNombre(p.mvp.nombre) || p.mvp.nombre}</Link> : (formatNombre(p.mvp.nombre) || p.mvp.nombre)} · {p.mvp.lado === 'local' ? p.local.nombre : p.visitante.nombre}</div>
           </div>
-          <span className="ml-auto flex-none font-display font-extrabold text-amber-300 text-2xl tabular-nums">{p.mvp.puntos}</span>
+          <span className="mvp-p">{p.mvp.puntos}</span>
         </div>
       )}
 
-      {/* ALINEACIONES (dos equipos) con puntos fantasy en cada fila */}
+      {/* ALINEACIONES con puntos fantasy por fila */}
       {p.jugado && (p.local.titulares.length > 0 || p.visitante.titulares.length > 0) && (
-        <section className="mt-6">
-          <h2 className="text-[11px] font-semibold uppercase tracking-widest text-chalk-600 mb-2">Alineaciones</h2>
-          <div className="grid md:grid-cols-2 gap-3">
-            <Lado lado={p.local} />
-            <Lado lado={p.visitante} />
+        <section>
+          <div className="s-head"><span className="s-title">Alineaciones</span></div>
+          <div className="al">
+            <Alineacion lado={p.local} />
+            <Alineacion lado={p.visitante} />
           </div>
-          <p className="mt-2 text-[11px] text-chalk-600">La cifra de la derecha son los <strong className="text-chalk-500">puntos fantasy</strong> de cada jugador en este partido.</p>
+          <p className="al-note">La cifra de la derecha son los <b>puntos fantasy</b> de cada jugador en este partido.</p>
         </section>
       )}
 
       {/* CARA A CARA */}
       {p.h2h.length > 0 && (
-        <section className="mt-6">
-          <h2 className="text-[11px] font-semibold uppercase tracking-widest text-chalk-600 mb-2">Cara a cara</h2>
-          <div className="space-y-1.5">{p.h2h.map((m) => <MiniPartido key={m.codacta} m={m} />)}</div>
+        <section>
+          <div className="s-head"><span className="s-title">Cara a cara</span></div>
+          {p.h2h.map((m) => <MiniPartido key={m.codacta} m={m} />)}
         </section>
       )}
 
-      {/* ÚLTIMOS PARTIDOS de cada equipo (forma) */}
-      {(p.formaLocal.length > 0 || p.formaVisitante.length > 0) && (
-        <section className="mt-6 grid md:grid-cols-2 gap-4">
-          <div>
-            <h2 className="text-[11px] font-semibold uppercase tracking-widest text-chalk-600 mb-2">Últimos · {p.local.nombre}</h2>
-            <div className="space-y-1.5">{p.formaLocal.map((m) => <MiniPartido key={m.codacta} m={m} />)}</div>
-          </div>
-          <div>
-            <h2 className="text-[11px] font-semibold uppercase tracking-widest text-chalk-600 mb-2">Últimos · {p.visitante.nombre}</h2>
-            <div className="space-y-1.5">{p.formaVisitante.map((m) => <MiniPartido key={m.codacta} m={m} />)}</div>
-          </div>
+      {/* ÚLTIMOS PARTIDOS de cada equipo */}
+      {p.formaLocal.length > 0 && (
+        <section>
+          <div className="s-head"><span className="s-title">Últimos · {p.local.nombre}</span></div>
+          {p.formaLocal.map((m) => <MiniPartido key={m.codacta} m={m} />)}
+        </section>
+      )}
+      {p.formaVisitante.length > 0 && (
+        <section>
+          <div className="s-head"><span className="s-title">Últimos · {p.visitante.nombre}</span></div>
+          {p.formaVisitante.map((m) => <MiniPartido key={m.codacta} m={m} />)}
         </section>
       )}
     </div>
