@@ -105,10 +105,13 @@ export async function getClasifPretemporada(codgrupo: string, codtemporada: numb
     const codeqs = Array.from(teams.keys())
     // Último ELO por equipo: sus filas de clasificación (cualquier temporada) de más nueva a más vieja; la PRIMERA
     // de cada equipo es su ELO más reciente (los últimos están arriba del orden, así que limit 1000 los cubre).
-    const { data: cl } = await supabase.from('web_clasificacion')
+    const { data: cl, error: elErr } = await supabase.from('web_clasificacion')
       .select('codequipo, elo, codtemporada, jornada')
       .in('codequipo', codeqs).not('elo', 'is', null)
       .order('codtemporada', { ascending: false }).order('jornada', { ascending: false }).limit(1000)
+    // NO tragarse un error como "sin ELO" (todos a 1000 sería una tabla engañosa). Con el índice
+    // web_clasificacion(codequipo) esta .in(...) no debe dar timeout; si diera, que se propague y reintente.
+    if (elErr) throw elErr
     const eloUlt = new Map<string, number>()
     for (const r of (cl || []) as Array<{ codequipo: string; elo: number }>) {
       const cod = String(r.codequipo)
@@ -125,7 +128,7 @@ export async function getClasifPretemporada(codgrupo: string, codtemporada: numb
     rows.sort((a, b) => (b.elo as number) - (a.elo as number))
     rows.forEach((r, i) => { r.pos = i + 1 })
     return rows
-  }, ['getClasifPretemporada', 'v1', codgrupo, codtemporada], [codgrupo], codtemporada)
+  }, ['getClasifPretemporada', 'v2-idx', codgrupo, codtemporada], [codgrupo], codtemporada)
 }
 
 // KPIs de la cabecera a partir de la clasificación de la jornada: nº equipos, partidos disputados,
