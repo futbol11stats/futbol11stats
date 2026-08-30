@@ -33,9 +33,10 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const description = p.jugado
     ? `${p.local.nombre} ${p.golesLocal}-${p.golesVisitante} ${p.visitante.nombre}: alineaciones con los PUNTOS FANTASY de cada jugador, el MVP del partido y el cara a cara. Jornada ${p.jornada} de ${p.nombreComp} (${p.temporada}), fútbol ${rama} de Madrid.`
     : `${p.local.nombre} - ${p.visitante.nombre}, jornada ${p.jornada} de ${p.nombreComp} (${p.temporada}): fecha, hora, campo, historial entre ambos y añadir a tu calendario. Fútbol ${rama} de Madrid en Fútbol11Stats.`
-  // NOINDEX: juveniles (menores) y partidos SIN JUGAR (thin: sin alineaciones). Se indexan solo los jugados de
-  // aficionados (contenido rico y único por el fantasy). follow:true para que el rastreo siga los enlaces.
-  const noindex = p.esJuvenil || !p.jugado
+  // NOINDEX: juveniles (menores), partidos SIN JUGAR (thin) y todo lo que no sea la temporada actual (T22, decisión
+  // "solo temporada actual de momento"). Se indexan SOLO los jugados de aficionados de T22 (ricos y únicos por el
+  // fantasy). follow:true para que el rastreo siga los enlaces.
+  const noindex = p.esJuvenil || !p.jugado || p.codtemporada !== 22
   return {
     title, description, alternates: { canonical },
     ...(noindex ? { robots: { index: false, follow: true } } : {}),
