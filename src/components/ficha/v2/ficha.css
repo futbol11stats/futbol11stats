@@ -647,6 +647,9 @@
 
 /* Resultados: separador del marcador siempre neutro (los goles se colorean por resultado). */
 .fjv2 .rsc-sep{color:var(--ink-3);margin:0 1px}
+/* Marcador enlazable a la ficha de partido (temporada actual). */
+.fjv2 a.rsc.rsc-link{text-decoration:none;transition:background .12s}
+.fjv2 a.rsc.rsc-link:hover{background:rgba(255,255,255,.13)}
 /* Botón "Añade este partido a tu calendario" en la línea de metadatos (icono + texto, todo enlace). */
 .fjv2 .rmeta-cal{display:inline-flex;align-items:center;gap:5px;color:var(--ink-4);text-decoration:none;font-weight:600}
 .fjv2 .rmeta-cal:hover{color:var(--e3)}

@@ -15,6 +15,7 @@ import { getSitemapDatos, tabTieneDatos, type GrupoStat } from '@/lib/sitemapLas
 import { getClubesIndex, clubSlug } from '@/lib/club'
 import { getCamposIndex, campoSlug } from '@/lib/campo'
 import { parseCampo } from '@/lib/campoSlug'
+import { partidoSlug } from '@/lib/partidoSlug'
 
 export const revalidate = 2592000 // ISR 30d (Fluid CPU): se regenera con cada deploy/re-export; el sitemap solo cambia al añadir grupos/temporadas nuevas
 
@@ -145,6 +146,27 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: 'monthly',
       priority: 0.5,
     })
+  }
+
+  // Partidos JUGADOS de la temporada actual (T22): contenido rico y único (alineaciones + PUNTOS FANTASY). Solo
+  // aficionados (juveniles noindex por menores) y solo jugados (los futuros son thin -> noindex, fuera del sitemap).
+  // Paginado (PostgREST topa a 1000/página; en temporada pueden ser miles) para NO truncar en silencio.
+  const afiT22 = new Set(grupos.filter((g: any) => g.codtemporada === 22 && g.categoria === 'AFICIONADO').map((g: any) => String(g.codgrupo)))
+  if (afiT22.size) {
+    const partidos: any[] = []
+    for (let from = 0; ; from += 1000) {
+      const { data: pg } = await supabase.from('web_resultados')
+        .select('id, nombre_local, nombre_visitante, fecha, codgrupo')
+        .eq('codtemporada', 22).not('goles_local', 'is', null).range(from, from + 999)
+      if (!pg || !pg.length) break
+      partidos.push(...pg)
+      if (pg.length < 1000) break
+    }
+    for (const m of partidos) {
+      if (!afiT22.has(String(m.codgrupo))) continue
+      const iso = m.fecha && /^\d{2}\/\d{2}\/\d{4}$/.test(m.fecha) ? `${m.fecha.slice(6, 10)}-${m.fecha.slice(3, 5)}-${m.fecha.slice(0, 2)}` : undefined
+      urls.push({ url: `${SITE_URL}/madrid/partido/${partidoSlug(m.id, m.nombre_local, m.nombre_visitante)}`, lastModified: iso, changeFrequency: 'monthly', priority: 0.5 })
+    }
   }
 
   return urls
