@@ -21,6 +21,7 @@ export type PartidoJugador = {
   // Minutos de cada evento (de web_partido_eventos): golesMin[], y el minuto de tarjeta/cambio.
   golesMin: number[]; amarillaMin: number | null; dobleMin: number | null; rojaMin: number | null
   entra: number | null; sale: number | null
+  golesEncajados: number | null   // solo porteros (portería a cero = 0); null para el resto
   href: string | null   // ficha del jugador solo si la tiene
 }
 export type PartidoLado = { codequipo: string; nombre: string; escudo: string | null; titulares: PartidoJugador[]; suplentes: PartidoJugador[] }
@@ -37,6 +38,16 @@ export type PartidoFicha = {
   // entrenador jefe por equipo.
   arbitros: { nombre: string; rol: string }[]
   entrenadorLocal: string | null; entrenadorVisitante: string | null
+  // #1 Pronóstico ELO: elo con el que LLEGABA cada equipo (jornada anterior en el grupo, o último conocido).
+  // #2 Movimiento de ELO del partido por equipo (eloPost - eloPre). #3 Contexto de puesto (antes/después de la
+  // jornada, solo dentro de esta competición). Copa se discrimina por codgrupo_familia; liga por codgrupo numérico.
+  // elo/pos = null cuando no hay dato (equipo sin histórico) — se trata como "sin dato", no como equipo flojo.
+  eloPreLocal: number | null; eloPreVisitante: number | null
+  movEloLocal: number | null; movEloVisitante: number | null
+  posPreLocal: number | null; posPostLocal: number | null
+  posPreVisitante: number | null; posPostVisitante: number | null
+  // #5 Hitos/efemérides ligados a este partido (web_jugador_hitos por codacta).
+  hitos: { codjugador: string; nombre: string; lado: 'local' | 'visitante'; tipo: string; detalle: string | null; valor: number | null; ambito: string | null; contexto: string | null; href: string | null }[]
 }
 
 const POS_ORD: Record<string, number> = { POR: 0, DEF: 1, MED: 2, DEL: 3 }
@@ -104,11 +115,12 @@ export async function getPartido(codacta: string): Promise<PartidoFicha | null> 
     let local = emptyLado(codeqL, r.nombre_local, r.escudo_local)
     let visitante = emptyLado(codeqV, r.nombre_visitante, r.escudo_visitante)
     let mvp: PartidoFicha['mvp'] = null
+    let hitos: PartidoFicha['hitos'] = []
 
     // Alineaciones: solo si hay acta (partido jugado).
     if (r.codacta) {
       const { data: jpRaw } = await supabase.from('web_jugador_partidos')
-        .select('codjugador, codequipo, titular, minutos, goles, amarillas, dobles_amarilla, rojas, puntos, elo_delta, jugado')
+        .select('codjugador, codequipo, titular, minutos, goles, amarillas, dobles_amarilla, rojas, puntos, elo_delta, jugado, goles_encajados')
         .eq('codacta', r.codacta)
       const partidos = (jpRaw || []) as Array<Record<string, unknown>>
       if (partidos.length) {
@@ -145,6 +157,7 @@ export async function getPartido(codacta: string): Promise<PartidoFicha | null> 
             goles: (p.goles as number) || 0, amarillas: (p.amarillas as number) || 0, dobles: (p.dobles_amarilla as number) || 0, rojas: (p.rojas as number) || 0,
             puntos: (p.puntos as number) ?? null, eloDelta: (p.elo_delta as number) ?? null,
             golesMin: ev.golesMin.sort((a, b) => a - b), amarillaMin: ev.amarillaMin, dobleMin: ev.dobleMin, rojaMin: ev.rojaMin, entra: ev.entra, sale: ev.sale,
+            golesEncajados: (p.goles_encajados as number) ?? null,
             href: conFicha.has(cod) && meta.nombre ? jugadorHref(cod, meta.nombre) : null,
           }
         }
@@ -164,6 +177,24 @@ export async function getPartido(codacta: string): Promise<PartidoFicha | null> 
           const meta = plMap.get(String(best.codjugador))
           if (meta?.nombre) mvp = { nombre: meta.nombre, pos: meta.pos, puntos: best.puntos as number, lado: String(best.codequipo) === codeqL ? 'local' : 'visitante', href: conFicha.has(String(best.codjugador)) ? jugadorHref(String(best.codjugador), meta.nombre) : null }
         }
+        // #5 Hitos del partido (web_jugador_hitos por codacta). Solo jugadores del acta con nombre; se excluyen los
+        // "*_registrado" (primer dato en NUESTRA base, no hito real de carrera).
+        const eqDe = new Map(partidos.map((p) => [String(p.codjugador), String(p.codequipo)]))
+        const { data: hiRaw } = await supabase.from('web_jugador_hitos')
+          .select('codjugador, tipo_hito, ambito, detalle, valor, contexto_nombre').eq('codacta', r.codacta)
+        hitos = ((hiRaw || []) as Array<{ codjugador: string; tipo_hito: string; ambito: string | null; detalle: string | null; valor: number | null; contexto_nombre: string | null }>)
+          .filter((h) => !String(h.tipo_hito).endsWith('_registrado'))
+          .map((h) => {
+            const cod = String(h.codjugador)
+            const meta = plMap.get(cod)
+            return {
+              codjugador: cod, nombre: meta?.nombre || '', lado: (eqDe.get(cod) === codeqL ? 'local' : 'visitante') as 'local' | 'visitante',
+              tipo: String(h.tipo_hito), detalle: h.detalle ?? null, valor: (h.valor as number) ?? null,
+              ambito: h.ambito ?? null, contexto: h.contexto_nombre ?? null,
+              href: conFicha.has(cod) && meta?.nombre ? jugadorHref(cod, meta.nombre) : null,
+            }
+          })
+          .filter((h) => h.nombre)
       }
     }
 
@@ -189,6 +220,30 @@ export async function getPartido(codacta: string): Promise<PartidoFicha | null> 
       .filter((a) => a.nombre).sort((a, b) => (ROL_ORD[a.rol] ?? 9) - (ROL_ORD[b.rol] ?? 9))
     const entMap = new Map<string, string>(((entRaw.data || []) as Array<{ codequipo: string; nombre: string }>).map((e) => [String(e.codequipo), String(e.nombre)]))
 
+    // #1/#2/#3 Clasificación de ambos equipos. Copa: por codgrupo_familia (codgrupo NUMÉRICO); liga: codgrupo
+    // numérico + codgrupo_familia IS NULL. elo/pos pueden venir NULL (equipo sin histórico) -> "sin dato", nunca 1000.
+    const esCopa = String(r.codgrupo).startsWith('fam-')
+    const jNum = Number(r.jornada) || 0
+    const { data: clRaw } = await supabase.from('web_clasificacion')
+      .select('codequipo, codtemporada, jornada, pos, elo, codgrupo, codgrupo_familia')
+      .in('codequipo', [codeqL, codeqV].filter(Boolean)).lte('codtemporada', r.codtemporada)
+    const clAll = ((clRaw || []) as Array<{ codequipo: string; codtemporada: number; jornada: number; pos: number | null; elo: number | null; codgrupo: string; codgrupo_familia: string | null }>)
+    const enGrupo = (c: { codgrupo: string; codgrupo_familia: string | null }) => esCopa ? c.codgrupo_familia === String(r.codgrupo) : (String(c.codgrupo) === String(r.codgrupo) && c.codgrupo_familia == null)
+    const clasifDe = (cod: string) => {
+      const mias = clAll.filter((c) => String(c.codequipo) === cod)
+      const post = mias.find((c) => enGrupo(c) && c.codtemporada === r.codtemporada && c.jornada === jNum) || null
+      const preG = mias.find((c) => enGrupo(c) && c.codtemporada === r.codtemporada && c.jornada === jNum - 1) || null
+      let eloPre = preG?.elo ?? null
+      if (eloPre == null) {   // J1 (sin jornada anterior en el grupo): último elo conocido ANTES de este partido
+        const prev = mias.filter((c) => c.elo != null && (c.codtemporada < r.codtemporada || (c.codtemporada === r.codtemporada && c.jornada < jNum)))
+          .sort((a, b) => (b.codtemporada - a.codtemporada) || (b.jornada - a.jornada))[0]
+        eloPre = prev?.elo ?? null
+      }
+      const eloPost = post?.elo ?? null
+      return { eloPre, eloPost, mov: (eloPre != null && eloPost != null) ? Math.round((eloPost - eloPre) * 10) / 10 : null, posPre: preG?.pos ?? null, posPost: post?.pos ?? null }
+    }
+    const clL = clasifDe(codeqL), clV = clasifDe(codeqV)
+
     return {
       id: String(r.id), codacta: String(r.codacta ?? ''), jugado, esJuvenil, codtemporada: r.codtemporada,
       categoria, slugComp: g?.slug_comp || '', slugGrupo: g?.slug_grupo || '', temporada, nombreComp: g?.nombre_comp || 'RFFM · Madrid', jornada: r.jornada, compHref,
@@ -199,6 +254,11 @@ export async function getPartido(codacta: string): Promise<PartidoFicha | null> 
       formaVisitante: formaVisitante.filter(actaEq).slice(0, 5),
       h2h: h2h.filter(actaEq).slice(0, 5),
       arbitros, entrenadorLocal: entMap.get(codeqL) ?? null, entrenadorVisitante: entMap.get(codeqV) ?? null,
+      eloPreLocal: clL.eloPre, eloPreVisitante: clV.eloPre,
+      movEloLocal: clL.mov, movEloVisitante: clV.mov,
+      posPreLocal: clL.posPre, posPostLocal: clL.posPost,
+      posPreVisitante: clV.posPre, posPostVisitante: clV.posPost,
+      hitos,
     }
-  }, ['getPartido', 'v3-acta', String(r.codacta)], [String(r.codgrupo)], r.codtemporada)
+  }, ['getPartido', 'v4-elo-hitos', String(r.codacta)], [String(r.codgrupo)], r.codtemporada)
 }

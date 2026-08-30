@@ -50,7 +50,7 @@ function Fila({ j }: { j: PartidoJugador }) {
       <div className="pl-av" style={avaStyle(j.pos)}>{j.dorsal || iniciales(j.nombre)}</div>
       <div className="pl-mid">
         <div className="pl-nm">{j.href ? <Link href={j.href}>{nombre}</Link> : nombre}</div>
-        <div className="pl-me">{j.pos && <Pastilla pos={j.pos} size="mini" />}<Eventos j={j} /></div>
+        <div className="pl-me">{j.pos && <Pastilla pos={j.pos} size="mini" />}<Eventos j={j} />{j.golesEncajados != null && (j.golesEncajados === 0 ? <span className="ev ev-pac">Portería a cero</span> : <span className="ev ev-gc">{j.golesEncajados} enc.</span>)}</div>
       </div>
       <div className="pl-val" style={ptsStyle(j.puntos)}>{j.puntos != null ? j.puntos : '—'}</div>
     </div>
@@ -68,7 +68,7 @@ function FormaDots({ nombre, minis }: { nombre: string; minis: PartidoMini[] }) 
   return <span className="cracha" title="Últimos resultados">{dots.map((c, i) => <i key={i} style={{ background: c }} />)}</span>
 }
 
-function Alineacion({ lado, forma }: { lado: PartidoLado; forma: PartidoMini[] }) {
+function Alineacion({ lado, forma, movElo }: { lado: PartidoLado; forma: PartidoMini[]; movElo: number | null }) {
   return (
     <div className="al-col">
       <div className="al-team">
@@ -79,6 +79,7 @@ function Alineacion({ lado, forma }: { lado: PartidoLado; forma: PartidoMini[] }
       {lado.titulares.map((j) => <Fila key={j.codjugador} j={j} />)}
       {lado.suplentes.length > 0 && <div className="al-sub">Suplentes</div>}
       {lado.suplentes.map((j) => <Fila key={j.codjugador} j={j} />)}
+      {movElo != null && <div className="al-elo">Movimiento de ELO <b className={movElo >= 0 ? 'pos' : 'neg'}>{movElo >= 0 ? '+' : ''}{movElo.toLocaleString('es-ES', { maximumFractionDigits: 1 })}</b></div>}
     </div>
   )
 }
@@ -99,7 +100,44 @@ function MiniPartido({ m }: { m: PartidoMini }) {
   )
 }
 
+// #1 Pronóstico ELO: prosa, sin % ni cuota. Solo si AMBOS llegaban con dato.
+const fmtElo = (n: number) => Math.round(n).toString()
+function pronostico(p: PartidoFicha): string | null {
+  const a = p.eloPreLocal, b = p.eloPreVisitante
+  if (a == null || b == null) return null
+  const d = a - b, ad = Math.abs(d)
+  if (ad < 15) return `Llegaban igualados en ELO (${fmtElo(a)} · ${fmtElo(b)})`
+  const fav = d > 0 ? p.local.nombre : p.visitante.nombre
+  const grado = ad >= 60 ? 'como claro favorito' : ad >= 25 ? 'por delante' : 'ligeramente por delante'
+  return `${formatNombre(fav)} llegaba ${grado} en ELO (${fmtElo(a)} · ${fmtElo(b)})`
+}
+// #3 Contexto de puesto (solo dentro de esta competición; requiere jornada anterior -> no en J1).
+function ctxPuesto(pre: number | null, post: number | null): string | null {
+  if (pre == null || post == null) return null
+  if (post < pre) return `sube del ${pre}º al ${post}º`
+  if (post > pre) return `baja del ${pre}º al ${post}º`
+  return `se mantiene ${post}º`
+}
+// #5 Texto del hito (se excluyen los "*_registrado" en la capa de datos).
+const HITO_TX: Record<string, (v: number | null) => string> = {
+  debut: () => 'debutó',
+  primer_gol: () => 'marcó su primer gol',
+  primer_hat_trick: () => 'firmó su primer hat-trick',
+  primera_porteria_cero: () => 'dejó su primera portería a cero',
+  goles_acumulados: (v) => `alcanzó los ${v} goles`,
+  partidos_acumulados: (v) => `llegó a los ${v} partidos`,
+  porterias_cero_acumuladas: (v) => `sumó ${v} porterías a cero`,
+  temporada_completa: () => 'completó la temporada',
+}
+function hitoTexto(h: PartidoFicha['hitos'][number]): string {
+  const base = HITO_TX[h.tipo]?.(h.valor) || h.detalle || h.tipo.replace(/_/g, ' ')
+  return h.contexto ? `${base} · ${h.contexto}` : base
+}
+
 export default function FichaPartidoV2({ p }: { p: PartidoFicha }) {
+  const prono = pronostico(p)
+  const ctxL = ctxPuesto(p.posPreLocal, p.posPostLocal)
+  const ctxV = ctxPuesto(p.posPreVisitante, p.posPostVisitante)
   const puedeIcs = !p.jugado && !!p.fecha && /^\d{2}\/\d{2}\/\d{4}$/.test(p.fecha) && !!p.hora && /^\d{1,2}:\d{2}$/.test(p.hora) && p.hora !== '00:00'
   const icsUrl = `/api/ics/${p.codacta}`
   const googleUrl = puedeIcs ? googleRenderUrl({ title: `${p.local.nombre} vs ${p.visitante.nombre}`, fecha: p.fecha as string, hora: p.hora as string, campo: p.campoNombre, details: `${p.nombreComp} · Jornada ${p.jornada}\n${SITE_URL}/madrid/partido/${partidoSlug(p.codacta, p.local.nombre, p.visitante.nombre)}` }) : null
@@ -146,6 +184,19 @@ export default function FichaPartidoV2({ p }: { p: PartidoFicha }) {
         )}
       </div>
 
+      {/* #1 Pronóstico ELO (llegaban igualados / favorito, sin %) + #3 contexto de puesto. Solo con dato. */}
+      {(prono || ctxL || ctxV) && (
+        <section className="prono">
+          {prono && <div className="prono-line">{prono}</div>}
+          {(ctxL || ctxV) && (
+            <div className="prono-ctx">
+              {ctxL && <span><b>{formatNombre(p.local.nombre)}</b> {ctxL}</span>}
+              {ctxV && <span><b>{formatNombre(p.visitante.nombre)}</b> {ctxV}</span>}
+            </div>
+          )}
+        </section>
+      )}
+
       {/* MVP fantasy — mismo tratamiento que "Top de la plantilla" (fila .pl + rótulo bien visible) */}
       {p.jugado && p.mvp && (
         <section>
@@ -166,8 +217,8 @@ export default function FichaPartidoV2({ p }: { p: PartidoFicha }) {
         <section>
           <div className="s-head"><h2 className="s-title">Alineaciones</h2><div className="s-sub">puntos fantasy →</div></div>
           <div className="desk-2col al-2col">
-            <Alineacion lado={p.local} forma={p.formaLocal} />
-            <Alineacion lado={p.visitante} forma={p.formaVisitante} />
+            <Alineacion lado={p.local} forma={p.formaLocal} movElo={p.movEloLocal} />
+            <Alineacion lado={p.visitante} forma={p.formaVisitante} movElo={p.movEloVisitante} />
           </div>
           {(p.entrenadorLocal || p.entrenadorVisitante) && (
             <div className="desk-2col al-2col al-tec">
@@ -175,6 +226,21 @@ export default function FichaPartidoV2({ p }: { p: PartidoFicha }) {
               <div>{p.entrenadorVisitante && <><span className="cap">Entrenador</span> {formatNombre(p.entrenadorVisitante)}</>}</div>
             </div>
           )}
+        </section>
+      )}
+
+      {/* #5 EFEMÉRIDES — hitos ligados al partido (web_jugador_hitos por codacta). Funciona en copa y liga. */}
+      {p.hitos.length > 0 && (
+        <section>
+          <div className="s-head"><h2 className="s-title">Efemérides del partido</h2></div>
+          <div className="hitos">
+            {p.hitos.map((h, i) => (
+              <div className={`hito hito-${h.lado}`} key={`${h.codjugador}-${h.tipo}-${i}`}>
+                <span className="hito-nm">{h.href ? <Link href={h.href}>{formatNombre(h.nombre)}</Link> : formatNombre(h.nombre)}</span>
+                <span className="hito-tx">{hitoTexto(h)}</span>
+              </div>
+            ))}
+          </div>
         </section>
       )}
 
