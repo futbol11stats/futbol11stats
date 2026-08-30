@@ -1,8 +1,9 @@
 export const revalidate = 2592000  // ISR 30d (Fluid CPU free tier): contenido congelado en pretemporada; cada deploy/re-export invalida TODA la caché, así que los datos nuevos llegan igual. De ~4 regeneraciones/día/URL a 1 por deploy.
 
 import type { Metadata } from 'next'
-import { notFound, permanentRedirect } from 'next/navigation'
+import { notFound, permanentRedirect, redirect } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
+import { tienePartidosJugados } from '@/lib/competicionV2'
 import { SITE_URL, ensureMadrid, tabLabel, noindexJuvenil, descripcionCompeticion } from '@/lib/seo'
 import JsonLd from '@/components/JsonLd'
 import { graphLd, breadcrumbLd } from '@/lib/jsonld'
@@ -124,6 +125,20 @@ export default async function GrupoPage({
   const isCopa = !!grupo.tipo && grupo.tipo !== 'LIGA'
   const rondas: Ronda[] = isCopa && Array.isArray(grupo.rondas) ? grupo.rondas : []
   const esFamilia = rondas.length > 0
+
+  // PRETEMPORADA (liga sin partidos jugados): la entrada por defecto es jornada_actual (= final del calendario,
+  // ya cargado) + clasificación. Se lleva al PRINCIPIO —J1 + resultados—, que es lo que se busca al empezar (los
+  // emparejamientos de la 1ª jornada). Redirect TEMPORAL (mismo discriminante que la pastilla, tienePartidosJugados):
+  // en cuanto haya un solo partido jugado deja de redirigir y abre en clasificación/última jornada como siempre.
+  // Solo se dispara en la entrada por defecto (jornada actual + clasificación); ver clasificación en pretemporada
+  // sigue siendo posible (su URL es jornada-1/clasificación, que no cumple la condición).
+  if (!isCopa && tab === 'clasificacion') {
+    const jactNum = grupo.jornada_actual || 1
+    const jNum = parseInt(jornada.replace('jornada-', ''), 10) || jactNum
+    if (jNum === jactNum && !(await tienePartidosJugados(grupo.codgrupo, codtemporada))) {
+      redirect(`/madrid/${categoria}/${slug_comp}/${slug_grupo}/${temporada}/jornada-1/resultados`)
+    }
+  }
 
   // BreadcrumbList (JSON-LD) con URLs canónicas (www). Copa: sin nivel de grupo ni global. El 0 del
   // time-machine se colapsa a la jornada/ronda ACTUAL (segJact). tab2 normaliza los tabs de copa.

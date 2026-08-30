@@ -87,6 +87,47 @@ export async function getClasifV2(codgrupo: string, codtemporada: number, jornad
   }, ['getClasifV2', codgrupo, codtemporada, jornada], [codgrupo], codtemporada)
 }
 
+// Clasificación de PRETEMPORADA (liga sin partidos jugados: web_clasificacion está vacía). Se compone con los
+// equipos del grupo (de los emparejamientos) ORDENADOS POR SU ELO —el último conocido en la BD; equipo nuevo sin
+// histórico -> 1000 (arranque estándar)— y el resto de columnas a cero. Sin avisos: con todo a cero se entiende
+// que no ha empezado (como hace la propia RFFM).
+export async function getClasifPretemporada(codgrupo: string, codtemporada: number): Promise<ClasifCompRow[]> {
+  return cacheComp(async () => {
+    const { data: res } = await supabase.from('web_resultados')
+      .select('codequipo_local, nombre_local, escudo_local, codequipo_visitante, nombre_visitante, escudo_visitante')
+      .eq('codgrupo', codgrupo).eq('codtemporada', codtemporada)
+    const teams = new Map<string, { nombre: string; escudo: string | null }>()
+    for (const r of (res || []) as Array<Record<string, string | null>>) {
+      if (r.codequipo_local) teams.set(String(r.codequipo_local), { nombre: r.nombre_local || '', escudo: r.escudo_local ?? null })
+      if (r.codequipo_visitante) teams.set(String(r.codequipo_visitante), { nombre: r.nombre_visitante || '', escudo: r.escudo_visitante ?? null })
+    }
+    if (teams.size === 0) return []
+    const codeqs = Array.from(teams.keys())
+    // Último ELO por equipo: sus filas de clasificación (cualquier temporada) de más nueva a más vieja; la PRIMERA
+    // de cada equipo es su ELO más reciente (los últimos están arriba del orden, así que limit 1000 los cubre).
+    const { data: cl } = await supabase.from('web_clasificacion')
+      .select('codequipo, elo, codtemporada, jornada')
+      .in('codequipo', codeqs).not('elo', 'is', null)
+      .order('codtemporada', { ascending: false }).order('jornada', { ascending: false }).limit(1000)
+    const eloUlt = new Map<string, number>()
+    for (const r of (cl || []) as Array<{ codequipo: string; elo: number }>) {
+      const cod = String(r.codequipo)
+      if (!eloUlt.has(cod)) eloUlt.set(cod, Number(r.elo))
+    }
+    const rows: ClasifCompRow[] = codeqs.map((cod) => {
+      const info = teams.get(cod) as { nombre: string; escudo: string | null }
+      return {
+        pos: 0, codequipo: cod, nombre_equipo: info.nombre, escudo: info.escudo,
+        pj: 0, pg: 0, pe: 0, pp: 0, gf: 0, gc: 0, dg: 0, pts: 0,
+        mov: null, elo: eloUlt.get(cod) ?? 1000, pts_fantasy: 0, forma: null, racha: null, zona: null, p0: 0,
+      }
+    })
+    rows.sort((a, b) => (b.elo as number) - (a.elo as number))
+    rows.forEach((r, i) => { r.pos = i + 1 })
+    return rows
+  }, ['getClasifPretemporada', 'v1', codgrupo, codtemporada], [codgrupo], codtemporada)
+}
+
 // KPIs de la cabecera a partir de la clasificación de la jornada: nº equipos, partidos disputados,
 // goles totales, goles/PJ y ELO medio. (Partidos = suma de PJ / 2; goles = suma de GF.)
 export type KpisComp = { equipos: number; partidos: number; goles: number; golesPj: number | null; eloMedio: number | null }

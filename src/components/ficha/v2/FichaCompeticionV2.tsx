@@ -37,7 +37,7 @@ import {
 } from '@/components/ficha/v2/lineasComp'
 import {
   slugToCod, codToSlug, universoTemporadas, getGrupoV2, getVariantesV2, getGruposHermanos,
-  getClasifV2, kpisDeClasif, zonaColor, FORMA_COL, type ClasifCompRow,
+  getClasifV2, getClasifPretemporada, kpisDeClasif, zonaColor, FORMA_COL, type ClasifCompRow,
   getDestacadosV2, getEquiposFormaV2, getTopTemporadaV2, getXiJornadaV2, getXiTemporadaV2,
   getResultadosV2, getEquiposMapV2, type ResultadoCompRow, getCarreraV2, tienePartidosJugados,
   getLideresV2, getCifrasV2, type CifrasComp, getSuspendidosV2, getPartidosJornadaV2, getTramosCompeticionV2,
@@ -153,19 +153,25 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
   const tabsActivas = modo === 'temporada' ? tabsT : tabsJ
   const tabEf = tabsActivas.some((t) => t[0] === tab) ? tab : tabsActivas[0][0]
 
-  // Clasificación alimenta KPIs + panel; siempre se pide (salvo copa, sin clasificación).
-  const clasif: ClasifCompRow[] = isCopa ? [] : await getClasifV2(grupo.codgrupo, codtemporada, jornadaNum)
+  // Estado de la competición (mismo discriminante que la pastilla de la cabecera): ¿algún partido jugado?
+  const hayJugados = await tienePartidosJugados(grupo.codgrupo, codtemporada)
+  const sinEmpezarLiga = !isCopa && !hayJugados
+  // Clasificación: normal si hay jugados; en PRETEMPORADA (liga sin empezar, web_clasificacion vacía) se compone
+  // por ELO con todo a cero. Alimenta KPIs + panel; en copa no hay clasificación.
+  const clasif: ClasifCompRow[] = isCopa ? []
+    : sinEmpezarLiga ? await getClasifPretemporada(grupo.codgrupo, codtemporada)
+      : await getClasifV2(grupo.codgrupo, codtemporada, jornadaNum)
   const kpis = kpisDeClasif(clasif)
-  // Carrera de posiciones (gráfico protagonista) — solo en la pestaña Clasificación.
-  const carrera = !isCopa && tabEf === 'clasificacion'
+  // Carrera de posiciones (gráfico protagonista) — solo en Clasificación y con partidos jugados (en pretemporada
+  // no hay serie que dibujar).
+  const carrera = !isCopa && tabEf === 'clasificacion' && hayJugados
     ? await getCarreraV2(grupo.codgrupo, codtemporada)
     : { series: [], jornadas: [], bands: [] }
 
   // Aside (siempre): líderes + cifras. En copa (sin clasificación) se degradan a null.
-  const [lideres, cifras, hayJugados] = await Promise.all([
+  const [lideres, cifras] = await Promise.all([
     isCopa ? Promise.resolve(null) : getLideresV2(grupo.codgrupo, codtemporada),
     isCopa ? Promise.resolve<CifrasComp | null>(null) : getCifrasV2(grupo.codgrupo, codtemporada, jornadaNum, clasif, grupo.total_jornadas),
-    tienePartidosJugados(grupo.codgrupo, codtemporada),
   ])
 
   // Datos de la pestaña activa (tab-gated).
@@ -572,7 +578,7 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
                           <span className="cc dg">{r.dg > 0 ? `+${r.dg}` : r.dg}</span>
                           <span className="cc pts">{r.pts}</span>
                           <span className="cc" style={{ color: movCol }}>{r.mov || '—'}</span>
-                          <span className="cc">{r.elo != null ? Math.round(r.elo) : '—'}</span>
+                          <span className="cc" style={sinEmpezar ? { color: colorElo(r.elo) || undefined } : undefined}>{r.elo != null ? Math.round(r.elo) : '—'}</span>
                           <span className="cc">{r.pts_fantasy != null ? Math.round(r.pts_fantasy) : '—'}</span>
                           <span className="cracha">{Array.from(r.forma || '').slice(-5).map((x, i) => <i key={i} style={{ background: FORMA_COL[x] || 'var(--line)' }} />)}</span>
                           <span className="ccom">{r.racha || ''}</span>
