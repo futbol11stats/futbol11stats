@@ -50,6 +50,12 @@ datos, que cubre los scripts de Python.)
 
 ## Fallos silenciosos que devuelven vacío (sospechoso nº1 cuando algo sale vacío SIN dar error)
 
+> **Cruce con el PIPELINE:** el `CHECKLIST_TEMPORADA.md` del **repo del pipeline** (`C:\rffm-pipeline`) tiene una
+> sección homónima con los fallos de SU lado (consultas sin índice que expiran y devuelven vacío, recálculo global
+> vs revalidación delta, el descubridor que deja de reconocer una competición al cambiarle la RFFM el nombre, más
+> los silencios deliberados). **Son complementarias, no se duplican** — ante un vacío inexplicable mira las dos:
+> la causa puede estar en cualquiera de los dos lados.
+
 Familia recurrente: una lectura falla o se degrada y devuelve `[]`/`{}` **sin lanzar error visible**, y algo
 desaparece de la web sin rastro. Tres casos vistos esta semana:
 
