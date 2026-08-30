@@ -326,7 +326,9 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
             {e.codequipo && (() => {
               const https = `${SITE_URL}/api/calendario/equipo/${e.codequipo}.ics`
               const webcal = https.replace(/^https?:/, 'webcal:')                      // Apple: suscripción nativa
-              const googleAdd = `https://calendar.google.com/calendar/render?cid=${encodeURIComponent(https)}`  // Android/escritorio: añadir por URL
+              // Google: el cid debe llevar el esquema webcal:// para que lo trate como SUSCRIPCIÓN que sincroniza.
+              // Con https:// Google es inconsistente (a veces importa una copia suelta, a veces no hace nada).
+              const googleAdd = `https://calendar.google.com/calendar/render?cid=${encodeURIComponent(webcal)}`  // Android/escritorio: suscribir por URL
               return (
                 <CalendarLink appleHref={webcal} otherHref={googleAdd} className="cal-follow">
                   📅 Sigue a este equipo en tu calendario
