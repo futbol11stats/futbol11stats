@@ -18,13 +18,14 @@ function slugify(s: string): string {
 }
 
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params
-  const idNum = Number(id)
-  if (!Number.isInteger(idNum) || idNum <= 0) return new Response('Not found', { status: 404 })
+  // El segmento [id] es en realidad el codacta (id federativo del acta): estable entre re-exports. El id de fila
+  // de web_resultados NO sirve (el ciclo del pipeline lo reasigna).
+  const { id: codacta } = await params
+  if (!/^\d+$/.test(codacta)) return new Response('Not found', { status: 404 })
 
   const { data: rRaw } = await supabase.from('web_resultados')
     .select('id, codtemporada, codgrupo, jornada, nombre_local, nombre_visitante, codequipo_local, codequipo_visitante, goles_local, goles_visitante, fecha, hora, campo, codigo_campo, campo_lat, campo_lng, ronda_slug, ronda_label')
-    .eq('id', idNum).maybeSingle()
+    .eq('codacta', codacta).maybeSingle()
   const r = rRaw as {
     codtemporada: number; codgrupo: string; jornada: number
     nombre_local: string; nombre_visitante: string; codequipo_local: string | null; codequipo_visitante: string | null

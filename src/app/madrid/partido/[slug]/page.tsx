@@ -22,11 +22,11 @@ function fechaIso(fecha: string | null, hora: string | null): string | null {
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params
-  const id = idFromPartidoSlug(slug)
-  if (!id) return { title: 'Fútbol11Stats' }
-  const p = await getPartido(id)
+  const codacta = idFromPartidoSlug(slug)
+  if (!codacta) return { title: 'Fútbol11Stats' }
+  const p = await getPartido(codacta)
   if (!p) return { title: 'Partido no encontrado | Fútbol11Stats' }
-  const canonical = `/madrid/partido/${partidoSlug(p.id, p.local.nombre, p.visitante.nombre)}`
+  const canonical = `/madrid/partido/${partidoSlug(p.codacta, p.local.nombre, p.visitante.nombre)}`
   const marcador = p.jugado ? `${p.golesLocal}-${p.golesVisitante}` : 'vs'
   const rama = p.categoria === 'juveniles' ? 'juvenil' : 'aficionado'
   const title = `${p.local.nombre} ${marcador} ${p.visitante.nombre} · J${p.jornada} ${p.nombreComp} ${p.temporada} | Fútbol11Stats`
@@ -46,12 +46,12 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 
 export default async function PartidoPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params
-  const id = idFromPartidoSlug(slug)
-  if (!id) notFound()
-  const p = await getPartido(id)
+  const codacta = idFromPartidoSlug(slug)
+  if (!codacta) notFound()
+  const p = await getPartido(codacta)
   if (!p) notFound()
 
-  const canonicalSlug = partidoSlug(p.id, p.local.nombre, p.visitante.nombre)
+  const canonicalSlug = partidoSlug(p.codacta, p.local.nombre, p.visitante.nombre)
   if (slug !== canonicalSlug) permanentRedirect(`/madrid/partido/${canonicalSlug}`)
 
   const url = `${SITE_URL}/madrid/partido/${canonicalSlug}`

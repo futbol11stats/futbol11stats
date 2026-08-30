@@ -156,7 +156,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     const partidos: any[] = []
     for (let from = 0; ; from += 1000) {
       const { data: pg } = await supabase.from('web_resultados')
-        .select('id, nombre_local, nombre_visitante, fecha, codgrupo')
+        .select('codacta, nombre_local, nombre_visitante, fecha, codgrupo')
         .eq('codtemporada', 22).not('goles_local', 'is', null).range(from, from + 999)
       if (!pg || !pg.length) break
       partidos.push(...pg)
@@ -165,7 +165,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     for (const m of partidos) {
       if (!afiT22.has(String(m.codgrupo))) continue
       const iso = m.fecha && /^\d{2}\/\d{2}\/\d{4}$/.test(m.fecha) ? `${m.fecha.slice(6, 10)}-${m.fecha.slice(3, 5)}-${m.fecha.slice(0, 2)}` : undefined
-      urls.push({ url: `${SITE_URL}/madrid/partido/${partidoSlug(m.id, m.nombre_local, m.nombre_visitante)}`, lastModified: iso, changeFrequency: 'monthly', priority: 0.5 })
+      urls.push({ url: `${SITE_URL}/madrid/partido/${partidoSlug(m.codacta, m.nombre_local, m.nombre_visitante)}`, lastModified: iso, changeFrequency: 'monthly', priority: 0.5 })
     }
   }
 

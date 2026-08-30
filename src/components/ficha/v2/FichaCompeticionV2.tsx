@@ -413,7 +413,7 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
       && !!r.hora && /^\d{1,2}:\d{2}$/.test(r.hora) && r.hora !== '00:00'
     // Botón de calendario: vía principal Google Calendar (crear evento, un toque en Android); Apple -> .ics.
     // Con TEXTO (no cabe en la pastilla del marcador) -> va en la línea de metadatos, bajo fecha/campo.
-    const icsUrl = `/api/ics/${r.id}`
+    const icsUrl = `/api/ics/${r.codacta}`
     const googleUrl = puedeIcs ? googleRenderUrl({
       title: `${r.nombre_local} vs ${r.nombre_visitante}`,
       fecha: r.fecha as string, hora: r.hora as string,
@@ -435,8 +435,8 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
               return <><span style={{ color: cL }}>{gL}</span><span className="rsc-sep">-</span><span style={{ color: cV }}>{gV}</span></>
             })() : 'vs'
             // El marcador enlaza a la ficha del partido SOLO en la temporada actual (T22); el resto queda como hoy.
-            return codtemporada === 22
-              ? <Link className="rsc rsc-link" href={`/madrid/partido/${partidoSlug(r.id, r.nombre_local, r.nombre_visitante)}`}>{inner}</Link>
+            return codtemporada === 22 && r.codacta
+              ? <Link className="rsc rsc-link" href={`/madrid/partido/${partidoSlug(r.codacta, r.nombre_local, r.nombre_visitante)}`}>{inner}</Link>
               : <div className="rsc">{inner}</div>
           })()}
           <div className="rside v">

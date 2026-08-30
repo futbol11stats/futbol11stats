@@ -72,7 +72,7 @@ function Lado({ lado }: { lado: PartidoLado }) {
 function MiniPartido({ m }: { m: PartidoMini }) {
   const jugado = m.golesLocal != null && m.golesVisitante != null
   return (
-    <Link href={`/madrid/partido/${partidoSlug(m.id, m.local, m.visitante)}`} className="flex items-center gap-2 px-2.5 py-2 rounded-lg bg-pitch-800 border border-pitch-700 hover:border-grass-500/50 transition-colors text-xs">
+    <Link href={`/madrid/partido/${partidoSlug(m.codacta, m.local, m.visitante)}`} className="flex items-center gap-2 px-2.5 py-2 rounded-lg bg-pitch-800 border border-pitch-700 hover:border-grass-500/50 transition-colors text-xs">
       <span className="text-chalk-600 flex-none w-14 tabular-nums">{m.fecha || ''}</span>
       <span className="min-w-0 flex-1 flex items-center gap-1.5 justify-end"><span className="truncate text-chalk-300">{m.local}</span><Crest escudo={m.escudoLocal} nombre={m.local} size={16} /></span>
       <span className="flex-none font-bold text-white tabular-nums px-1">{jugado ? `${m.golesLocal}-${m.golesVisitante}` : 'vs'}</span>
@@ -84,8 +84,8 @@ function MiniPartido({ m }: { m: PartidoMini }) {
 export default function FichaPartidoV2({ p }: { p: PartidoFicha }) {
   const estado = p.jugado ? 'FINAL' : (p.hora || 'Por jugar')
   const puedeIcs = !p.jugado && !!p.fecha && /^\d{2}\/\d{2}\/\d{4}$/.test(p.fecha) && !!p.hora && /^\d{1,2}:\d{2}$/.test(p.hora) && p.hora !== '00:00'
-  const icsUrl = `/api/ics/${p.id}`
-  const googleUrl = puedeIcs ? googleRenderUrl({ title: `${p.local.nombre} vs ${p.visitante.nombre}`, fecha: p.fecha as string, hora: p.hora as string, campo: p.campoNombre, details: `${p.nombreComp} · Jornada ${p.jornada}\n${SITE_URL}/madrid/partido/${partidoSlug(p.id, p.local.nombre, p.visitante.nombre)}` }) : null
+  const icsUrl = `/api/ics/${p.codacta}`
+  const googleUrl = puedeIcs ? googleRenderUrl({ title: `${p.local.nombre} vs ${p.visitante.nombre}`, fecha: p.fecha as string, hora: p.hora as string, campo: p.campoNombre, details: `${p.nombreComp} · Jornada ${p.jornada}\n${SITE_URL}/madrid/partido/${partidoSlug(p.codacta, p.local.nombre, p.visitante.nombre)}` }) : null
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-6">
@@ -158,7 +158,7 @@ export default function FichaPartidoV2({ p }: { p: PartidoFicha }) {
       {p.h2h.length > 0 && (
         <section className="mt-6">
           <h2 className="text-[11px] font-semibold uppercase tracking-widest text-chalk-600 mb-2">Cara a cara</h2>
-          <div className="space-y-1.5">{p.h2h.map((m) => <MiniPartido key={m.id} m={m} />)}</div>
+          <div className="space-y-1.5">{p.h2h.map((m) => <MiniPartido key={m.codacta} m={m} />)}</div>
         </section>
       )}
 
@@ -167,11 +167,11 @@ export default function FichaPartidoV2({ p }: { p: PartidoFicha }) {
         <section className="mt-6 grid md:grid-cols-2 gap-4">
           <div>
             <h2 className="text-[11px] font-semibold uppercase tracking-widest text-chalk-600 mb-2">Últimos · {p.local.nombre}</h2>
-            <div className="space-y-1.5">{p.formaLocal.map((m) => <MiniPartido key={m.id} m={m} />)}</div>
+            <div className="space-y-1.5">{p.formaLocal.map((m) => <MiniPartido key={m.codacta} m={m} />)}</div>
           </div>
           <div>
             <h2 className="text-[11px] font-semibold uppercase tracking-widest text-chalk-600 mb-2">Últimos · {p.visitante.nombre}</h2>
-            <div className="space-y-1.5">{p.formaVisitante.map((m) => <MiniPartido key={m.id} m={m} />)}</div>
+            <div className="space-y-1.5">{p.formaVisitante.map((m) => <MiniPartido key={m.codacta} m={m} />)}</div>
           </div>
         </section>
       )}

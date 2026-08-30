@@ -21,9 +21,9 @@ export type PartidoJugador = {
   href: string | null   // ficha del jugador solo si la tiene
 }
 export type PartidoLado = { codequipo: string; nombre: string; escudo: string | null; titulares: PartidoJugador[]; suplentes: PartidoJugador[] }
-export type PartidoMini = { id: string; fecha: string | null; local: string; escudoLocal: string | null; golesLocal: number | null; visitante: string; escudoVisitante: string | null; golesVisitante: number | null }
+export type PartidoMini = { codacta: string; fecha: string | null; local: string; escudoLocal: string | null; golesLocal: number | null; visitante: string; escudoVisitante: string | null; golesVisitante: number | null }
 export type PartidoFicha = {
-  id: string; jugado: boolean; esJuvenil: boolean; codtemporada: number
+  id: string; codacta: string; jugado: boolean; esJuvenil: boolean; codtemporada: number
   categoria: string; slugComp: string; slugGrupo: string; temporada: string; nombreComp: string; jornada: number; compHref: string
   local: PartidoLado; visitante: PartidoLado
   golesLocal: number | null; golesVisitante: number | null; fecha: string | null; hora: string | null
@@ -39,11 +39,11 @@ const ordenPos = (a: PartidoJugador, b: PartidoJugador) => {
   return pa !== pb ? pa - pb : (parseInt(a.dorsal || '99') || 99) - (parseInt(b.dorsal || '99') || 99)
 }
 const toMini = (r: Record<string, unknown>): PartidoMini => ({
-  id: String(r.id), fecha: (r.fecha as string) ?? null,
+  codacta: String(r.codacta ?? ''), fecha: (r.fecha as string) ?? null,
   local: String(r.nombre_local ?? ''), escudoLocal: (r.escudo_local as string) ?? null, golesLocal: (r.goles_local as number) ?? null,
   visitante: String(r.nombre_visitante ?? ''), escudoVisitante: (r.escudo_visitante as string) ?? null, golesVisitante: (r.goles_visitante as number) ?? null,
 })
-const MINI_COLS = 'id, fecha, nombre_local, escudo_local, goles_local, nombre_visitante, escudo_visitante, goles_visitante'
+const MINI_COLS = 'codacta, fecha, nombre_local, escudo_local, goles_local, nombre_visitante, escudo_visitante, goles_visitante'
 
 async function ultimosDe(codequipo: string, n: number): Promise<PartidoMini[]> {
   if (!codequipo) return []
@@ -63,11 +63,13 @@ async function enfrentamientos(a: string, b: string, n: number): Promise<Partido
   return rows.slice(0, n).map(toMini)
 }
 
-export async function getPartido(id: string): Promise<PartidoFicha | null> {
-  if (!/^\d+$/.test(id)) return null
+// Clave = codacta (id federativo del acta): estable pre/post partido y ENTRE re-exports. El id de fila de
+// web_resultados NO sirve: el ciclo del pipeline lo reasigna al reexportar (rompería URLs e indexación).
+export async function getPartido(codacta: string): Promise<PartidoFicha | null> {
+  if (!/^\d+$/.test(codacta)) return null
   const { data: rRaw } = await supabase.from('web_resultados')
     .select('id, codacta, codtemporada, codgrupo, jornada, nombre_local, escudo_local, goles_local, goles_visitante, nombre_visitante, escudo_visitante, fecha, hora, campo, codigo_campo, campo_lat, campo_lng, codequipo_local, codequipo_visitante, ronda_slug')
-    .eq('id', id).maybeSingle()
+    .eq('codacta', codacta).maybeSingle()
   const r = rRaw as {
     id: number; codacta: string | null; codtemporada: number; codgrupo: string; jornada: number
     nombre_local: string; escudo_local: string | null; goles_local: number | null; goles_visitante: number | null
@@ -149,14 +151,18 @@ export async function getPartido(id: string): Promise<PartidoFicha | null> {
       campoHref = campoMapsUrl({ codigo: r.codigo_campo ?? null, nombre: r.campo, localidad: null, lat: r.campo_lat, lng: r.campo_lng })
     }
 
-    const [formaLocal, formaVisitante, h2h] = await Promise.all([ultimosDe(codeqL, 5), ultimosDe(codeqV, 5), enfrentamientos(codeqL, codeqV, 5)])
+    const actaEq = (m: PartidoMini) => m.codacta !== String(r.codacta)   // fuera el propio partido de forma/H2H
+    const [formaLocal, formaVisitante, h2h] = await Promise.all([ultimosDe(codeqL, 6), ultimosDe(codeqV, 6), enfrentamientos(codeqL, codeqV, 6)])
 
     return {
-      id: String(r.id), jugado, esJuvenil, codtemporada: r.codtemporada,
+      id: String(r.id), codacta: String(r.codacta ?? ''), jugado, esJuvenil, codtemporada: r.codtemporada,
       categoria, slugComp: g?.slug_comp || '', slugGrupo: g?.slug_grupo || '', temporada, nombreComp: g?.nombre_comp || 'RFFM · Madrid', jornada: r.jornada, compHref,
       local, visitante, golesLocal: r.goles_local, golesVisitante: r.goles_visitante, fecha: r.fecha, hora: r.hora,
       campoNombre: campoNombre || null, campoSuperficie, campoHref, campoLat: r.campo_lat, campoLng: r.campo_lng,
-      mvp, formaLocal, formaVisitante, h2h,
+      mvp,
+      formaLocal: formaLocal.filter(actaEq).slice(0, 5),
+      formaVisitante: formaVisitante.filter(actaEq).slice(0, 5),
+      h2h: h2h.filter(actaEq).slice(0, 5),
     }
-  }, ['getPartido', 'v1', String(r.id)], [String(r.codgrupo)], r.codtemporada)
+  }, ['getPartido', 'v2-codacta', String(r.codacta)], [String(r.codgrupo)], r.codtemporada)
 }
