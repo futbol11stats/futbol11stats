@@ -673,39 +673,39 @@
 .fpv2 .mres .sep{color:var(--ink-4);margin:0 5px}
 .fpv2 .mvs{font-family:var(--font-display),sans-serif;font-weight:700;font-size:var(--n-md);color:var(--ink-3);padding-top:10px}
 .fpv2 .mmeta{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:2px 8px;margin-top:14px;padding-top:11px;border-top:1px solid var(--line);font-size:var(--t-cap);color:var(--ink-3)}
-.fpv2 .mmeta .hero-campo{margin-top:0}
+.fpv2 .mmeta .hero-campo{display:inline-flex;align-items:center;gap:4px;color:inherit;text-decoration:none}
+.fpv2 .mmeta a.hero-campo:hover{color:var(--ink-2);text-decoration:underline;text-decoration-style:dotted}
+.fpv2 .mmeta .hero-campo svg{flex:none;opacity:.8;vertical-align:-1px}
+.fpv2 .mmeta .campo-sup{color:var(--ink-4)}
+.fpv2 .mteam .cracha{width:auto;justify-content:center;padding:0}
+.fpv2 .mmid .pill{margin-top:1px}
 .fpv2 .cal-wrap{display:flex;justify-content:center;margin-top:13px}
 .fpv2 .cal-btn{display:inline-flex;align-items:center;gap:7px;padding:8px 14px;border-radius:9px;font-family:var(--font-display),sans-serif;font-weight:600;font-size:var(--t-body);
   color:#a8f2bd;border:1px solid rgba(140,239,165,.34);background:rgba(140,239,165,.1);text-decoration:none;cursor:pointer}
 .fpv2 .cal-btn:hover{background:rgba(140,239,165,.16)}
-.fpv2 .mvp{display:flex;align-items:center;gap:10px;margin:14px var(--pad) 0;padding:9px 12px;border-radius:10px;background:rgba(46,229,107,.08);border:1px solid rgba(46,229,107,.26)}
-.fpv2 .mvp .mvp-k{font-size:var(--t-micro);letter-spacing:.09em;text-transform:uppercase;color:var(--e4);font-weight:600}
-.fpv2 .mvp .mvp-n{font-size:var(--t-sm);color:var(--ink-2);margin-top:2px}
-.fpv2 .mvp .mvp-n a{color:var(--ink);text-decoration:none}
-.fpv2 .mvp .mvp-n a:hover{text-decoration:underline}
-.fpv2 .mvp .mvp-p{margin-left:auto;font-family:var(--font-display),sans-serif;font-weight:700;font-size:var(--n-md);color:var(--e3);font-variant-numeric:tabular-nums}
-.fpv2 .al{padding:0 var(--pad)}
-.fpv2 .al-team{display:flex;align-items:center;gap:8px;padding:14px 0 6px}
+.fpv2 .mvp-eq{font-size:var(--t-cap);color:var(--ink-3)}
+/* ALINEACIONES — .desk-2col: 2 columnas en desktop, apiladas en móvil. Filas = .pl (reutilizado de plantilla);
+   las filas se autopadean (.pl trae var(--pad)), así que los encabezados de columna llevan el padding horizontal. */
+.fpv2 .al-col{min-width:0}
+.fpv2 .al-team{display:flex;align-items:center;gap:8px;padding:14px var(--pad) 6px}
 .fpv2 .al-team .tn{font-family:var(--font-display),sans-serif;font-weight:700;font-size:var(--t-lead);text-transform:uppercase;color:var(--ink);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .fpv2 .al-team .tn a{color:inherit;text-decoration:none}
-.fpv2 .al-team .al-ptshead{margin-left:auto;flex:none;display:inline-flex;align-items:center;gap:4px}
-.fpv2 .al-sub{font-size:var(--t-micro);letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);font-weight:600;padding:9px 0 3px;margin-top:4px;border-top:1px solid var(--line)}
-.fpv2 .al-row{display:flex;align-items:center;gap:8px;padding:6px 0;border-top:1px solid var(--line-2)}
-.fpv2 .al-row.out{opacity:.5}
-.fpv2 .al-dorsal{width:18px;text-align:center;font-family:var(--font-display),sans-serif;font-weight:700;font-size:var(--t-sm);color:var(--ink-4);flex:none}
-.fpv2 .al-nm{flex:1;min-width:0;font-size:var(--t-sm);color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.fpv2 .al-nm a{color:var(--ink);text-decoration:none}
-.fpv2 .al-nm a:hover{color:var(--e4)}
-.fpv2 .al-ev{display:inline-flex;align-items:center;gap:4px;flex:none;color:var(--ink-3)}
-.fpv2 .al-ev .al-gol{display:inline-flex;align-items:center;gap:2px;color:var(--e3)}
-.fpv2 .al-ev .al-gol b{font-size:var(--t-micro)}
-.fpv2 .al-min{width:30px;text-align:right;font-size:var(--t-micro);color:var(--ink-4);font-variant-numeric:tabular-nums;flex:none}
-.fpv2 .al-pts{width:26px;text-align:right;font-family:var(--font-display),sans-serif;font-weight:700;font-size:var(--t-lead);font-variant-numeric:tabular-nums;flex:none;color:var(--ink-2)}
-.fpv2 .al-pts.hi{color:var(--e3)}
-.fpv2 .al-pts.lo{color:var(--ink-4)}
-.fpv2 .al-pts.neg{color:var(--e0)}
-.fpv2 .al-note{padding:9px var(--pad) 0;font-size:var(--t-micro);color:var(--ink-3);line-height:1.5}
-.fpv2 .al-note b{color:var(--ink-2);font-weight:600}
+.fpv2 .al-team .cracha{margin-left:auto;width:auto;flex:none;padding:0}
+.fpv2 .al-sub{font-size:var(--t-micro);letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);font-weight:600;padding:9px var(--pad) 3px;margin-top:4px;border-top:1px solid var(--line)}
+.fpv2 .al-tec{padding:11px var(--pad) 0;font-size:var(--t-cap);color:var(--ink-2)}
+.fpv2 .al-tec .cap{margin-right:5px}
+.fpv2 .pl-nojugo{opacity:.5}
+/* Eventos con minuto dentro de .pl-me (web_partido_eventos). Sin ámbar salvo tarjeta (--card-y ya es amarillo real). */
+.fpv2 .ev{display:inline-flex;align-items:center;gap:2px;font-size:var(--t-micro);font-weight:700;font-variant-numeric:tabular-nums;color:var(--ink-3)}
+.fpv2 .ev svg{flex:none}
+.fpv2 .ev-gol{color:var(--e3)}
+.fpv2 .ev-ta,.fpv2 .ev-td{color:var(--card-y)}
+.fpv2 .ev-tr,.fpv2 .ev-out{color:var(--e0)}
+.fpv2 .ev-in{color:var(--e3)}
+/* Árbitros: SOLO nombre + rol. Sin enlace, sin ranking, sin superficie que agregue por árbitro (privacidad). */
+.fpv2 .arb{padding:0 var(--pad);display:flex;flex-direction:column;gap:6px}
+.fpv2 .arb-row{display:flex;align-items:baseline;gap:9px;font-size:var(--t-sm);color:var(--ink-2)}
+.fpv2 .arb-row .cap{flex:none}
 .fpv2 a.mini-link{display:block;text-decoration:none}
 .fpv2 a.mini-link:hover .rmatch .rnm{color:var(--ink)}
 /* Suscripción del calendario del equipo (hero): la frase completa es el enlace. */

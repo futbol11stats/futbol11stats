@@ -18,6 +18,9 @@ export type PartidoJugador = {
   titular: boolean; jugado: boolean; minutos: number
   goles: number; amarillas: number; dobles: number; rojas: number
   puntos: number | null; eloDelta: number | null
+  // Minutos de cada evento (de web_partido_eventos): golesMin[], y el minuto de tarjeta/cambio.
+  golesMin: number[]; amarillaMin: number | null; dobleMin: number | null; rojaMin: number | null
+  entra: number | null; sale: number | null
   href: string | null   // ficha del jugador solo si la tiene
 }
 export type PartidoLado = { codequipo: string; nombre: string; escudo: string | null; titulares: PartidoJugador[]; suplentes: PartidoJugador[] }
@@ -28,8 +31,12 @@ export type PartidoFicha = {
   local: PartidoLado; visitante: PartidoLado
   golesLocal: number | null; golesVisitante: number | null; fecha: string | null; hora: string | null
   campoNombre: string | null; campoSuperficie: string | null; campoHref: string | null; campoLat: number | null; campoLng: number | null
-  mvp: { nombre: string; puntos: number; lado: 'local' | 'visitante'; href: string | null } | null
+  mvp: { nombre: string; pos: string | null; puntos: number; lado: 'local' | 'visitante'; href: string | null } | null
   formaLocal: PartidoMini[]; formaVisitante: PartidoMini[]; h2h: PartidoMini[]
+  // Datos del acta (web_partido_*): árbitros (SOLO nombre + rol — sin enlace/ranking, decisión de privacidad) y
+  // entrenador jefe por equipo.
+  arbitros: { nombre: string; rol: string }[]
+  entrenadorLocal: string | null; entrenadorVisitante: string | null
 }
 
 const POS_ORD: Record<string, number> = { POR: 0, DEF: 1, MED: 2, DEL: 3 }
@@ -112,14 +119,32 @@ export async function getPartido(codacta: string): Promise<PartidoFicha | null> 
         const plMap = new Map<string, { nombre: string; dorsal: string | null; pos: string | null }>(
           ((plRaw || []) as Array<Record<string, unknown>>).map((p) => [String(p.codjugador), { nombre: String(p.nombre || ''), dorsal: (p.dorsal_comun as string) ?? null, pos: (p.posicion_pastilla as string) ?? null }]))
         const conFicha = await fichasExistentes(codjugs)
+        // Eventos CON MINUTO (web_partido_eventos): gol/amarilla/doble_amarilla/roja/cambio_entra/cambio_sale.
+        const { data: evRaw } = await supabase.from('web_partido_eventos')
+          .select('codjugador, tipo, minuto').eq('codacta', r.codacta)
+        const evMap = new Map<string, { golesMin: number[]; amarillaMin: number | null; dobleMin: number | null; rojaMin: number | null; entra: number | null; sale: number | null }>()
+        for (const ev of (evRaw || []) as Array<{ codjugador: string; tipo: string; minuto: number | null }>) {
+          const cod = String(ev.codjugador)
+          const e = evMap.get(cod) || { golesMin: [], amarillaMin: null, dobleMin: null, rojaMin: null, entra: null, sale: null }
+          const m = ev.minuto ?? null
+          if (ev.tipo === 'gol') { if (m != null) e.golesMin.push(m) }
+          else if (ev.tipo === 'amarilla') e.amarillaMin = m
+          else if (ev.tipo === 'doble_amarilla') e.dobleMin = m
+          else if (ev.tipo === 'roja') e.rojaMin = m
+          else if (ev.tipo === 'cambio_entra') e.entra = m
+          else if (ev.tipo === 'cambio_sale') e.sale = m
+          evMap.set(cod, e)
+        }
         const toJ = (p: Record<string, unknown>): PartidoJugador => {
           const cod = String(p.codjugador)
           const meta = plMap.get(cod) || { nombre: '', dorsal: null, pos: null }
+          const ev = evMap.get(cod) || { golesMin: [], amarillaMin: null, dobleMin: null, rojaMin: null, entra: null, sale: null }
           return {
             codjugador: cod, nombre: meta.nombre, dorsal: meta.dorsal, pos: meta.pos,
             titular: !!p.titular, jugado: !!p.jugado, minutos: (p.minutos as number) || 0,
             goles: (p.goles as number) || 0, amarillas: (p.amarillas as number) || 0, dobles: (p.dobles_amarilla as number) || 0, rojas: (p.rojas as number) || 0,
             puntos: (p.puntos as number) ?? null, eloDelta: (p.elo_delta as number) ?? null,
+            golesMin: ev.golesMin.sort((a, b) => a - b), amarillaMin: ev.amarillaMin, dobleMin: ev.dobleMin, rojaMin: ev.rojaMin, entra: ev.entra, sale: ev.sale,
             href: conFicha.has(cod) && meta.nombre ? jugadorHref(cod, meta.nombre) : null,
           }
         }
@@ -137,7 +162,7 @@ export async function getPartido(codacta: string): Promise<PartidoFicha | null> 
         for (const p of partidos) if (p.puntos != null && (!best || (p.puntos as number) > (best.puntos as number))) best = p
         if (best) {
           const meta = plMap.get(String(best.codjugador))
-          if (meta?.nombre) mvp = { nombre: meta.nombre, puntos: best.puntos as number, lado: String(best.codequipo) === codeqL ? 'local' : 'visitante', href: conFicha.has(String(best.codjugador)) ? jugadorHref(String(best.codjugador), meta.nombre) : null }
+          if (meta?.nombre) mvp = { nombre: meta.nombre, pos: meta.pos, puntos: best.puntos as number, lado: String(best.codequipo) === codeqL ? 'local' : 'visitante', href: conFicha.has(String(best.codjugador)) ? jugadorHref(String(best.codjugador), meta.nombre) : null }
         }
       }
     }
@@ -152,7 +177,17 @@ export async function getPartido(codacta: string): Promise<PartidoFicha | null> 
     }
 
     const actaEq = (m: PartidoMini) => m.codacta !== String(r.codacta)   // fuera el propio partido de forma/H2H
-    const [formaLocal, formaVisitante, h2h] = await Promise.all([ultimosDe(codeqL, 6), ultimosDe(codeqV, 6), enfrentamientos(codeqL, codeqV, 6)])
+    const [formaLocal, formaVisitante, h2h, arbRaw, entRaw] = await Promise.all([
+      ultimosDe(codeqL, 6), ultimosDe(codeqV, 6), enfrentamientos(codeqL, codeqV, 6),
+      supabase.from('web_partido_arbitro').select('nombre, rol').eq('codacta', r.codacta),
+      supabase.from('web_partido_entrenador').select('codequipo, nombre').eq('codacta', r.codacta),
+    ])
+    // Árbitros: SOLO nombre + rol (principal primero). Sin enlace, sin ranking, sin agregación por árbitro — nunca
+    // (decisión de privacidad del pipeline). Entrenador jefe por equipo.
+    const ROL_ORD: Record<string, number> = { 'Árbitro principal': 0, 'Árbitro': 0, 'Árbitro asistente': 1, 'Cuarto árbitro': 2 }
+    const arbitros = ((arbRaw.data || []) as Array<{ nombre: string; rol: string }>)
+      .filter((a) => a.nombre).sort((a, b) => (ROL_ORD[a.rol] ?? 9) - (ROL_ORD[b.rol] ?? 9))
+    const entMap = new Map<string, string>(((entRaw.data || []) as Array<{ codequipo: string; nombre: string }>).map((e) => [String(e.codequipo), String(e.nombre)]))
 
     return {
       id: String(r.id), codacta: String(r.codacta ?? ''), jugado, esJuvenil, codtemporada: r.codtemporada,
@@ -163,6 +198,7 @@ export async function getPartido(codacta: string): Promise<PartidoFicha | null> 
       formaLocal: formaLocal.filter(actaEq).slice(0, 5),
       formaVisitante: formaVisitante.filter(actaEq).slice(0, 5),
       h2h: h2h.filter(actaEq).slice(0, 5),
+      arbitros, entrenadorLocal: entMap.get(codeqL) ?? null, entrenadorVisitante: entMap.get(codeqV) ?? null,
     }
-  }, ['getPartido', 'v2-codacta', String(r.codacta)], [String(r.codgrupo)], r.codtemporada)
+  }, ['getPartido', 'v3-acta', String(r.codacta)], [String(r.codgrupo)], r.codtemporada)
 }
