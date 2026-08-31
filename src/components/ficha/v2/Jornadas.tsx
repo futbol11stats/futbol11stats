@@ -92,7 +92,9 @@ export default function Jornadas({ comps, cortes }: { comps: CompAmbito[]; corte
   function eloLane(d: JornadaDatum) {
     if (d.estado.tipo !== 'valor' || d.eloDelta == null) return null
     const up = d.eloDelta >= 0
-    return <span className="elo-chip" style={{ background: up ? 'var(--e3)' : 'var(--e0)' }}>{up ? '+' : '−'}{Math.abs(Math.round(d.eloDelta))}</span>
+    // Reutiliza el .chip de puntos TAL CUAL (mismo tamaño/proporción). Sin "+" en positivos (el verde ya lo dice);
+    // el "−" se mantiene en negativos.
+    return <span className="chip" style={{ background: up ? 'var(--e3)' : 'var(--e0)' }}>{up ? '' : '−'}{Math.abs(Math.round(d.eloDelta))}</span>
   }
 
   // Carril de eventos: gol (×N), portería a cero, amarilla / doble amarilla / roja (cada una con su glifo).
