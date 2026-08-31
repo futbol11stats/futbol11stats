@@ -25,7 +25,9 @@ export type PartidoJugador = {
   href: string | null   // ficha del jugador solo si la tiene
 }
 export type PartidoLado = { codequipo: string; nombre: string; escudo: string | null; titulares: PartidoJugador[]; suplentes: PartidoJugador[] }
-export type PartidoMini = { codacta: string; fecha: string | null; local: string; escudoLocal: string | null; golesLocal: number | null; visitante: string; escudoVisitante: string | null; golesVisitante: number | null }
+export type PartidoMini = { codacta: string; fecha: string | null; local: string; escudoLocal: string | null; golesLocal: number | null; visitante: string; escudoVisitante: string | null; golesVisitante: number | null
+  // Para la forma con ΔELO: codequipos (saber de qué lado iba el equipo) + grupo/jornada/temporada (calcular el Δ) + el Δ ya resuelto.
+  codLocal?: string; codVisitante?: string; codgrupo?: string | null; jornada?: number | null; codtemporada?: number | null; eloDelta?: number | null }
 export type PartidoFicha = {
   id: string; codacta: string; jugado: boolean; esJuvenil: boolean; codtemporada: number
   categoria: string; slugComp: string; slugGrupo: string; temporada: string; nombreComp: string; jornada: number; compHref: string
@@ -61,8 +63,10 @@ const toMini = (r: Record<string, unknown>): PartidoMini => ({
   codacta: String(r.codacta ?? ''), fecha: (r.fecha as string) ?? null,
   local: String(r.nombre_local ?? ''), escudoLocal: (r.escudo_local as string) ?? null, golesLocal: (r.goles_local as number) ?? null,
   visitante: String(r.nombre_visitante ?? ''), escudoVisitante: (r.escudo_visitante as string) ?? null, golesVisitante: (r.goles_visitante as number) ?? null,
+  codLocal: String(r.codequipo_local ?? ''), codVisitante: String(r.codequipo_visitante ?? ''),
+  codgrupo: (r.codgrupo as string) ?? null, jornada: (r.jornada as number) ?? null, codtemporada: (r.codtemporada as number) ?? null,
 })
-const MINI_COLS = 'codacta, fecha, nombre_local, escudo_local, goles_local, nombre_visitante, escudo_visitante, goles_visitante'
+const MINI_COLS = 'codacta, fecha, codtemporada, codgrupo, jornada, nombre_local, escudo_local, goles_local, nombre_visitante, escudo_visitante, goles_visitante, codequipo_local, codequipo_visitante'
 
 async function ultimosDe(codequipo: string, n: number): Promise<PartidoMini[]> {
   if (!codequipo) return []
@@ -279,14 +283,25 @@ export async function getPartido(codacta: string): Promise<PartidoFicha | null> 
     }
     const clL = clasifDe(codeqL), clV = clasifDe(codeqV)
 
+    // ΔELO por partido de la FORMA. Solo LIGA: elo[j] − elo[j−1] en web_clasificacion. En copa NO es fiable (la
+    // jornada significa cosa distinta por tabla) -> null, no se pinta. `cod` = el equipo del que es la forma.
+    const deltaEloForma = (cod: string, m: PartidoMini): number | null => {
+      if (!m.codgrupo || String(m.codgrupo).startsWith('fam-')) return null
+      const rows = clAll.filter((c) => String(c.codequipo) === cod && String(c.codgrupo) === String(m.codgrupo) && c.codgrupo_familia == null)
+      const post = rows.find((c) => c.codtemporada === m.codtemporada && c.jornada === m.jornada)
+      const pre = rows.find((c) => c.codtemporada === m.codtemporada && c.jornada === (m.jornada as number) - 1)
+      return (post?.elo != null && pre?.elo != null) ? Math.round((post.elo - pre.elo) * 10) / 10 : null
+    }
+    const conElo = (arr: PartidoMini[], cod: string) => arr.filter(actaEq).slice(0, 5).map((m) => ({ ...m, eloDelta: deltaEloForma(cod, m) }))
+
     return {
       id: String(r.id), codacta: String(r.codacta ?? ''), jugado, esJuvenil, codtemporada: r.codtemporada,
       categoria, slugComp: g?.slug_comp || '', slugGrupo: g?.slug_grupo || '', temporada, nombreComp: g?.nombre_comp || 'RFFM · Madrid', jornada: r.jornada, compHref,
       local, visitante, golesLocal: r.goles_local, golesVisitante: r.goles_visitante, fecha: r.fecha, hora: r.hora,
       campoNombre: campoNombre || null, campoSuperficie, campoHref, campoLat: r.campo_lat, campoLng: r.campo_lng,
       mvp,
-      formaLocal: formaLocal.filter(actaEq).slice(0, 5),
-      formaVisitante: formaVisitante.filter(actaEq).slice(0, 5),
+      formaLocal: conElo(formaLocal, codeqL),
+      formaVisitante: conElo(formaVisitante, codeqV),
       h2h: h2h.filter(actaEq).slice(0, 5),
       arbitros, entrenadorLocal: entMap.get(codeqL) ?? null, entrenadorVisitante: entMap.get(codeqV) ?? null,
       eloPreLocal: clL.eloPre, eloPreVisitante: clV.eloPre,
@@ -296,5 +311,5 @@ export async function getPartido(codacta: string): Promise<PartidoFicha | null> 
       posPreVisitante: clV.posPre, posPostVisitante: clV.posPost,
       hitos,
     }
-  }, ['getPartido', 'v7-copa-elo', String(r.codacta)], [String(r.codgrupo)], r.codtemporada)
+  }, ['getPartido', 'v8-forma-elo', String(r.codacta)], [String(r.codgrupo)], r.codtemporada)
 }

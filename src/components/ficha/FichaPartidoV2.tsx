@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { Fragment, type ReactNode } from 'react'
 import { CalendarPlus, MapPin } from 'lucide-react'
 import EscudoBox from '@/components/ficha/v2/EscudoBox'
+import IndicadorLocal from '@/components/IndicadorLocal'
 import NombreEquipo from '@/components/NombreEquipo'
 import Pastilla from '@/components/Pastilla'
 import SuperficieCampo from '@/components/SuperficieCampo'
@@ -165,6 +166,27 @@ function MiniPartido({ m }: { m: PartidoMini }) {
         <div className="rside v"><EscudoBox escudo={m.escudoVisitante} nombre={m.visitante} size={22} radius={5} /><span className={`rnm${jugado && gV > gL ? ' w' : ''}`}>{m.visitante}</span></div>
       </div>
       {m.fecha && <div className="rmeta">{m.fecha}</div>}
+    </Link>
+  )
+}
+
+// Fila COMPACTA de forma reciente (dos columnas a 390px): rival + marcador (orden local-visitante del sitio, coloreado
+// por el resultado del EQUIPO) + casa/avión + Δ ELO del partido (verde sube / rojo baja; solo liga — en copa viene null).
+function MiniForma({ m, teamCod }: { m: PartidoMini; teamCod: string }) {
+  const jugado = m.golesLocal != null && m.golesVisitante != null
+  const esLocal = m.codLocal === teamCod
+  const rival = esLocal ? m.visitante : m.local
+  const rivalEsc = esLocal ? m.escudoVisitante : m.escudoLocal
+  const gL = (m.golesLocal ?? 0), gV = (m.golesVisitante ?? 0)
+  const gf = esLocal ? gL : gV, gc = esLocal ? gV : gL
+  const col = !jugado ? 'var(--ink-2)' : gf > gc ? 'var(--e3)' : gf < gc ? 'var(--e0)' : 'var(--ink-3)'
+  return (
+    <Link className="mforma" href={`/madrid/partido/${partidoSlug(m.codacta, m.local, m.visitante)}`}>
+      <EscudoBox escudo={rivalEsc} nombre={rival} size={18} radius={4} />
+      <span className="mf-nm">{rival}</span>
+      <IndicadorLocal esLocal={esLocal} />
+      <span className="mf-sc" style={{ color: col }}>{jugado ? `${gL}-${gV}` : 'vs'}</span>
+      {m.eloDelta != null && <span className="mf-elo" style={{ color: m.eloDelta >= 0 ? 'var(--e3)' : 'var(--e0)' }}>{m.eloDelta >= 0 ? '+' : '−'}{Math.abs(Math.round(m.eloDelta))}</span>}
     </Link>
   )
 }
@@ -387,9 +409,10 @@ export default function FichaPartidoV2({ p }: { p: PartidoFicha }) {
       {(p.formaLocal.length > 0 || p.formaVisitante.length > 0) && (
         <section>
           <div className="s-head"><h2 className="s-title">Últimos partidos</h2></div>
-          <div className="desk-2col al-2col">
-            <div>{p.formaLocal.length > 0 && <><div className="al-sub" style={{ borderTop: 0, marginTop: 0, paddingTop: 0 }}>{p.local.nombre}</div>{p.formaLocal.map((m) => <MiniPartido key={m.codacta} m={m} />)}</>}</div>
-            <div>{p.formaVisitante.length > 0 && <><div className="al-sub" style={{ borderTop: 0, marginTop: 0, paddingTop: 0 }}>{p.visitante.nombre}</div>{p.formaVisitante.map((m) => <MiniPartido key={m.codacta} m={m} />)}</>}</div>
+          {/* Dos columnas TAMBIÉN en móvil: cada equipo su forma con la fila compacta (rival + marcador + Δ ELO). */}
+          <div className="forma-2col">
+            <div className="forma-col">{p.formaLocal.length > 0 && <><div className="al-sub forma-h">{p.local.nombre}</div>{p.formaLocal.map((m) => <MiniForma key={m.codacta} m={m} teamCod={p.local.codequipo} />)}</>}</div>
+            <div className="forma-col">{p.formaVisitante.length > 0 && <><div className="al-sub forma-h">{p.visitante.nombre}</div>{p.formaVisitante.map((m) => <MiniForma key={m.codacta} m={m} teamCod={p.visitante.codequipo} />)}</>}</div>
           </div>
         </section>
       )}

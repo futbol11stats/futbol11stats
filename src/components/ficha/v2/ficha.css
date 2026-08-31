@@ -762,6 +762,20 @@
 .fpv2 .prono-barleg span:nth-child(2){color:var(--e1)}
 .fpv2 .prono-barleg span:nth-child(3){color:rgb(249,115,22)}
 .fpv2 .prono-note{text-align:center;margin-top:8px;font-size:var(--t-micro);color:var(--ink-4)}
+/* Forma reciente: dos columnas (una por equipo) TAMBIÉN en móvil, con fila compacta rival+marcador+Δ ELO. */
+.fpv2 .forma-2col{display:grid;grid-template-columns:1fr 1fr}
+.fpv2 .forma-2col .forma-col+.forma-col{border-left:1px solid var(--line-2)}
+.fpv2 .forma-h{border-top:0;margin-top:0;padding-top:9px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fpv2 .mforma{display:flex;align-items:center;gap:6px;padding:7px var(--pad);border-top:1px solid var(--line-2);text-decoration:none;color:inherit}
+.fpv2 .mforma:hover .mf-nm{color:var(--ink)}
+.fpv2 .mf-nm{flex:1;min-width:0;font-family:var(--font-display),'Barlow Condensed',sans-serif;font-size:var(--t-body);font-weight:500;color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-transform:uppercase}
+.fpv2 .mf-sc{font-family:var(--font-display),'Barlow Condensed',sans-serif;font-weight:700;font-size:var(--t-lead);font-variant-numeric:tabular-nums;flex:none}
+.fpv2 .mf-elo{font-family:var(--font-display),'Barlow Condensed',sans-serif;font-weight:700;font-size:var(--t-cap);font-variant-numeric:tabular-nums;flex:none;min-width:22px;text-align:right}
+@media(max-width:999px){
+  .fpv2 .forma-2col .mforma{padding-left:7px;padding-right:7px;gap:4px}
+  .fpv2 .forma-2col .forma-h{padding-left:7px;padding-right:7px}
+  .fpv2 .forma-2col .mf-nm{font-size:var(--t-cap)}
+}
 /* #2 Movimiento de ELO por equipo, al pie de cada columna de alineación. */
 .fpv2 .al-elo{margin-top:8px;padding:7px var(--pad) 0;border-top:1px solid var(--line-2);font-size:var(--t-cap);color:var(--ink-3)}
 .fpv2 .al-elo b{font-family:var(--font-display),sans-serif;font-weight:700;font-variant-numeric:tabular-nums;margin-left:3px}
