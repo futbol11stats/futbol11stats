@@ -26,12 +26,14 @@ async function fetchPartidos(codjugador: string, codtemporada: string, codequipo
     let b = supabase.from('web_jugador_partidos').select(c)
       .eq('codjugador', codjugador).eq('codtemporada', codtemporada).eq('codequipo', codequipo)
     if (codgrupo) b = b.eq('codgrupo', codgrupo)
-    return b.order('jornada', { ascending: false })   // por jornada (entero), no por el string de fecha
+    return b   // el orden NO va por jornada (en copa colisiona: final j1 == 1er grupo j1); se ordena por fecha ISO abajo
   }
   let { data, error } = await q(COLS_P + ', es_local')
   if (error) ({ data, error } = await q(COLS_P))
   if (error) return { error: error.message, rows: [] as any[] }
-  return { error: null, rows: (data || []) as any[] }
+  const isoF = (f: string | null) => (f && /^\d{2}\/\d{2}\/\d{4}$/.test(f) ? f.slice(6, 10) + f.slice(3, 5) + f.slice(0, 2) : '00000000')
+  const rows = ((data || []) as any[]).sort((a, b) => isoF(b.fecha).localeCompare(isoF(a.fecha)))   // más reciente primero
+  return { error: null, rows }
 }
 
 // Un partido = una FILA de la misma tabla (hereda el grid de la madre; cada dato bajo su columna).

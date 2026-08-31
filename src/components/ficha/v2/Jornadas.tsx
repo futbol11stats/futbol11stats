@@ -144,7 +144,7 @@ export default function Jornadas({ comps, cortes }: { comps: CompAmbito[]; corte
               // Marcador en orden local-visitante (voltea si jugó fuera); color por el signo del resultado.
               const { marcador } = marcadorLocalVisitante(d.resultado ?? null, d.esLocal)
               return (
-                <div key={d.jornada} className={`col${last ? ' now' : ''}`}>
+                <div key={d.codacta ?? d.jornada} className={`col${last ? ' now' : ''}`}>
                   <div className="plot">{barra(d)}<div className="zero" /></div>
                   <div className="lane lane-elo">{eloLane(d)}</div>
                   <div className="lane">{eventos(d)}</div>

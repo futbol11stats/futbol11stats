@@ -204,6 +204,7 @@ export async function getPartidosTemporada(cod: string, codtemp: string): Promis
 // --- Ámbito: por competición de la temporada, la secuencia de jornadas con estado (incluidas ausencias) ---
 export type JornadaDatum = {
   jornada: number
+  codacta?: string   // clave ÚNICA por partido (en copa la jornada colisiona entre rondas) -> React key del gráfico
   ronda?: string | null   // COPA: texto de la ronda ("Fase de grupos", "Final"...) -> el front lo muestra en vez de "J N"
   estado: { tipo: 'valor'; v: number } | { tipo: 'no_jugo' } | { tipo: 'sin_dato' }
   goles?: number; amarillas?: number; dobles?: number; rojas?: number; gc?: number | null
@@ -216,10 +217,10 @@ export type CompAmbito = { codgrupo: string; nombre_comp: string; jornadas: Jorn
 // Resultados del grupo con escudos y nombres (para pintar el rival también en jornadas NO jugadas).
 // Partidos del equipo en el grupo (para pintar rival en jornadas NO jugadas). Se casa por CODEQUIPO (estable),
 // con fallback a nombre en filas sin codequipo (copa), igual que getResultadosGrupo en @/lib/equipo.
-type ResRich = { jornada: number; gl: number | null; gv: number | null; nl: string; nv: string; el: string | null; ev: string | null; cl: string | null; cv: string | null }
+type ResRich = { codacta: string; jornada: number; fecha: string | null; ronda_label: string | null; gl: number | null; gv: number | null; nl: string; nv: string; el: string | null; ev: string | null; cl: string | null; cv: string | null }
 async function resultadosGrupoRich(codequipo: string | number | null, nombre: string | null, codgrupo: string): Promise<ResRich[]> {
   if (codequipo == null && !nombre) return []
-  const cols = 'jornada, goles_local, goles_visitante, nombre_local, nombre_visitante, escudo_local, escudo_visitante, codequipo_local, codequipo_visitante'
+  const cols = 'codacta, jornada, fecha, ronda_label, goles_local, goles_visitante, nombre_local, nombre_visitante, escudo_local, escudo_visitante, codequipo_local, codequipo_visitante'
   const base = () => supabase.from('web_resultados').select(cols).eq('codgrupo', codgrupo)
   // UNIÓN codequipo ∪ nombre (dedup): code casa liga; nombre casa copa y códigos reasignados viejos. Unívoco en el grupo.
   const qs: PromiseLike<{ data: unknown }>[] = []
@@ -228,9 +229,10 @@ async function resultadosGrupoRich(codequipo: string | number | null, nombre: st
   const rs = await Promise.all(qs)
   const seen = new Set<string>(), out: ResRich[] = []
   for (const rr of rs) for (const r of ((rr.data || []) as any[])) {
-    const k = `${r.jornada}|${r.nombre_local}|${r.nombre_visitante}`
+    const k = String(r.codacta ?? `${r.jornada}|${r.nombre_local}|${r.nombre_visitante}`)   // dedup por acta (única por partido)
     if (seen.has(k)) continue; seen.add(k)
-    out.push({ jornada: r.jornada, gl: r.goles_local, gv: r.goles_visitante, nl: r.nombre_local, nv: r.nombre_visitante,
+    out.push({ codacta: String(r.codacta ?? ''), jornada: r.jornada, fecha: r.fecha ?? null, ronda_label: r.ronda_label ?? null,
+      gl: r.goles_local, gv: r.goles_visitante, nl: r.nombre_local, nv: r.nombre_visitante,
       el: r.escudo_local, ev: r.escudo_visitante, cl: r.codequipo_local, cv: r.codequipo_visitante })
   }
   return out
@@ -257,39 +259,46 @@ export async function getAmbitoTemporada(cod: string, codtemp: string): Promise<
     const nombreEquipo: string | null = ps[0]?.equipo_nombre ?? null
     const codeqEquipo: string | null = ps[0]?.codequipo ?? null
     const nombreComp: string = ps[0]?.competicion ?? 'Competición'
-    // Jornadas reales del equipo en ese grupo (para las ausencias), con rival/escudo/resultado.
+    // Partidos reales del equipo en ese grupo (para las ausencias), con rival/escudo/resultado.
     const teamRows = await resultadosGrupoRich(codeqEquipo, nombreEquipo, codgrupo)
-    const teamPorJornada = new Map<number, ResRich>()
-    for (const r of teamRows) if (r.gl != null) teamPorJornada.set(r.jornada, r)
-    const jornadasEquipo = new Set<number>(Array.from(teamPorJornada.keys()))
-    const jugadas = new Map<number, any>()
-    for (const p of ps) jugadas.set(p.jornada, p)
-    Array.from(jugadas.keys()).forEach((j) => jornadasEquipo.add(j)) // por si el equipo aún no está en web_resultados
+    // Keyed por CODACTA (único por partido), NO por número de jornada: en copa la final y el 1er grupo comparten
+    // jornada=1 -> colisionaban (se perdía un partido y se descolocaba el orden). La fecha ISO da el orden real.
+    const teamPorActa = new Map<string, ResRich>()
+    for (const r of teamRows) if (r.gl != null && r.codacta) teamPorActa.set(r.codacta, r)
+    const jugadas = new Map<string, any>()
+    for (const p of ps) if (p.codacta) jugadas.set(String(p.codacta), p)
+    // Unión de ACTAS del equipo ∪ del jugador. Ausencia = acta que el equipo jugó y el jugador NO (no está en jugadas)
+    // -> se preserva la detección de huecos, ahora por partido en vez de por número de jornada.
+    const actasEquipo = new Set<string>(Array.from(teamPorActa.keys()).concat(Array.from(jugadas.keys())))
+    const isoF = (f: string | null | undefined) => (f && /^\d{2}\/\d{2}\/\d{4}$/.test(f) ? f.slice(6, 10) + f.slice(3, 5) + f.slice(0, 2) : '99999999')
+    const fechaDeActa = (a: string) => (jugadas.get(a)?.fecha ?? teamPorActa.get(a)?.fecha) as string | null | undefined
 
-    const jornadas: JornadaDatum[] = Array.from(jornadasEquipo).sort((a, b) => a - b).map((jornada) => {
-      const p = jugadas.get(jornada)
-      if (!p) {
-        // Ausencia: rival y resultado desde los resultados del equipo (perspectiva del equipo).
-        const r = teamPorJornada.get(jornada)
-        if (!r) return { jornada, estado: { tipo: 'no_jugo' } }
-        const local = filaEsLocal({ codequipo_local: r.cl, codequipo_visitante: r.cv, nombre_local: r.nl }, nombreEquipo, codeqEquipo)
-        const gf = (local ? r.gl : r.gv) ?? 0, gc = (local ? r.gv : r.gl) ?? 0
-        return {
-          jornada, estado: { tipo: 'no_jugo' },
-          rivalNombre: local ? r.nv : r.nl, rivalEscudo: local ? r.ev : r.el,
-          resultado: `${gf}-${gc} ${gf > gc ? 'G' : gf < gc ? 'P' : 'E'}`, esLocal: local,
+    const jornadas: JornadaDatum[] = Array.from(actasEquipo)
+      .sort((a, b) => isoF(fechaDeActa(a)).localeCompare(isoF(fechaDeActa(b))))   // más antiguo primero (izquierda -> derecha)
+      .map((acta) => {
+        const p = jugadas.get(acta)
+        if (!p) {
+          // Ausencia: rival y resultado desde los resultados del equipo (perspectiva del equipo).
+          const r = teamPorActa.get(acta)
+          if (!r) return { codacta: acta, jornada: 0, estado: { tipo: 'no_jugo' } }
+          const local = filaEsLocal({ codequipo_local: r.cl, codequipo_visitante: r.cv, nombre_local: r.nl }, nombreEquipo, codeqEquipo)
+          const gf = (local ? r.gl : r.gv) ?? 0, gc = (local ? r.gv : r.gl) ?? 0
+          return {
+            codacta: acta, jornada: r.jornada, ronda: r.ronda_label ?? null, estado: { tipo: 'no_jugo' },
+            rivalNombre: local ? r.nv : r.nl, rivalEscudo: local ? r.ev : r.el,
+            resultado: `${gf}-${gc} ${gf > gc ? 'G' : gf < gc ? 'P' : 'E'}`, esLocal: local,
+          }
         }
-      }
-      const rol = derivarRol(!!p.titular, p.minutos ?? 0, p.rojas ?? 0, p.dobles_amarilla ?? 0)
-      return {
-        jornada, ronda: p.ronda_label ?? null,
-        estado: { tipo: 'valor', v: p.puntos ?? 0 },
-        goles: p.goles ?? 0, amarillas: p.amarillas ?? 0, dobles: p.dobles_amarilla ?? 0,
-        rojas: p.rojas ?? 0, gc: p.goles_encajados ?? null, eloDelta: p.elo_delta ?? null, titular: !!p.titular, minutos: p.minutos ?? 0, rol,
-        rivalNombre: p.rival_nombre ?? null, rivalEscudo: p.rival_escudo ?? null,
-        resultado: p.resultado ?? null, esLocal: p.es_local ?? null,
-      }
-    })
+        const rol = derivarRol(!!p.titular, p.minutos ?? 0, p.rojas ?? 0, p.dobles_amarilla ?? 0)
+        return {
+          codacta: acta, jornada: p.jornada, ronda: p.ronda_label ?? null,
+          estado: { tipo: 'valor', v: p.puntos ?? 0 },
+          goles: p.goles ?? 0, amarillas: p.amarillas ?? 0, dobles: p.dobles_amarilla ?? 0,
+          rojas: p.rojas ?? 0, gc: p.goles_encajados ?? null, eloDelta: p.elo_delta ?? null, titular: !!p.titular, minutos: p.minutos ?? 0, rol,
+          rivalNombre: p.rival_nombre ?? null, rivalEscudo: p.rival_escudo ?? null,
+          resultado: p.resultado ?? null, esLocal: p.es_local ?? null,
+        }
+      })
     comps.push({ codgrupo, nombre_comp: nombreComp, jornadas })
   }
   // Liga (más jornadas) primero.
@@ -297,7 +306,7 @@ export async function getAmbitoTemporada(cod: string, codtemp: string): Promise<
     // Tag SOLO jugador:<cod> (NO temporada:), como getPartidosTemporada: hechos de partido del jugador; el
     // temporada:<activa> nocturno los invalidaba en balde y enfriaba la ficha. Rebaremo cubierto por el censo
     // jugador: de `_revalidar.py --temporada <c>`. Clave conserva codtemp (caché por temporada).
-  }, ['getAmbitoTemporada', 'copa-elo', cod, String(codtemp)], cod)   // detag temporada: (2026-08-27); copa-elo: +eloDelta (#7)
+  }, ['getAmbitoTemporada', 'copa-acta', cod, String(codtemp)], cod)   // copa-acta: keyed por codacta + orden por fecha (bugs 1/2)
 }
 
 // --- Forma: ventanas de últimas 5 / 10 / temporada sobre los partidos JUGADOS de la temporada ---
