@@ -36,6 +36,7 @@ export type PartidoFicha = {
   campoNombre: string | null; campoSuperficie: string | null; campoHref: string | null; campoLat: number | null; campoLng: number | null
   mvp: { nombre: string; pos: string | null; puntos: number; lado: 'local' | 'visitante'; href: string | null } | null
   formaLocal: PartidoMini[]; formaVisitante: PartidoMini[]; h2h: PartidoMini[]
+  rachasLocal: Rachas; rachasVisitante: Rachas   // marcando/victorias/invicto: actual + récord, por equipo
   // Datos del acta (web_partido_*): árbitros (SOLO nombre + rol — sin enlace/ranking, decisión de privacidad) y
   // entrenador jefe por equipo.
   arbitros: { nombre: string; rol: string }[]
@@ -68,13 +69,30 @@ const toMini = (r: Record<string, unknown>): PartidoMini => ({
 })
 const MINI_COLS = 'codacta, fecha, codtemporada, codgrupo, jornada, nombre_local, escudo_local, goles_local, nombre_visitante, escudo_visitante, goles_visitante, codequipo_local, codequipo_visitante'
 
-async function ultimosDe(codequipo: string, n: number): Promise<PartidoMini[]> {
+// Historial COMPLETO de partidos jugados del equipo (DESC por fecha). Se usa para la forma (últimos 5) y para las
+// rachas (no hace falta consulta extra: ya se traían todos y se cortaban). Filtrar el propio partido va en getPartido.
+async function historialDe(codequipo: string): Promise<PartidoMini[]> {
   if (!codequipo) return []
   const { data } = await supabase.from('web_resultados').select(MINI_COLS)
     .or(`codequipo_local.eq.${codequipo},codequipo_visitante.eq.${codequipo}`).not('goles_local', 'is', null)
   const rows = (data || []) as Array<Record<string, unknown>>
   rows.sort((a, b) => isoF(b.fecha as string).localeCompare(isoF(a.fecha as string)))
-  return rows.slice(0, n).map(toMini)
+  return rows.map(toMini)
+}
+
+// Rachas del equipo `cod` sobre su historial (DESC): actual (desde el más reciente) + récord (racha máxima), para
+// "marcando" (marcó ≥1), "victorias" y "invicto" (no perdió). Todas las competiciones — es "la racha del equipo".
+export type Rachas = { marcandoAct: number; marcandoRec: number; victoriasAct: number; victoriasRec: number; invictoAct: number; invictoRec: number }
+function rachasDe(cod: string, hist: PartidoMini[]): Rachas {
+  const flags = hist.filter((m) => m.golesLocal != null && m.golesVisitante != null).map((m) => {
+    const esLocal = m.codLocal === cod
+    const gf = esLocal ? (m.golesLocal as number) : (m.golesVisitante as number)
+    const gc = esLocal ? (m.golesVisitante as number) : (m.golesLocal as number)
+    return { marco: gf > 0, gano: gf > gc, invicto: gf >= gc }
+  })
+  const actual = (k: 'marco' | 'gano' | 'invicto') => { let n = 0; for (const f of flags) { if (f[k]) n++; else break } return n }
+  const record = (k: 'marco' | 'gano' | 'invicto') => { let mx = 0, c = 0; for (const f of flags) { if (f[k]) { c++; if (c > mx) mx = c } else c = 0 } return mx }
+  return { marcandoAct: actual('marco'), marcandoRec: record('marco'), victoriasAct: actual('gano'), victoriasRec: record('gano'), invictoAct: actual('invicto'), invictoRec: record('invicto') }
 }
 async function enfrentamientos(a: string, b: string, n: number): Promise<PartidoMini[]> {
   if (!a || !b) return []
@@ -234,8 +252,8 @@ export async function getPartido(codacta: string): Promise<PartidoFicha | null> 
     }
 
     const actaEq = (m: PartidoMini) => m.codacta !== String(r.codacta)   // fuera el propio partido de forma/H2H
-    const [formaLocal, formaVisitante, h2h, arbRaw, entRaw] = await Promise.all([
-      ultimosDe(codeqL, 6), ultimosDe(codeqV, 6), enfrentamientos(codeqL, codeqV, 6),
+    const [histL, histV, h2h, arbRaw, entRaw] = await Promise.all([
+      historialDe(codeqL), historialDe(codeqV), enfrentamientos(codeqL, codeqV, 6),
       supabase.from('web_partido_arbitro').select('nombre, rol').eq('codacta', r.codacta),
       supabase.from('web_partido_entrenador').select('codequipo, nombre').eq('codacta', r.codacta),
     ])
@@ -300,8 +318,10 @@ export async function getPartido(codacta: string): Promise<PartidoFicha | null> 
       local, visitante, golesLocal: r.goles_local, golesVisitante: r.goles_visitante, fecha: r.fecha, hora: r.hora,
       campoNombre: campoNombre || null, campoSuperficie, campoHref, campoLat: r.campo_lat, campoLng: r.campo_lng,
       mvp,
-      formaLocal: conElo(formaLocal, codeqL),
-      formaVisitante: conElo(formaVisitante, codeqV),
+      formaLocal: conElo(histL, codeqL),
+      formaVisitante: conElo(histV, codeqV),
+      rachasLocal: rachasDe(codeqL, histL.filter(actaEq)),
+      rachasVisitante: rachasDe(codeqV, histV.filter(actaEq)),
       h2h: h2h.filter(actaEq).slice(0, 5),
       arbitros, entrenadorLocal: entMap.get(codeqL) ?? null, entrenadorVisitante: entMap.get(codeqV) ?? null,
       eloPreLocal: clL.eloPre, eloPreVisitante: clV.eloPre,
@@ -311,5 +331,5 @@ export async function getPartido(codacta: string): Promise<PartidoFicha | null> 
       posPreVisitante: clV.posPre, posPostVisitante: clV.posPost,
       hitos,
     }
-  }, ['getPartido', 'v8-forma-elo', String(r.codacta)], [String(r.codgrupo)], r.codtemporada)
+  }, ['getPartido', 'v9-rachas', String(r.codacta)], [String(r.codgrupo)], r.codtemporada)
 }

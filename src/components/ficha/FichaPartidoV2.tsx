@@ -405,6 +405,26 @@ export default function FichaPartidoV2({ p }: { p: PartidoFicha }) {
         </section>
       )}
 
+      {/* RACHAS — comparación local | etiqueta | visitante (actual + récord), marcando / victorias / invicto. */}
+      {(p.formaLocal.length > 0 || p.formaVisitante.length > 0) && (
+        <section>
+          <div className="s-head"><h2 className="s-title">Rachas</h2></div>
+          <div className="rachas">
+            {([
+              ['Marcando', p.rachasLocal.marcandoAct, p.rachasLocal.marcandoRec, p.rachasVisitante.marcandoAct, p.rachasVisitante.marcandoRec],
+              ['Victorias', p.rachasLocal.victoriasAct, p.rachasLocal.victoriasRec, p.rachasVisitante.victoriasAct, p.rachasVisitante.victoriasRec],
+              ['Invicto', p.rachasLocal.invictoAct, p.rachasLocal.invictoRec, p.rachasVisitante.invictoAct, p.rachasVisitante.invictoRec],
+            ] as const).map(([k, la, lr, va, vr]) => (
+              <div className="rrow" key={k}>
+                <span className="rv"><b>{la}</b><i>Réc {lr}</i></span>
+                <span className="rk">{k}</span>
+                <span className="rv rv-v"><b>{va}</b><i>Réc {vr}</i></span>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
       {/* ÚLTIMOS PARTIDOS de cada equipo */}
       {(p.formaLocal.length > 0 || p.formaVisitante.length > 0) && (
         <section>
