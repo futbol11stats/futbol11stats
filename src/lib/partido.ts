@@ -130,6 +130,19 @@ export async function getPartido(codacta: string): Promise<PartidoFicha | null> 
           .in('codequipo', [codeqL, codeqV].filter(Boolean)).eq('codtemporada', r.codtemporada)
         const plMap = new Map<string, { nombre: string; dorsal: string | null; pos: string | null }>(
           ((plRaw || []) as Array<Record<string, unknown>>).map((p) => [String(p.codjugador), { nombre: String(p.nombre || ''), dorsal: (p.dorsal_comun as string) ?? null, pos: (p.posicion_pastilla as string) ?? null }]))
+        // EL ACTA ES EL ACTA: la aparición del jugador (y su nombre) NO puede depender de la plantilla ni de la
+        // ficha. La plantilla del equipo/temporada da dorsal/posición; para quien no esté en ella (p. ej. un
+        // convocado sin ficha o fuera del snapshot) el nombre cae a la maestra web_jugador, que tiene a todos
+        // (menores incluidos). conFicha solo decide SI EL NOMBRE ENLAZA. Degradación segura: si la maestra
+        // fallara, jugMap queda vacío y se mantiene el comportamiento anterior (solo plantilla).
+        const { data: wjRaw } = await supabase.from('web_jugador')
+          .select('codjugador, nombre, dorsal_comun, posicion_pastilla').in('codjugador', codjugs)
+        const jugMap = new Map<string, { nombre: string; dorsal: string | null; pos: string | null }>(
+          ((wjRaw || []) as Array<Record<string, unknown>>).map((p) => [String(p.codjugador), { nombre: String(p.nombre || ''), dorsal: (p.dorsal_comun as string) ?? null, pos: (p.posicion_pastilla as string) ?? null }]))
+        const metaDe = (cod: string) => {
+          const pl = plMap.get(cod), jg = jugMap.get(cod)
+          return { nombre: pl?.nombre || jg?.nombre || '', dorsal: pl?.dorsal ?? jg?.dorsal ?? null, pos: pl?.pos ?? jg?.pos ?? null }
+        }
         const conFicha = await fichasExistentes(codjugs)
         // Eventos CON MINUTO (web_partido_eventos): gol/amarilla/doble_amarilla/roja/cambio_entra/cambio_sale.
         const { data: evRaw } = await supabase.from('web_partido_eventos')
@@ -149,7 +162,7 @@ export async function getPartido(codacta: string): Promise<PartidoFicha | null> 
         }
         const toJ = (p: Record<string, unknown>): PartidoJugador => {
           const cod = String(p.codjugador)
-          const meta = plMap.get(cod) || { nombre: '', dorsal: null, pos: null }
+          const meta = metaDe(cod)
           const ev = evMap.get(cod) || { golesMin: [], amarillaMin: null, dobleMin: null, rojaMin: null, entra: null, sale: null }
           return {
             codjugador: cod, nombre: meta.nombre, dorsal: meta.dorsal, pos: meta.pos,
@@ -174,8 +187,8 @@ export async function getPartido(codacta: string): Promise<PartidoFicha | null> 
         let best: Record<string, unknown> | null = null
         for (const p of partidos) if (p.puntos != null && (!best || (p.puntos as number) > (best.puntos as number))) best = p
         if (best) {
-          const meta = plMap.get(String(best.codjugador))
-          if (meta?.nombre) mvp = { nombre: meta.nombre, pos: meta.pos, puntos: best.puntos as number, lado: String(best.codequipo) === codeqL ? 'local' : 'visitante', href: conFicha.has(String(best.codjugador)) ? jugadorHref(String(best.codjugador), meta.nombre) : null }
+          const meta = metaDe(String(best.codjugador))
+          if (meta.nombre) mvp = { nombre: meta.nombre, pos: meta.pos, puntos: best.puntos as number, lado: String(best.codequipo) === codeqL ? 'local' : 'visitante', href: conFicha.has(String(best.codjugador)) ? jugadorHref(String(best.codjugador), meta.nombre) : null }
         }
         // #5 Hitos del partido (web_jugador_hitos por codacta). Solo jugadores del acta con nombre; se excluyen los
         // "*_registrado" (primer dato en NUESTRA base, no hito real de carrera).
@@ -186,9 +199,9 @@ export async function getPartido(codacta: string): Promise<PartidoFicha | null> 
           .filter((h) => !String(h.tipo_hito).endsWith('_registrado'))
           .map((h) => {
             const cod = String(h.codjugador)
-            const meta = plMap.get(cod)
+            const meta = metaDe(cod)
             return {
-              codjugador: cod, nombre: meta?.nombre || '', lado: (eqDe.get(cod) === codeqL ? 'local' : 'visitante') as 'local' | 'visitante',
+              codjugador: cod, nombre: meta.nombre, lado: (eqDe.get(cod) === codeqL ? 'local' : 'visitante') as 'local' | 'visitante',
               tipo: String(h.tipo_hito), detalle: h.detalle ?? null, valor: (h.valor as number) ?? null,
               ambito: h.ambito ?? null, contexto: h.contexto_nombre ?? null,
               href: conFicha.has(cod) && meta?.nombre ? jugadorHref(cod, meta.nombre) : null,
@@ -268,5 +281,5 @@ export async function getPartido(codacta: string): Promise<PartidoFicha | null> 
       posPreVisitante: clV.posPre, posPostVisitante: clV.posPost,
       hitos,
     }
-  }, ['getPartido', 'v5-hitos-dedup', String(r.codacta)], [String(r.codgrupo)], r.codtemporada)
+  }, ['getPartido', 'v6-acta-maestra', String(r.codacta)], [String(r.codgrupo)], r.codtemporada)
 }
