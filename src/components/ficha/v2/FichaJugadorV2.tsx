@@ -172,10 +172,11 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
   })
   const kpiFallback: CompKpi = { pj, minutos: minT, goles: golesT, porterias_cero: p0Sel, ptsFantasy: Math.round(ptsF), media, mediaColor: cMed(media) }
 
-  // Trayectoria (tabla histórica): dentro de cada temporada, orden CRONOLÓGICO por FASE (copa→liga→playoff),
-  // el mismo criterio que las pastillas y el bloque Temporadas del equipo. Copia aparte: NO altera `etapas`
-  // (de `carrera`), que definen etapaUltima -> ELO. orden_temporada queda como desempate dentro de una fase.
-  const carreraTray = [...carrera].sort((a, b) =>
+  // Orden CRONOLÓGICO INVERSO (más reciente primero) por fecha_inicio, con la FASE como respaldo (playoff→liga→copa).
+  // Es el orden canónico del sitio (ordenPorFechaOFase); lo COMPARTEN la sección "Temporadas" y la Trayectoria.
+  // getCarreraV2 (que ordena por orden_temporada) empataba liga/playoff/copa cuando el pipeline deja orden_temporada
+  // NULL en copa/playoff -> orden arbitrario. Copia aparte: NO altera `carrera`/`etapas`, que definen etapaUltima -> ELO.
+  const carreraOrd = [...carrera].sort((a, b) =>
     String(b.codtemporada).localeCompare(String(a.codtemporada))
     || ordenPorFechaOFase(
       { fechaInicio: a.fecha_inicio, fase: faseCompeticion(a.nombre_comp, a.categoria_nivel) },
@@ -572,7 +573,7 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
           <section id="s-temporadas">
             <div className="s-head"><h2 className="s-title">Temporadas</h2><div className="s-sub"><span className="allscope">Todas las temporadas</span></div></div>
             <div className="track"><div className="rail" id="seasons">
-              {carrera.map((c, i) => {
+              {carreraOrd.map((c, i) => {
                 const compartida = (cuentaTemp.get(c.codtemporada) ?? 0) > 1
                 return (
                   <div className="season" key={`${c.codtemporada}-${c.codequipo}-${i}`}>
@@ -607,7 +608,7 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
             <section id="s-trayectoria">
               <div className="s-head"><h2 className="s-title">Trayectoria</h2><div className="s-sub"><span className="allscope">Todas las temporadas</span></div></div>
               <div style={{ padding: '0 var(--pad)' }}>
-                <Trayectoria carrera={carreraTray} portero={portero} codjugador={j.codjugador} railWrap />
+                <Trayectoria carrera={carreraOrd} portero={portero} codjugador={j.codjugador} railWrap />
                 {/* #7 Reparto titular/suplente y minutos totales de la carrera (web_jugador.*_total, LIGA) -> fuera en solo-copa. */}
                 {!esSoloCopa && (j.titular_total != null || j.suplente_total != null) && (
                   <p className="tray-note">
