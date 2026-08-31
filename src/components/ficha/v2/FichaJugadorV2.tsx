@@ -516,7 +516,7 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
         <div className="main">
           {/* JORNADAS */}
           <section id="s-jornadas">
-            <div className="s-head"><h2 className="s-title">Puntos por jornada</h2><div className="s-sub"><Echo temporada={tempTxt} comps={compNames} /></div></div>
+            <div className="s-head"><h2 className="s-title">Puntos y ELO por jornada</h2><div className="s-sub"><Echo temporada={tempTxt} comps={compNames} /></div></div>
             {comps.length > 0
               ? <Jornadas comps={compsOrd} cortes={CORTES_FIJOS.puntosPartido} />
               : <p style={{ padding: '0 var(--pad)', color: 'var(--ink-3)', fontSize: 'var(--t-sm)' }}>Sin partidos en esta temporada.</p>}

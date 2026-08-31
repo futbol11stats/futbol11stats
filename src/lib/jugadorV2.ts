@@ -207,6 +207,7 @@ export type JornadaDatum = {
   ronda?: string | null   // COPA: texto de la ronda ("Fase de grupos", "Final"...) -> el front lo muestra en vez de "J N"
   estado: { tipo: 'valor'; v: number } | { tipo: 'no_jugo' } | { tipo: 'sin_dato' }
   goles?: number; amarillas?: number; dobles?: number; rojas?: number; gc?: number | null
+  eloDelta?: number | null   // #7 Δ ELO del partido, para el carril de ELO por jornada
   titular?: boolean; minutos?: number; rol?: RolPartido
   rivalNombre?: string | null; rivalEscudo?: string | null; resultado?: string | null; esLocal?: boolean | null
 }
@@ -284,7 +285,7 @@ export async function getAmbitoTemporada(cod: string, codtemp: string): Promise<
         jornada, ronda: p.ronda_label ?? null,
         estado: { tipo: 'valor', v: p.puntos ?? 0 },
         goles: p.goles ?? 0, amarillas: p.amarillas ?? 0, dobles: p.dobles_amarilla ?? 0,
-        rojas: p.rojas ?? 0, gc: p.goles_encajados ?? null, titular: !!p.titular, minutos: p.minutos ?? 0, rol,
+        rojas: p.rojas ?? 0, gc: p.goles_encajados ?? null, eloDelta: p.elo_delta ?? null, titular: !!p.titular, minutos: p.minutos ?? 0, rol,
         rivalNombre: p.rival_nombre ?? null, rivalEscudo: p.rival_escudo ?? null,
         resultado: p.resultado ?? null, esLocal: p.es_local ?? null,
       }
@@ -296,7 +297,7 @@ export async function getAmbitoTemporada(cod: string, codtemp: string): Promise<
     // Tag SOLO jugador:<cod> (NO temporada:), como getPartidosTemporada: hechos de partido del jugador; el
     // temporada:<activa> nocturno los invalidaba en balde y enfriaba la ficha. Rebaremo cubierto por el censo
     // jugador: de `_revalidar.py --temporada <c>`. Clave conserva codtemp (caché por temporada).
-  }, ['getAmbitoTemporada', 'copa', cod, String(codtemp)], cod)   // detag temporada: (2026-08-27)
+  }, ['getAmbitoTemporada', 'copa-elo', cod, String(codtemp)], cod)   // detag temporada: (2026-08-27); copa-elo: +eloDelta (#7)
 }
 
 // --- Forma: ventanas de últimas 5 / 10 / temporada sobre los partidos JUGADOS de la temporada ---

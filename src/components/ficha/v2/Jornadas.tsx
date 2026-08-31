@@ -87,6 +87,14 @@ export default function Jornadas({ comps, cortes }: { comps: CompAmbito[]; corte
     return (<><div className="pos" /><div className="neg"><div className="bar down" style={{ height: h, background: 'var(--e0)' }} /><div className="chip" style={{ background: 'var(--e0)', color: '#0a1628' }}>{v}</div></div></>)
   }
 
+  // #7 Carril de ELO por jornada: pastilla con el Δ ELO (verde sube, rojo baja), SIN barra. Va en la misma columna
+  // que el punto -> queda alineado exacto bajo su barra; el gráfico ya scrollea, así que el número cabe como el chip.
+  function eloLane(d: JornadaDatum) {
+    if (d.estado.tipo !== 'valor' || d.eloDelta == null) return null
+    const up = d.eloDelta >= 0
+    return <span className="elo-chip" style={{ background: up ? 'var(--e3)' : 'var(--e0)' }}>{up ? '+' : '−'}{Math.abs(Math.round(d.eloDelta))}</span>
+  }
+
   // Carril de eventos: gol (×N), portería a cero, amarilla / doble amarilla / roja (cada una con su glifo).
   function eventos(d: JornadaDatum) {
     if (d.estado.tipo !== 'valor') return null
@@ -120,6 +128,7 @@ export default function Jornadas({ comps, cortes }: { comps: CompAmbito[]; corte
       <div className="chart-wrap">
         <div className="gutter">
           <div className="g-plot" />
+          <div className="g-lane g-lane-elo">ELO</div>
           <div className="g-lane"><Balon size={12} /></div>
           <div className="g-lane"><Camiseta size={13} /></div>
           <div className="g-lane g-lane-rival"><Escudo size={13} /></div>
@@ -135,6 +144,7 @@ export default function Jornadas({ comps, cortes }: { comps: CompAmbito[]; corte
               return (
                 <div key={d.jornada} className={`col${last ? ' now' : ''}`}>
                   <div className="plot">{barra(d)}<div className="zero" /></div>
+                  <div className="lane lane-elo">{eloLane(d)}</div>
                   <div className="lane">{eventos(d)}</div>
                   <div className="lane">{rol(d)}</div>
                   {/* Rival: marcador (coloreado) encima del escudo; casa/avión al lado; la línea de
@@ -198,6 +208,9 @@ export default function Jornadas({ comps, cortes }: { comps: CompAmbito[]; corte
           <span className="lg-item"><span className="gl"><IndicadorLocal esLocal={true} /></span>Casa</span>
           <span className="lg-item"><span className="gl"><IndicadorLocal esLocal={false} /></span>Fuera</span>
           <span className="lg-item">Línea bajo el escudo: <b style={{ color: 'var(--e3)' }}>ganó</b> · <b style={{ color: 'var(--ink-3)' }}>empató</b> · <b style={{ color: 'var(--e0)' }}>perdió</b></span>
+        </div>
+        <div className="lg-row" style={{ marginTop: 6 }}>
+          <span className="lg-item">Carril <b>ELO</b>: Δ ELO del partido — <b style={{ color: 'var(--e3)' }}>+ subió</b> · <b style={{ color: 'var(--e0)' }}>− bajó</b></span>
         </div>
       </div>
     </>

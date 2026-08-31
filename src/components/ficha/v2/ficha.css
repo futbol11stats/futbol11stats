@@ -123,6 +123,10 @@
 .fjv2 .plot .neg{height:32px;display:flex;flex-direction:column;align-items:center;gap:3px}
 .fjv2 .zero{position:absolute;left:-2px;right:-2px;bottom:32px;height:1px;background:var(--line)}
 .fjv2 .chip{font-family:var(--font-display),'Barlow Condensed',sans-serif;font-weight:700;font-size:var(--t-lead);line-height:1;padding:2px 6px;border-radius:4px;font-variant-numeric:tabular-nums;color:#08111f}
+/* #7 Carril de ELO por jornada: pastilla (sin barra) verde/rojo, más pequeña que el chip de puntos; rótulo "ELO"
+   en el canalón (32px -> cabe a tamaño micro). */
+.fjv2 .lane-elo .elo-chip{font-family:var(--font-display),'Barlow Condensed',sans-serif;font-weight:700;font-size:var(--t-cap);line-height:1;padding:1px 5px;border-radius:4px;font-variant-numeric:tabular-nums;color:#08111f}
+.fjv2 .g-lane-elo{font-size:var(--t-micro);font-weight:700;letter-spacing:.03em;color:var(--ink-3)}
 .fjv2 .bar{width:24px;border-radius:3px 3px 0 0;min-height:3px}
 .fjv2 .bar.down{border-radius:0 0 3px 3px}
 .fjv2 .bar.cero{height:4px;background:var(--e1);opacity:.7;border-radius:2px}
