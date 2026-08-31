@@ -182,7 +182,7 @@ export async function getPartido(codacta: string): Promise<PartidoFicha | null> 
         const eqDe = new Map(partidos.map((p) => [String(p.codjugador), String(p.codequipo)]))
         const { data: hiRaw } = await supabase.from('web_jugador_hitos')
           .select('codjugador, tipo_hito, ambito, detalle, valor, contexto_nombre').eq('codacta', r.codacta)
-        hitos = ((hiRaw || []) as Array<{ codjugador: string; tipo_hito: string; ambito: string | null; detalle: string | null; valor: number | null; contexto_nombre: string | null }>)
+        const hMapped = ((hiRaw || []) as Array<{ codjugador: string; tipo_hito: string; ambito: string | null; detalle: string | null; valor: number | null; contexto_nombre: string | null }>)
           .filter((h) => !String(h.tipo_hito).endsWith('_registrado'))
           .map((h) => {
             const cod = String(h.codjugador)
@@ -195,6 +195,14 @@ export async function getPartido(codacta: string): Promise<PartidoFicha | null> 
             }
           })
           .filter((h) => h.nombre)
+        // El pipeline registra el mismo hito en ámbito 'categoria' Y 'equipo' -> una fila por (jugador+tipo).
+        // Preferimos 'categoria' (aporta el nivel; el equipo ya es obvio en la ficha del partido).
+        const hVistos = new Map<string, (typeof hMapped)[number]>()
+        for (const h of hMapped) {
+          const prev = hVistos.get(`${h.codjugador}|${h.tipo}`)
+          if (!prev || (h.ambito === 'categoria' && prev.ambito !== 'categoria')) hVistos.set(`${h.codjugador}|${h.tipo}`, h)
+        }
+        hitos = Array.from(hVistos.values())
       }
     }
 
@@ -260,5 +268,5 @@ export async function getPartido(codacta: string): Promise<PartidoFicha | null> 
       posPreVisitante: clV.posPre, posPostVisitante: clV.posPost,
       hitos,
     }
-  }, ['getPartido', 'v4-elo-hitos', String(r.codacta)], [String(r.codgrupo)], r.codtemporada)
+  }, ['getPartido', 'v5-hitos-dedup', String(r.codacta)], [String(r.codgrupo)], r.codtemporada)
 }
