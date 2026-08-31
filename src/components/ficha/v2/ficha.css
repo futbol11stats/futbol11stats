@@ -716,9 +716,11 @@
 .fpv2 .al-elo b{font-family:var(--font-display),sans-serif;font-weight:700;font-variant-numeric:tabular-nums;margin-left:3px}
 .fpv2 .al-elo b.pos{color:var(--e3)}
 .fpv2 .al-elo b.neg{color:var(--e0)}
-/* #4 Porteros: portería a cero (verde) / goles encajados (tenue), dentro de .pl-me. */
-.fpv2 .ev-pac{color:var(--e3);font-weight:700}
+/* #4 Porteros: guante ÁMBAR = portería a cero; {n}+guante tenue = goles encajados (mismo icono/color que plantilla). */
+.fpv2 .ev-pac{color:var(--amber)}
 .fpv2 .ev-gc{color:var(--ink-4)}
+/* #2 Δ ELO por jugador, entre el nombre y la pastilla de fantasy. Color inline (verde sube / rojo baja). */
+.fpv2 .pl-elo{flex:none;width:32px;text-align:right;font-family:var(--font-display),'Barlow Condensed',sans-serif;font-weight:700;font-size:var(--n-sm);font-variant-numeric:tabular-nums}
 /* #5 Efemérides: filas de hito, nombre destacado + texto. */
 .fpv2 .hitos{padding:0 var(--pad)}
 .fpv2 .hito{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 7px;padding:7px 0;border-top:1px solid var(--line-2)}

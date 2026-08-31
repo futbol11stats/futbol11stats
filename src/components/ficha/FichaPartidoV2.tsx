@@ -7,7 +7,7 @@ import NombreEquipo from '@/components/NombreEquipo'
 import Pastilla from '@/components/Pastilla'
 import SuperficieCampo from '@/components/SuperficieCampo'
 import CalendarLink from '@/components/calendario/CalendarLink'
-import { Balon, TarjetaAmarilla, TarjetaDoble, TarjetaRoja, FlechaEntra, FlechaSale } from '@/components/iconos'
+import { Balon, TarjetaAmarilla, TarjetaDoble, TarjetaRoja, FlechaEntra, FlechaSale, Guante } from '@/components/iconos'
 import { formatNombre } from '@/lib/supabase'
 import { googleRenderUrl } from '@/lib/ics'
 import { SITE_URL } from '@/lib/seo'
@@ -41,8 +41,17 @@ function Eventos({ j }: { j: PartidoJugador }) {
   return <>{out}</>
 }
 
-// Fila de jugador con el marcado REAL de la plantilla de equipo (.pl): avatar, nombre (Barlow), .pl-me (Pastilla +
-// eventos), y .pl-val con los puntos fantasy.
+// Tratamiento de portero REUTILIZADO de la plantilla: guante ámbar = portería a cero; {n}+guante tenue = goles
+// encajados. (Mismo icono/color que filaDatos de FichaEquipoV2.)
+function Portero({ j }: { j: PartidoJugador }) {
+  if (j.golesEncajados == null) return null
+  return j.golesEncajados === 0
+    ? <span className="ev ev-pac" title="Portería a cero"><Guante size={11} /></span>
+    : <span className="ev ev-gc" title={`${j.golesEncajados} goles encajados`}>{j.golesEncajados}<Guante size={11} /></span>
+}
+
+// Fila de jugador con el marcado REAL de la plantilla (.pl): avatar, nombre (Barlow), .pl-me (Pastilla + eventos con
+// icono + portero), .pl-elo (Δ ELO del partido, verde sube / rojo baja) y .pl-val con los puntos fantasy.
 function Fila({ j }: { j: PartidoJugador }) {
   const nombre = formatNombre(j.nombre) || j.nombre
   return (
@@ -50,8 +59,9 @@ function Fila({ j }: { j: PartidoJugador }) {
       <div className="pl-av" style={avaStyle(j.pos)}>{j.dorsal || iniciales(j.nombre)}</div>
       <div className="pl-mid">
         <div className="pl-nm">{j.href ? <Link href={j.href}>{nombre}</Link> : nombre}</div>
-        <div className="pl-me">{j.pos && <Pastilla pos={j.pos} size="mini" />}<Eventos j={j} />{j.golesEncajados != null && (j.golesEncajados === 0 ? <span className="ev ev-pac">Portería a cero</span> : <span className="ev ev-gc">{j.golesEncajados} enc.</span>)}</div>
+        <div className="pl-me">{j.pos && <Pastilla pos={j.pos} size="mini" />}<Eventos j={j} /><Portero j={j} /></div>
       </div>
+      {j.eloDelta != null && <div className="pl-elo" style={{ color: j.eloDelta >= 0 ? 'var(--e3)' : 'var(--e0)' }} title="Δ ELO del partido">{j.eloDelta >= 0 ? '+' : '−'}{Math.abs(Math.round(j.eloDelta))}</div>}
       <div className="pl-val" style={ptsStyle(j.puntos)}>{j.puntos != null ? j.puntos : '—'}</div>
     </div>
   )
@@ -215,7 +225,7 @@ export default function FichaPartidoV2({ p }: { p: PartidoFicha }) {
       {/* ALINEACIONES — dos columnas en desktop (.desk-2col), apiladas en móvil. Filas .pl con puntos fantasy. */}
       {p.jugado && (p.local.titulares.length > 0 || p.visitante.titulares.length > 0) && (
         <section>
-          <div className="s-head"><h2 className="s-title">Alineaciones</h2><div className="s-sub">puntos fantasy →</div></div>
+          <div className="s-head"><h2 className="s-title">Alineaciones</h2><div className="s-sub">Δ ELO · fantasy →</div></div>
           <div className="desk-2col al-2col">
             <Alineacion lado={p.local} forma={p.formaLocal} movElo={p.movEloLocal} />
             <Alineacion lado={p.visitante} forma={p.formaVisitante} movElo={p.movEloVisitante} />
@@ -226,6 +236,16 @@ export default function FichaPartidoV2({ p }: { p: PartidoFicha }) {
               <div>{p.entrenadorVisitante && <><span className="cap">Entrenador</span> {formatNombre(p.entrenadorVisitante)}</>}</div>
             </div>
           )}
+          {/* Leyenda de iconos (misma que la plantilla) para que la ficha se lea igual que las demás. */}
+          <div className="pl-ley">
+            <span className="lg-item"><span style={{ color: 'var(--e3)', display: 'inline-flex' }}><Balon size={11} /></span>Gol</span>
+            <span className="lg-item"><span style={{ color: 'var(--card-y)', display: 'inline-flex' }}><TarjetaAmarilla size={10} /></span>Amarilla</span>
+            <span className="lg-item"><span style={{ color: 'var(--e0)', display: 'inline-flex' }}><TarjetaRoja size={11} /></span>Roja</span>
+            <span className="lg-item"><span style={{ color: 'var(--e3)', display: 'inline-flex' }}><FlechaEntra size={11} /></span><span style={{ color: 'var(--e0)', display: 'inline-flex' }}><FlechaSale size={11} /></span>Cambio</span>
+            <span className="lg-item"><span style={{ color: 'var(--amber)', display: 'inline-flex' }}><Guante size={11} /></span>Portería a cero</span>
+            <span className="lg-item"><b style={{ color: 'var(--e3)' }}>+</b>/<b style={{ color: 'var(--e0)' }}>−</b> Δ ELO del partido</span>
+            <span className="lg-item">nº = puntos fantasy</span>
+          </div>
         </section>
       )}
 
