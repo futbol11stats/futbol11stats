@@ -1,4 +1,5 @@
 import { buildTeamCalendar } from '@/lib/calendarioEquipo'
+import { supabase } from '@/lib/supabase'
 
 // Feed .ics suscribible por equipo (webcal). Toda la temporada del equipo. TTL de CDN 2 h: cuando el cliente
 // sondea (Google ~diario, Apple horario-diario según ajuste), obtiene datos frescos, no una copia vieja del edge.
@@ -19,6 +20,14 @@ export async function GET(_req: Request, { params }: { params: Promise<{ slug: s
     })
   }
   if (!res) return new Response('El equipo no tiene partidos', { status: 404 })
+
+  // Contador ANÓNIMO de suscripciones (tabla web_calendario_hits): SOLO codequipo + día, sin IP, sin user-agent,
+  // sin cookie, sin identificador. Es un agregado ("el feed del equipo X se pidió hoy"), no un registro de quién
+  // sigue a quién -> no es dato personal, no toca la política de privacidad. Se cuenta AQUÍ, en el cache-miss del
+  // edge (una revalidación ~cada 2h por equipo con suscripción viva): el patrón regular delata la suscripción y el
+  // coste (1 upsert) es ínfimo frente al build del feed -> la medición no genera más carga que la que mide.
+  // En try/catch: medir NUNCA debe tumbar el feed.
+  try { await supabase.rpc('web_calendario_hit', { p_cod: cod }) } catch { /* contador best-effort */ }
 
   return new Response(res.ics, {
     status: 200,
