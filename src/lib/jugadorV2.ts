@@ -64,7 +64,7 @@ export async function getCarreraV2(cod: string): Promise<CarreraRow[]> {
       String(b.codtemporada).localeCompare(String(a.codtemporada)) || (a.orden_temporada ?? 0) - (b.orden_temporada ?? 0)) as CarreraRow[]
     // keyParts: v3-copa (copa/playoff como filas de carrera) -> v4-finicio (fecha_inicio al select). Bump para
     // forzar cache-miss GLOBAL (el Data Cache persiste entre deploys). Ver también E-cache.
-  }, ['getCarreraV2', 'v4-finicio', cod], cod)
+  }, ['getCarreraV2', 'v5-elo-comp', cod], cod)   // v5: elo_final pasó a ser por competición (cierre por fecha)
 }
 
 export async function getActuacionesV2(cod: string): Promise<any[]> {
@@ -83,7 +83,7 @@ export async function getActuacionesV2(cod: string): Promise<any[]> {
       for (const a of rows) { const e = m.get(String(a.codacta)); if (e) { a.jornada = e.jornada; a.minutos = e.minutos; a.ronda_label = e.ronda_label } }
     }
     return rows
-  }, ['getActuacionesV2', 'copa', cod], cod)   // bump: ronda_label + actuaciones de copa refundidas
+  }, ['getActuacionesV2', 'copa-fc', cod], cod)   // copa-fc: resultado ya favor-contra en TODAS las superficies
 }
 
 export async function getHitosV2(cod: string): Promise<HitoRow[]> {
@@ -198,7 +198,7 @@ export async function getPartidosTemporada(cod: string, codtemp: string): Promis
     // el censo nocturno emite jugador:<cod>). Quitarle temporada: evita que el temporada:<activa> del ELO nocturno
     // enfríe la ficha cada noche en balde. Rebaremo (reescribe pts_fantasy): cubierto por el censo jugador: que
     // ya emite `_revalidar.py --temporada <c>` — ver CHECKLIST. La clave conserva codtemp (caché por temporada).
-  }, ['getPartidosTemporada', 'copa', cod, String(codtemp)], cod)   // detag temporada: (2026-08-27)
+  }, ['getPartidosTemporada', 'copa-fc', cod, String(codtemp)], cod)   // copa-fc: resultado ya favor-contra (copa/playoff normalizados)
 }
 
 // --- Ámbito: por competición de la temporada, la secuencia de jornadas con estado (incluidas ausencias) ---
@@ -306,7 +306,7 @@ export async function getAmbitoTemporada(cod: string, codtemp: string): Promise<
     // Tag SOLO jugador:<cod> (NO temporada:), como getPartidosTemporada: hechos de partido del jugador; el
     // temporada:<activa> nocturno los invalidaba en balde y enfriaba la ficha. Rebaremo cubierto por el censo
     // jugador: de `_revalidar.py --temporada <c>`. Clave conserva codtemp (caché por temporada).
-  }, ['getAmbitoTemporada', 'copa-acta', cod, String(codtemp)], cod)   // copa-acta: keyed por codacta + orden por fecha (bugs 1/2)
+  }, ['getAmbitoTemporada', 'copa-acta-fc', cod, String(codtemp)], cod)   // copa-acta-fc: codacta + orden fecha (bugs 1/2) + resultado favor-contra
 }
 
 // --- Forma: ventanas de últimas 5 / 10 / temporada sobre los partidos JUGADOS de la temporada ---
