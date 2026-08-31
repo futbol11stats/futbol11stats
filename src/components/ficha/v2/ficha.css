@@ -750,6 +750,18 @@
 .fpv2 .pp-elo{font-family:var(--font-display),sans-serif;font-weight:700;font-size:var(--t-lead);font-variant-numeric:tabular-nums;color:var(--ink-2)}
 .fpv2 .pp-elo b{font-size:var(--t-cap)}
 .fpv2 .pp-ctx{flex-basis:100%;color:var(--ink-3)}
+/* Barra de probabilidad por ELO: local azul (--zona-po), empate gris (--e1), visitante naranja (identificador del sitio,
+   como los avatares POR). No-moralizante. Sin cifras: la proporción la da la barra. */
+.fpv2 .prono-bar{display:flex;height:12px;border-radius:6px;overflow:hidden;margin-top:10px;background:var(--pitch-700)}
+.fpv2 .prono-bar .pb{height:100%;min-width:2px}
+.fpv2 .prono-bar .pb-l{background:var(--zona-po)}
+.fpv2 .prono-bar .pb-e{background:var(--e1)}
+.fpv2 .prono-bar .pb-v{background:rgb(249,115,22)}
+.fpv2 .prono-barleg{display:flex;justify-content:space-between;margin-top:5px;font-size:var(--t-micro);text-transform:uppercase;letter-spacing:.04em;font-weight:700}
+.fpv2 .prono-barleg span:nth-child(1){color:var(--zona-po)}
+.fpv2 .prono-barleg span:nth-child(2){color:var(--e1)}
+.fpv2 .prono-barleg span:nth-child(3){color:rgb(249,115,22)}
+.fpv2 .prono-note{text-align:center;margin-top:8px;font-size:var(--t-micro);color:var(--ink-4)}
 /* #2 Movimiento de ELO por equipo, al pie de cada columna de alineación. */
 .fpv2 .al-elo{margin-top:8px;padding:7px var(--pad) 0;border-top:1px solid var(--line-2);font-size:var(--t-cap);color:var(--ink-3)}
 .fpv2 .al-elo b{font-family:var(--font-display),sans-serif;font-weight:700;font-variant-numeric:tabular-nums;margin-left:3px}

@@ -204,10 +204,32 @@ function hitoTexto(h: PartidoFicha['hitos'][number]): string {
 
 // #3/#4 Tarjeta de pronóstico: ELO con el que llegaban ENFRENTADOS (como el marcador), la frase del favorito, y tras
 // el partido el ELO final + Δ + contexto de puesto por equipo. Nombres con NombreEquipo (bien formateados), no formatNombre.
+// VENTAJA DE LOCALÍA — MEDIDA sobre nuestros datos (web_resultados, liga, sin copa por sede a veces neutral):
+// el equipo local se lleva ≈0,540 de los puntos en igualdad de fuerzas. Estable en el tiempo (T17-T21: 0,538-0,549)
+// y entre categorías (juvenil 0,542 / aficionado 0,540), sobre ~106.000 partidos. Medido 2026-08-31.
+// Derivación: H = 400·log10(0,540/0,460) ≈ 28. A igualdad de ELO, +28 reproduce esa cuota 0,540.
+// Para revisar el criterio (o reajustar la localía), cambia SOLO esta constante — no toques la fórmula.
+const HOME_ADV_ELO = 28
+// Empate: el amateur empata ~15% (la mitad que el profesional). El pico de la banda (a igualdad) se calibra a ese ~15%.
+const DRAW_PEAK = 0.22
+
+// Probabilidad 1-X-2 DERIVADA DEL ELO (se calcula AL RENDERIZAR, con el ELO del momento). No es una predicción nuestra:
+// es la lectura estándar de la diferencia de ELO (logística D=400) + la localía medida + una banda de empate que crece
+// cuanto más igualados llegan. Sin decimales en pantalla: la proporción la da la barra y la lectura, la frase.
+function probsElo(a: number | null, b: number | null): { l: number; e: number; v: number } | null {
+  if (a == null || b == null) return null
+  const pl = 1 / (1 + Math.pow(10, -((a + HOME_ADV_ELO) - b) / 400))   // cuota de puntos esperada del local (con localía)
+  const pe = DRAW_PEAK * (1 - Math.abs(2 * pl - 1))                     // empate: máximo a la igualdad, ->0 si hay abismo
+  const l = Math.max(0, pl - pe / 2), v = Math.max(0, 1 - pl - pe / 2), e = Math.max(0, pe)
+  const s = l + e + v || 1
+  return { l: l / s, e: e / s, v: v / s }
+}
+
 function PronoCard({ p }: { p: PartidoFicha }) {
   const hayPre = p.eloPreLocal != null && p.eloPreVisitante != null
   const hayPost = p.eloPostLocal != null && p.eloPostVisitante != null
   const fav = favoritoFrase(p.eloPreLocal, p.eloPreVisitante)
+  const prob = probsElo(p.eloPreLocal, p.eloPreVisitante)
   const ctxL = ctxPuesto(p.posPreLocal, p.posPostLocal)
   const ctxV = ctxPuesto(p.posPreVisitante, p.posPostVisitante)
   if (!hayPre && !hayPost && !ctxL && !ctxV) return null
@@ -221,7 +243,7 @@ function PronoCard({ p }: { p: PartidoFicha }) {
   )
   return (
     <section className="prono">
-      <div className="prono-k">Pronóstico · así llegaban</div>
+      <div className="prono-k">Pronóstico · probabilidad por ELO</div>
       {hayPre && (
         <div className="prono-elos">
           <EscudoBox escudo={p.local.escudo} nombre={p.local.nombre} size={20} radius={4} />
@@ -229,7 +251,19 @@ function PronoCard({ p }: { p: PartidoFicha }) {
           <EscudoBox escudo={p.visitante.escudo} nombre={p.visitante.nombre} size={20} radius={4} />
         </div>
       )}
+      {prob && (<>
+        {/* Barra de probabilidad DERIVADA DEL ELO: local | empate | visitante. La proporción la da la barra; sin % en
+            pantalla (una cifra con decimal se leería como cuota, y descartamos las apuestas). El ancho lleva 2 decimales
+            SOLO en el CSS, nunca visibles. */}
+        <div className="prono-bar" aria-hidden="true">
+          <span className="pb pb-l" style={{ width: `${(prob.l * 100).toFixed(2)}%` }} />
+          <span className="pb pb-e" style={{ width: `${(prob.e * 100).toFixed(2)}%` }} />
+          <span className="pb pb-v" style={{ width: `${(prob.v * 100).toFixed(2)}%` }} />
+        </div>
+        <div className="prono-barleg"><span>Local</span><span>Empate</span><span>Visitante</span></div>
+      </>)}
       {fav && <div className="prono-fav">{favLado ? <><b><NombreEquipo codequipo={favLado.codequipo} nombre={favLado.nombre} /></b> {fav.texto}</> : fav.texto}</div>}
+      {prob && <div className="prono-note">Probabilidad estimada a partir del ELO, no una predicción.</div>}
       {(hayPost || ctxL || ctxV) && <>
         <div className="prono-div"><span>tras el partido</span></div>
         <div className="prono-post">
