@@ -54,10 +54,23 @@ async function todasLasFilas(): Promise<Fila[]> {
   return filas
 }
 
+// Un recuento fallido (p.ej. timeout de BD) NO debe abortar el deploy: degradar RUIDOSO con un fallback holgado.
+// Techo = FALLBACK_PARTICIONES × JUGADORES_SITEMAP_CHUNK = 10 × 10.000 = 100.000 jugadores (hoy ~42k -> 5 particiones).
+// Sobre-anunciar particiones es inocuo (las de más caen en idNum>=n dentro de sitemap() y sirven vacías, sin lanzar);
+// sub-anunciar SÍ perdería URLs -> por eso el fallback va holgado, no ajustado.
+const FALLBACK_PARTICIONES = 10
 export async function generateSitemaps() {
-  const total = await contarKeyset('web_jugador', 'codjugador')
-  if (total === 0) throw new Error('[sitemap jugadores] web_jugador devolvió 0 filas al particionar')
-  const n = Math.max(1, Math.ceil(total / JUGADORES_SITEMAP_CHUNK))
+  let n: number
+  try {
+    const total = await contarKeyset('web_jugador', 'codjugador')
+    if (total === 0) throw new Error('web_jugador devolvió 0 filas')
+    n = Math.max(1, Math.ceil(total / JUGADORES_SITEMAP_CHUNK))
+  } catch (e) {
+    console.error(`[sitemap jugadores] NO se pudo contar web_jugador: ${(e as Error).message}. `
+      + `Fallback de ${FALLBACK_PARTICIONES} particiones (techo ${FALLBACK_PARTICIONES * JUGADORES_SITEMAP_CHUNK} jugadores). `
+      + `REVISAR si el catálogo lo ha superado.`)
+    n = FALLBACK_PARTICIONES
+  }
   return Array.from({ length: n }, (_, i) => ({ id: i }))
 }
 

@@ -122,42 +122,56 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // Clubes: índice + página por club (solo los que tienen equipos -> anti-thin, un club sin equipos no entra).
   // lastmod REAL: la jornada jugada más reciente entre los grupos del club (last_iso del RPC por grupo), no la
   // fecha de generación ni una fecha por temporada. Fallback a la fecha de su última temporada si no hay grupo.
-  const clubes = await getClubesIndex()
-  urls.push({ url: `${SITE_URL}/clubes`, lastModified: maxIso, changeFrequency: 'weekly', priority: 0.7 })
-  for (const cl of clubes) {
-    const isoClub = cl.codgrupos.map((cg) => datos.grupo.get(cg)?.iso).filter(Boolean).sort().pop()
-    urls.push({
-      url: `${SITE_URL}/clubes/${clubSlug(cl.codclub, cl.nombre)}`,
-      lastModified: isoClub ?? (cl.maxTemp ? datos.porTemporada.get(cl.maxTemp) : undefined),
-      changeFrequency: 'monthly',
-      priority: 0.5,
-    })
+  // Sección OPCIONAL: si el índice de clubes falla (p.ej. timeout de BD), degradar RUIDOSO (menos URLs) en vez
+  // de abortar el deploy. NO se toca el sitemap de servicio partido/jugador (ISR, reintenta) — solo aquí, que gatea el build.
+  try {
+    const clubes = await getClubesIndex()
+    urls.push({ url: `${SITE_URL}/clubes`, lastModified: maxIso, changeFrequency: 'weekly', priority: 0.7 })
+    for (const cl of clubes) {
+      const isoClub = cl.codgrupos.map((cg) => datos.grupo.get(cg)?.iso).filter(Boolean).sort().pop()
+      urls.push({
+        url: `${SITE_URL}/clubes/${clubSlug(cl.codclub, cl.nombre)}`,
+        lastModified: isoClub ?? (cl.maxTemp ? datos.porTemporada.get(cl.maxTemp) : undefined),
+        changeFrequency: 'monthly',
+        priority: 0.5,
+      })
+    }
+  } catch (e) {
+    console.error(`[sitemap] sección CLUBES omitida (deploy continúa): ${(e as Error).message}`)
   }
 
   // Campos: índice + página por campo (solo los que tienen equipos que juegan allí -> anti-thin). lastmod = fecha
   // del partido más reciente jugado en el campo (last_iso de la vista web_campo_equipo, YYYYMMDD -> ISO).
-  const campos = await getCamposIndex()
-  urls.push({ url: `${SITE_URL}/campos`, lastModified: maxIso, changeFrequency: 'weekly', priority: 0.7 })
-  for (const cp of campos) {
-    const nombre = parseCampo(cp.nombre).nombre
-    urls.push({
-      url: `${SITE_URL}/campos/${campoSlug(cp.codigo, nombre)}`,
-      lastModified: cp.lastIso ? `${cp.lastIso.slice(0, 4)}-${cp.lastIso.slice(4, 6)}-${cp.lastIso.slice(6, 8)}` : undefined,
-      changeFrequency: 'monthly',
-      priority: 0.5,
-    })
+  // Sección OPCIONAL: mismo criterio que clubes -> degradar ruidoso, no abortar.
+  try {
+    const campos = await getCamposIndex()
+    urls.push({ url: `${SITE_URL}/campos`, lastModified: maxIso, changeFrequency: 'weekly', priority: 0.7 })
+    for (const cp of campos) {
+      const nombre = parseCampo(cp.nombre).nombre
+      urls.push({
+        url: `${SITE_URL}/campos/${campoSlug(cp.codigo, nombre)}`,
+        lastModified: cp.lastIso ? `${cp.lastIso.slice(0, 4)}-${cp.lastIso.slice(4, 6)}-${cp.lastIso.slice(6, 8)}` : undefined,
+        changeFrequency: 'monthly',
+        priority: 0.5,
+      })
+    }
+  } catch (e) {
+    console.error(`[sitemap] sección CAMPOS omitida (deploy continúa): ${(e as Error).message}`)
   }
 
   // Partidos JUGADOS de la temporada actual (T22): contenido rico y único (alineaciones + PUNTOS FANTASY). Solo
   // aficionados (juveniles noindex por menores) y solo jugados (los futuros son thin -> noindex, fuera del sitemap).
   // Paginado (PostgREST topa a 1000/página; en temporada pueden ser miles) para NO truncar en silencio.
+  // Sección OPCIONAL: si falla, degradar ruidoso (menos URLs) sin abortar el deploy.
+  try {
   const afiT22 = new Set(grupos.filter((g: any) => g.codtemporada === 22 && g.categoria === 'AFICIONADO').map((g: any) => String(g.codgrupo)))
   if (afiT22.size) {
     const partidos: any[] = []
     for (let from = 0; ; from += 1000) {
-      const { data: pg } = await supabase.from('web_resultados')
+      const { data: pg, error: pgErr } = await supabase.from('web_resultados')
         .select('codacta, nombre_local, nombre_visitante, fecha, codgrupo')
         .eq('codtemporada', 22).not('goles_local', 'is', null).range(from, from + 999)
+      if (pgErr) { console.error(`[sitemap] partidos T22 TRUNCADO tras ${partidos.length} (deploy continúa): ${pgErr.message}`); break }  // ruidoso, NO silencioso
       if (!pg || !pg.length) break
       partidos.push(...pg)
       if (pg.length < 1000) break
@@ -167,6 +181,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       const iso = m.fecha && /^\d{2}\/\d{2}\/\d{4}$/.test(m.fecha) ? `${m.fecha.slice(6, 10)}-${m.fecha.slice(3, 5)}-${m.fecha.slice(0, 2)}` : undefined
       urls.push({ url: `${SITE_URL}/madrid/partido/${partidoSlug(m.codacta, m.nombre_local, m.nombre_visitante)}`, lastModified: iso, changeFrequency: 'monthly', priority: 0.5 })
     }
+  }
+  } catch (e) {
+    console.error(`[sitemap] sección PARTIDOS T22 omitida (deploy continúa): ${(e as Error).message}`)
   }
 
   return urls

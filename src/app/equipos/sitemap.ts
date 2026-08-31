@@ -33,11 +33,21 @@ async function todasLasFilas(): Promise<Fila[]> {
   return filas
 }
 
+// Igual que jugadores: un recuento fallido NO debe abortar el deploy -> degradar RUIDOSO con fallback holgado.
+// Techo = FALLBACK_PARTICIONES_EQ × EQUIPOS_SITEMAP_CHUNK = 3 × 10.000 = 30.000 equipos (hoy ~1.9k -> 1 partición).
+const FALLBACK_PARTICIONES_EQ = 3
 export async function generateSitemaps() {
   // Recuento SOLO de aficionados (mismo filtro que las URLs) para que n particiones cuadre.
-  const total = (await todasLasFilas()).length
-  if (total === 0) throw new Error('[sitemap equipos] web_equipo (aficionados) devolvió 0 filas al particionar')
-  const n = Math.max(1, Math.ceil(total / EQUIPOS_SITEMAP_CHUNK))
+  let n: number
+  try {
+    const total = (await todasLasFilas()).length
+    if (total === 0) throw new Error('web_equipo (aficionados) devolvió 0 filas')
+    n = Math.max(1, Math.ceil(total / EQUIPOS_SITEMAP_CHUNK))
+  } catch (e) {
+    console.error(`[sitemap equipos] NO se pudo contar web_equipo: ${(e as Error).message}. `
+      + `Fallback de ${FALLBACK_PARTICIONES_EQ} particiones (techo ${FALLBACK_PARTICIONES_EQ * EQUIPOS_SITEMAP_CHUNK} equipos). REVISAR si se ha superado.`)
+    n = FALLBACK_PARTICIONES_EQ
+  }
   return Array.from({ length: n }, (_, i) => ({ id: i }))
 }
 
