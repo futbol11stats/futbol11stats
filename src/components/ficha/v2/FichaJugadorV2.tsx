@@ -84,7 +84,15 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
   //    ÚLTIMA etapa, orden_temporada máximo). Sus CORTES de color deben venir de la categoría de ESA etapa
   //    (la que aporta el ELO), no de la principal, o coloraríamos p.ej. un ELO de 1ª Aficionada con cortes de
   //    3ª RFEF. Un solo ELO en pantalla (KpiBar y Nivel comparten eloCierre).
-  const etapaUltima: CarreraRow | undefined = etapas[etapas.length - 1]
+  // etapaUltima = la etapa MÁS RECIENTE de la temporada (la que aporta el ELO/percentil). Se elige por el comparador
+  // canónico (máx fecha_inicio; fase playoff>liga>copa como respaldo) -> ROBUSTO al orden con que la BD devuelva las
+  // filas. Antes era etapas[last], que dependía de ese orden arbitrario (getCarreraV2/orden_temporada NULL en copa/playoff)
+  // -> el ELO podía salir de la copa de agosto en vez del playoff de mayo. NO cambia categoriaSel (rank_principal/etapas[0]).
+  const etapaUltima: CarreraRow | undefined = etapas.length
+    ? [...etapas].sort((a, b) => ordenPorFechaOFase(
+        { fechaInicio: a.fecha_inicio, fase: faseCompeticion(a.nombre_comp, a.categoria_nivel) },
+        { fechaInicio: b.fecha_inicio, fase: faseCompeticion(b.nombre_comp, b.categoria_nivel) }))[0]
+    : undefined
   const categoriaElo = etapaUltima?.nombre_comp ?? categoriaSel
 
   const sum = (f: (c: CarreraRow) => number | null) => etapas.reduce((s, c) => s + (f(c) ?? 0), 0)
