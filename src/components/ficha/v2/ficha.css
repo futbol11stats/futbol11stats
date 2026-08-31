@@ -692,8 +692,16 @@
 .fpv2 .al-team .tn a{color:inherit;text-decoration:none}
 .fpv2 .al-team .cracha{margin-left:auto;width:auto;flex:none;padding:0}
 .fpv2 .al-sub{font-size:var(--t-micro);letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);font-weight:600;padding:9px var(--pad) 3px;margin-top:4px;border-top:1px solid var(--line)}
-.fpv2 .al-tec{padding:11px var(--pad) 0;font-size:var(--t-cap);color:var(--ink-2)}
-.fpv2 .al-tec .cap{margin-right:5px}
+/* #6 encabezado de columna sobre Δ ELO y PTS (la leyenda de abajo refuerza). */
+.fpv2 .al-cols{display:flex;justify-content:flex-end;align-items:baseline;gap:6px;padding:4px var(--pad) 3px;font-size:var(--t-micro);text-transform:uppercase;letter-spacing:.04em;color:var(--ink-3);font-weight:700}
+.fpv2 .al-cols .h-pts{min-width:30px;text-align:center}
+/* #1 Entrenador: fila estilo .pl con pastilla de rol neutra; "No presenta" tenue y sin pastilla. */
+.fpv2 .pl-tec .pl-me{margin-top:3px}
+.fpv2 .rol-pill{display:inline-flex;align-items:center;font-size:var(--t-micro);font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--ink-2);background:rgba(255,255,255,.08);border:1px solid var(--line);border-radius:4px;padding:1px 6px}
+.fpv2 .al-tec-none{padding:7px var(--pad);font-size:var(--t-sm);color:var(--ink-4);font-style:italic}
+/* #2 Árbitros en la línea de metadatos del hero (bajo el campo). */
+.fpv2 .mmeta .hero-arb{color:var(--ink-3)}
+.fpv2 .mmeta .hero-arb .cap{color:var(--ink-4);margin-right:3px}
 .fpv2 .pl-nojugo{opacity:.5}
 /* Eventos con minuto dentro de .pl-me (web_partido_eventos). Sin ámbar salvo tarjeta (--card-y ya es amarillo real). */
 .fpv2 .ev{display:inline-flex;align-items:center;gap:2px;font-size:var(--t-micro);font-weight:700;font-variant-numeric:tabular-nums;color:var(--ink-3)}
@@ -703,14 +711,24 @@
 .fpv2 .ev-tr,.fpv2 .ev-out{color:var(--e0)}
 .fpv2 .ev-in{color:var(--e3)}
 /* Árbitros: SOLO nombre + rol. Sin enlace, sin ranking, sin superficie que agregue por árbitro (privacidad). */
-.fpv2 .arb{padding:0 var(--pad);display:flex;flex-direction:column;gap:6px}
-.fpv2 .arb-row{display:flex;align-items:baseline;gap:9px;font-size:var(--t-sm);color:var(--ink-2)}
-.fpv2 .arb-row .cap{flex:none}
-/* #1/#3 Pronóstico ELO + contexto de puesto (bajo el marcador). Prosa, sin cuota; el ámbar sigue reservado. */
-.fpv2 .prono{padding:12px var(--pad) 0;text-align:center}
-.fpv2 .prono-line{font-family:var(--font-display),sans-serif;font-size:var(--t-body);color:var(--ink-2);line-height:1.4}
-.fpv2 .prono-ctx{display:flex;flex-wrap:wrap;justify-content:center;gap:4px 14px;margin-top:6px;font-size:var(--t-cap);color:var(--ink-3)}
-.fpv2 .prono-ctx b{color:var(--ink-2);font-weight:600}
+/* #3/#4 Tarjeta de pronóstico (enfrentada, como el marcador): ELO pre, frase del favorito, y tras el partido ELO+Δ+puesto. */
+.fpv2 .prono{margin:12px var(--pad) 0;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:linear-gradient(180deg,var(--pitch-800),transparent)}
+.fpv2 .prono-k{font-size:var(--t-micro);letter-spacing:.09em;text-transform:uppercase;color:var(--ink-3);font-weight:700;text-align:center}
+.fpv2 .prono-elos{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:10px;margin-top:7px}
+.fpv2 .pe-vals{display:flex;align-items:center;justify-content:center;gap:8px;font-family:var(--font-display),sans-serif;font-weight:700;font-size:var(--n-md);font-variant-numeric:tabular-nums;color:var(--ink-3)}
+.fpv2 .pe-vals b.fav{color:var(--ink)}
+.fpv2 .pe-sep{color:var(--ink-4)}
+.fpv2 .prono-fav{text-align:center;margin-top:6px;font-family:var(--font-display),sans-serif;font-size:var(--t-body);color:var(--ink-2)}
+.fpv2 .prono-fav b{color:var(--ink);font-weight:700}
+.fpv2 .prono-fav b a{color:inherit;text-decoration:none}
+.fpv2 .prono-div{display:flex;align-items:center;gap:8px;margin:9px 0 7px;font-size:var(--t-micro);letter-spacing:.06em;text-transform:uppercase;color:var(--ink-4)}
+.fpv2 .prono-div::before,.fpv2 .prono-div::after{content:'';flex:1;height:1px;background:var(--line)}
+.fpv2 .prono-post{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.fpv2 .pp-team{display:flex;flex-wrap:wrap;align-items:center;gap:3px 6px;font-size:var(--t-cap);color:var(--ink-3)}
+.fpv2 .pp-team:last-child{justify-content:flex-end;text-align:right}
+.fpv2 .pp-elo{font-family:var(--font-display),sans-serif;font-weight:700;font-size:var(--t-lead);font-variant-numeric:tabular-nums;color:var(--ink-2)}
+.fpv2 .pp-elo b{font-size:var(--t-cap)}
+.fpv2 .pp-ctx{flex-basis:100%;color:var(--ink-3)}
 /* #2 Movimiento de ELO por equipo, al pie de cada columna de alineación. */
 .fpv2 .al-elo{margin-top:8px;padding:7px var(--pad) 0;border-top:1px solid var(--line-2);font-size:var(--t-cap);color:var(--ink-3)}
 .fpv2 .al-elo b{font-family:var(--font-display),sans-serif;font-weight:700;font-variant-numeric:tabular-nums;margin-left:3px}

@@ -43,6 +43,7 @@ export type PartidoFicha = {
   // jornada, solo dentro de esta competición). Copa se discrimina por codgrupo_familia; liga por codgrupo numérico.
   // elo/pos = null cuando no hay dato (equipo sin histórico) — se trata como "sin dato", no como equipo flojo.
   eloPreLocal: number | null; eloPreVisitante: number | null
+  eloPostLocal: number | null; eloPostVisitante: number | null
   movEloLocal: number | null; movEloVisitante: number | null
   posPreLocal: number | null; posPostLocal: number | null
   posPreVisitante: number | null; posPostVisitante: number | null
@@ -276,6 +277,7 @@ export async function getPartido(codacta: string): Promise<PartidoFicha | null> 
       h2h: h2h.filter(actaEq).slice(0, 5),
       arbitros, entrenadorLocal: entMap.get(codeqL) ?? null, entrenadorVisitante: entMap.get(codeqV) ?? null,
       eloPreLocal: clL.eloPre, eloPreVisitante: clV.eloPre,
+      eloPostLocal: clL.eloPost, eloPostVisitante: clV.eloPost,
       movEloLocal: clL.mov, movEloVisitante: clV.mov,
       posPreLocal: clL.posPre, posPostLocal: clL.posPost,
       posPreVisitante: clV.posPre, posPostVisitante: clV.posPost,

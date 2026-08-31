@@ -78,7 +78,23 @@ function FormaDots({ nombre, minis }: { nombre: string; minis: PartidoMini[] }) 
   return <span className="cracha" title="Últimos resultados">{dots.map((c, i) => <i key={i} style={{ background: c }} />)}</span>
 }
 
-function Alineacion({ lado, forma, movElo }: { lado: PartidoLado; forma: PartidoMini[]; movElo: number | null }) {
+// #1 Cuerpo técnico: solo hay ENTRENADOR en el dato. Fila estilo .pl con pastilla de rol; el día que el pipeline
+// traiga más staff/ficha, encaja sin rehacer. "No presenta" (el equipo no presentó entrenador) = hecho del acta:
+// se muestra TENUE y sin pastilla, para distinguirlo de un nombre real.
+function CuerpoTecnico({ nombre }: { nombre: string }) {
+  if (/no\s*presenta/i.test(nombre)) return <div className="al-tec-none">No presenta</div>
+  return (
+    <div className="pl pl-tec">
+      <div className="pl-av" style={avaStyle(null)}>{iniciales(nombre)}</div>
+      <div className="pl-mid">
+        <div className="pl-nm">{formatNombre(nombre)}</div>
+        <div className="pl-me"><span className="rol-pill">Entrenador</span></div>
+      </div>
+    </div>
+  )
+}
+
+function Alineacion({ lado, forma, movElo, entrenador }: { lado: PartidoLado; forma: PartidoMini[]; movElo: number | null; entrenador: string | null }) {
   return (
     <div className="al-col">
       <div className="al-team">
@@ -86,10 +102,15 @@ function Alineacion({ lado, forma, movElo }: { lado: PartidoLado; forma: Partido
         <span className="tn"><NombreEquipo codequipo={lado.codequipo} nombre={lado.nombre} /></span>
         <FormaDots nombre={lado.nombre} minis={forma} />
       </div>
+      {/* #6 encabezado de columna: rotula las dos cifras de la derecha (leyenda de abajo como refuerzo). */}
+      <div className="al-cols"><span className="h-elo">Δ ELO</span><span className="h-pts">PTS</span></div>
       {lado.titulares.map((j) => <Fila key={j.codjugador} j={j} />)}
       {lado.suplentes.length > 0 && <div className="al-sub">Suplentes</div>}
       {lado.suplentes.map((j) => <Fila key={j.codjugador} j={j} />)}
-      {movElo != null && <div className="al-elo">Movimiento de ELO <b className={movElo >= 0 ? 'pos' : 'neg'}>{movElo >= 0 ? '+' : ''}{movElo.toLocaleString('es-ES', { maximumFractionDigits: 1 })}</b></div>}
+      {/* #1 Entrenador dentro del equipo, tras los suplentes (rótulo "Entrenador" mientras solo haya ese rol). */}
+      {entrenador && <><div className="al-sub">Entrenador</div><CuerpoTecnico nombre={entrenador} /></>}
+      {/* #5 rótulo explícito para distinguirlo del Δ ELO por jugador. */}
+      {movElo != null && <div className="al-elo">Movimiento ELO de equipo <b className={movElo >= 0 ? 'pos' : 'neg'}>{movElo >= 0 ? '+' : ''}{movElo.toLocaleString('es-ES', { maximumFractionDigits: 1 })}</b></div>}
     </div>
   )
 }
@@ -110,16 +131,15 @@ function MiniPartido({ m }: { m: PartidoMini }) {
   )
 }
 
-// #1 Pronóstico ELO: prosa, sin % ni cuota. Solo si AMBOS llegaban con dato.
+// #1 Pronóstico ELO: prosa, sin % ni cuota. Solo la FRASE (las cifras van enfrentadas en la tarjeta).
 const fmtElo = (n: number) => Math.round(n).toString()
-function pronostico(p: PartidoFicha): string | null {
-  const a = p.eloPreLocal, b = p.eloPreVisitante
+const fmtDelta = (m: number) => `${m >= 0 ? '+' : '−'}${Math.abs(Math.round(m))}`
+function favoritoFrase(a: number | null, b: number | null): { texto: string; lado: 'local' | 'visitante' | 'igual' } | null {
   if (a == null || b == null) return null
   const d = a - b, ad = Math.abs(d)
-  if (ad < 15) return `Llegaban igualados en ELO (${fmtElo(a)} · ${fmtElo(b)})`
-  const fav = d > 0 ? p.local.nombre : p.visitante.nombre
-  const grado = ad >= 60 ? 'como claro favorito' : ad >= 25 ? 'por delante' : 'ligeramente por delante'
-  return `${formatNombre(fav)} llegaba ${grado} en ELO (${fmtElo(a)} · ${fmtElo(b)})`
+  if (ad < 15) return { texto: 'Llegaban igualados en ELO', lado: 'igual' }
+  const grado = ad >= 60 ? 'partía como claro favorito' : ad >= 25 ? 'partía por delante' : 'partía ligeramente por delante'
+  return { texto: grado, lado: d > 0 ? 'local' : 'visitante' }
 }
 // #3 Contexto de puesto (solo dentro de esta competición; requiere jornada anterior -> no en J1).
 function ctxPuesto(pre: number | null, post: number | null): string | null {
@@ -144,10 +164,46 @@ function hitoTexto(h: PartidoFicha['hitos'][number]): string {
   return h.contexto ? `${base} · ${h.contexto}` : base
 }
 
-export default function FichaPartidoV2({ p }: { p: PartidoFicha }) {
-  const prono = pronostico(p)
+// #3/#4 Tarjeta de pronóstico: ELO con el que llegaban ENFRENTADOS (como el marcador), la frase del favorito, y tras
+// el partido el ELO final + Δ + contexto de puesto por equipo. Nombres con NombreEquipo (bien formateados), no formatNombre.
+function PronoCard({ p }: { p: PartidoFicha }) {
+  const hayPre = p.eloPreLocal != null && p.eloPreVisitante != null
+  const hayPost = p.eloPostLocal != null && p.eloPostVisitante != null
+  const fav = favoritoFrase(p.eloPreLocal, p.eloPreVisitante)
   const ctxL = ctxPuesto(p.posPreLocal, p.posPostLocal)
   const ctxV = ctxPuesto(p.posPreVisitante, p.posPostVisitante)
+  if (!hayPre && !hayPost && !ctxL && !ctxV) return null
+  const favLado = fav && fav.lado !== 'igual' ? (fav.lado === 'local' ? p.local : p.visitante) : null
+  const teamPost = (post: number | null, mov: number | null, ctx: string | null, lado: PartidoLado) => (
+    <div className="pp-team">
+      <EscudoBox escudo={lado.escudo} nombre={lado.nombre} size={18} radius={4} />
+      {post != null && <span className="pp-elo">{fmtElo(post)}{mov != null && <b style={{ color: mov >= 0 ? 'var(--e3)' : 'var(--e0)' }}> {fmtDelta(mov)}</b>}</span>}
+      {ctx && <span className="pp-ctx">{ctx}</span>}
+    </div>
+  )
+  return (
+    <section className="prono">
+      <div className="prono-k">Pronóstico · así llegaban</div>
+      {hayPre && (
+        <div className="prono-elos">
+          <EscudoBox escudo={p.local.escudo} nombre={p.local.nombre} size={20} radius={4} />
+          <span className="pe-vals"><b className={fav?.lado === 'local' ? 'fav' : ''}>{fmtElo(p.eloPreLocal as number)}</b><span className="pe-sep">—</span><b className={fav?.lado === 'visitante' ? 'fav' : ''}>{fmtElo(p.eloPreVisitante as number)}</b></span>
+          <EscudoBox escudo={p.visitante.escudo} nombre={p.visitante.nombre} size={20} radius={4} />
+        </div>
+      )}
+      {fav && <div className="prono-fav">{favLado ? <><b><NombreEquipo codequipo={favLado.codequipo} nombre={favLado.nombre} /></b> {fav.texto}</> : fav.texto}</div>}
+      {(hayPost || ctxL || ctxV) && <>
+        <div className="prono-div"><span>tras el partido</span></div>
+        <div className="prono-post">
+          {teamPost(p.eloPostLocal, p.movEloLocal, ctxL, p.local)}
+          {teamPost(p.eloPostVisitante, p.movEloVisitante, ctxV, p.visitante)}
+        </div>
+      </>}
+    </section>
+  )
+}
+
+export default function FichaPartidoV2({ p }: { p: PartidoFicha }) {
   const puedeIcs = !p.jugado && !!p.fecha && /^\d{2}\/\d{2}\/\d{4}$/.test(p.fecha) && !!p.hora && /^\d{1,2}:\d{2}$/.test(p.hora) && p.hora !== '00:00'
   const icsUrl = `/api/ics/${p.codacta}`
   const googleUrl = puedeIcs ? googleRenderUrl({ title: `${p.local.nombre} vs ${p.visitante.nombre}`, fecha: p.fecha as string, hora: p.hora as string, campo: p.campoNombre, details: `${p.nombreComp} · Jornada ${p.jornada}\n${SITE_URL}/madrid/partido/${partidoSlug(p.codacta, p.local.nombre, p.visitante.nombre)}` }) : null
@@ -186,6 +242,8 @@ export default function FichaPartidoV2({ p }: { p: PartidoFicha }) {
               ? <a className="hero-campo" href={p.campoHref} {...(p.campoHref.startsWith('/') ? {} : { target: '_blank', rel: 'noopener noreferrer' })}><MapPin size={12} /><span>{p.campoNombre}</span>{p.campoSuperficie && <span className="campo-sup">· <SuperficieCampo superficie={p.campoSuperficie} /></span>}</a>
               : <span className="hero-campo"><MapPin size={12} /><span>{p.campoNombre}</span></span>
           )}
+          {/* #2 Árbitros aquí, bajo el campo: es donde el usuario los busca. Solo nombre + rol, sin enlace (privacidad). */}
+          {p.arbitros.length > 0 && <span className="hero-arb">{p.arbitros.map((a, i) => <span key={i}>{i > 0 ? ' · ' : ''}<span className="cap">{a.rol}</span> {formatNombre(a.nombre)}</span>)}</span>}
         </div>
         {!p.jugado && puedeIcs && (
           <div className="cal-wrap">
@@ -194,18 +252,8 @@ export default function FichaPartidoV2({ p }: { p: PartidoFicha }) {
         )}
       </div>
 
-      {/* #1 Pronóstico ELO (llegaban igualados / favorito, sin %) + #3 contexto de puesto. Solo con dato. */}
-      {(prono || ctxL || ctxV) && (
-        <section className="prono">
-          {prono && <div className="prono-line">{prono}</div>}
-          {(ctxL || ctxV) && (
-            <div className="prono-ctx">
-              {ctxL && <span><b>{formatNombre(p.local.nombre)}</b> {ctxL}</span>}
-              {ctxV && <span><b>{formatNombre(p.visitante.nombre)}</b> {ctxV}</span>}
-            </div>
-          )}
-        </section>
-      )}
+      {/* #3/#4 Pronóstico + ELO pre/post + contexto de puesto (tarjeta enfrentada, como el marcador). */}
+      <PronoCard p={p} />
 
       {/* MVP fantasy — mismo tratamiento que "Top de la plantilla" (fila .pl + rótulo bien visible) */}
       {p.jugado && p.mvp && (
@@ -225,17 +273,11 @@ export default function FichaPartidoV2({ p }: { p: PartidoFicha }) {
       {/* ALINEACIONES — dos columnas en desktop (.desk-2col), apiladas en móvil. Filas .pl con puntos fantasy. */}
       {p.jugado && (p.local.titulares.length > 0 || p.visitante.titulares.length > 0) && (
         <section>
-          <div className="s-head"><h2 className="s-title">Alineaciones</h2><div className="s-sub">Δ ELO · fantasy →</div></div>
+          <div className="s-head"><h2 className="s-title">Alineaciones</h2></div>
           <div className="desk-2col al-2col">
-            <Alineacion lado={p.local} forma={p.formaLocal} movElo={p.movEloLocal} />
-            <Alineacion lado={p.visitante} forma={p.formaVisitante} movElo={p.movEloVisitante} />
+            <Alineacion lado={p.local} forma={p.formaLocal} movElo={p.movEloLocal} entrenador={p.entrenadorLocal} />
+            <Alineacion lado={p.visitante} forma={p.formaVisitante} movElo={p.movEloVisitante} entrenador={p.entrenadorVisitante} />
           </div>
-          {(p.entrenadorLocal || p.entrenadorVisitante) && (
-            <div className="desk-2col al-2col al-tec">
-              <div>{p.entrenadorLocal && <><span className="cap">Entrenador</span> {formatNombre(p.entrenadorLocal)}</>}</div>
-              <div>{p.entrenadorVisitante && <><span className="cap">Entrenador</span> {formatNombre(p.entrenadorVisitante)}</>}</div>
-            </div>
-          )}
           {/* Leyenda de iconos (misma que la plantilla) para que la ficha se lea igual que las demás. */}
           <div className="pl-ley">
             <span className="lg-item"><span style={{ color: 'var(--e3)', display: 'inline-flex' }}><Balon size={11} /></span>Gol</span>
@@ -283,15 +325,6 @@ export default function FichaPartidoV2({ p }: { p: PartidoFicha }) {
         </section>
       )}
 
-      {/* ÁRBITROS — SOLO nombre + rol (sin enlace, sin ranking; decisión de privacidad). Al pie, discreto. */}
-      {p.arbitros.length > 0 && (
-        <section>
-          <div className="s-head"><h2 className="s-title">Arbitraje</h2></div>
-          <div className="arb">
-            {p.arbitros.map((a, i) => <div key={i} className="arb-row"><span className="cap">{a.rol}</span> <span>{formatNombre(a.nombre)}</span></div>)}
-          </div>
-        </section>
-      )}
     </div>
   )
 }
