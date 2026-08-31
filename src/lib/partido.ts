@@ -252,9 +252,22 @@ export async function getPartido(codacta: string): Promise<PartidoFicha | null> 
     const clAll = ((clRaw || []) as Array<{ codequipo: string; codtemporada: number; jornada: number; pos: number | null; elo: number | null; codgrupo: string; codgrupo_familia: string | null }>)
     const enGrupo = (c: { codgrupo: string; codgrupo_familia: string | null }) => esCopa ? c.codgrupo_familia === String(r.codgrupo) : (String(c.codgrupo) === String(r.codgrupo) && c.codgrupo_familia == null)
     const clasifDe = (cod: string) => {
-      const mias = clAll.filter((c) => String(c.codequipo) === cod)
-      const post = mias.find((c) => enGrupo(c) && c.codtemporada === r.codtemporada && c.jornada === jNum) || null
-      const preG = mias.find((c) => enGrupo(c) && c.codtemporada === r.codtemporada && c.jornada === jNum - 1) || null
+      const mias = clAll.filter((c) => String(c.codequipo) === cod && enGrupo(c))
+      if (esCopa) {
+        // OJO: `jornada` NO significa lo mismo en las dos tablas. En web_resultados es el índice de RONDA
+        // (fase de grupos=1, final=2); en web_clasificacion es el MATCHDAY de grupo (1,2,3). Cruzarlas por
+        // número da la fila equivocada SIN dar error (la final leía la progresión de grupos -> ambos ELO
+        // "subían"). Además las eliminatorias no generan fila de clasificación. Por eso en copa:
+        //  - eloPre = ÚLTIMO ELO conocido en la familia (máx jornada de grupo) = el ELO con el que se llega.
+        //  - eloPost/pos = null: no hay "tras el partido" fiable -> mejor no pintar nada que pintar algo falso.
+        //    (Para tenerlo en eliminatorias, el pipeline debería volcar el ELO de equipo por codacta.)
+        const ult = mias.filter((c) => c.elo != null)
+          .sort((a, b) => (b.codtemporada - a.codtemporada) || (b.jornada - a.jornada))[0]
+        return { eloPre: ult?.elo ?? null, eloPost: null, mov: null, posPre: null, posPost: null }
+      }
+      // LIGA: aquí `jornada` SÍ es el matchday en ambas tablas -> el cruce por número es correcto.
+      const post = mias.find((c) => c.codtemporada === r.codtemporada && c.jornada === jNum) || null
+      const preG = mias.find((c) => c.codtemporada === r.codtemporada && c.jornada === jNum - 1) || null
       let eloPre = preG?.elo ?? null
       if (eloPre == null) {   // J1 (sin jornada anterior en el grupo): último elo conocido ANTES de este partido
         const prev = mias.filter((c) => c.elo != null && (c.codtemporada < r.codtemporada || (c.codtemporada === r.codtemporada && c.jornada < jNum)))
@@ -283,5 +296,5 @@ export async function getPartido(codacta: string): Promise<PartidoFicha | null> 
       posPreVisitante: clV.posPre, posPostVisitante: clV.posPost,
       hitos,
     }
-  }, ['getPartido', 'v6-acta-maestra', String(r.codacta)], [String(r.codgrupo)], r.codtemporada)
+  }, ['getPartido', 'v7-copa-elo', String(r.codacta)], [String(r.codgrupo)], r.codtemporada)
 }
