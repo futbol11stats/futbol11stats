@@ -1,6 +1,6 @@
 import './v2/ficha.css'
 import Link from 'next/link'
-import type { ReactNode } from 'react'
+import { Fragment, type ReactNode } from 'react'
 import { CalendarPlus, MapPin } from 'lucide-react'
 import EscudoBox from '@/components/ficha/v2/EscudoBox'
 import NombreEquipo from '@/components/NombreEquipo'
@@ -94,23 +94,61 @@ function CuerpoTecnico({ nombre }: { nombre: string }) {
   )
 }
 
-function Alineacion({ lado, forma, movElo, entrenador }: { lado: PartidoLado; forma: PartidoMini[]; movElo: number | null; entrenador: string | null }) {
+const TeamHead = ({ lado, forma }: { lado: PartidoLado; forma: PartidoMini[] }) => (
+  <div className="al-team">
+    <EscudoBox escudo={lado.escudo} nombre={lado.nombre} size={24} radius={5} />
+    <span className="tn"><NombreEquipo codequipo={lado.codequipo} nombre={lado.nombre} /></span>
+    <FormaDots nombre={lado.nombre} minis={forma} />
+  </div>
+)
+// #6 encabezado de columna: rotula las dos cifras de la derecha (la leyenda de abajo refuerza).
+const ColsHead = () => <div className="al-cols"><span className="h-elo">Δ ELO</span><span className="h-pts">PTS</span></div>
+// #5 rótulo explícito para distinguirlo del Δ ELO por jugador.
+const MovElo = ({ mov }: { mov: number }) => <div className="al-elo">Movimiento ELO de equipo <b className={mov >= 0 ? 'pos' : 'neg'}>{mov >= 0 ? '+' : ''}{mov.toLocaleString('es-ES', { maximumFractionDigits: 1 })}</b></div>
+// Empareja dos listas por índice hasta la más larga; la posición que falta va null (celda vacía).
+const pares = <T,>(a: T[], b: T[]): [T | null, T | null][] =>
+  Array.from({ length: Math.max(a.length, b.length) }, (_, i) => [a[i] ?? null, b[i] ?? null])
+
+// ALINEACIONES en una ÚNICA rejilla 1fr|1fr: cada fila lógica (titular i, suplente i, entrenador…) ocupa la MISMA
+// fila de grid en las dos columnas, así quedan alineadas fila a fila aunque un equipo lleve más suplentes que el otro
+// (la celda que sobra va vacía y SIN bordes, no descoloca ni deja hueco raro a la columna llena). En móvil son dos
+// columnas compactas (ver ficha.css @media); en desktop, dos columnas anchas. Reemplaza al apilado de 390px.
+function AlineacionesGrid({ p }: { p: PartidoFicha }) {
+  const cel = (node: ReactNode, side: 'l' | 'r', cls = '') =>
+    <div className={`alg-c alg-${side}${node ? (cls ? ` ${cls}` : '') : ' alg-empty'}`}>{node}</div>
+  const filas = (a: PartidoJugador[], b: PartidoJugador[], key: string) =>
+    pares(a, b).map(([x, y], i) => (
+      <Fragment key={`${key}${i}`}>
+        {cel(x ? <Fila j={x} /> : null, 'l', 'alg-pl')}
+        {cel(y ? <Fila j={y} /> : null, 'r', 'alg-pl')}
+      </Fragment>
+    ))
+  const L = p.local, V = p.visitante
+  const haySub = L.suplentes.length > 0 || V.suplentes.length > 0
+  const hayTec = !!p.entrenadorLocal || !!p.entrenadorVisitante
+  const hayMov = p.movEloLocal != null || p.movEloVisitante != null
   return (
-    <div className="al-col">
-      <div className="al-team">
-        <EscudoBox escudo={lado.escudo} nombre={lado.nombre} size={24} radius={5} />
-        <span className="tn"><NombreEquipo codequipo={lado.codequipo} nombre={lado.nombre} /></span>
-        <FormaDots nombre={lado.nombre} minis={forma} />
-      </div>
-      {/* #6 encabezado de columna: rotula las dos cifras de la derecha (leyenda de abajo como refuerzo). */}
-      <div className="al-cols"><span className="h-elo">Δ ELO</span><span className="h-pts">PTS</span></div>
-      {lado.titulares.map((j) => <Fila key={j.codjugador} j={j} />)}
-      {lado.suplentes.length > 0 && <div className="al-sub">Suplentes</div>}
-      {lado.suplentes.map((j) => <Fila key={j.codjugador} j={j} />)}
-      {/* #1 Entrenador dentro del equipo, tras los suplentes (rótulo "Entrenador" mientras solo haya ese rol). */}
-      {entrenador && <><div className="al-sub">Entrenador</div><CuerpoTecnico nombre={entrenador} /></>}
-      {/* #5 rótulo explícito para distinguirlo del Δ ELO por jugador. */}
-      {movElo != null && <div className="al-elo">Movimiento ELO de equipo <b className={movElo >= 0 ? 'pos' : 'neg'}>{movElo >= 0 ? '+' : ''}{movElo.toLocaleString('es-ES', { maximumFractionDigits: 1 })}</b></div>}
+    <div className="al-grid">
+      {cel(<TeamHead lado={L} forma={p.formaLocal} />, 'l', 'alg-head')}
+      {cel(<TeamHead lado={V} forma={p.formaVisitante} />, 'r', 'alg-head')}
+      {cel(<ColsHead />, 'l')}
+      {cel(<ColsHead />, 'r')}
+      {filas(L.titulares, V.titulares, 't')}
+      {haySub && <>
+        {cel(L.suplentes.length ? <div className="al-sub">Suplentes</div> : null, 'l')}
+        {cel(V.suplentes.length ? <div className="al-sub">Suplentes</div> : null, 'r')}
+      </>}
+      {filas(L.suplentes, V.suplentes, 's')}
+      {hayTec && <>
+        {cel(p.entrenadorLocal ? <div className="al-sub">Entrenador</div> : null, 'l')}
+        {cel(p.entrenadorVisitante ? <div className="al-sub">Entrenador</div> : null, 'r')}
+        {cel(p.entrenadorLocal ? <CuerpoTecnico nombre={p.entrenadorLocal} /> : null, 'l')}
+        {cel(p.entrenadorVisitante ? <CuerpoTecnico nombre={p.entrenadorVisitante} /> : null, 'r')}
+      </>}
+      {hayMov && <>
+        {cel(p.movEloLocal != null ? <MovElo mov={p.movEloLocal} /> : null, 'l')}
+        {cel(p.movEloVisitante != null ? <MovElo mov={p.movEloVisitante} /> : null, 'r')}
+      </>}
     </div>
   )
 }
@@ -274,10 +312,7 @@ export default function FichaPartidoV2({ p }: { p: PartidoFicha }) {
       {p.jugado && (p.local.titulares.length > 0 || p.visitante.titulares.length > 0) && (
         <section>
           <div className="s-head"><h2 className="s-title">Alineaciones</h2></div>
-          <div className="desk-2col al-2col">
-            <Alineacion lado={p.local} forma={p.formaLocal} movElo={p.movEloLocal} entrenador={p.entrenadorLocal} />
-            <Alineacion lado={p.visitante} forma={p.formaVisitante} movElo={p.movEloVisitante} entrenador={p.entrenadorVisitante} />
-          </div>
+          <AlineacionesGrid p={p} />
           {/* Leyenda de iconos (misma que la plantilla) para que la ficha se lea igual que las demás. */}
           <div className="pl-ley">
             <span className="lg-item"><span style={{ color: 'var(--e3)', display: 'inline-flex' }}><Balon size={11} /></span>Gol</span>
