@@ -81,6 +81,26 @@ por la etiqueta VIEJA, no solo por la nueva.
 
 ---
 
+## Objetos de BD compartidos — avisos del advisor ACEPTADOS (no revertir)
+
+Algunos avisos del *security advisor* de Supabase están **aceptados a propósito**. No los "arregléis" a ciegas
+—mover el objeto rompería la web—.
+
+- **`web_campo_equipo` (matview) se queda EXPUESTA a la API a propósito.** La ficha de campo la consulta
+  **directamente** en `src/lib/campo.ts` (`from('web_campo_equipo').select('codequipo, n_partidos').eq('codigo_campo', …)`)
+  para listar los equipos habituales de cada campo. `web_campo_resumen` **NO la sustituye** (esa es el agregado
+  *por campo* — `n_equipos`/`last_iso` — no el desglose *por equipo*). Solo contiene agregados de datos públicos,
+  así que el lint "matview accesible por la API" está **aceptado con justificación**. **NO mover a `private`:**
+  rompería la ficha de campo. (Si algún día se limpia: el pipeline expone una vista `SECURITY DEFINER` con
+  `(codigo_campo, codequipo, n_partidos)` y la web migra `campo.ts` a ella — coordinado.)
+
+- **`web_temporada_activa` lleva `security_invoker = on`** en su definición viva de Supabase (lo fijó el pipeline).
+  La web **no** mantiene DDL de esta vista (no hay `.sql` en el repo), así que ningún deploy de Next la revierte.
+  Pero **si alguna vez se crea/recrea desde una migración de la web, incluir `WITH (security_invoker = on)`** — sin
+  la cláusula se revertiría el arreglo.
+
+---
+
 ## Paleta y color
 
 La web tiene un **código de color con significado**; no se improvisa.
