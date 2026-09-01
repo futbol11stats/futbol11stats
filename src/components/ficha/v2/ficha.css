@@ -216,6 +216,12 @@
 .fjv2 .m-riv{font-family:var(--font-display),'Barlow Condensed',sans-serif;font-size:var(--t-lead);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-transform:uppercase}
 .fjv2 .m-meta{font-size:var(--t-cap);color:var(--ink-3);margin-top:2px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
 .fjv2 .m-pts{font-family:var(--font-display),'Barlow Condensed',sans-serif;font-weight:700;font-size:var(--n-sm);padding:4px 9px;border-radius:6px;color:#08111f;flex:none}
+/* Columna ELO de la fila .match (junto a los PUNTOS, orden Puntos · ELO). Δ del partido: verde sube / rojo baja. */
+.fjv2 .m-elo{font-family:var(--font-display),'Barlow Condensed',sans-serif;font-weight:700;font-size:var(--n-sm);font-variant-numeric:tabular-nums;width:34px;text-align:right;flex:none}
+/* Fila .match enlazada a la ficha del partido. */
+.fjv2 a.match.match-link{text-decoration:none;color:inherit;transition:background .12s}
+.fjv2 a.match.match-link:hover{background:rgba(255,255,255,.05)}
+.fjv2 a.match.match-link:hover .m-riv{color:var(--ink)}
 
 .fjv2 .hito{display:flex;gap:11px;padding:10px var(--pad)}
 .fjv2 .h-dot{width:9px;height:9px;border-radius:50%;background:var(--e3);margin-top:5px;flex:none;position:relative}

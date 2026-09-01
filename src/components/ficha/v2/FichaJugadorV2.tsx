@@ -36,6 +36,8 @@ import {
   marcadorLocalVisitante, POS_LABEL, companerosActivos, type HitoRow, type CompaneroTop,
 } from '@/lib/jugador'
 import { CORTES_FIJOS } from '@/lib/escala'
+import MatchRow from '@/components/ficha/v2/MatchRow'
+import { partidoSlug } from '@/lib/partidoSlug'
 import { getSueloVivo } from '@/lib/temporadas'
 import {
   getJugadorV2, getCarreraV2, getAlertaActual, getAmbitoTemporada, getCortesElo, labelToCod,
@@ -634,23 +636,18 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
             <div>
               {actuaciones.slice(0, 3).map((a: any, i: number) => {
                 const { marcador, signo } = marcadorLocalVisitante(a.resultado, a.es_local)
-                const col = signo === 'G' ? 'var(--e3)' : signo === 'E' ? 'var(--ink-2)' : 'var(--e0)'
-                const g = a.goles ?? 0
+                // Enlace a la ficha del PARTIDO (antes iba al equipo rival). local/visitante según de qué lado jugó.
+                const local = a.es_local ? a.equipo_nombre : a.rival_nombre
+                const visitante = a.es_local ? a.rival_nombre : a.equipo_nombre
                 return (
-                  <div className="match" key={i}>
-                    <div className="m-score" style={{ color: col }}>{marcador}</div>
-                    <EscudoBox escudo={a.escudo} nombre={a.equipo_nombre ?? undefined} size={26} radius={4} />
-                    <div className="m-mid">
-                      <div className="m-riv"><span className="m-vs">vs</span> <NombreEquipo codequipo={a.rival_cod} nombre={a.rival_nombre} /></div>
-                      <div className="m-meta">
-                        {a.es_local != null && <IndicadorLocal esLocal={a.es_local} />}
-                        <span>{fechaCorta(a.fecha)}{a.ronda_label ? ` · ${a.ronda_label}` : (a.jornada != null ? ` · J${a.jornada}` : '')}</span>
-                        {g > 0 && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 2, color: 'var(--e4)' }}><Balon size={12} />{g > 1 ? `×${g}` : ''}</span>}
-                        {a.minutos != null && <span>{a.minutos}&#39;</span>}
-                      </div>
-                    </div>
-                    <div className="m-pts" style={{ background: cPts(Math.round(a.pts)) }}>{Math.round(a.pts)}</div>
-                  </div>
+                  <MatchRow key={i}
+                    marcador={marcador} signo={(signo || null) as 'G' | 'E' | 'P' | null}
+                    rivalEscudo={a.rival_escudo} rivalNombre={a.rival_nombre} rivalCod={a.rival_cod} esLocal={a.es_local}
+                    fecha={a.fecha} etiqueta={a.ronda_label || (a.jornada != null ? `J${a.jornada}` : undefined)}
+                    goles={a.goles ?? 0}
+                    pts={a.pts != null ? Math.round(a.pts) : null} ptsBg={a.pts != null ? cPts(Math.round(a.pts)) : undefined}
+                    href={a.codacta ? `/madrid/partido/${partidoSlug(a.codacta, local, visitante)}` : null}
+                  />
                 )
               })}
             </div>
