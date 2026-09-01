@@ -26,8 +26,11 @@ export type PartidoJugador = {
 }
 export type PartidoLado = { codequipo: string; nombre: string; escudo: string | null; titulares: PartidoJugador[]; suplentes: PartidoJugador[] }
 export type PartidoMini = { codacta: string; fecha: string | null; local: string; escudoLocal: string | null; golesLocal: number | null; visitante: string; escudoVisitante: string | null; golesVisitante: number | null
-  // Para la forma con ΔELO: codequipos (saber de qué lado iba el equipo) + grupo/jornada/temporada (calcular el Δ) + el Δ ya resuelto.
-  codLocal?: string; codVisitante?: string; codgrupo?: string | null; jornada?: number | null; codtemporada?: number | null; eloDelta?: number | null }
+  // Para la forma con ΔELO: codequipos (de qué lado iba el equipo) + el ELO POR PARTIDO de la propia fila
+  // (elo_pre/post local y visitante, denormalizado por el pipeline en web_resultados). grupo/jornada/temporada se
+  // conservan por contexto. eloDelta = el Δ ya resuelto (post − pre del lado del equipo de la forma).
+  codLocal?: string; codVisitante?: string; codgrupo?: string | null; jornada?: number | null; codtemporada?: number | null
+  eloPreLocal?: number | null; eloPostLocal?: number | null; eloPreVisitante?: number | null; eloPostVisitante?: number | null; eloDelta?: number | null }
 export type PartidoFicha = {
   id: string; codacta: string; jugado: boolean; esJuvenil: boolean; codtemporada: number
   categoria: string; slugComp: string; slugGrupo: string; temporada: string; nombreComp: string; jornada: number; compHref: string
@@ -66,8 +69,10 @@ const toMini = (r: Record<string, unknown>): PartidoMini => ({
   visitante: String(r.nombre_visitante ?? ''), escudoVisitante: (r.escudo_visitante as string) ?? null, golesVisitante: (r.goles_visitante as number) ?? null,
   codLocal: String(r.codequipo_local ?? ''), codVisitante: String(r.codequipo_visitante ?? ''),
   codgrupo: (r.codgrupo as string) ?? null, jornada: (r.jornada as number) ?? null, codtemporada: (r.codtemporada as number) ?? null,
+  eloPreLocal: (r.elo_pre_local as number) ?? null, eloPostLocal: (r.elo_post_local as number) ?? null,
+  eloPreVisitante: (r.elo_pre_visitante as number) ?? null, eloPostVisitante: (r.elo_post_visitante as number) ?? null,
 })
-const MINI_COLS = 'codacta, fecha, codtemporada, codgrupo, jornada, nombre_local, escudo_local, goles_local, nombre_visitante, escudo_visitante, goles_visitante, codequipo_local, codequipo_visitante'
+const MINI_COLS = 'codacta, fecha, codtemporada, codgrupo, jornada, nombre_local, escudo_local, goles_local, nombre_visitante, escudo_visitante, goles_visitante, codequipo_local, codequipo_visitante, elo_pre_local, elo_post_local, elo_pre_visitante, elo_post_visitante'
 
 // Historial COMPLETO de partidos jugados del equipo (DESC por fecha). Se usa para la forma (últimos 5) y para las
 // rachas (no hace falta consulta extra: ya se traían todos y se cortaban). Filtrar el propio partido va en getPartido.
@@ -109,7 +114,7 @@ async function enfrentamientos(a: string, b: string, n: number): Promise<Partido
 export async function getPartido(codacta: string): Promise<PartidoFicha | null> {
   if (!/^\d+$/.test(codacta)) return null
   const { data: rRaw } = await supabase.from('web_resultados')
-    .select('id, codacta, codtemporada, codgrupo, jornada, nombre_local, escudo_local, goles_local, goles_visitante, nombre_visitante, escudo_visitante, fecha, hora, campo, codigo_campo, campo_lat, campo_lng, codequipo_local, codequipo_visitante, ronda_slug')
+    .select('id, codacta, codtemporada, codgrupo, jornada, nombre_local, escudo_local, goles_local, goles_visitante, nombre_visitante, escudo_visitante, fecha, hora, campo, codigo_campo, campo_lat, campo_lng, codequipo_local, codequipo_visitante, ronda_slug, elo_pre_local, elo_post_local, elo_pre_visitante, elo_post_visitante')
     .eq('codacta', codacta).maybeSingle()
   const r = rRaw as {
     id: number; codacta: string | null; codtemporada: number; codgrupo: string; jornada: number
@@ -117,6 +122,7 @@ export async function getPartido(codacta: string): Promise<PartidoFicha | null> 
     nombre_visitante: string; escudo_visitante: string | null; fecha: string | null; hora: string | null
     campo: string | null; codigo_campo: string | null; campo_lat: number | null; campo_lng: number | null
     codequipo_local: string | null; codequipo_visitante: string | null; ronda_slug: string | null
+    elo_pre_local: number | null; elo_post_local: number | null; elo_pre_visitante: number | null; elo_post_visitante: number | null
   } | null
   if (!r) return null
 
@@ -264,51 +270,42 @@ export async function getPartido(codacta: string): Promise<PartidoFicha | null> 
       .filter((a) => a.nombre).sort((a, b) => (ROL_ORD[a.rol] ?? 9) - (ROL_ORD[b.rol] ?? 9))
     const entMap = new Map<string, string>(((entRaw.data || []) as Array<{ codequipo: string; nombre: string }>).map((e) => [String(e.codequipo), String(e.nombre)]))
 
-    // #1/#2/#3 Clasificación de ambos equipos. Copa: por codgrupo_familia (codgrupo NUMÉRICO); liga: codgrupo
-    // numérico + codgrupo_familia IS NULL. elo/pos pueden venir NULL (equipo sin histórico) -> "sin dato", nunca 1000.
+    // #1 Pronóstico + #2 "tras el partido": ELO por partido DESDE LA PROPIA FILA (web_resultados.elo_pre/post_*).
+    // Funciona igual en liga, copa y playoff (per-partido, sin cruzar jornadas -> se acabó el "ambos suben" de copa,
+    // que venía de que `jornada` significa cosa distinta en web_resultados (ronda) y web_clasificacion (matchday)).
+    // FUTUROS: elo_pre viene poblado, elo_post null -> hay pronóstico, no hay "tras el partido".
+    // Null genuino si el pipeline no lo tiene (equipo sin histórico previo, ~1% de los partidos): silencio, nunca 1000.
+    const mov = (pre: number | null, post: number | null) => (pre != null && post != null) ? Math.round((post - pre) * 10) / 10 : null
+    const eloPreLocal = r.elo_pre_local ?? null, eloPostLocal = r.elo_post_local ?? null
+    const eloPreVisitante = r.elo_pre_visitante ?? null, eloPostVisitante = r.elo_post_visitante ?? null
+
+    // #3 Contexto de PUESTO (sube/baja del Xº al Yº): sigue de web_clasificacion, SOLO liga (en copa la jornada no
+    // cuadra entre tablas -> null). El ELO ya no depende de esta consulta; se mantiene solo por el puesto.
     const esCopa = String(r.codgrupo).startsWith('fam-')
     const jNum = Number(r.jornada) || 0
     const { data: clRaw } = await supabase.from('web_clasificacion')
-      .select('codequipo, codtemporada, jornada, pos, elo, codgrupo, codgrupo_familia')
-      .in('codequipo', [codeqL, codeqV].filter(Boolean)).lte('codtemporada', r.codtemporada)
-    const clAll = ((clRaw || []) as Array<{ codequipo: string; codtemporada: number; jornada: number; pos: number | null; elo: number | null; codgrupo: string; codgrupo_familia: string | null }>)
-    const enGrupo = (c: { codgrupo: string; codgrupo_familia: string | null }) => esCopa ? c.codgrupo_familia === String(r.codgrupo) : (String(c.codgrupo) === String(r.codgrupo) && c.codgrupo_familia == null)
-    const clasifDe = (cod: string) => {
-      const mias = clAll.filter((c) => String(c.codequipo) === cod && enGrupo(c))
-      if (esCopa) {
-        // OJO: `jornada` NO significa lo mismo en las dos tablas. En web_resultados es el índice de RONDA
-        // (fase de grupos=1, final=2); en web_clasificacion es el MATCHDAY de grupo (1,2,3). Cruzarlas por
-        // número da la fila equivocada SIN dar error (la final leía la progresión de grupos -> ambos ELO
-        // "subían"). Además las eliminatorias no generan fila de clasificación. Por eso en copa:
-        //  - eloPre = ÚLTIMO ELO conocido en la familia (máx jornada de grupo) = el ELO con el que se llega.
-        //  - eloPost/pos = null: no hay "tras el partido" fiable -> mejor no pintar nada que pintar algo falso.
-        //    (Para tenerlo en eliminatorias, el pipeline debería volcar el ELO de equipo por codacta.)
-        const ult = mias.filter((c) => c.elo != null)
-          .sort((a, b) => (b.codtemporada - a.codtemporada) || (b.jornada - a.jornada))[0]
-        return { eloPre: ult?.elo ?? null, eloPost: null, mov: null, posPre: null, posPost: null }
-      }
-      // LIGA: aquí `jornada` SÍ es el matchday en ambas tablas -> el cruce por número es correcto.
-      const post = mias.find((c) => c.codtemporada === r.codtemporada && c.jornada === jNum) || null
-      const preG = mias.find((c) => c.codtemporada === r.codtemporada && c.jornada === jNum - 1) || null
-      let eloPre = preG?.elo ?? null
-      if (eloPre == null) {   // J1 (sin jornada anterior en el grupo): último elo conocido ANTES de este partido
-        const prev = mias.filter((c) => c.elo != null && (c.codtemporada < r.codtemporada || (c.codtemporada === r.codtemporada && c.jornada < jNum)))
-          .sort((a, b) => (b.codtemporada - a.codtemporada) || (b.jornada - a.jornada))[0]
-        eloPre = prev?.elo ?? null
-      }
-      const eloPost = post?.elo ?? null
-      return { eloPre, eloPost, mov: (eloPre != null && eloPost != null) ? Math.round((eloPost - eloPre) * 10) / 10 : null, posPre: preG?.pos ?? null, posPost: post?.pos ?? null }
+      .select('codequipo, jornada, pos, codgrupo, codgrupo_familia')
+      .in('codequipo', [codeqL, codeqV].filter(Boolean)).eq('codtemporada', r.codtemporada)
+    const clAll = ((clRaw || []) as Array<{ codequipo: string; jornada: number; pos: number | null; codgrupo: string; codgrupo_familia: string | null }>)
+    const posDe = (cod: string): { posPre: number | null; posPost: number | null } => {
+      if (esCopa) return { posPre: null, posPost: null }
+      const mias = clAll.filter((c) => String(c.codequipo) === cod && String(c.codgrupo) === String(r.codgrupo) && c.codgrupo_familia == null)
+      const post = mias.find((c) => c.jornada === jNum) || null
+      const preG = mias.find((c) => c.jornada === jNum - 1) || null
+      return { posPre: preG?.pos ?? null, posPost: post?.pos ?? null }
     }
-    const clL = clasifDe(codeqL), clV = clasifDe(codeqV)
+    const posL = posDe(codeqL), posV = posDe(codeqV)
 
     // ΔELO por partido de la FORMA. Solo LIGA: elo[j] − elo[j−1] en web_clasificacion. En copa NO es fiable (la
-    // jornada significa cosa distinta por tabla) -> null, no se pinta. `cod` = el equipo del que es la forma.
+    // ΔELO por partido de la FORMA, DESDE LA PROPIA FILA de cada partido (elo_pre/post_* de web_resultados). Funciona
+    // en liga, copa y playoff por igual -> se acabó la asimetría (un equipo con solo partidos de copa se quedaba sin
+    // ningún Δ). `cod` = el equipo del que es la forma; se toma su lado (local/visitante) en ese partido concreto.
+    // Null genuino si el pipeline no lo tiene (equipo sin histórico previo): silencio, nunca un valor inventado.
     const deltaEloForma = (cod: string, m: PartidoMini): number | null => {
-      if (!m.codgrupo || String(m.codgrupo).startsWith('fam-')) return null
-      const rows = clAll.filter((c) => String(c.codequipo) === cod && String(c.codgrupo) === String(m.codgrupo) && c.codgrupo_familia == null)
-      const post = rows.find((c) => c.codtemporada === m.codtemporada && c.jornada === m.jornada)
-      const pre = rows.find((c) => c.codtemporada === m.codtemporada && c.jornada === (m.jornada as number) - 1)
-      return (post?.elo != null && pre?.elo != null) ? Math.round((post.elo - pre.elo) * 10) / 10 : null
+      const esLocal = m.codLocal === cod
+      const pre = esLocal ? m.eloPreLocal : m.eloPreVisitante
+      const post = esLocal ? m.eloPostLocal : m.eloPostVisitante
+      return (pre != null && post != null) ? Math.round((post - pre) * 10) / 10 : null
     }
     const conElo = (arr: PartidoMini[], cod: string) => arr.filter(actaEq).slice(0, 5).map((m) => ({ ...m, eloDelta: deltaEloForma(cod, m) }))
 
@@ -324,12 +321,12 @@ export async function getPartido(codacta: string): Promise<PartidoFicha | null> 
       rachasVisitante: rachasDe(codeqV, histV.filter(actaEq)),
       h2h: h2h.filter(actaEq).slice(0, 5),
       arbitros, entrenadorLocal: entMap.get(codeqL) ?? null, entrenadorVisitante: entMap.get(codeqV) ?? null,
-      eloPreLocal: clL.eloPre, eloPreVisitante: clV.eloPre,
-      eloPostLocal: clL.eloPost, eloPostVisitante: clV.eloPost,
-      movEloLocal: clL.mov, movEloVisitante: clV.mov,
-      posPreLocal: clL.posPre, posPostLocal: clL.posPost,
-      posPreVisitante: clV.posPre, posPostVisitante: clV.posPost,
+      eloPreLocal, eloPreVisitante,
+      eloPostLocal, eloPostVisitante,
+      movEloLocal: mov(eloPreLocal, eloPostLocal), movEloVisitante: mov(eloPreVisitante, eloPostVisitante),
+      posPreLocal: posL.posPre, posPostLocal: posL.posPost,
+      posPreVisitante: posV.posPre, posPostVisitante: posV.posPost,
       hitos,
     }
-  }, ['getPartido', 'v9-rachas', String(r.codacta)], [String(r.codgrupo)], r.codtemporada)
+  }, ['getPartido', 'v10-elo-fila', String(r.codacta)], [String(r.codgrupo)], r.codtemporada)
 }
