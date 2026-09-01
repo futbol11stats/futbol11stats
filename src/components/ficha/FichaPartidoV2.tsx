@@ -29,6 +29,13 @@ const ptsStyle = (p: number | null) => p == null ? { background: 'rgba(255,255,2
       : p < 0 ? { background: 'var(--card-r)', color: '#fff' }
         : { background: 'rgba(255,255,255,.09)', color: 'var(--ink-2)' }
 
+// "05/09/2026" -> "5 sep" (hero de partido futuro): mes en minúscula, día sin cero a la izquierda.
+const MESES_CORTOS = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic']
+const fechaCorta = (f: string | null): string => {
+  const m = f ? /^(\d{2})\/(\d{2})\/\d{4}$/.exec(f) : null
+  return m ? `${parseInt(m[1], 10)} ${MESES_CORTOS[parseInt(m[2], 10) - 1] ?? ''}`.trim() : (f || '')
+}
+
 // Eventos del jugador CON SU MINUTO (web_partido_eventos); si no hubiera minuto, cae a los conteos.
 function Eventos({ j }: { j: PartidoJugador }) {
   const out: ReactNode[] = []
@@ -298,7 +305,8 @@ function PronoCard({ p }: { p: PartidoFicha }) {
 }
 
 export default function FichaPartidoV2({ p }: { p: PartidoFicha }) {
-  const puedeIcs = !p.jugado && !!p.fecha && /^\d{2}\/\d{2}\/\d{4}$/.test(p.fecha) && !!p.hora && /^\d{1,2}:\d{2}$/.test(p.hora) && p.hora !== '00:00'
+  const tieneHora = !!p.hora && /^\d{1,2}:\d{2}$/.test(p.hora) && p.hora !== '00:00'   // la RFFM publica la hora la semana del partido
+  const puedeIcs = !p.jugado && !!p.fecha && /^\d{2}\/\d{2}\/\d{4}$/.test(p.fecha) && tieneHora
   const icsUrl = `/api/ics/${p.codacta}`
   const googleUrl = puedeIcs ? googleRenderUrl({ title: `${p.local.nombre} vs ${p.visitante.nombre}`, fecha: p.fecha as string, hora: p.hora as string, campo: p.campoNombre, details: `${p.nombreComp} · Jornada ${p.jornada}\n${SITE_URL}/madrid/partido/${partidoSlug(p.codacta, p.local.nombre, p.visitante.nombre)}` }) : null
   const gL = p.golesLocal ?? 0, gV = p.golesVisitante ?? 0
@@ -318,10 +326,20 @@ export default function FichaPartidoV2({ p }: { p: PartidoFicha }) {
             <FormaDots nombre={p.local.nombre} minis={p.formaLocal} />
           </div>
           <div className="mmid">
-            {p.jugado
-              ? <span className="mres"><span style={{ color: colL }}>{gL}</span><span className="sep">-</span><span style={{ color: colV }}>{gV}</span></span>
-              : <span className="mvs">vs</span>}
-            <span className={`pill ${p.jugado ? 'n' : 'live'}`}>{p.jugado ? 'FINAL' : (p.hora || 'Por jugar')}</span>
+            {p.jugado ? (
+              <>
+                <span className="mres"><span style={{ color: colL }}>{gL}</span><span className="sep">-</span><span style={{ color: colV }}>{gV}</span></span>
+                <span className="pill n">FINAL</span>
+              </>
+            ) : (
+              // Estado FUTURO: en vez del hueco del marcador, se enmarca "Próximo partido · fecha · hora". Sin hora
+              // confirmada (la RFFM la publica la semana del partido) se muestra solo la fecha + "Hora por confirmar".
+              <div className="mfut">
+                <span className="mfut-k">Próximo partido</span>
+                <span className="mfut-fh">{p.fecha ? fechaCorta(p.fecha) : 'Fecha por confirmar'}{tieneHora ? <> · <b>{p.hora}</b></> : ''}</span>
+                {p.fecha && !tieneHora && <span className="mfut-sinhora">Hora por confirmar</span>}
+              </div>
+            )}
           </div>
           <div className="mteam">
             <EscudoBox escudo={p.visitante.escudo} nombre={p.visitante.nombre} size={54} radius={12} />
@@ -330,7 +348,8 @@ export default function FichaPartidoV2({ p }: { p: PartidoFicha }) {
           </div>
         </div>
         <div className="mmeta">
-          {(p.fecha || p.hora) && <span>{[p.fecha, p.hora].filter(Boolean).join(' · ')}</span>}
+          {/* Jugado: fecha·hora aquí (bajo el marcador). Futuro: ya va enmarcada en el hero -> aquí solo campo. */}
+          {p.jugado && (p.fecha || p.hora) && <span>{[p.fecha, p.hora].filter(Boolean).join(' · ')}</span>}
           {p.campoNombre && (
             p.campoHref
               ? <a className="hero-campo" href={p.campoHref} {...(p.campoHref.startsWith('/') ? {} : { target: '_blank', rel: 'noopener noreferrer' })}><MapPin size={12} /><span>{p.campoNombre}</span>{p.campoSuperficie && <span className="campo-sup">· <SuperficieCampo superficie={p.campoSuperficie} /></span>}</a>

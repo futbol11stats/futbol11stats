@@ -654,6 +654,10 @@
 /* Marcador enlazable a la ficha de partido (temporada actual). */
 .fjv2 a.rsc.rsc-link{text-decoration:none;transition:background .12s}
 .fjv2 a.rsc.rsc-link:hover{background:rgba(255,255,255,.13)}
+/* "vs" de partido FUTURO enlazado: se ve como enlace (subrayado punteado, discreto pero evidente) para que se
+   descubra que hay ficha detrás; sin la pastilla de fondo del marcador. */
+.fjv2 a.rsc.rsc-vs{background:transparent;color:var(--ink-2);text-decoration:underline;text-decoration-style:dotted;text-underline-offset:3px;font-weight:600}
+.fjv2 a.rsc.rsc-vs:hover{background:rgba(255,255,255,.08);color:var(--ink)}
 /* Botón "Añade este partido a tu calendario" en la línea de metadatos (icono + texto, todo enlace). */
 .fjv2 .rmeta-cal{display:inline-flex;align-items:center;gap:5px;color:var(--ink-4);text-decoration:none;font-weight:600}
 .fjv2 .rmeta-cal:hover{color:var(--e3)}
@@ -676,6 +680,11 @@
 .fpv2 .mres{font-family:var(--font-display),sans-serif;font-weight:700;font-size:40px;line-height:1;font-variant-numeric:tabular-nums;color:var(--ink)}
 .fpv2 .mres .sep{color:var(--ink-4);margin:0 5px}
 .fpv2 .mvs{font-family:var(--font-display),sans-serif;font-weight:700;font-size:var(--n-md);color:var(--ink-3);padding-top:10px}
+/* Hero de partido FUTURO: en el hueco del marcador, "Próximo partido · fecha · hora" (o solo fecha + "Hora por confirmar"). */
+.fpv2 .mfut{display:flex;flex-direction:column;align-items:center;gap:2px;padding-top:2px}
+.fpv2 .mfut-k{font-family:var(--font-display),sans-serif;font-size:var(--t-micro);letter-spacing:.09em;text-transform:uppercase;color:var(--ink-3);font-weight:700}
+.fpv2 .mfut-fh{font-family:var(--font-display),sans-serif;font-size:var(--n-sm);font-weight:700;color:var(--ink);font-variant-numeric:tabular-nums}
+.fpv2 .mfut-sinhora{font-size:var(--t-micro);color:var(--ink-4)}
 .fpv2 .mmeta{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:2px 8px;margin-top:14px;padding-top:11px;border-top:1px solid var(--line);font-size:var(--t-cap);color:var(--ink-3)}
 .fpv2 .mmeta .hero-campo{display:inline-flex;align-items:center;gap:4px;color:inherit;text-decoration:none}
 .fpv2 .mmeta a.hero-campo:hover{color:var(--ink-2);text-decoration:underline;text-decoration-style:dotted}

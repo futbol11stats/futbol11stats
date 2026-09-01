@@ -435,8 +435,9 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
               return <><span style={{ color: cL }}>{gL}</span><span className="rsc-sep">-</span><span style={{ color: cV }}>{gV}</span></>
             })() : 'vs'
             // El marcador enlaza a la ficha del partido SOLO en la temporada actual (T22); el resto queda como hoy.
+            // Futuro (inner='vs'): clase rsc-vs -> se ve como enlace (subrayado punteado), para que se descubra la ficha.
             return codtemporada === 22 && r.codacta
-              ? <Link className="rsc rsc-link" href={`/madrid/partido/${partidoSlug(r.codacta, r.nombre_local, r.nombre_visitante)}`}>{inner}</Link>
+              ? <Link className={`rsc rsc-link${jugado ? '' : ' rsc-vs'}`} href={`/madrid/partido/${partidoSlug(r.codacta, r.nombre_local, r.nombre_visitante)}`}>{inner}</Link>
               : <div className="rsc">{inner}</div>
           })()}
           <div className="rside v">
