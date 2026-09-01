@@ -69,8 +69,8 @@ function Fila({ j }: { j: PartidoJugador }) {
         <div className="pl-nm">{j.href ? <Link href={j.href}>{nombre}</Link> : nombre}</div>
         <div className="pl-me">{j.pos && <Pastilla pos={j.pos} size="mini" />}<Eventos j={j} /><Portero j={j} /></div>
       </div>
-      {j.eloDelta != null && <div className="pl-elo" style={{ color: j.eloDelta >= 0 ? 'var(--e3)' : 'var(--e0)' }} title="Δ ELO del partido">{j.eloDelta >= 0 ? '+' : '−'}{Math.abs(Math.round(j.eloDelta))}</div>}
       <div className="pl-val" style={ptsStyle(j.puntos)}>{j.puntos != null ? j.puntos : '—'}</div>
+      {j.eloDelta != null && <div className="pl-elo" style={{ color: j.eloDelta >= 0 ? 'var(--e3)' : 'var(--e0)' }} title="Δ ELO del partido">{j.eloDelta >= 0 ? '+' : '−'}{Math.abs(Math.round(j.eloDelta))}</div>}
     </div>
   )
 }
@@ -110,7 +110,7 @@ const TeamHead = ({ lado, forma }: { lado: PartidoLado; forma: PartidoMini[] }) 
   </div>
 )
 // #6 encabezado de columna: rotula las dos cifras de la derecha (la leyenda de abajo refuerza).
-const ColsHead = () => <div className="al-cols"><span className="h-elo">Δ ELO</span><span className="h-pts">PTS</span></div>
+const ColsHead = () => <div className="al-cols"><span className="h-pts">PTS</span><span className="h-elo">Δ ELO</span></div>
 // #5 rótulo explícito para distinguirlo del Δ ELO por jugador.
 const MovElo = ({ mov }: { mov: number }) => <div className="al-elo">Movimiento ELO de equipo <b className={mov >= 0 ? 'pos' : 'neg'}>{mov >= 0 ? '+' : ''}{mov.toLocaleString('es-ES', { maximumFractionDigits: 1 })}</b></div>
 // Empareja dos listas por índice hasta la más larga; la posición que falta va null (celda vacía).

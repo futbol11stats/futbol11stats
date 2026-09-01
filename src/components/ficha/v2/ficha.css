@@ -222,6 +222,10 @@
 .fjv2 a.match.match-link{text-decoration:none;color:inherit;transition:background .12s}
 .fjv2 a.match.match-link:hover{background:rgba(255,255,255,.05)}
 .fjv2 a.match.match-link:hover .m-riv{color:var(--ink)}
+/* Encabezado de columnas del bloque de partidos (Pts · ELO), alineado a la derecha sobre las dos pastillas. */
+.fjv2 .m-cols{display:flex;justify-content:flex-end;gap:10px;padding:2px var(--pad) 3px;font-size:var(--t-micro);text-transform:uppercase;letter-spacing:.05em;color:var(--ink-3);font-weight:700}
+.fjv2 .m-cols .mc-pts{width:40px;text-align:center}
+.fjv2 .m-cols .mc-elo{width:34px;text-align:right}
 
 .fjv2 .hito{display:flex;gap:11px;padding:10px var(--pad)}
 .fjv2 .h-dot{width:9px;height:9px;border-radius:50%;background:var(--e3);margin-top:5px;flex:none;position:relative}

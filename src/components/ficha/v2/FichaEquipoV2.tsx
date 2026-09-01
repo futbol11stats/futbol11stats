@@ -18,6 +18,8 @@ import CompChips from '@/components/ficha/v2/CompChips'
 import { faseCompeticion, ordenPorFechaOFase } from '@/lib/competiciones'
 import JornadasEquipo from '@/components/ficha/v2/JornadasEquipo'
 import { FilaEspejo } from '@/components/ficha/v2/barrasGoles'
+import MatchRow from '@/components/ficha/v2/MatchRow'
+import { partidoSlug } from '@/lib/partidoSlug'
 import { TarjetaAmarilla, TarjetaDoble, TarjetaRoja, FlechaEntra, FlechaSale, Promocion, Escudo, Reloj, Balon, Guante, Tabla, Estrella } from '@/components/iconos'
 import { graphLd, breadcrumbLd, sportsTeamLd } from '@/lib/jsonld'
 import { SITE_URL } from '@/lib/seo'
@@ -443,19 +445,21 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
           {ultimos.length > 0 && (
             <section id="s-ultimos">
               <div className="s-head"><h2 className="s-title">Últimos partidos</h2><div className="s-sub">{echoTxt}</div></div>
+              {/* Encabezado de columnas en la cabecera del bloque (como las alineaciones de la ficha de partido): Pts · ELO. */}
+              <div className="m-cols"><span className="mc-pts">Pts</span><span className="mc-elo">ELO</span></div>
               <div>
                 {ultimos.map((m, i) => {
-                  const col = m.signo === 'G' ? 'var(--e3)' : m.signo === 'E' ? 'var(--ink-2)' : 'var(--e0)'
+                  const local = m.esLocal ? e.nombre : m.rivalNombre
+                  const visitante = m.esLocal ? m.rivalNombre : e.nombre
                   return (
-                    <div className="match" key={i}>
-                      <div className="m-score" style={{ color: col }}>{m.marcador}</div>
-                      <EscudoBox escudo={m.rivalEscudo} nombre={m.rivalNombre ?? undefined} size={26} radius={4} />
-                      <div className="m-mid">
-                        <div className="m-riv"><span className="m-vs">vs</span> <NombreEquipo codequipo={null} nombre={m.rivalNombre} /></div>
-                        <div className="m-meta">{m.esLocal != null && <IndicadorLocal esLocal={m.esLocal} />}<span>{m.fecha ? `${fechaCorta(m.fecha)} · ` : ''}J{m.jornada}</span></div>
-                      </div>
-                      <div className="m-pts" style={{ background: m.fan != null ? colorFan(m.fan) : 'var(--pitch-700)' }}>{m.fan}</div>
-                    </div>
+                    <MatchRow key={i}
+                      marcador={m.marcador} signo={m.signo}
+                      rivalEscudo={m.rivalEscudo} rivalNombre={m.rivalNombre} rivalCod={null} esLocal={m.esLocal}
+                      fecha={m.fecha} etiqueta={`J${m.jornada}`}
+                      pts={m.fan} ptsBg={m.fan != null ? colorFan(m.fan) : undefined}
+                      eloDelta={m.eloDelta}
+                      href={m.codacta ? `/madrid/partido/${partidoSlug(m.codacta, local, visitante)}` : null}
+                    />
                   )
                 })}
               </div>

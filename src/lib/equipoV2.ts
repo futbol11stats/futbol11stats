@@ -101,6 +101,8 @@ export type JornadaEquipoDatum = {
   pos: number | null; mov: MovDir
   rivalNombre: string | null; rivalEscudo: string | null
   marcador: string | null; signo: 'G' | 'E' | 'P' | null; esLocal: boolean | null; fecha: string | null
+  codacta: string | null        // -> enlace a la ficha del partido
+  eloDelta: number | null       // ΔELO de equipo del partido (post − pre, del lado del equipo; web_resultados)
 }
 
 // Cruza la serie de clasificación (fantasy/pos/mov) con los resultados del grupo (marcador/rival/localía).
@@ -113,6 +115,7 @@ export function buildJornadasEquipo(serie: ClasifRow[], resultados: ResultadoRow
     const r = resPorJornada.get(c.jornada)
     let rivalNombre: string | null = null, rivalEscudo: string | null = null
     let marcador: string | null = null, signo: 'G' | 'E' | 'P' | null = null, esLocal: boolean | null = null
+    let eloDelta: number | null = null
     if (r) {
       const local = filaEsLocal(r, nombre, codequipo)
       esLocal = local
@@ -121,8 +124,12 @@ export function buildJornadasEquipo(serie: ClasifRow[], resultados: ResultadoRow
       signo = gf > gc ? 'G' : gf < gc ? 'P' : 'E'
       marcador = `${r.goles_local}-${r.goles_visitante}`  // absoluto local-visitante
       rivalNombre = (local ? r.nombre_visitante : r.nombre_local) as string
+      // ΔELO del lado del equipo, desde la propia fila (web_resultados). null genuino si el pipeline no lo tiene.
+      const elPre = local ? r.elo_pre_local : r.elo_pre_visitante
+      const elPost = local ? r.elo_post_local : r.elo_post_visitante
+      eloDelta = (elPre != null && elPost != null) ? Math.round((elPost - elPre) * 10) / 10 : null
     }
-    return { jornada: c.jornada, fan, pos: c.pos, mov: parseMov(c.mov), rivalNombre, rivalEscudo, marcador, signo, esLocal, fecha: r?.fecha ?? null }
+    return { jornada: c.jornada, fan, pos: c.pos, mov: parseMov(c.mov), rivalNombre, rivalEscudo, marcador, signo, esLocal, fecha: r?.fecha ?? null, codacta: r?.codacta ?? null, eloDelta }
   })
 }
 

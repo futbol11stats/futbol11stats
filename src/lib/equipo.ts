@@ -39,6 +39,10 @@ export type ResultadoRow = {
   goles_local: number | null; goles_visitante: number | null
   nombre_local: string; nombre_visitante: string
   codequipo_local: string | null; codequipo_visitante: string | null
+  codacta?: string | null   // -> enlace a la ficha del partido
+  // ELO de equipo POR PARTIDO (denormalizado en web_resultados). ΔELO = post − pre del lado del equipo. Se pobla
+  // en el ciclo del pipeline; hasta entonces son valores viejos/null -> silencio, nunca inventado.
+  elo_pre_local?: number | null; elo_post_local?: number | null; elo_pre_visitante?: number | null; elo_post_visitante?: number | null
 }
 // Perspectiva local/visitante robusta: si el codequipo del equipo casa un lado de la fila, es definitivo; si no
 // casa ninguno (copa sin codequipo, o fila con código REASIGNADO viejo), cae al nombre. El nombre es unívoco
@@ -53,7 +57,7 @@ export function filaEsLocal(r: Pick<ResultadoRow, 'codequipo_local' | 'codequipo
 export async function getResultadosGrupo(codequipo: string | number | null | undefined, nombre: string | null, codgrupo: string | null | undefined): Promise<ResultadoRow[]> {
   if (!codgrupo || (codequipo == null && !nombre)) return []
   return cacheTagged(async () => {
-    const cols = 'jornada, fecha, goles_local, goles_visitante, nombre_local, nombre_visitante, codequipo_local, codequipo_visitante'
+    const cols = 'jornada, fecha, goles_local, goles_visitante, nombre_local, nombre_visitante, codequipo_local, codequipo_visitante, codacta, elo_pre_local, elo_post_local, elo_pre_visitante, elo_post_visitante'
     const base = () => supabase.from('web_resultados').select(cols).eq('codgrupo', String(codgrupo))
     // UNIÓN codequipo ∪ nombre (deduplicada): codequipo casa liga (estable a renombrados); nombre casa copa (sin
     // codequipo) y filas con código REASIGNADO viejo (nombre estable). Dentro del codgrupo el nombre es unívoco,
@@ -69,7 +73,7 @@ export async function getResultadosGrupo(codequipo: string | number | null | und
       if (!seen.has(k)) { seen.add(k); out.push(row) }
     }
     return out
-  }, ['getResultadosGrupo', 'v4-union', String(codequipo ?? ''), String(nombre), String(codgrupo)], [`comp:${codgrupo}`])
+  }, ['getResultadosGrupo', 'v5-elo-acta', String(codequipo ?? ''), String(nombre), String(codgrupo)], [`comp:${codgrupo}`])
 }
 
 // Un chip de racha/forma: signo (para color), jornada, marcador (orden absoluto local-visitante) y
