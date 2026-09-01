@@ -666,8 +666,10 @@
 .fjv2 a.rsc.rsc-link:hover{background:rgba(255,255,255,.13)}
 /* "vs" de partido FUTURO enlazado: se ve como enlace (subrayado punteado, discreto pero evidente) para que se
    descubra que hay ficha detrás; sin la pastilla de fondo del marcador. */
-.fjv2 a.rsc.rsc-vs{background:transparent;color:var(--ink-2);text-decoration:underline;text-decoration-style:dotted;text-underline-offset:3px;font-weight:600}
-.fjv2 a.rsc.rsc-vs:hover{background:rgba(255,255,255,.08);color:var(--ink)}
+/* Partido futuro: en vez de un "vs" mudo, un botón "Previa" que invita a abrir el pronóstico (paleta del cal-btn). */
+.fjv2 a.rsc.rsc-prev{background:transparent;padding:0}
+.fjv2 .rsc-previa{display:inline-block;font-family:var(--font-display),'Barlow Condensed',sans-serif;font-size:var(--t-cap);font-weight:700;letter-spacing:.03em;padding:3px 11px;border-radius:999px;color:#a8f2bd;border:1px solid rgba(140,239,165,.34);background:rgba(140,239,165,.1);white-space:nowrap}
+.fjv2 a.rsc.rsc-prev:hover .rsc-previa{background:rgba(140,239,165,.18)}
 /* Botón "Añade este partido a tu calendario" en la línea de metadatos (icono + texto, todo enlace). */
 .fjv2 .rmeta-cal{display:inline-flex;align-items:center;gap:5px;color:var(--ink-4);text-decoration:none;font-weight:600}
 .fjv2 .rmeta-cal:hover{color:var(--e3)}
@@ -782,14 +784,16 @@
 .fpv2 .prono-barleg span:nth-child(3){color:rgb(249,115,22)}
 .fpv2 .prono-note{text-align:center;margin-top:8px;font-size:var(--t-micro);color:var(--ink-4)}
 /* Rachas: comparación local | etiqueta | visitante (actual grande + récord tenue). Marcando / victorias / invicto. */
-.fpv2 .rachas{padding:2px var(--pad) 4px}
-.fpv2 .rrow{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px;padding:8px 0;border-top:1px solid var(--line-2)}
+.fpv2 .rachas{padding:2px var(--pad) 6px}
+.fpv2 .rrow{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:10px;padding:9px 0;border-top:1px solid var(--line-2)}
 .fpv2 .rrow:first-child{border-top:0}
-.fpv2 .rk{font-family:var(--font-display),sans-serif;font-size:var(--t-cap);text-transform:uppercase;letter-spacing:.04em;color:var(--ink-3);font-weight:600;text-align:center;min-width:76px}
-.fpv2 .rv{display:flex;align-items:baseline;gap:5px;min-width:0}
+.fpv2 .rk{font-family:var(--font-display),sans-serif;font-size:var(--t-cap);text-transform:uppercase;letter-spacing:.04em;color:var(--ink-2);font-weight:700;text-align:center;min-width:82px}
+/* Cada lado es un mini-stat vertical, auto-explicativo: "ahora" (racha en curso) · número grande · "récord N". */
+.fpv2 .rv{display:flex;flex-direction:column;line-height:1.08;min-width:0}
+.fpv2 .rv .r-cap{font-size:var(--t-micro);text-transform:uppercase;letter-spacing:.05em;color:var(--ink-4);font-weight:600}
 .fpv2 .rv b{font-family:var(--font-display),sans-serif;font-weight:700;font-size:var(--n-sm);color:var(--ink);font-variant-numeric:tabular-nums}
-.fpv2 .rv i{font-style:normal;font-size:var(--t-micro);color:var(--ink-4);white-space:nowrap}
-.fpv2 .rv-v{justify-content:flex-end;text-align:right}
+.fpv2 .rv .r-rec{font-size:var(--t-micro);color:var(--ink-3);white-space:nowrap}
+.fpv2 .rv-v{align-items:flex-end;text-align:right}
 /* Forma reciente: dos columnas (una por equipo) TAMBIÉN en móvil, con fila compacta rival+marcador+Δ ELO. */
 .fpv2 .forma-2col{display:grid;grid-template-columns:1fr 1fr}
 .fpv2 .forma-2col .forma-col{min-width:0}   /* imprescindible: si no, la track se expande al nombre y desborda */

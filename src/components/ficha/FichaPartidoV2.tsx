@@ -432,12 +432,12 @@ export default function FichaPartidoV2({ p }: { p: PartidoFicha }) {
             {([
               ['Marcando', p.rachasLocal.marcandoAct, p.rachasLocal.marcandoRec, p.rachasVisitante.marcandoAct, p.rachasVisitante.marcandoRec],
               ['Victorias', p.rachasLocal.victoriasAct, p.rachasLocal.victoriasRec, p.rachasVisitante.victoriasAct, p.rachasVisitante.victoriasRec],
-              ['Invicto', p.rachasLocal.invictoAct, p.rachasLocal.invictoRec, p.rachasVisitante.invictoAct, p.rachasVisitante.invictoRec],
+              ['Sin perder', p.rachasLocal.invictoAct, p.rachasLocal.invictoRec, p.rachasVisitante.invictoAct, p.rachasVisitante.invictoRec],
             ] as const).map(([k, la, lr, va, vr]) => (
               <div className="rrow" key={k}>
-                <span className="rv"><b>{la}</b><i>Réc {lr}</i></span>
+                <span className="rv"><span className="r-cap">ahora</span><b>{la}</b><span className="r-rec">récord {lr}</span></span>
                 <span className="rk">{k}</span>
-                <span className="rv rv-v"><b>{va}</b><i>Réc {vr}</i></span>
+                <span className="rv rv-v"><span className="r-cap">ahora</span><b>{va}</b><span className="r-rec">récord {vr}</span></span>
               </div>
             ))}
           </div>
