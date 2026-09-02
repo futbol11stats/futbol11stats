@@ -1,11 +1,11 @@
 import type { ReactNode } from 'react'
-import { inicialesJugador, avaStyle } from '@/components/ficha/v2/jugadorFila'
+import PlayerAvatar from '@/components/ui/PlayerAvatar'
+import { partirNombre } from '@/lib/nombre'
 
 // XI Óptimo sobre campo, compartido por ficha de grupo y global: colores por demarcación (maqueta) +
 // formación deducida contando posiciones. El pipeline entrega la posición (POR/DEF/MED/DEL) y el orden.
 export const POSC: Record<string, string> = { POR: '#f0b429', DEF: '#9ac4f1', MED: '#8cefa5', DEL: '#f2a3c0' }
 const LINE_Y: Record<string, number> = { POR: 88, DEF: 70, MED: 48, DEL: 24 }
-const iniXI = inicialesJugador
 
 export function campoXI(players: { posicion: string; nombre: string; valor: number | string }[]) {
   const byLine: Record<string, typeof players> = { POR: [], DEF: [], MED: [], DEL: [] }
@@ -18,9 +18,10 @@ export function campoXI(players: { posicion: string; nombre: string; valor: numb
       const col = POSC[line] || '#9ac4f1'
       dots.push(
         <div className="xi-p" style={{ left: `${x}%`, top: `${LINE_Y[line]}%` }} key={`${line}-${i}`}>
-          {/* Sin nombre en el campo: solo la MISMA pastilla de iniciales del héroe del jugador (avaStyle). El
-              listado de los 11 va al lado con los nombres completos, así que no se pierde nada. */}
-          <div className="av" style={avaStyle(p.posicion)}>{iniXI(p.nombre)}</div>
+          {/* La MISMA pastilla de iniciales del héroe de la ficha de jugador (PlayerAvatar), con el nombre de
+              pila debajo (como estaba). No es una variante nueva: es el componente compartido. */}
+          <PlayerAvatar nombre={p.nombre} pos={p.posicion} size={34} style={{ margin: '0 auto' }} />
+          <div className="nm">{partirNombre(p.nombre).pila}</div>
           <div className="vv" style={{ color: col }}>{p.valor}</div>
         </div>,
       )

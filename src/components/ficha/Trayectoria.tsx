@@ -61,9 +61,8 @@ function PartidoFila({ p, portero }: { p: any; portero: boolean }) {
             ? <span className="inline-flex items-center justify-center w-5 h-5 bg-white rounded-sm flex-shrink-0 p-px"><EscudoImg escudo={p.rival_escudo} nombre={p.rival_nombre ?? undefined} /></span>
             : <span className="w-5 h-5 flex-shrink-0" />}
           <span className="truncate min-w-0 font-display">{nombreEquipo(p.rival_nombre)}</span>
-        </div>
-        <div className="sm:hidden flex items-center gap-1.5 pl-7 mt-0.5 text-[length:var(--t-micro)] whitespace-nowrap">
-          <span className={`font-semibold ${colorSigno(signo)}`}>{marcador}</span>
+          {/* Móvil: el marcador va JUNTO al rival (no debajo del escudo). En desktop vive en su columna (Comp.). */}
+          <span className={`sm:hidden flex-shrink-0 font-semibold tabular-nums ${colorSigno(signo)}`}>{marcador}</span>
         </div>
       </td>
       {/* COMP -> resultado coloreado (desktop) */}

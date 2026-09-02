@@ -41,6 +41,7 @@ import MatchRow from '@/components/ficha/v2/MatchRow'
 import { partidoSlug } from '@/lib/partidoSlug'
 import Badge11 from '@/components/ui/Badge11'
 import FormaStrip from '@/components/ui/FormaStrip'
+import PlayerAvatar from '@/components/ui/PlayerAvatar'
 import { getSueloVivo } from '@/lib/temporadas'
 import {
   getJugadorV2, getCarreraV2, getAlertaActual, getAmbitoTemporada, getCortesElo, labelToCod,
@@ -62,12 +63,8 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
   const apellidos = (rawNombre.split(',')[0] || '').trim().toUpperCase()
   const pila = ((rawNombre.split(',')[1] || '').trim() || apellidos).toUpperCase()
   const nombre = nombreCompleto(j.nombre)
-  const ini = ((pila[0] || '') + (apellidos[0] || '')).toUpperCase()
-  // Color del avatar por demarcación, como en la ficha antigua (AVATAR_POS en [slug]/page.tsx):
-  // gradiente + aro por posición (POR naranja, DEF azul, MED verde, DEL rojo), texto blanco.
-  const AVA_POS: Record<string, string> = { POR: '249,115,22', DEF: '59,130,246', MED: '34,160,80', DEL: '239,68,68' }
-  const avaRGB = AVA_POS[j.posicion_pastilla || ''] || '100,116,139'
-  const avatarStyle = { background: `linear-gradient(to bottom right, rgba(${avaRGB},.45), var(--pitch-800))`, border: `2px solid rgba(${avaRGB},.6)` }
+  // El avatar del héroe es ya el componente compartido PlayerAvatar (misma pastilla que el XI): gradiente +
+  // aro por demarcación + iniciales. Ver más abajo en el render.
   const slug = jugadorSlug(j.codjugador, j.nombre)
   const portero = !!j.es_portero
   const inactivo = Number(j.codtemporada_ultima) < suelo
@@ -327,7 +324,7 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
       {/* 1 · HERO */}
       <div className="hero">
         <div className="hero-top">
-          <div className="avatar" style={avatarStyle}>{ini}{j.dorsal_ultimo != null && <div className="dorsal">{j.dorsal_ultimo}</div>}</div>
+          <PlayerAvatar nombre={j.nombre} pos={j.posicion_pastilla} className="avatar">{j.dorsal_ultimo != null && <div className="dorsal">{j.dorsal_ultimo}</div>}</PlayerAvatar>
           <h1 className="hero-name">
             <span className="first">{pila}</span>
             <span className="last">{apellidos}</span>

@@ -437,15 +437,16 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
             <span className={`rnm${jugado && (r.goles_local as number) > (r.goles_visitante as number) ? ' w' : ''}`}><NombreEquipo codequipo={equiposMap.get(r.nombre_local) ?? null} nombre={r.nombre_local} /></span>
           </div>
           {(() => {
-            const linkable = codtemporada === 22 && r.codacta
+            const tieneFicha = !!r.codacta
             const inner = jugado ? (() => {
               const gL = r.goles_local as number, gV = r.goles_visitante as number
               const cL = gL > gV ? 'var(--e3)' : gL < gV ? 'var(--e0)' : 'var(--ink-2)'
               const cV = gV > gL ? 'var(--e3)' : gV < gL ? 'var(--e0)' : 'var(--ink-2)'
               return <><span style={{ color: cL }}>{gL}</span><span className="rsc-sep">-</span><span style={{ color: cV }}>{gV}</span></>
-            })() : (linkable ? <span className="rsc-previa">Previa</span> : 'vs')
-            // Jugado -> marcador (enlaza en T22). Futuro con ficha (T22) -> botón "Previa" que abre el pronóstico;
-            // sin ficha -> "vs" plano. El marcador enlaza a la ficha del partido SOLO en la temporada actual.
+            })() : (tieneFicha && codtemporada === 22 ? <span className="rsc-previa">Previa</span> : 'vs')
+            // JUGADO con acta -> el marcador abre la ficha del partido en CUALQUIER temporada (las fichas son ISR).
+            // FUTURO con acta en la temporada actual (T22) -> botón "Previa" (pronóstico). Sin acta -> "vs" plano.
+            const linkable = tieneFicha && (jugado || codtemporada === 22)
             return linkable
               ? <Link className={`rsc rsc-link${jugado ? '' : ' rsc-prev'}`} href={`/madrid/partido/${partidoSlug(r.codacta as string, r.nombre_local, r.nombre_visitante)}`}>{inner}</Link>
               : <div className="rsc">{inner}</div>
