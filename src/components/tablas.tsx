@@ -9,6 +9,7 @@ import Pastilla from '@/components/Pastilla'
 import { TarjetaAmarilla, TarjetaDoble, TarjetaRoja } from '@/components/iconos'
 import type { FichaInfo } from '@/lib/jugador'
 import { fmtNum } from '@/lib/formato'
+import StatTable, { type StatCol, type StatIdent } from '@/components/ui/StatTable'
 
 // Iconos de tarjeta (SVG del sitio, nunca emoji): amarilla/doble en var(--card-y), roja en var(--card-r).
 // Tamaños homogéneos con las fichas v2 (12 amarilla/roja, 13 doble).
@@ -234,74 +235,48 @@ export function ResultadosTab({ resultados, jornada, equipos }: { resultados: an
   )
 }
 
+// Demarcación para la pastilla: pos autoritativa de la ficha si existe; si no, la del ranking. Misma
+// lógica que PosCell, extraída para la config de StatTable (que resuelve la pastilla en la identidad).
+function posDe(j: any, fichas?: Fichas): { pos: string | null; estimada?: boolean } {
+  const info = fichas?.get(String(j.codjugador))
+  return { pos: info?.pos ?? (j.posicion && j.posicion !== '—' ? j.posicion : null), estimada: info?.estimada }
+}
+// Identidad de jugador compartida por casi todas las tablas: rango + escudo + pastilla + nombre + grupo.
+function identJugador(fichas?: Fichas): StatIdent<any> {
+  return {
+    head: 'Jugador',
+    rank: (j, i) => j.rank ?? i + 1,
+    cod: (j) => j.codjugador,
+    nombre: (j) => j.nombre,
+    pos: (j) => posDe(j, fichas),
+    escudo: (j) => j.escudo,
+    grupo: (j) => j.grupo,
+    equipoNombre: (j) => j.nombre_equipo,
+    equipoCod: (j) => j.codequipo,
+  }
+}
+const keyJE = (j: any) => `${j.codjugador}-${j.codequipo}`
+
 export function JugadoresTab({ jugadores, tipo, fichas }: { jugadores: any[]; tipo: string; fichas?: Fichas }) {
-  return (
-    <>
-    <div className="bg-pitch-800 rounded-xl border border-pitch-700 overflow-x-auto">
-      <table className="w-full tabla-clasificacion">
-        <thead>
-          <tr className="border-b border-pitch-700">
-            <th className="text-left w-8">#</th>
-            <th className="text-left w-12">Pos</th>
-            <th className="text-left">Jugador</th>
-            <th className="text-left w-10"></th>
-            <th className="text-left hidden md:table-cell">Equipo</th>
-            {tipo === 'goleadores' ? (
-              <>
-                <th className="text-grass-400">Goles</th>
-                <th>PJ</th>
-                <th className="hidden md:table-cell">Partidos con gol</th>
-                <th className="hidden md:table-cell">Goles/PJ</th>
-                <th className="hidden md:table-cell">Min/Gol</th>
-              </>
-            ) : (
-              <>
-                <th>PJ</th>
-                <th className="text-grass-400">PF</th>
-                <th className="hidden md:table-cell">Media</th>
-              </>
-            )}
-          </tr>
-        </thead>
-        <tbody>
-          {jugadores.map(j => (
-            <tr key={`${j.codjugador}-${j.codequipo}`} className="border-b border-pitch-700/50 last:border-0">
-              <td className="text-chalk-600 font-mono text-xs">{j.rank}</td>
-              <PosCell j={j} fichas={fichas} />
-              <td className="col-nombre font-medium text-white"><span className="flex items-center gap-2 min-w-0"><span className="truncate min-w-0 flex-1"><NombreJugador codjugador={j.codjugador} nombre={j.nombre} fichas={fichas} /></span><GrupoBadge grupo={j.grupo} /></span></td>
-              <EscudoCell escudo={j.escudo} nombre={j.nombre_equipo} />
-              <td className="text-chalk-600 hidden md:table-cell text-xs"><NombreEquipo codequipo={j.codequipo} nombre={j.nombre_equipo} /></td>
-              {tipo === 'goleadores' ? (
-                <>
-                  <td className="text-center font-bold text-white">{j.goles}</td>
-                  <td className="text-center text-chalk-600">{j.pj}</td>
-                  <td className="text-center text-chalk-600 hidden md:table-cell">{j.partidos_con_gol ?? '—'}</td>
-                  <td className="text-center text-chalk-600 hidden md:table-cell">{j.goles_pj?.toFixed(2)}</td>
-                  <td className="text-center text-chalk-600 hidden md:table-cell">{j.min_gol != null ? j.min_gol : '—'}</td>
-                </>
-              ) : (
-                <>
-                  <td className="text-center text-chalk-600">{j.pj}</td>
-                  <td className="text-center font-bold text-white">{j.pts_fantasy}</td>
-                  <td className="text-center text-chalk-600 hidden md:table-cell">{j.media_fantasy?.toFixed(1)}</td>
-                </>
-              )}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-    {tipo === 'goleadores' ? (
-      <p className="mt-2 text-xs text-chalk-600 leading-relaxed">
-        <strong>Pos</strong> Demarcación del jugador (POR · DEF · MED · DEL) · <strong>PJ</strong> Partidos jugados · <strong>Goles</strong> Goles marcados · <strong>Partidos con gol</strong> Partidos en los que marcó al menos un gol · <strong>Goles/PJ</strong> Goles marcados por partido jugado · <strong>Min/Gol</strong> Minutos jugados por gol marcado
-      </p>
-    ) : (
-      <p className="mt-2 text-xs text-chalk-600 leading-relaxed">
-        <strong>Pos</strong> Demarcación del jugador (POR · DEF · MED · DEL) · <strong>PJ</strong> Partidos jugados · <strong>PF</strong> Puntos acumulados en el sistema fantasy · <strong>Media</strong> Puntos por partido
-      </p>
-    )}
-    </>
+  const cols: StatCol<any>[] = tipo === 'goleadores'
+    ? [
+        { key: 'goles', head: 'Goles', accent: true, cell: (j) => j.goles },
+        { key: 'pj', head: 'PJ', cell: (j) => j.pj },
+        { key: 'pcg', head: 'Partidos con gol', cell: (j) => j.partidos_con_gol ?? '—' },
+        { key: 'gpj', head: 'Goles/PJ', cell: (j) => j.goles_pj?.toFixed(2) },
+        { key: 'mingol', head: 'Min/Gol', cell: (j) => (j.min_gol != null ? j.min_gol : '—') },
+      ]
+    : [
+        { key: 'pj', head: 'PJ', cell: (j) => j.pj },
+        { key: 'pf', head: 'PF', accent: true, cell: (j) => j.pts_fantasy },
+        { key: 'media', head: 'Media', cell: (j) => j.media_fantasy?.toFixed(1) },
+      ]
+  const leyenda = tipo === 'goleadores' ? (
+    <><strong>Pos</strong> Demarcación del jugador (POR · DEF · MED · DEL) · <strong>PJ</strong> Partidos jugados · <strong>Goles</strong> Goles marcados · <strong>Partidos con gol</strong> Partidos en los que marcó al menos un gol · <strong>Goles/PJ</strong> Goles marcados por partido jugado · <strong>Min/Gol</strong> Minutos jugados por gol marcado</>
+  ) : (
+    <><strong>Pos</strong> Demarcación del jugador (POR · DEF · MED · DEL) · <strong>PJ</strong> Partidos jugados · <strong>PF</strong> Puntos acumulados en el sistema fantasy · <strong>Media</strong> Puntos por partido</>
   )
+  return <StatTable rows={jugadores} cols={cols} rowKey={keyJE} ident={identJugador(fichas)} fichas={fichas} leyenda={leyenda} />
 }
 
 export function EloTemporadaTab({ jugadores, fichas }: { jugadores: any[]; fichas?: Fichas }) {
