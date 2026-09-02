@@ -62,28 +62,13 @@ function normTokEquipo(tok: string, i: number): string {
   return i > 0 && MINUS.has(low) ? low : cap(low)
 }
 
-// Forma jurídica del club: sigla de letras con puntos (C.F., S.A.D., A.D., F.C., U.D., C.D., R.C.D.…).
-const ES_SIGLA_JURIDICA = (t: string) => /^([A-ZÁÉÍÓÚ]\.)+$/.test(t)
-// Filial: letra suelta entre comillas ('A', 'B', 'C') — SIEMPRE se conserva (distingue de verdad).
-const ES_FILIAL = (t: string) => /^['"][A-ZÁÉÍÓÚ]['"]$/.test(t)
-
-// Nombre de EQUIPO ÚNICO del sitio (capitalización normal, sin truncar). Se QUITA la forma jurídica
-// (C.F., S.A.D., A.D.…) — no aporta nada al aficionado y es lo primero que sobra — conservando SIEMPRE la
-// letra del filial ('A'/'B'). Último recurso si aún es muy largo: quitar la localidad (" de <sitio>").
-// "LAS ROZAS C.F. 'A'" -> "Las Rozas 'A'"; "C.D.A. NAVALCARNERO 'A'" -> "Navalcarnero 'A'". El slug del
-// enlace se calcula aparte con el nombre COMPLETO, así que no se rompen URLs.
+// Nombre de EQUIPO ÚNICO del sitio: capitalización normal respetando siglas (C.F., S.A.D., 'A') y
+// preposiciones, y NADA MÁS. El nombre va SIEMPRE COMPLETO — no se abrevia ni se recorta: abreviar hace
+// que algunos equipos pierdan el nombre por el que se les conoce ("San Sebastián de los Reyes" no es
+// "San Sebastián Reyes"). Si en algún sitio no cabe, se resuelve por DISEÑO (menos columnas, otra
+// densidad, o el escudo sin nombre donde el contexto ya dice de qué equipo se trata), nunca recortando.
+// "LAS ROZAS C.F. 'A'" -> "Las Rozas C.F. 'A'". Ver MANUAL_DE_ESTILO.md.
 export function nombreEquipo(raw: string | null | undefined): string {
-  if (!raw) return ''
-  const toks = raw.split(/\s+/).filter(Boolean)
-  const kept = toks.filter((t) => ES_FILIAL(t) || !ES_SIGLA_JURIDICA(t))
-  let out = kept.map((t, i) => normTokEquipo(t, i)).join(' ').trim()
-  if (out.length > 26) out = out.replace(/\sde\s+\S+/i, '').trim() // último recurso: fuera la localidad
-  return out
-}
-
-// Nombre de equipo COMPLETO (con forma jurídica), Title Case. Para contextos con sitio de sobra si hiciera
-// falta; por defecto se usa el corto (nombreEquipo).
-export function nombreEquipoCompleto(raw: string | null | undefined): string {
   if (!raw) return ''
   return raw.split(/\s+/).filter(Boolean).map((t, i) => normTokEquipo(t, i)).join(' ')
 }

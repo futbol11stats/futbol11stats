@@ -21,10 +21,13 @@ el catálogo (en tandas), no al final. Vive junto a [`PROTOCOLO.md`](./PROTOCOLO
    - **Excepción explícita y razonada — el HÉROE.** El titular de la ficha (jugador/equipo) va en
      MAYÚSCULAS y ocupa una línea entera: ahí funciona como **marca**, no como fila apretada. La regla
      del "nunca truncar / nunca mayúsculas" nace de las listas densas, no del titular. No es un descuido.
-   - **Nombre de EQUIPO.** Se quita la **forma jurídica** (`C.F.`, `S.A.D.`, `A.D.`…) — no aporta nada al
-     aficionado y es lo primero que sobra — conservando **siempre** la letra del filial (`'A'`, `'B'`).
-     Solo como **último recurso**, si aún no cabe, se quita la localidad (`de Madrid`). Nunca ellipsis.
-     El enlace usa el nombre completo para el slug (no se rompen URLs).
+   - **Nombre de EQUIPO — va SIEMPRE COMPLETO.** La regla de "nunca truncar" aplica a **personas**; los
+     equipos **ni se abrevian ni se recortan**. Abreviar les hace perder el nombre por el que se les
+     conoce (`San Sebastián de los Reyes` no es `San Sebastián Reyes`; `Club Atlético` a secas no dice
+     nada). Solo se aplica capitalización normal respetando siglas y preposiciones
+     (`LAS ROZAS C.F. 'A'` → `Las Rozas C.F. 'A'`).
+     **Si en algún sitio no cabe, se resuelve por DISEÑO, no recortando el nombre:** menos columnas, otra
+     densidad, o **el escudo sin nombre** donde el contexto ya dice de qué equipo se trata.
 3. **Un concepto, un icono, en todo el sitio.** Nada de gol=SVG aquí y emoji allá.
 4. **Puntos primero, ELO después.** El fantasy es el dato principal; el ELO, su efecto.
 5. **Silencio antes que dato dudoso.** Un valor ausente no se pinta (ni `0`, ni `1000`, ni `—` cuando
