@@ -1,8 +1,8 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import Link from 'next/link'
 import { MapPin } from 'lucide-react'
+import EntityCard from '@/components/ui/EntityCard'
 
 export type CampoCard = { codigo: string; nombre: string; localidad: string | null; provincia: string | null; nEquipos: number; href: string }
 
@@ -52,15 +52,12 @@ export default function CamposLista({ campos }: { campos: CampoCard[] }) {
       <ul className="grid sm:grid-cols-2 lg:grid-cols-3 gap-2">
         {filtrados.map((c) => (
           <li key={c.codigo}>
-            <Link href={c.href} className="flex items-center gap-3 p-2.5 rounded-lg bg-pitch-800 border border-pitch-700 hover:border-grass-500/50 transition-colors">
-              <span className="w-[34px] h-[34px] rounded-md bg-pitch-700 flex-none inline-flex items-center justify-center text-chalk-500"><MapPin size={17} strokeWidth={2.25} /></span>
-              <span className="min-w-0">
-                <span className="block text-sm font-semibold text-white truncate">{c.nombre}</span>
-                <span className="block text-xs text-chalk-600 truncate">
-                  {[c.localidad, `${c.nEquipos} equipo${c.nEquipos !== 1 ? 's' : ''}`].filter(Boolean).join(' · ')}
-                </span>
-              </span>
-            </Link>
+            <EntityCard
+              href={c.href}
+              icon={<span className="w-[34px] h-[34px] rounded-md bg-pitch-700 flex-none inline-flex items-center justify-center text-chalk-500"><MapPin size={17} strokeWidth={2.25} /></span>}
+              title={c.nombre}
+              subtitle={[c.localidad, `${c.nEquipos} equipo${c.nEquipos !== 1 ? 's' : ''}`].filter(Boolean).join(' · ')}
+            />
           </li>
         ))}
       </ul>

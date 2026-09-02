@@ -3,12 +3,10 @@ export const revalidate = 2592000  // ISR 30d (Fluid CPU free tier): contenido c
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import JsonLd from '@/components/JsonLd'
-import Sello from '@/components/Sello'
-import { familiaSello, nombreOficial } from '@/lib/sellos'
 import { graphLd, websiteLd, organizationLd } from '@/lib/jsonld'
-import { ORDEN_AFICIONADOS, ORDEN_JUVENILES, segRondaActual, numRondas } from '@/lib/competiciones'
+import { ORDEN_AFICIONADOS, ORDEN_JUVENILES } from '@/lib/competiciones'
+import CompeticionCard from '@/components/ui/CompeticionCard'
 import { getGruposIndice } from '@/lib/temporadas'
-import { codToSlug } from '@/lib/temporadaSlug'
 
 // Marca neutral con Madrid como ámbito ACTUAL (preparada para ampliar a otras federaciones).
 export const metadata: Metadata = {
@@ -140,61 +138,3 @@ export default async function Home() {
   )
 }
 
-function CompeticionCard({
-  nombre,
-  grupos,
-  categoria,
-}: {
-  nombre: string
-  grupos: { codtemporada: number; codgrupo: string; nombre_grupo: string; jornada_actual: number; slug_comp: string; slug_grupo: string; tipo?: string; rondas?: unknown }[]
-  categoria: string
-}) {
-  // Temporada de ESTA competición (todos sus grupos comparten temporada activa). Sustituye al '2025-26' global.
-  const temp = codToSlug(grupos[0].codtemporada)
-  const nombreCorto: Record<string, string> = {
-    '3ª RFEF Madrid': '3ª RFEF',
-    '1ª Autonómica Madrid': '1ª Autonómica',
-    'Preferente Madrid': 'Preferente',
-    '1ª Aficionados Madrid': '1ª Aficionados',
-    '2ª Aficionados Madrid': '2ª Aficionados',
-    'Nacional Juvenil Madrid': 'Nacional Juvenil',
-    '1ª Autonómica Juvenil Madrid': '1ª Autonómica',
-    'Preferente Juvenil Madrid': 'Preferente',
-    '1ª Juvenil Madrid': '1ª Juvenil',
-    '2ª Juvenil Madrid': '2ª Juvenil',
-  }
-  // Sello por FAMILIA (fam-*: slug_comp = slug de familia) -> las Copa 1ª Autonómica llevan botón RFFM.
-  const famSlug = grupos.find((g) => String(g.codgrupo).startsWith('fam-'))?.slug_comp
-  const titulo = nombreOficial(nombre) ?? (nombreCorto[nombre] || nombre)
-
-  return (
-    <div className="bg-pitch-800 rounded-xl border border-pitch-700 overflow-hidden hover:border-grass-500/50 transition-colors">
-      <div className="px-4 py-3 border-b border-pitch-700 flex items-center justify-between">
-        <span className="font-semibold text-white text-sm flex items-center gap-2"><Sello nombreComp={nombre} src={famSlug ? familiaSello(famSlug, nombre) : undefined} size={24} />{titulo}</span>
-        <span className="text-xs text-chalk-600">{temp} · {grupos.length} grupo{grupos.length !== 1 ? 's' : ''}</span>
-      </div>
-      <div className="px-4 py-2 flex flex-wrap gap-2">
-        {grupos.length > 1 && (
-          <Link
-            href={`/madrid/${categoria}/${grupos[0].slug_comp}/global/${temp}/jornada-${grupos[0].jornada_actual}/clasificacion`}
-            className="text-xs bg-grass-500/15 hover:bg-grass-500 text-grass-300 hover:text-white px-3 py-1.5 rounded-md transition-colors border border-grass-500/30 font-semibold"
-          >
-            Global
-          </Link>
-        )}
-        {grupos.map(g => {
-          const esCopa = !!g.tipo && g.tipo !== 'LIGA'
-          const entrada = esCopa ? 'resultados' : 'clasificacion'
-          return (
-          <Link
-            key={g.codgrupo}
-            href={`/madrid/${categoria}/${g.slug_comp}/${g.slug_grupo}/${codToSlug(g.codtemporada)}/${esCopa ? segRondaActual(g) : `jornada-${g.jornada_actual}`}/${entrada}`}
-            className="text-xs bg-pitch-700 hover:bg-grass-500 text-chalk-200 hover:text-white px-3 py-1.5 rounded-md transition-colors"
-          >
-            {esCopa ? `Ver competición · ${numRondas(g)} ronda${numRondas(g) === 1 ? '' : 's'}` : `${g.nombre_grupo} · J${g.jornada_actual}`}
-          </Link>
-        )})}
-      </div>
-    </div>
-  )
-}

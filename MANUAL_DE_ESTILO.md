@@ -112,8 +112,15 @@ y el CSS de las fichas consumen estas variables; **resuelven en todo el sitio**.
 Helpers de nombre: **`src/lib/nombre.ts`** — `abreviaNombre` (por defecto), `nombreCompleto` (héroe),
 `inicialesNombre` (avatar), `nombreEquipo`. No volver a escribir `formatNombre(...).split(...)` inline.
 
-### Filas y tablas (Tanda 2) — _pendiente_
-`PlayerRow`, `StatTable`, `EntityCard`, `MatchRow` (ya existe).
+### Filas y tablas (Tanda 2)
+
+| Componente | Resuelve | Sustituye a | Uso |
+|---|---|---|---|
+| **`EntityCard`** ✅ | tarjeta-fila de directorio (icono + título + subtítulo) | `ClubesLista` y `CamposLista` (gemelas; solo cambiaba el icono) | /clubes, /campos |
+| **`CompeticionCard`** ✅ | tarjeta de competición (sello + título + chips a grupos) | 3 copias casi literales (home, /aficionados, /juveniles) | índices; `categoria` por prop, leyenda histórica opcional |
+| **`MatchRow`** ✅ | fila de "partido reciente" | (ya existía, Fase 3) | equipo/jugador/partido |
+| **`PlayerRow`** — _pendiente_ | fila `.pl` de jugador | 5 reimplementaciones (FilaJugador + plantilla ×2 + alineación + técnico) | usará PlayerAvatar/PlayerName/Pastilla/PointPill/EloDelta |
+| **`StatTable`** — _pendiente_ | tabla dirigida por config de columnas | ~11 tablas gemelas de `tablas.tsx` | móvil: 1ª col fija + scroll; escritorio: todo visible |
 
 ### Cabeceras y layout (Tanda 3) — _pendiente_
 `EntityHero`, `PageLayout` (con aside), `SectionHeader`, `TabBar`.

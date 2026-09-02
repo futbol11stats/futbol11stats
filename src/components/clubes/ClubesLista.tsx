@@ -1,8 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import Link from 'next/link'
 import EscudoBox from '@/components/ficha/v2/EscudoBox'
+import EntityCard from '@/components/ui/EntityCard'
 import type { ClubIndexRow } from '@/lib/club'
 
 type ClubCard = ClubIndexRow & { href: string }
@@ -39,17 +39,14 @@ export default function ClubesLista({ clubes }: { clubes: ClubCard[] }) {
       <ul className="grid sm:grid-cols-2 lg:grid-cols-3 gap-2">
         {filtrados.map((c) => (
           <li key={c.codclub}>
-            <Link href={c.href} className="flex items-center gap-3 p-2.5 rounded-lg bg-pitch-800 border border-pitch-700 hover:border-grass-500/50 transition-colors">
-              {c.escudo
+            <EntityCard
+              href={c.href}
+              icon={c.escudo
                 ? <EscudoBox escudo={c.escudo} nombre={c.nombre} size={34} radius={7} />
                 : <span className="w-[34px] h-[34px] rounded-md bg-pitch-700 flex-none inline-flex items-center justify-center text-[length:var(--t-micro)] font-bold text-chalk-500">{inicial(c.nombre)}</span>}
-              <span className="min-w-0">
-                <span className="block text-sm font-semibold text-white truncate">{c.nombre}</span>
-                <span className="block text-xs text-chalk-600 truncate">
-                  {[c.localidad, `${c.nEquipos} equipo${c.nEquipos !== 1 ? 's' : ''}`].filter(Boolean).join(' · ')}
-                </span>
-              </span>
-            </Link>
+              title={c.nombre}
+              subtitle={[c.localidad, `${c.nEquipos} equipo${c.nEquipos !== 1 ? 's' : ''}`].filter(Boolean).join(' · ')}
+            />
           </li>
         ))}
       </ul>
