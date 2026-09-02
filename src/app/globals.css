@@ -81,9 +81,26 @@ body {
 ::-webkit-scrollbar-thumb { background: #142952; border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: #1a7a3c; }
 
-/* Escala tipográfica (variables). Consumida por los componentes nuevos vía var(--t-*), var(--n-*),
-   var(--h-sec). En pantallas anchas (>=1000px) sube un paso entera. No altera nada de lo anterior. */
+/* ─────────────────────────────────────────────────────────────────────────────
+   TOKENS DE DISEÑO — FUENTE ÚNICA (ver MANUAL_DE_ESTILO.md).
+   Antes vivían duplicados en .fjv2 (ficha.css); ahora en :root para que TODO el sitio
+   —fichas v2, tablas legacy, directorios y los componentes de src/components/ui— resuelva
+   las mismas variables. .fjv2 conserva solo sus variables de LAYOUT (--plotH, --colW, --pad).
+
+   COLOR — significados (no reutilizar fuera de su rol):
+     --e3/--e4 verde = positivo (ganó, sube). --e0 rojo = negativo (perdió, baja). --e1 gris = neutro.
+     --amber = SOLO playoff / copa / disciplina (tarjetas). Nunca como acento general.
+   TIPOGRAFÍA — escala de 10 pasos; SUELO 11px en móvil (--t-micro). Sube un paso a partir del
+   ÚNICO breakpoint del sitio: 1000px (móvil < 1000 ≤ escritorio). No inventar text-[Npx] sueltos. */
 :root {
+  /* Paleta */
+  --pitch-900:#0a1628; --pitch-800:#0f2040; --pitch-700:#142952;
+  --line:rgba(255,255,255,.11); --line-2:rgba(255,255,255,.07);
+  --ink:#f2f6fc; --ink-2:#b8c8e2; --ink-3:#8a9cbd; --ink-4:#5f7194;
+  --e0:#f87171; --e1:#94a3b8; --e2:#22a050; --e3:#2ee56b; --e4:#8cf0a2;
+  --amber:#f0b429; --card-y:#f2c531; --card-r:#e0483f;
+  --zona-po:#4f9fe0;
+  /* Tipografía (móvil; suelo 11px) */
   --t-micro: 11px;
   --t-cap: 12px;
   --t-sm: 13px;
@@ -93,8 +110,10 @@ body {
   --n-md: 24px;
   --n-lg: 32px;
   --h-sec: 19px;
+  --h-hero: 27px;
 }
 
+/* Breakpoint ÚNICO del sitio: 1000px. La tipografía sube un paso entera. */
 @media (min-width: 1000px) {
   :root {
     --t-micro: 12px;
@@ -106,5 +125,6 @@ body {
     --n-md: 28px;
     --n-lg: 38px;
     --h-sec: 23px;
+    --h-hero: 42px;
   }
 }
