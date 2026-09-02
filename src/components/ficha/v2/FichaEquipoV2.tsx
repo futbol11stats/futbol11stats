@@ -41,11 +41,13 @@ import {
   getHitosEquipo, getMediasPorTemporada, getCopasAmbito, formaEquipo, type PlantillaEqRow,
 } from '@/lib/equipoV2'
 import type { CompEquipo } from '@/components/ficha/v2/JornadasEquipo'
+import Badge11 from '@/components/ui/Badge11'
+import { inicialesNombre } from '@/lib/nombre'
 
 const mil = (n: number | null | undefined) => (n == null ? '—' : Math.round(Number(n)).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.'))
 const med1 = (v: number | null) => (v == null ? '—' : v.toFixed(1).replace('.', ','))
 const conSigno = (n: number) => (n > 0 ? `+${n}` : `${n}`)
-const iniciales = (nombre: string) => formatNombre(nombre).split(/\s+/).map((w) => w[0]).filter(Boolean).slice(0, 2).join('').toUpperCase()
+const iniciales = inicialesNombre
 
 export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: string; temporadaLabel: string | null }) {
   const [e, temporadas, copaTemps, copasPorTemp] = await Promise.all([
@@ -229,10 +231,10 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
   const eloTemp = ((e.elo_serie || []).find((p: { t?: string; elo?: unknown } | null) => !!p && String(p.t) === tempSelStr && typeof p.elo === 'number')?.elo ?? ult?.elo ?? null) as number | null
 
   // Badge (11) del logo F11S para las métricas propias (Media F./ELO), igual que en la ficha de jugador.
-  const badge11 = <span style={{ width: 20, height: 20, borderRadius: '50%', background: '#1a7a3c', display: 'grid', placeItems: 'center', fontFamily: 'var(--font-display), sans-serif', fontWeight: 700, color: '#fff', fontSize: 11, lineHeight: 1 }}>11</span>
+  const badge11 = <Badge11 />
   // Badge grande (26px), del mismo tamaño que el sello de las pastillas de competición (LigaPastilla), para
   // la pastilla de ELO máx de la cabecera.
-  const badge11Sello = <span style={{ width: 26, height: 26, borderRadius: '50%', background: '#1a7a3c', display: 'grid', placeItems: 'center', fontFamily: 'var(--font-display), sans-serif', fontWeight: 700, color: '#fff', fontSize: 14, lineHeight: 1, flex: 'none' }}>11</span>
+  const badge11Sello = <Badge11 size={26} />
   // Forma: la media de puntos FANTASY por partido se colorea con los mismos cortes que el KPI (colorMedia).
   const RC: Record<'G' | 'E' | 'P', string> = { G: 'var(--e3)', E: 'var(--ink-3)', P: 'var(--e0)' }
 

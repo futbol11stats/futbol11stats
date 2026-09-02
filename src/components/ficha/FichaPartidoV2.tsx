@@ -13,12 +13,13 @@ import { formatNombre } from '@/lib/supabase'
 import { googleRenderUrl } from '@/lib/ics'
 import { SITE_URL } from '@/lib/seo'
 import { partidoSlug } from '@/lib/partidoSlug'
+import { inicialesNombre } from '@/lib/nombre'
 import MatchRow from '@/components/ficha/v2/MatchRow'
 import { colorFan } from '@/lib/equipoV2'
 import type { PartidoFicha, PartidoJugador, PartidoMini, PartidoLado } from '@/lib/partido'
 
 // Helpers portados del hero de plantilla (equipo): avatar de iniciales coloreado por demarcación.
-const iniciales = (nombre: string) => formatNombre(nombre).split(/\s+/).map((w) => w[0]).filter(Boolean).slice(0, 2).join('').toUpperCase()
+const iniciales = inicialesNombre
 const AVA_POS: Record<string, string> = { POR: '249,115,22', DEF: '59,130,246', MED: '34,160,80', DEL: '239,68,68' }
 const avaStyle = (pos: string | null) => {
   const c = AVA_POS[pos || ''] || '100,116,139'

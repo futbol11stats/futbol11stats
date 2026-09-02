@@ -5,14 +5,11 @@ import {
   Balon, Guante, Escudo, Calendario, Casa, Guion, Avion, TarjetaAmarilla, TarjetaDoble, TarjetaRoja,
 } from '@/components/iconos'
 import type { CifrasComp } from '@/lib/competicionV2'
+import Badge11 from '@/components/ui/Badge11'
 
 const mil = (n: number | null | undefined) => (n == null ? '—' : Math.round(Number(n)).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.'))
 const med1 = (v: number | null | undefined) => (v == null ? '—' : Number(v).toFixed(1).replace('.', ','))
 
-// Badge (11) del ELO, con su color de siempre (el mismo icono que en jugador/equipo).
-const Badge11 = ({ color }: { color?: string }) => (
-  <span style={{ width: 15, height: 15, borderRadius: '50%', background: color || 'var(--e3)', display: 'grid', placeItems: 'center', fontFamily: 'var(--font-display), sans-serif', fontWeight: 700, color: '#0a1628', fontSize: 9, lineHeight: 1 }}>11</span>
-)
 
 type Lideres = { goleador?: any; portero?: any; elo?: any; tarjetas?: any } | null
 
@@ -52,7 +49,7 @@ export default function Panorama({ lideres, cifras, kpis, fichas, subLideres, su
           <div className="lid-grid">
             <LidCard k="Goleador" icon={<Balon size={13} />} color="var(--e4)" val={lideres!.goleador?.goles} unit="GOLES" j={lideres!.goleador} fichas={fichas} />
             <LidCard k="Portero" icon={<Guante size={13} />} color="var(--amber)" val={lideres!.portero?.goles} unit="P. A CERO" j={lideres!.portero} fichas={fichas} />
-            <LidCard k="Mejor ELO" icon={<Badge11 color="var(--e3)" />} color="var(--e3)" val={lideres!.elo?.elo != null ? mil(lideres!.elo.elo) : null} unit="ELO" j={lideres!.elo} fichas={fichas} />
+            <LidCard k="Mejor ELO" icon={<Badge11 bg="var(--e3)" ink="#0a1628" size={15} />} color="var(--e3)" val={lideres!.elo?.elo != null ? mil(lideres!.elo.elo) : null} unit="ELO" j={lideres!.elo} fichas={fichas} />
             <LidCard k="Más tarjetas" icon={<TarjetaAmarilla size={12} />} color="var(--card-y)" val={lideres!.tarjetas?.amarillas} unit="AMARILLAS" j={lideres!.tarjetas} fichas={fichas} />
           </div>
         </>
@@ -67,7 +64,7 @@ export default function Panorama({ lideres, cifras, kpis, fichas, subLideres, su
             <div className="cgrupo"><h4>Competición</h4>
               <div className="cfila"><span className="ci"><Escudo size={13} /></span><span className="ck">Equipos</span><span className="cv">{kpis.equipos || '—'}</span></div>
               <div className="cfila"><span className="ci"><Calendario size={13} /></span><span className="ck">Partidos jugados</span><span className="cv">{mil(cifras.disputados)} <small>de {mil(cifras.totalPartidos)}</small></span></div>
-              <div className="cfila"><span className="ci" style={{ color: colorElo(kpis.eloMedio) || 'var(--e3)' }}><Badge11 color={colorElo(kpis.eloMedio) || 'var(--e3)'} /></span><span className="ck">ELO medio por equipo</span><span className="cv" style={{ color: colorElo(kpis.eloMedio) || undefined }}>{mil(kpis.eloMedio)}</span></div>
+              <div className="cfila"><span className="ci" style={{ color: colorElo(kpis.eloMedio) || 'var(--e3)' }}><Badge11 bg={colorElo(kpis.eloMedio) || 'var(--e3)'} ink="#0a1628" size={15} /></span><span className="ck">ELO medio por equipo</span><span className="cv" style={{ color: colorElo(kpis.eloMedio) || undefined }}>{mil(kpis.eloMedio)}</span></div>
             </div>
             <div className="cgrupo"><h4>Goles</h4>
               <div className="cfila"><span className="ci" style={{ color: 'var(--e4)' }}><Balon size={13} /></span><span className="ck">Goles marcados</span><span className="cv">{mil(cifras.goles)}</span></div>

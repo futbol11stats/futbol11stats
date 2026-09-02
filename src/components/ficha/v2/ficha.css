@@ -206,7 +206,7 @@
 .fjv2 .m-crest{width:26px;height:26px;border-radius:4px;background:#fff;flex:none;display:grid;place-items:center;padding:2px}
 .fjv2 .m-crest img{width:100%;height:100%;object-fit:contain}
 .fjv2 .m-mid{flex:1;min-width:0}
-.fjv2 .m-riv{font-family:var(--font-display),'Barlow Condensed',sans-serif;font-size:var(--t-lead);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-transform:uppercase}
+.fjv2 .m-riv{font-family:var(--font-display),'Barlow Condensed',sans-serif;font-size:var(--t-lead);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .fjv2 .m-meta{font-size:var(--t-cap);color:var(--ink-3);margin-top:2px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
 .fjv2 .m-pts{font-family:var(--font-display),'Barlow Condensed',sans-serif;font-weight:700;font-size:var(--n-sm);padding:4px 9px;border-radius:6px;color:#08111f;flex:none}
 /* Columna ELO de la fila .match (junto a los PUNTOS, orden Puntos · ELO). Δ del partido: verde sube / rojo baja. */
@@ -231,7 +231,7 @@
 .fjv2 .mate{flex:none;width:88px;text-align:center;text-decoration:none;color:inherit}
 .fjv2 .mate .m-av{width:46px;height:46px;border-radius:9px;margin:0 auto;display:grid;place-items:center;background:#fff;padding:5px}
 .fjv2 .mate .m-av img{width:100%;height:100%;object-fit:contain}
-.fjv2 .mate .m-n{font-family:var(--font-display),'Barlow Condensed',sans-serif;font-size:var(--t-sm);font-weight:600;margin-top:7px;line-height:1.15;text-transform:uppercase}
+.fjv2 .mate .m-n{font-family:var(--font-display),'Barlow Condensed',sans-serif;font-size:var(--t-sm);font-weight:600;margin-top:7px;line-height:1.15}
 .fjv2 .mate .m-e{font-size:var(--t-micro);color:var(--ink-3);margin-top:3px}
 
 .fjv2 .foot{padding:var(--pad);display:flex;gap:9px}
@@ -247,7 +247,7 @@
 .fjv2 .mini-r.me{background:rgba(46,229,107,.09)}
 .fjv2 .mini-r .mp{font-family:var(--font-display),'Barlow Condensed',sans-serif;font-size:var(--t-lead);font-weight:700;width:18px;text-align:center;color:var(--ink-3);flex:none}
 .fjv2 .mini-r.me .mp{color:var(--e3)}
-.fjv2 .mini-r .mn{flex:1;min-width:0;font-family:var(--font-display),'Barlow Condensed',sans-serif;font-size:var(--t-lead);font-weight:500;color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-transform:uppercase}
+.fjv2 .mini-r .mn{flex:1;min-width:0;font-family:var(--font-display),'Barlow Condensed',sans-serif;font-size:var(--t-lead);font-weight:500;color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .fjv2 .mini-r.me .mn{font-weight:700;color:var(--ink)}
 .fjv2 .mini-r .mpts{font-size:var(--n-sm);font-weight:700;flex:none}
 /* Carriles del gráfico de equipo: marcador · posición+movimiento · rival+localía. */
@@ -264,7 +264,7 @@
 .fjv2 .mv-ic.baja{background:rgba(224,72,63,.18);color:#f5aeae}
 .fjv2 .mv-ic.prom{background:rgba(240,180,41,.18);color:var(--amber)}
 .fjv2 .mv-m{flex:1;min-width:0}
-.fjv2 .mv-n{font-family:var(--font-display),'Barlow Condensed',sans-serif;font-size:var(--t-lead);font-weight:600;text-transform:uppercase}
+.fjv2 .mv-n{font-family:var(--font-display),'Barlow Condensed',sans-serif;font-size:var(--t-lead);font-weight:600}
 .fjv2 .mv-sub{font-size:var(--t-cap);color:var(--ink-3);margin-top:2px;line-height:1.4}
 
 /* Análisis: donut V/E/D. */
@@ -328,7 +328,7 @@
 .fjv2 .pl-rk{font-family:var(--font-display),'Barlow Condensed',sans-serif;font-size:var(--t-body);font-weight:700;color:var(--ink-3);width:14px;text-align:center;flex:none}
 .fjv2 .pl-av{width:34px;height:34px;border-radius:8px;display:grid;place-items:center;flex:none;font-family:var(--font-display),'Barlow Condensed',sans-serif;font-size:var(--t-sm);font-weight:700;background:var(--pitch-700);border:1px solid var(--line);color:var(--ink-2)}
 .fjv2 .pl-mid{flex:1;min-width:0}
-.fjv2 .pl-nm{font-family:var(--font-display),'Barlow Condensed',sans-serif;font-size:var(--t-lead);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-transform:uppercase}
+.fjv2 .pl-nm{font-family:var(--font-display),'Barlow Condensed',sans-serif;font-size:var(--t-lead);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .fjv2 .pl-me{font-size:var(--t-cap);color:var(--ink-3);margin-top:2px;display:flex;align-items:center;gap:5px;flex-wrap:wrap}
 .fjv2 .pl-minbar{height:4px;border-radius:2px;background:rgba(255,255,255,.09);margin-top:6px;overflow:hidden}
 .fjv2 .pl-minbar span{display:block;height:100%;border-radius:2px}
@@ -820,7 +820,7 @@
 .fpv2 .hitos{padding:0 var(--pad)}
 .fpv2 .hito{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 7px;padding:7px 0;border-top:1px solid var(--line-2)}
 .fpv2 .hito:first-child{border-top:0}
-.fpv2 .hito-nm{font-family:var(--font-display),'Barlow Condensed',sans-serif;font-weight:600;font-size:var(--t-body);text-transform:uppercase;color:var(--ink)}
+.fpv2 .hito-nm{font-family:var(--font-display),'Barlow Condensed',sans-serif;font-weight:600;font-size:var(--t-body);color:var(--ink)}
 .fpv2 .hito-nm a{color:inherit;text-decoration:none}
 .fpv2 .hito-nm a:hover{color:var(--e4)}
 .fpv2 .hito-tx{font-size:var(--t-cap);color:var(--ink-3)}

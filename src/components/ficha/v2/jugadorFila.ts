@@ -1,10 +1,6 @@
-import { formatNombre } from '@/lib/supabase'
-
-// Iniciales del jugador con el criterio del sitio: nombre + primer apellido. Los nombres del dato vienen
-// "APELLIDOS, NOMBRE", así que se pasa PRIMERO por formatNombre (reordena a "Nombre Apellido…") y luego se
-// toman las dos primeras iniciales. "BARROSO SÁNCHEZ, JESÚS" -> "Jesús Barroso" -> "JB".
-export const inicialesJugador = (n: string) =>
-  formatNombre(n || '').split(/\s+/).map((w) => w[0]).filter(Boolean).slice(0, 2).join('').toUpperCase()
+// Iniciales del jugador (nombre + primer apellido): delega en la util ÚNICA de nombres. Se mantiene el
+// nombre `inicialesJugador` por compatibilidad con quien ya lo importa (FilaJugador, campoXI).
+export { inicialesNombre as inicialesJugador } from '@/lib/nombre'
 
 // Avatar de iniciales coloreado por demarcación (AVA_POS), como el Top de la plantilla de equipo v2.
 export const AVA_POS: Record<string, string> = { POR: '249,115,22', DEF: '59,130,246', MED: '34,160,80', DEL: '239,68,68' }

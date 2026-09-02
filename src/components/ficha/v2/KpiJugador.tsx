@@ -2,10 +2,10 @@
 
 import { useComp } from './compStore'
 import { Escudo, Reloj, Balon, Guante } from '@/components/iconos'
+import Badge11 from '@/components/ui/Badge11'
 
 const mil = (n: number | null | undefined) => (n == null ? '—' : Math.round(Number(n)).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.'))
 const med1 = (v: number | null) => (v == null ? '—' : v.toFixed(1).replace('.', ','))
-const Badge11 = () => <span style={{ width: 20, height: 20, borderRadius: '50%', background: '#1a7a3c', display: 'grid', placeItems: 'center', fontFamily: 'var(--font-display), sans-serif', fontWeight: 700, color: '#fff', fontSize: 11, lineHeight: 1 }}>11</span>
 
 export type CompKpi = { pj: number; minutos: number; goles: number; porterias_cero: number; ptsFantasy: number; media: number | null; mediaColor: string }
 

@@ -38,6 +38,7 @@ import {
 import { CORTES_FIJOS } from '@/lib/escala'
 import MatchRow from '@/components/ficha/v2/MatchRow'
 import { partidoSlug } from '@/lib/partidoSlug'
+import Badge11 from '@/components/ui/Badge11'
 import { getSueloVivo } from '@/lib/temporadas'
 import {
   getJugadorV2, getCarreraV2, getAlertaActual, getAmbitoTemporada, getCortesElo, labelToCod,
@@ -284,7 +285,7 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
   }
 
   // Fila de ranking con el mismo tratamiento que el ELO: icono del sitio + nº + barra de percentil.
-  const badge11 =<span style={{ width: 20, height: 20, borderRadius: '50%', background: '#1a7a3c', display: 'grid', placeItems: 'center', fontFamily: 'var(--font-display), sans-serif', fontWeight: 700, color: '#fff', fontSize: 11, lineHeight: 1 }}>11</span>
+  const badge11 = <Badge11 />
 
   // 3ª casilla: goles (jugador de campo) o porterías a cero (portero). El criterio es es_portero de
   // web_jugador (posición federativa / mayoría de apariciones como portero, lo calcula el pipeline), NO

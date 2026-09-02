@@ -3,6 +3,10 @@
 Convenciones obligatorias al modificar este repositorio. (Adaptado del `PROTOCOLO.md` del pipeline de
 datos, que cubre los scripts de Python.)
 
+> **Diseño / UI:** antes de crear cualquier componente, pastilla, nombre o cabecera, lee el
+> **[Manual de estilo y catálogo de componentes](./MANUAL_DE_ESTILO.md)**. La primera pregunta siempre
+> es «¿qué pieza hay ya para esto?». No se crean variantes nuevas de algo que ya existe.
+
 ## OBLIGATORIO antes de cualquier modificación
 
 1. **Backup primero.** Antes de tocar un archivo existente, copiarlo:
