@@ -575,7 +575,7 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
                       <span className="cc pts">Pts</span>
                       <span className="cc">Mov</span>
                       <span className="cc">PF</span>
-                      <span className="cc">ELO</span>
+                      <span className="cc" style={{ marginLeft: 8 }}>ELO</span>
                       <span className="cracha">Forma</span>
                       <span className="ccom">Racha</span>
                       <span className="cc">PO</span>
@@ -602,7 +602,7 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
                             const eloD = !sinEmpezar && r.elo != null && prev != null ? Math.round(r.elo - prev) : null
                             const col = sinEmpezar ? (colorElo(r.elo) || undefined)
                               : eloD ? (eloD > 0 ? 'var(--e3)' : 'var(--e0)') : undefined   // verde sube / rojo baja
-                            return <span className="cc" style={{ color: col }} title={eloD ? `${eloD > 0 ? '+' : '−'}${Math.abs(eloD)} esta jornada` : undefined}>{fmtNum(r.elo)}</span>
+                            return <span className="cc" style={{ color: col, marginLeft: 8 }} title={eloD ? `${eloD > 0 ? '+' : '−'}${Math.abs(eloD)} esta jornada` : undefined}>{fmtNum(r.elo)}</span>
                           })()}
                           <span className="cracha"><FormaStrip items={Array.from(r.forma || '').slice(-5)} size={13} gap={2} /></span>
                           <span className="ccom">{r.racha || ''}</span>

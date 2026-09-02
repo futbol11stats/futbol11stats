@@ -35,7 +35,7 @@ import {
   tempLabel, jugadorSlug, jugadorHref, curarHitos, HITO_CONFIG, fechaCorta,
   marcadorLocalVisitante, POS_LABEL, companerosActivos, type HitoRow, type CompaneroTop,
 } from '@/lib/jugador'
-import { nombreCompleto } from '@/lib/nombre'
+import { nombreCompleto, nombreEquipo } from '@/lib/nombre'
 import { CORTES_FIJOS } from '@/lib/escala'
 import MatchRow from '@/components/ficha/v2/MatchRow'
 import { partidoSlug } from '@/lib/partidoSlug'
@@ -603,7 +603,7 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
                       </span>
                     </div>
                     <div className="s-duo">
-                      <div><div className="d-v" style={{ color: cMed(c.media_fantasy) }}>{c.media_fantasy != null ? med1(c.media_fantasy) : '—'}</div><div className="d-k">MEDIA</div></div>
+                      <div><div className="d-v" style={{ color: cMed(c.media_fantasy) }}>{c.media_fantasy != null ? med1(c.media_fantasy) : '—'}</div><div className="d-k">MEDIA PF</div></div>
                       <div><div className="d-v" style={{ color: cElo(c.elo_final) }}>{c.elo_final != null ? fmtNum(Math.round(c.elo_final)) : '—'}</div><div className="d-k">ELO</div></div>
                     </div>
                     <div className="s-stats">
@@ -642,11 +642,15 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
                 // Enlace a la ficha del PARTIDO (antes iba al equipo rival). local/visitante según de qué lado jugó.
                 const local = a.es_local ? a.equipo_nombre : a.rival_nombre
                 const visitante = a.es_local ? a.rival_nombre : a.equipo_nombre
+                // "Mejores actuaciones" es de TODAS las temporadas: la fecha día·mes no dice de qué año es.
+                // Se muestra jornada · temporada ("J23 · 2025-26"), que ubica mejor y ocupa lo mismo.
+                const jlbl = a.ronda_label || (a.jornada != null ? `J${a.jornada}` : '')
+                const tlbl = a.codtemporada != null ? tempLabel(a.codtemporada) : ''
                 return (
                   <MatchRow key={i}
                     marcador={marcador} signo={(signo || null) as 'G' | 'E' | 'P' | null}
                     rivalEscudo={a.rival_escudo} rivalNombre={a.rival_nombre} rivalCod={a.rival_cod} esLocal={a.es_local}
-                    fecha={a.fecha} etiqueta={a.ronda_label || (a.jornada != null ? `J${a.jornada}` : undefined)}
+                    etiqueta={[jlbl, tlbl].filter(Boolean).join(' · ') || undefined}
                     goles={a.goles ?? 0}
                     pts={a.pts != null ? Math.round(a.pts) : null} ptsBg={a.pts != null ? cPts(Math.round(a.pts)) : undefined}
                     href={a.codacta ? `/madrid/partido/${partidoSlug(a.codacta, local, visitante)}` : null}
@@ -669,7 +673,7 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
                   <div className="hito" key={i}>
                     <div className="h-dot" />
                     <div>
-                      <div className="h-t">{texto}{h.contexto_nombre ? <span style={{ color: 'var(--ink-3)' }}> · {h.contexto_nombre}</span> : ''}</div>
+                      <div className="h-t">{texto}{h.contexto_nombre ? <span style={{ color: 'var(--ink-3)' }}> · {nombreEquipo(h.contexto_nombre)}</span> : ''}</div>
                       <div className="h-m">{fechaCorta(h.fecha)}{edad != null && edad > 0 ? <> · <span className="h-age">{edad} años</span></> : ''}</div>
                     </div>
                   </div>

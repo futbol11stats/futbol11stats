@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { inicialesJugador } from '@/components/ficha/v2/jugadorFila'
+import { inicialesJugador, avaStyle } from '@/components/ficha/v2/jugadorFila'
 
 // XI Óptimo sobre campo, compartido por ficha de grupo y global: colores por demarcación (maqueta) +
 // formación deducida contando posiciones. El pipeline entrega la posición (POR/DEF/MED/DEL) y el orden.
@@ -18,8 +18,9 @@ export function campoXI(players: { posicion: string; nombre: string; valor: numb
       const col = POSC[line] || '#9ac4f1'
       dots.push(
         <div className="xi-p" style={{ left: `${x}%`, top: `${LINE_Y[line]}%` }} key={`${line}-${i}`}>
-          <div className="av" style={{ background: col }}>{iniXI(p.nombre)}</div>
-          <div className="nm">{(p.nombre || '').split(/\s+/).slice(-1)[0]}</div>
+          {/* Sin nombre en el campo: solo la MISMA pastilla de iniciales del héroe del jugador (avaStyle). El
+              listado de los 11 va al lado con los nombres completos, así que no se pierde nada. */}
+          <div className="av" style={avaStyle(p.posicion)}>{iniXI(p.nombre)}</div>
           <div className="vv" style={{ color: col }}>{p.valor}</div>
         </div>,
       )

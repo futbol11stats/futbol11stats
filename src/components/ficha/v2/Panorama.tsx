@@ -66,7 +66,7 @@ export default function Panorama({ lideres, cifras, kpis, fichas, subLideres, su
             <div className="cgrupo"><h4>Competición</h4>
               <div className="cfila"><span className="ci"><Escudo size={13} /></span><span className="ck">Equipos</span><span className="cv">{kpis.equipos || '—'}</span></div>
               <div className="cfila"><span className="ci"><span style={{ fontFamily: 'var(--font-display), sans-serif', fontWeight: 700, fontSize: 'var(--t-cap)', color: 'var(--ink-3)', lineHeight: 1 }}>PJ</span></span><span className="ck">Partidos jugados</span><span className="cv">{fmtNum(cifras.disputados)} <small>de {fmtNum(cifras.totalPartidos)}</small></span></div>
-              <div className="cfila"><span className="ci" style={{ color: colorElo(kpis.eloMedio) || 'var(--e3)' }}><Badge11 bg={colorElo(kpis.eloMedio) || 'var(--e3)'} ink="#0a1628" size={15} /></span><span className="ck">ELO medio por equipo</span><span className="cv" style={{ color: colorElo(kpis.eloMedio) || undefined }}>{fmtNum(kpis.eloMedio)}</span></div>
+              <div className="cfila"><span className="ci"><Badge11 bg="var(--e3)" ink="#0a1628" size={15} /></span><span className="ck">ELO medio por equipo</span><span className="cv" style={{ color: colorElo(kpis.eloMedio) || undefined }}>{fmtNum(kpis.eloMedio)}</span></div>
             </div>
             <div className="cgrupo"><h4>Goles</h4>
               <div className="cfila"><span className="ci" style={{ color: 'var(--e4)' }}><Balon size={13} /></span><span className="ck">Goles marcados</span><span className="cv">{fmtNum(cifras.goles)}</span></div>

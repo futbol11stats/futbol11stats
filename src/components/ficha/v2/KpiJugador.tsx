@@ -28,7 +28,7 @@ export default function KpiJugador({ comps, fallback, portero, elo, eloColor }: 
         <div className="k">{portero ? 'P. a cero' : 'Goles'}</div>
       </div>
       <div className="kpi"><div className="kpi-i"><Badge11 /></div><div className="v num">{fmtNum(c.ptsFantasy)}</div><div className="k">PF</div></div>
-      <div className="kpi"><div className="kpi-i"><Badge11 /></div><div className="v num" style={{ color: c.mediaColor }}>{c.media != null ? med1(c.media) : '—'}</div><div className="k">Media</div></div>
+      <div className="kpi"><div className="kpi-i"><Badge11 /></div><div className="v num" style={{ color: c.mediaColor }}>{c.media != null ? med1(c.media) : '—'}</div><div className="k">Media PF</div></div>
       <div className="kpi"><div className="kpi-i"><Badge11 /></div><div className="v num" style={{ color: eloColor }}>{elo != null ? fmtNum(elo) : '—'}</div><div className="k">ELO</div></div>
     </div>
   )

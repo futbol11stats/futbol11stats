@@ -3,7 +3,7 @@ import EscudoBox from '@/components/ficha/v2/EscudoBox'
 import NombreJugador from '@/components/NombreJugador'
 import Pastilla from '@/components/Pastilla'
 import { escudoUrl, formatNombre } from '@/lib/supabase'
-import { abreviaNombre } from '@/lib/nombre'
+import { abreviaNombre, nombreEquipo as fmtEquipo } from '@/lib/nombre'
 import { inicialesJugador, avaStyle } from '@/components/ficha/v2/jugadorFila'
 
 export type FilaJugadorProps = {
@@ -38,7 +38,7 @@ export default function FilaJugador({ rank, rankColor, codjugador, nombre, pos, 
         <div className="pl-nm">{codjugador != null ? <NombreJugador codjugador={codjugador} nombre={nombre} fichas={fichas} /> : abreviaNombre(nombre)}</div>
         <div className="pl-me">
           {pos && <Pastilla pos={pos} size="mini" />}
-          {nombreEquipo && <span className="pl-eq">{nombreEquipo}</span>}
+          {nombreEquipo && <span className="pl-eq">{fmtEquipo(nombreEquipo)}</span>}
           {datos && <span className="pl-stats">{datos}</span>}
         </div>
       </div>

@@ -64,7 +64,6 @@ function PartidoFila({ p, portero }: { p: any; portero: boolean }) {
         </div>
         <div className="sm:hidden flex items-center gap-1.5 pl-7 mt-0.5 text-[length:var(--t-micro)] whitespace-nowrap">
           <span className={`font-semibold ${colorSigno(signo)}`}>{marcador}</span>
-          {pts != null && <span className={signoCls(pts)}>{conSigno(pts)}p</span>}
         </div>
       </td>
       {/* COMP -> resultado coloreado (desktop) */}
@@ -101,7 +100,7 @@ function PartidoFila({ p, portero }: { p: any; portero: boolean }) {
         <span className="sm:hidden inline-flex justify-center">{tr > 0 && <span className="inline-block w-1.5 h-2.5 rounded-[1px] bg-red-500" />}</span>
       </td>
       {/* PTS (desktop) -> con signo y color */}
-      <td className={`hidden sm:table-cell text-center font-medium tabular-nums ${signoCls(pts)}`}>{pts != null ? conSigno(pts) : ''}</td>
+      <td className={`text-center font-medium tabular-nums ${signoCls(pts)}`}>{pts != null ? conSigno(pts) : ''}</td>
       {/* ELO -> Δ con signo y color */}
       <td className={`text-center tabular-nums ${signoCls(delta)}`}>{conSigno(delta)}</td>
     </tr>
