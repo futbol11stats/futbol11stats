@@ -348,7 +348,9 @@
 @media(min-width:1000px){
   .fjv2 .pl-mid{display:flex;align-items:baseline;gap:14px}
   .fjv2 .pl-mid .pl-nm{flex:none;max-width:240px}
-  .fjv2 .pl-mid .pl-me{margin-top:0;flex:1;min-width:0}
+  /* meta pegado a la DERECHA (eventos/stats junto al valor): el aire queda entre nombre y stats,
+     no entre stats y valor -> sin hueco muerto delante del valor. */
+  .fjv2 .pl-mid .pl-me{margin-top:0;flex:1;min-width:0;justify-content:flex-end}
 }
 .fjv2 label.pl-open-btn{display:block;margin:12px var(--pad) 0;cursor:pointer}
 .fjv2 label.pl-open-btn::after{content:'Ver plantilla completa'}
