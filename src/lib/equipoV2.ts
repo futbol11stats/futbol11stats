@@ -4,7 +4,6 @@
 
 import { supabase } from '@/lib/supabase'
 import { getResultadosGrupo, filaEsLocal, codgrupoFamilia, type ResultadoRow, type EquipoFicha, COLS_EQUIPO } from '@/lib/equipo'
-import { cortesValidos } from '@/lib/escala'
 import { cacheEquipo } from '@/lib/cacheComp'
 
 // Paleta de la escala (hex, como en Jornadas de jugador — el runtime de Vercel no purga literales).
@@ -27,11 +26,6 @@ export const colorFan = (v: number | null) => (v == null ? '' : PAL[esc(v, CORTE
 export const colorMedia = (v: number | null) => (v == null ? '' : PAL[esc(v, CORTES_EQUIPO.mediaFan)])
 export const colorElo = (v: number | null) => (v == null ? '' : PAL[esc(v, CORTES_EQUIPO.elo)])
 
-// Cortes de EQUIPO validados (por si algún día llegan de web_percentiles): caen a los fijos si son
-// degenerados. De momento devuelve siempre los fijos.
-export function cortesEquipoValidados(c: readonly [number, number, number, number] | null, fijos: readonly [number, number, number, number]) {
-  return c && cortesValidos(c as [number, number, number, number]) ? c : fijos
-}
 
 export async function getEquipoV2(cod: string): Promise<EquipoFicha | null> {
   return cacheEquipo(async () => {

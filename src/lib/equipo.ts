@@ -10,9 +10,6 @@ import { FAMILIA_SLUGS, OLD_A_FAMILIA } from '@/lib/competiciones'
 
 export { slugify, codFromSlug, tempLabel }
 
-// rama de web_equipo -> segmento de URL de la vista de grupo.
-export const RAMA_SLUG: Record<string, string> = { aficionados: 'aficionados', juvenil: 'juveniles' }
-
 // Slug canónico de una ficha de equipo: {codequipo}-{nombre-slug}. El nombre de equipo es plano
 // (no "APELLIDOS, NOMBRE"), así que se slugifica tal cual.
 export function equipoSlug(codequipo: string | number, nombre: string | null): string {
@@ -24,11 +21,6 @@ export function equipoHref(codequipo: string | number | null | undefined, nombre
   const base = `/madrid/equipo/${equipoSlug(codequipo, nombre)}`
   return temporada ? `${base}?temporada=${temporada}` : base
 }
-
-// Ficha mínima de un jugador para los movimientos: `enlazable` = tiene ficha en web_jugador (adulto,
-// se enlaza + nombre canónico); los menores llegan sin ficha pero CON posición (de la plantilla
-// juvenil) -> pastilla sí, enlace no.
-export type FichaMov = { nombre: string | null; pos: string | null; estimada: boolean; enlazable: boolean }
 
 // FORMA del hero: partidos del equipo en su grupo. Se casa por CODEQUIPO (estable: sobrevive a renombrados de
 // club y a correcciones de letra de filial, que dejaban los partidos colgando del nombre viejo); para las filas
@@ -79,69 +71,6 @@ export async function getResultadosGrupo(codequipo: string | number | null | und
 // Un chip de racha/forma: signo (para color), jornada, marcador (orden absoluto local-visitante) y
 // rival — para el tooltip "Jnn · marcador vs Rival". Compartido por hero de equipo y de jugador.
 export type ChipRacha = { signo: 'G' | 'E' | 'P'; jornada: number | null; marcador: string; rival: string | null }
-
-// Resumen de forma (últimos 5 JUGADOS, orden jornada ASC = más reciente a la derecha) + última victoria
-// (por JORNADA, entero — nunca comparando el string DD/MM/YYYY). Perspectiva del equipo por su nombre.
-export function resumenForma(rows: ResultadoRow[], nombre: string, codequipo?: string | number | null): {
-  forma: ChipRacha[]
-  ultimaVictoria: { fecha: string | null; jornada: number } | null
-} {
-  const jugados = rows
-    .filter((r) => r.goles_local != null && r.goles_visitante != null)
-    .sort((a, b) => a.jornada - b.jornada)
-  const persp = jugados.map((r) => {
-    const local = filaEsLocal(r, nombre, codequipo)
-    const gf = (local ? r.goles_local : r.goles_visitante) as number
-    const gc = (local ? r.goles_visitante : r.goles_local) as number
-    return {
-      jornada: r.jornada, fecha: r.fecha,
-      signo: (gf > gc ? 'G' : gf < gc ? 'P' : 'E') as 'G' | 'E' | 'P',
-      marcador: `${r.goles_local}-${r.goles_visitante}`,               // absoluto local-visitante
-      rival: (local ? r.nombre_visitante : r.nombre_local) as string,
-    }
-  })
-  const victorias = persp.filter((p) => p.signo === 'G')
-  return {
-    forma: persp.slice(-5).map((p) => ({ signo: p.signo, jornada: p.jornada, marcador: p.marcador, rival: p.rival })),
-    ultimaVictoria: victorias.length ? victorias[victorias.length - 1] : null,
-  }
-}
-
-// Grupos (liga + copa) del equipo POR temporada, para acotar la búsqueda de partidos por nombre (el
-// juvenil y el aficionado de un club se llaman IGUAL; sin acotar, el filtro por nombre pesca la otra
-// rama). Liga desde web_equipo_temporadas; copas desde el JSONB web_equipo.copas. Devuelve
-// { codtemporada -> [codgrupo, ...] }.
-export async function getGruposPorTemporada(codequipo: string, temporadasRows: { codtemporada: string | number; codgrupo: string | null }[]): Promise<Record<string, string[]>> {
-  return cacheEquipo(async () => {
-    const map: Record<string, Set<string>> = {}
-    const add = (t: string | number | null, g: string | null) => {
-      if (t == null || !g) return
-      ;(map[String(t)] ??= new Set<string>()).add(String(g))
-    }
-    for (const r of temporadasRows) add(r.codtemporada, r.codgrupo)
-    const { data, error } = await supabase.from('web_equipo').select('copas').eq('codequipo', String(codequipo)).limit(1).maybeSingle()
-    if (error) throw error   // no cachear vacío por un error transitorio (ver checklist: caché envenenada)
-    const copas = (data as { copas?: unknown } | null)?.copas
-    // Copa por FAMILIA: usa el codgrupo de la familia (fam-*), que tiene TODAS las rondas, los mismos
-    // codacta y el tipo correcto (COPA/PLAYOFF). Así PartidosEquipo deja de depender de las filas viejas
-    // de copa -> el pipeline puede borrarlas. Fallback al codgrupo viejo si aún no hubiera familia.
-    // codgrupo de FAMILIA robusto (deriva fam-* aunque falte codgrupo_familia), con fallback al código de la
-    // edición SOLO para las copas sin familia (las 2 SEGUNDA JUVENIL COPA GRUPO 23 de T17, que conservan sus
-    // datos). Nunca el código legacy de una copa CON familia: el pipeline borró esas filas -> saldría vacío.
-    if (Array.isArray(copas)) for (const c of copas as any[]) add(c.codtemporada, codgrupoFamilia(c as any) ?? c.codgrupo)
-    const out: Record<string, string[]> = {}
-    for (const k in map) out[k] = Array.from(map[k])
-    return out
-  }, ['getGruposPorTemporada', codequipo, temporadasRows.map((r) => `${r.codtemporada}:${r.codgrupo}`).join(',')], codequipo)
-}
-
-// Días desde una fecha DD/MM/YYYY hasta hoy (aritmética de fechas, no comparación de strings).
-export function diasDesdeDMY(fecha: string | null): number | null {
-  const m = (fecha || '').match(/^(\d{2})\/(\d{2})\/(\d{4})$/)
-  if (!m) return null
-  const d = new Date(+m[3], +m[2] - 1, +m[1])
-  return Math.floor((new Date().getTime() - d.getTime()) / 86400000)
-}
 
 // Info de un grupo (por codgrupo) para construir el enlace a su vista. Reutilizable por la ficha de
 // jugador (pastilla de competición del hero) y donde haga falta resolver un grupo desde su código.
@@ -299,16 +228,6 @@ export async function getCopasConMetricas(codequipo: string | number | null | un
   }, ['getCopasConMetricas', 'v4-finicio', String(codequipo), nombre], codequipo)
 }
 
-export async function getCopasEquipo(codequipo: string | number | null | undefined): Promise<CopaEquipo[]> {
-  if (!COPAS_HABILITADO || codequipo == null) return []
-  return cacheEquipo(async () => {
-    const { data, error } = await supabase.from('web_equipo').select('copas').eq('codequipo', String(codequipo)).limit(1).maybeSingle()
-    if (error) throw error   // no cachear [] por un error transitorio (ver checklist: caché envenenada)
-    if (!data) return []
-    return resolveCopas((data as { copas?: unknown }).copas)
-  }, ['getCopasEquipo', String(codequipo)], codequipo)
-}
-
 // Copas + posición en liga del equipo (una sola query a web_equipo). Para el hero de la ficha de
 // jugador: la pastilla de competición incluye la posición del equipo actual y la línea de copas.
 export async function getEquipoActualInfo(codequipo: string | number | null | undefined): Promise<{ copas: CopaEquipo[]; posicionActual: number | null }> {
@@ -327,18 +246,6 @@ export const COLS_EQUIPO =
   'codtemporada, activo, posicion_actual, elo_actual, elo_max, temporada_elo_max, elo_serie, ' +
   'posicion_juego_limpio, ta_total, tr_total, td_total, n_campeonatos, n_ascensos, n_descensos, n_playoffs, ' +
   'pj_total, gf_total, gc_total, temporadas'
-
-export const COLS_EQUIPO_TEMPORADAS =
-  'codtemporada, nombre_comp, categoria_nivel, rama, codgrupo, grupo_nombre, pj, pts, posicion_final, gf, gc, badge, fecha_inicio'
-
-export const COLS_EQUIPO_MOV =
-  'codtemporada, fecha, clase, direccion, intra_temporada, codjugador, nombre, ' +
-  'equipo_rel_cod, equipo_rel_nombre, equipo_rel_escudo, convocatorias, frontera'
-
-export const COLS_EQUIPO_HITOS = 'tipo_hito, fecha, codtemporada, detalle, valor'
-
-export const COLS_PLANTILLA_JUVENIL =
-  'codjugador, codtemporada, nombre, dorsal_comun, posicion_pastilla, pj, goles, minutos, ta, td, tr'
 
 // --- Tipos (parciales) ---
 export type EquipoFicha = {
@@ -370,21 +277,6 @@ export type EquipoFicha = {
   gf_total: number | null
   gc_total: number | null
   temporadas: number | null
-}
-
-export type MovimientoRow = {
-  codtemporada: string | null
-  fecha: string | null
-  clase: string | null           // FICHAJE | PROMOCION_INTERNA
-  direccion: string | null       // entra | sale
-  intra_temporada: boolean | null
-  codjugador: string | null
-  nombre: string | null
-  equipo_rel_cod: string | null
-  equipo_rel_nombre: string | null
-  equipo_rel_escudo: string | null
-  convocatorias: number | null
-  frontera: boolean | null
 }
 
 // Badge de temporada -> pastilla de color. Mapa ESTÁTICO con clases literales (src/lib está en el

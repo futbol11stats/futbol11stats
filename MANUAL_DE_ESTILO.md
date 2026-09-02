@@ -103,11 +103,11 @@ y el CSS de las fichas consumen estas variables; **resuelven en todo el sitio**.
 |---|---|---|---|
 | **`PlayerName`** | nombre de persona (regla oro nº2) | 4 formatos + `NombreJugador` + `formatNombre` suelto | toda tabla/fila/ficha con nombre de jugador |
 | **`TeamName`** | nombre de equipo, sin truncar | `NombreEquipo` + truncados CSS | toda referencia a un equipo |
-| **`PointPill`** | pastilla de puntos fantasy | `.m-pts`, `.pl-val`, `.rr .rv`, `.chip`, `.rsc` | siempre ANTES del ELO |
 | **`EloDelta`** | Δ ELO del partido (verde/rojo) | `.m-elo`, `.pl-elo`, inline sueltos | siempre DESPUÉS de los puntos |
 | **`Badge11`** | sello «11» — **marca de DATO PROPIO** (lo calculamos nosotros: ELO, PF, media…), NO el icono de un dato concreto. Va en todos ellos, **mismo color**; los distingue el RÓTULO (`PF`/`ELO`), no el color (verde/rojo ya significan bueno/malo y subida/bajada, un sello verde junto a un delta rojo daría señales cruzadas) | 5 copias inline | KPIs, líderes, Panorama |
 | **`FormaStrip`** | últimos N resultados (puntos) | dots v2 / cuadros clasificación / letras FormaHero | forma de equipo/jugador |
-| **`MicroLabel`** | rótulo micro-mayúsculas | ~8 clases + ~10 usos Tailwind | etiquetas de sección/columna/campo |
+
+> La **pastilla de puntos fantasy** NO es un átomo suelto: se realiza como CSS (`.pl-val` en `PlayerRow`, `.m-pts` en `MatchRow`) — ya consistente, siempre ANTES del `EloDelta`. Los **rótulos micro-mayúsculas** siguen inline hasta que `SectionHeader` (Tanda 3) los absorba. Se intentaron como átomos (`PointPill`, `MicroLabel`) en la Tanda 1, pero quedaron sin cablear → se retiraron (no se dejan átomos fantasma). Si se necesitan, se reintroducen **ya cableados**.
 
 Helpers de nombre: **`src/lib/nombre.ts`** — `abreviaNombre` (por defecto), `nombreCompleto` (héroe),
 `inicialesNombre` (avatar), `nombreEquipo`. No volver a escribir `formatNombre(...).split(...)` inline.
@@ -119,7 +119,7 @@ Helpers de nombre: **`src/lib/nombre.ts`** — `abreviaNombre` (por defecto), `n
 | **`EntityCard`** ✅ | tarjeta-fila de directorio (icono + título + subtítulo) | `ClubesLista` y `CamposLista` (gemelas; solo cambiaba el icono) | /clubes, /campos |
 | **`CompeticionCard`** ✅ | tarjeta de competición (sello + título + chips a grupos) | 3 copias casi literales (home, /aficionados, /juveniles) | índices; `categoria` por prop, leyenda histórica opcional |
 | **`MatchRow`** ✅ | fila de "partido reciente" | (ya existía, Fase 3) | equipo/jugador/partido |
-| **`PlayerRow`** — _pendiente_ | fila `.pl` de jugador | 5 reimplementaciones (FilaJugador + plantilla ×2 + alineación + técnico) | usará PlayerAvatar/PlayerName/Pastilla/PointPill/EloDelta |
+| **`PlayerRow`** ✅ | fila `.pl` de jugador | 5 reimplementaciones (FilaJugador + plantilla ×2 + alineación + técnico) | usa PlayerAvatar/NombreJugador/Pastilla/EloDelta + pastilla `.pl-val`; reflow escritorio: meta en línea, sin hueco muerto |
 | **`StatTable`** — _pendiente_ | tabla dirigida por config de columnas | ~11 tablas gemelas de `tablas.tsx` | móvil: 1ª col fija + scroll; escritorio: todo visible |
 
 ### Cabeceras y layout (Tanda 3) — _pendiente_
