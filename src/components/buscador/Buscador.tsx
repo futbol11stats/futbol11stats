@@ -125,7 +125,7 @@ export default function Buscador({ suelo }: { suelo: number }) {
 
               {eq.length > 0 && (
                 <div>
-                  <p className="px-3 pt-2.5 pb-1 text-[10px] font-semibold uppercase tracking-widest text-chalk-600">Equipos ({nEq})</p>
+                  <p className="px-3 pt-2.5 pb-1 text-[length:var(--t-micro)] font-semibold uppercase tracking-widest text-chalk-600">Equipos ({nEq})</p>
                   {eq.map((e, i) => (
                     <ResultadoEquipo key={e.codequipo} e={e} tokens={tokens} active={active === i} onNavigate={cerrar} />
                   ))}
@@ -134,7 +134,7 @@ export default function Buscador({ suelo }: { suelo: number }) {
 
               {clu.length > 0 && (
                 <div>
-                  <p className="px-3 pt-2.5 pb-1 text-[10px] font-semibold uppercase tracking-widest text-chalk-600">Clubes ({nClu})</p>
+                  <p className="px-3 pt-2.5 pb-1 text-[length:var(--t-micro)] font-semibold uppercase tracking-widest text-chalk-600">Clubes ({nClu})</p>
                   {clu.map((c, i) => (
                     <ResultadoClub key={c.codclub} c={c} tokens={tokens} active={active === eq.length + i} onNavigate={cerrar} />
                   ))}
@@ -143,7 +143,7 @@ export default function Buscador({ suelo }: { suelo: number }) {
 
               {cam.length > 0 && (
                 <div>
-                  <p className="px-3 pt-2.5 pb-1 text-[10px] font-semibold uppercase tracking-widest text-chalk-600">Campos ({nCam})</p>
+                  <p className="px-3 pt-2.5 pb-1 text-[length:var(--t-micro)] font-semibold uppercase tracking-widest text-chalk-600">Campos ({nCam})</p>
                   {cam.map((c, i) => (
                     <ResultadoCampo key={c.codigo_campo} c={c} tokens={tokens} active={active === eq.length + clu.length + i} onNavigate={cerrar} />
                   ))}
@@ -152,7 +152,7 @@ export default function Buscador({ suelo }: { suelo: number }) {
 
               {jug.length > 0 && (
                 <div>
-                  <p className="px-3 pt-2.5 pb-1 text-[10px] font-semibold uppercase tracking-widest text-chalk-600">Jugadores ({nJug})</p>
+                  <p className="px-3 pt-2.5 pb-1 text-[length:var(--t-micro)] font-semibold uppercase tracking-widest text-chalk-600">Jugadores ({nJug})</p>
                   {jug.map((j, i) => (
                     <ResultadoJugador key={j.codjugador} j={j} tokens={tokens} active={active === eq.length + clu.length + cam.length + i} onNavigate={cerrar} suelo={suelo} />
                   ))}

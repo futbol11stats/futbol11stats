@@ -99,7 +99,7 @@ export default async function CampoPage({ params }: { params: Promise<{ slug: st
               alt={`Mapa de ${nombre}${direccionLinea ? `, ${direccionLinea}` : ''}. Ubicación del campo sobre el callejero de OpenStreetMap.`}
               className="w-full h-auto block" />
           </a>
-          <figcaption className="text-[11px] text-chalk-600 mt-1">
+          <figcaption className="text-[length:var(--t-micro)] text-chalk-600 mt-1">
             Mapa: <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer" className="underline hover:text-white transition-colors">© OpenStreetMap contributors</a>
           </figcaption>
         </figure>
@@ -126,7 +126,7 @@ export default async function CampoPage({ params }: { params: Promise<{ slug: st
       {/* Equipos que juegan allí como locales, por nº de partidos (habituales primero). Juveniles se listan (nombre
           de equipo); su ficha destino conserva su noindex. */}
       <section className="mt-8">
-        <h2 className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-widest text-chalk-600 mb-2">
+        <h2 className="flex items-center gap-2 text-[length:var(--t-micro)] font-semibold uppercase tracking-widest text-chalk-600 mb-2">
           Equipos que juegan aquí · {c.equipos.length}
         </h2>
         {/* Cada equipo se pinta EXACTAMENTE como un resultado de búsqueda (escudo · nombre · Juvenil · categoría ·
@@ -144,8 +144,8 @@ export default async function CampoPage({ params }: { params: Promise<{ slug: st
                   </span>
                   <span className="min-w-0 flex-1">
                     <span className="flex items-center gap-1.5 min-w-0">
-                      <span className="font-display font-semibold text-white uppercase truncate text-[15px] leading-tight">{e.nombre}</span>
-                      {juvenil && <span className="flex-shrink-0 text-[10px] font-semibold uppercase tracking-wide text-blue-300 bg-blue-500/15 rounded px-1 py-px">Juvenil</span>}
+                      <span className="font-display font-semibold text-white uppercase truncate text-[length:var(--t-lead)] leading-tight">{e.nombre}</span>
+                      {juvenil && <span className="flex-shrink-0 text-[length:var(--t-micro)] font-semibold uppercase tracking-wide text-blue-300 bg-blue-500/15 rounded px-1 py-px">Juvenil</span>}
                     </span>
                     {/* Categoría · grupo · PJ del equipo EN ESTE campo, seguido en la misma línea (el nº ordena la
                         lista: habituales primero). La categoría/grupo trunca; los PJ se mantienen visibles. */}

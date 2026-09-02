@@ -39,7 +39,7 @@ function Fila({ m, fichas }: { m: MovimientoRow; fichas: Record<string, FichaMov
             {href ? <Link href={href} className="hover:text-grass-300 hover:underline decoration-grass-500/60 underline-offset-2 transition-colors">{nombre}</Link> : nombre}
           </span>
         </div>
-        <div className="flex items-center gap-1.5 text-[11px] text-chalk-600 min-w-0">
+        <div className="flex items-center gap-1.5 text-[length:var(--t-micro)] text-chalk-600 min-w-0">
           {m.equipo_rel_cod ? (
             <>
               <span className="flex-shrink-0">{preposicion}</span>
@@ -57,7 +57,7 @@ function Fila({ m, fichas }: { m: MovimientoRow; fichas: Record<string, FichaMov
           )}
         </div>
       </div>
-      <span className="flex-shrink-0 text-[11px] text-chalk-600 tabular-nums text-right">
+      <span className="flex-shrink-0 text-[length:var(--t-micro)] text-chalk-600 tabular-nums text-right">
         {m.fecha ? fechaCortaYMD(m.fecha) : (m.codtemporada ? tempLabel(m.codtemporada) : '')}
       </span>
     </li>

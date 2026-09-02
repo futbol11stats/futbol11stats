@@ -72,13 +72,13 @@ function GrupoDia({ grupo, portero, last }: { grupo: Grupo; portero: boolean; la
           })}
         </div>
         {/* Momento cronológico, una sola vez */}
-        <div className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 min-w-0 text-[11px] text-chalk-600">
+        <div className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 min-w-0 text-[length:var(--t-micro)] text-chalk-600">
           {teamHito ? (
             <span className="inline-flex items-center justify-center w-4 h-4 bg-white rounded-sm flex-shrink-0 p-px">
               <EscudoImg escudo={teamHito.escudo} nombre={teamHito.contexto_nombre ?? undefined} />
             </span>
           ) : catHito ? (
-            <span className="text-[10px] text-chalk-600 bg-pitch-700 rounded px-1 py-px flex-shrink-0">categoría</span>
+            <span className="text-[length:var(--t-micro)] text-chalk-600 bg-pitch-700 rounded px-1 py-px flex-shrink-0">categoría</span>
           ) : null}
           {ctxNombre && <span className="text-chalk-500 truncate max-w-[55%]">{ctxNombre}</span>}
           <span className="tabular-nums flex-shrink-0">{fechaCorta(grupo.fecha)}</span>

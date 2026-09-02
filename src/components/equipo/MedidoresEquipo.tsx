@@ -51,7 +51,7 @@ export default function MedidoresEquipo({
     <div className={`grid grid-cols-1 ${cols} gap-3`}>
       {hayElo && (
         <div className="bg-pitch-800 rounded-xl border border-pitch-700 p-4">
-          <span className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-chalk-600">
+          <span className="flex items-center gap-1.5 text-[length:var(--t-micro)] font-semibold uppercase tracking-wider text-chalk-600">
             <TrendingUp className="w-3.5 h-3.5 text-grass-400" strokeWidth={2.5} /> ELO
           </span>
           <div className="mt-1.5 flex items-baseline gap-2">
@@ -68,7 +68,7 @@ export default function MedidoresEquipo({
       )}
 
       <div className="bg-pitch-800 rounded-xl border border-pitch-700 p-4">
-        <span className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-chalk-600">
+        <span className="flex items-center gap-1.5 text-[length:var(--t-micro)] font-semibold uppercase tracking-wider text-chalk-600">
           <ShieldCheck className="w-3.5 h-3.5 text-grass-400" strokeWidth={2.5} /> Deportividad
         </span>
         {juegoLimpio != null ? (

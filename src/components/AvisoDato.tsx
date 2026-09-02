@@ -8,7 +8,7 @@ export default function AvisoDato({ pre, enlace, post, href, className = '' }: {
   className?: string
 }) {
   return (
-    <p className={`text-[11px] text-chalk-600 leading-snug ${className}`}>
+    <p className={`text-[length:var(--t-micro)] text-chalk-600 leading-snug ${className}`}>
       {pre}{' '}
       <a href={href} className="text-grass-400 underline hover:text-grass-300 transition-colors">{enlace}</a>{post}
     </p>

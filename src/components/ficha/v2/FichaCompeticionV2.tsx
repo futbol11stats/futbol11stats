@@ -16,6 +16,7 @@ import SuperficieCampo from '@/components/SuperficieCampo'
 import { googleRenderUrl } from '@/lib/ics'
 import CalendarLink from '@/components/calendario/CalendarLink'
 import { partidoSlug } from '@/lib/partidoSlug'
+import FormaStrip from '@/components/ui/FormaStrip'
 import JsonLd from '@/components/JsonLd'
 import { graphLd, sportsEventLd } from '@/lib/jsonld'
 import { escudoUrl } from '@/lib/supabase'
@@ -38,7 +39,7 @@ import {
 } from '@/components/ficha/v2/lineasComp'
 import {
   slugToCod, codToSlug, universoTemporadas, getGrupoV2, getVariantesV2, getGruposHermanos,
-  getClasifV2, getClasifPretemporada, kpisDeClasif, zonaColor, FORMA_COL, type ClasifCompRow,
+  getClasifV2, getClasifPretemporada, kpisDeClasif, zonaColor, type ClasifCompRow,
   getDestacadosV2, getEquiposFormaV2, getTopTemporadaV2, getXiJornadaV2, getXiTemporadaV2,
   getResultadosV2, getEquiposMapV2, type ResultadoCompRow, getCarreraV2, tienePartidosJugados,
   getLideresV2, getCifrasV2, type CifrasComp, getSuspendidosV2, getPartidosJornadaV2, getTramosCompeticionV2,
@@ -589,7 +590,7 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
                           <span className="cc" style={{ color: movCol }}>{r.mov || '—'}</span>
                           <span className="cc" style={sinEmpezar ? { color: colorElo(r.elo) || undefined } : undefined}>{r.elo != null ? Math.round(r.elo) : '—'}</span>
                           <span className="cc">{r.pts_fantasy != null ? Math.round(r.pts_fantasy) : '—'}</span>
-                          <span className="cracha">{Array.from(r.forma || '').slice(-5).map((x, i) => <i key={i} style={{ background: FORMA_COL[x] || 'var(--line)' }} />)}</span>
+                          <span className="cracha"><FormaStrip items={Array.from(r.forma || '').slice(-5)} size={11} /></span>
                           <span className="ccom">{r.racha || ''}</span>
                           <span className="cc">{r.p0 ?? '—'}</span>
                         </div>

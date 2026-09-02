@@ -42,7 +42,7 @@ export default function ClubesLista({ clubes }: { clubes: ClubCard[] }) {
             <Link href={c.href} className="flex items-center gap-3 p-2.5 rounded-lg bg-pitch-800 border border-pitch-700 hover:border-grass-500/50 transition-colors">
               {c.escudo
                 ? <EscudoBox escudo={c.escudo} nombre={c.nombre} size={34} radius={7} />
-                : <span className="w-[34px] h-[34px] rounded-md bg-pitch-700 flex-none inline-flex items-center justify-center text-[11px] font-bold text-chalk-500">{inicial(c.nombre)}</span>}
+                : <span className="w-[34px] h-[34px] rounded-md bg-pitch-700 flex-none inline-flex items-center justify-center text-[length:var(--t-micro)] font-bold text-chalk-500">{inicial(c.nombre)}</span>}
               <span className="min-w-0">
                 <span className="block text-sm font-semibold text-white truncate">{c.nombre}</span>
                 <span className="block text-xs text-chalk-600 truncate">

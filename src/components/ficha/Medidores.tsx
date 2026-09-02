@@ -52,7 +52,7 @@ function PercentilBateria({ percentil, categoria }: { percentil: number; categor
           </div>
         ))}
       </div>
-      <p className="mt-1.5 text-[11px] text-chalk-600">
+      <p className="mt-1.5 text-[length:var(--t-micro)] text-chalk-600">
         <span className="text-grass-300 font-medium">Percentil</span> <span className="text-white font-semibold">{percentil}</span>
         {categoria ? <> · <Sello nombreComp={categoria} size={14} className="mx-1" /><span className="text-white">{categoria}</span></> : ''}
       </p>
@@ -67,7 +67,7 @@ function TarjetaElo({
 }) {
   return (
     <div className="bg-pitch-800 rounded-xl border border-pitch-700 p-4">
-      <span className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-chalk-600">
+      <span className="flex items-center gap-1.5 text-[length:var(--t-micro)] font-semibold uppercase tracking-wider text-chalk-600">
         <TrendingUp className="w-3.5 h-3.5 text-grass-400" strokeWidth={2.5} /> ELO
       </span>
       <div className="mt-1.5 flex items-baseline gap-2">
@@ -105,8 +105,8 @@ function AnilloRating({ rating, portero }: { rating: number; portero: boolean })
       <div className="min-w-0">
         <div className="flex items-center gap-1.5">
           <Gauge className="w-3.5 h-3.5 text-chalk-500" strokeWidth={2.5} />
-          <span className="text-[11px] font-semibold uppercase tracking-wider text-chalk-600">Rating F11S</span>
-          <span className="text-[9px] font-bold uppercase tracking-wide text-amber-300 bg-amber-500/15 rounded px-1 py-px">beta</span>
+          <span className="text-[length:var(--t-micro)] font-semibold uppercase tracking-wider text-chalk-600">Rating F11S</span>
+          <span className="text-[length:var(--t-micro)] font-bold uppercase tracking-wide text-amber-300 bg-amber-500/15 rounded px-1 py-px">beta</span>
         </div>
         <p className="text-xs text-chalk-600 mt-1 leading-snug">Índice compuesto de rendimiento sobre 100.</p>
       </div>

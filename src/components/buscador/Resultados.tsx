@@ -43,7 +43,7 @@ export function ResultadoJugador({ j, tokens, onNavigate, active, suelo }: {
       </span>
       <span className="min-w-0 flex-1">
         <span className="flex items-center gap-1.5 min-w-0">
-          <span className="font-display font-semibold text-white uppercase truncate text-[15px] leading-tight">
+          <span className="font-display font-semibold text-white uppercase truncate text-[length:var(--t-lead)] leading-tight">
             <Highlight text={formatNombre(j.nombre)} tokens={tokens} />
           </span>
           <Pastilla pos={j.posicion_pastilla} estimada={j.posicion_es_estimada} size="mini" />
@@ -75,10 +75,10 @@ export function ResultadoEquipo({ e, tokens, onNavigate, active }: {
       </span>
       <span className="min-w-0 flex-1">
         <span className="flex items-center gap-1.5 min-w-0">
-          <span className="font-display font-semibold text-white uppercase truncate text-[15px] leading-tight">
+          <span className="font-display font-semibold text-white uppercase truncate text-[length:var(--t-lead)] leading-tight">
             <Highlight text={e.nombre} tokens={tokens} />
           </span>
-          {juvenil && <span className="flex-shrink-0 text-[10px] font-semibold uppercase tracking-wide text-blue-300 bg-blue-500/15 rounded px-1 py-px">Juvenil</span>}
+          {juvenil && <span className="flex-shrink-0 text-[length:var(--t-micro)] font-semibold uppercase tracking-wide text-blue-300 bg-blue-500/15 rounded px-1 py-px">Juvenil</span>}
         </span>
         <span className={`block text-xs truncate ${inactivo ? 'text-chalk-600' : 'text-chalk-500'}`}>
           {inactivo
@@ -106,10 +106,10 @@ export function ResultadoClub({ c, tokens, onNavigate, active }: {
       </span>
       <span className="min-w-0 flex-1">
         <span className="flex items-center gap-1.5 min-w-0">
-          <span className="font-display font-semibold text-white uppercase truncate text-[15px] leading-tight">
+          <span className="font-display font-semibold text-white uppercase truncate text-[length:var(--t-lead)] leading-tight">
             <Highlight text={c.nombre_club} tokens={tokens} />
           </span>
-          <span className="flex-shrink-0 text-[10px] font-semibold uppercase tracking-wide text-grass-300 bg-grass-500/15 rounded px-1 py-px">Club</span>
+          <span className="flex-shrink-0 text-[length:var(--t-micro)] font-semibold uppercase tracking-wide text-grass-300 bg-grass-500/15 rounded px-1 py-px">Club</span>
         </span>
         <span className="block text-xs truncate text-chalk-500">
           {[c.localidad, `${c.n_equipos ?? 0} equipo${(c.n_equipos ?? 0) !== 1 ? 's' : ''}`].filter(Boolean).join(' · ')}
@@ -136,10 +136,10 @@ export function ResultadoCampo({ c, tokens, onNavigate, active }: {
       </span>
       <span className="min-w-0 flex-1">
         <span className="flex items-center gap-1.5 min-w-0">
-          <span className="font-display font-semibold text-white uppercase truncate text-[15px] leading-tight">
+          <span className="font-display font-semibold text-white uppercase truncate text-[length:var(--t-lead)] leading-tight">
             <Highlight text={nombre} tokens={tokens} />
           </span>
-          <span className="flex-shrink-0 text-[10px] font-semibold uppercase tracking-wide text-grass-300 bg-grass-500/15 rounded px-1 py-px">Campo</span>
+          <span className="flex-shrink-0 text-[length:var(--t-micro)] font-semibold uppercase tracking-wide text-grass-300 bg-grass-500/15 rounded px-1 py-px">Campo</span>
         </span>
         <span className="block text-xs truncate text-chalk-500">{[c.localidad, c.provincia].filter(Boolean).join(' · ') || '—'}</span>
       </span>

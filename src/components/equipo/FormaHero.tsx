@@ -22,24 +22,24 @@ export default function FormaHero({ forma, ultimaVictoria, tempEtiqueta, mostrar
   return (
     <div className="mt-3">
       <div className="flex items-center gap-2 flex-wrap">
-        <span className="text-[10px] font-semibold uppercase tracking-widest text-chalk-600">Racha</span>
-        {tempEtiqueta && <span className="text-[11px] text-chalk-600 tabular-nums">{tempEtiqueta}</span>}
+        <span className="text-[length:var(--t-micro)] font-semibold uppercase tracking-widest text-chalk-600">Racha</span>
+        {tempEtiqueta && <span className="text-[length:var(--t-micro)] text-chalk-600 tabular-nums">{tempEtiqueta}</span>}
         <div className="flex items-center gap-1">
           {forma.map((c, i) => {
             const cfg = CHIP[c.signo]
             const tip = `${c.jornada != null ? `J${c.jornada} · ` : ''}${c.marcador}${c.rival ? ` vs ${c.rival}` : ''}`
             return (
               <span key={i} title={tip} aria-label={tip}
-                className={`w-5 h-5 rounded-md flex items-center justify-center flex-shrink-0 font-display font-semibold text-[11px] leading-none ${cfg.cls}`}>
+                className={`w-5 h-5 rounded-md flex items-center justify-center flex-shrink-0 font-display font-semibold text-[length:var(--t-micro)] leading-none ${cfg.cls}`}>
                 {cfg.letra}
               </span>
             )
           })}
         </div>
-        {miga && <span className="text-[10px] text-chalk-600">{miga}</span>}
+        {miga && <span className="text-[length:var(--t-micro)] text-chalk-600">{miga}</span>}
       </div>
       {ultimaVictoria && (
-        <p className="text-[11px] text-chalk-600 mt-1.5">
+        <p className="text-[length:var(--t-micro)] text-chalk-600 mt-1.5">
           Última victoria · {fechaCortaDMY(ultimaVictoria.fecha)}
           {dias != null && dias >= 0 && dias <= 45 ? ` · hace ${dias} ${dias === 1 ? 'día' : 'días'}` : ''}
         </p>

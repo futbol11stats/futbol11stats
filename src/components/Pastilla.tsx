@@ -19,7 +19,7 @@ export default function Pastilla({ pos, estimada, size = 'normal', className = '
     )
   }
   const cls = POS_COLOR[pos] || 'bg-pitch-700 text-chalk-400'
-  const dims = size === 'mini' ? 'px-1.5 py-0.5 rounded text-[10px]' : 'px-2.5 py-1 rounded-md text-sm'
+  const dims = size === 'mini' ? 'px-1.5 py-0.5 rounded text-[length:var(--t-micro)]' : 'px-2.5 py-1 rounded-md text-sm'
   // font-body (Inter): la pastilla se ve IGUAL en todo el sitio, sin absorber la condensada de las tablas.
   return (
     <span title={estimada ? 'Posición estimada por dorsal' : (POS_LABEL[pos] || pos)}

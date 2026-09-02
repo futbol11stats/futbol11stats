@@ -59,7 +59,7 @@ function PartidoFila({ p, portero }: { p: any; portero: boolean }) {
             : <span className="w-5 h-5 flex-shrink-0" />}
           <span className="truncate min-w-0 uppercase font-display">{p.rival_nombre}</span>
         </div>
-        <div className="sm:hidden flex items-center gap-1.5 pl-7 mt-0.5 text-[10px] whitespace-nowrap">
+        <div className="sm:hidden flex items-center gap-1.5 pl-7 mt-0.5 text-[length:var(--t-micro)] whitespace-nowrap">
           <span className={`font-semibold ${colorSigno(signo)}`}>{marcador}</span>
           {pts != null && <span className={signoCls(pts)}>{conSigno(pts)}p</span>}
         </div>

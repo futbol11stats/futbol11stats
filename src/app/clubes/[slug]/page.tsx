@@ -61,7 +61,7 @@ export default async function ClubPage({ params }: { params: Promise<{ slug: str
 
   const Grupo = ({ titulo, equipos }: { titulo: string; equipos: typeof c.equipos }) => equipos.length === 0 ? null : (
     <section className="mb-6">
-      <h2 className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-widest text-chalk-600 mb-2">{titulo} · {equipos.length}</h2>
+      <h2 className="flex items-center gap-2 text-[length:var(--t-micro)] font-semibold uppercase tracking-widest text-chalk-600 mb-2">{titulo} · {equipos.length}</h2>
       <ul className="grid sm:grid-cols-2 gap-2">
         {equipos.map((e) => (
           <li key={e.codequipo}>

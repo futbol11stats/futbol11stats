@@ -106,8 +106,8 @@ const PREFIJO: Record<TipoComp, string> = { liga: 'J', copa: 'R', playoff: 'PO' 
 function Fila({ p }: { p: Partido }) {
   return (
     <div className="flex items-center gap-2 px-3 py-2 text-sm border-b border-pitch-700/50 last:border-0">
-      <span className="w-8 flex-shrink-0 text-center text-[11px] text-chalk-600 tabular-nums">{PREFIJO[p.tipo]}{p.jornada}</span>
-      <span className="hidden md:block w-20 flex-shrink-0 text-[11px] text-chalk-600 tabular-nums">{fechaCortaDMY(p.fecha)}</span>
+      <span className="w-8 flex-shrink-0 text-center text-[length:var(--t-micro)] text-chalk-600 tabular-nums">{PREFIJO[p.tipo]}{p.jornada}</span>
+      <span className="hidden md:block w-20 flex-shrink-0 text-[length:var(--t-micro)] text-chalk-600 tabular-nums">{fechaCortaDMY(p.fecha)}</span>
       <span className="w-4 flex-shrink-0 flex justify-center"><IndicadorLocal esLocal={p.esLocal} /></span>
       {escudoUrl(p.rivalEscudo)
         ? <span className="inline-flex items-center justify-center w-5 h-5 bg-white rounded-sm flex-shrink-0 p-px"><EscudoImg escudo={p.rivalEscudo} nombre={p.rivalNombre} /></span>
@@ -145,7 +145,7 @@ export default function PartidosEquipo({ nombre, rama, codequipo, gruposPorTempo
 
   return (
     <section>
-      <h2 className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-widest text-chalk-600 mb-2">
+      <h2 className="flex items-center gap-1.5 text-[length:var(--t-micro)] font-semibold uppercase tracking-widest text-chalk-600 mb-2">
         <Swords className="w-3.5 h-3.5 text-grass-400" strokeWidth={2.5} /> Partidos
         <span className="text-chalk-600 font-normal normal-case tracking-normal">· {tempLabel(sel)}</span>
       </h2>

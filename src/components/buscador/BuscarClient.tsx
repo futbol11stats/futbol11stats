@@ -124,7 +124,7 @@ export default function BuscarClient({ initialQ, suelo }: { initialQ: string; su
             </button>
           )}
 
-          <p className="mt-6 text-[11px] text-chalk-600 text-center">Ordenados por partidos jugados.</p>
+          <p className="mt-6 text-[length:var(--t-micro)] text-chalk-600 text-center">Ordenados por partidos jugados.</p>
         </>
       )}
 

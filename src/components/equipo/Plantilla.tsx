@@ -87,7 +87,7 @@ export default function Plantilla({
           {abierto ? 'Ver menos' : `Ver plantilla completa (${filas.length})`}
         </button>
       )}
-      {nota && <p className="mt-2 text-[11px] text-chalk-600 leading-snug">{nota}</p>}
+      {nota && <p className="mt-2 text-[length:var(--t-micro)] text-chalk-600 leading-snug">{nota}</p>}
     </div>
   )
 }

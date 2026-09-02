@@ -48,7 +48,7 @@ export default function EquipoTemporadas({
 
       {/* Plantilla */}
       <section>
-        <h2 className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-widest text-chalk-600 mb-2">
+        <h2 className="flex items-center gap-1.5 text-[length:var(--t-micro)] font-semibold uppercase tracking-widest text-chalk-600 mb-2">
           <Users className="w-3.5 h-3.5 text-grass-400" strokeWidth={2.5} /> Plantilla
           <span className="text-chalk-600 font-normal normal-case tracking-normal">· {tempLabel(sel)}</span>
         </h2>
@@ -57,7 +57,7 @@ export default function EquipoTemporadas({
 
       {/* Altas y bajas */}
       <section>
-        <h2 className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-widest text-chalk-600 mb-2">
+        <h2 className="flex items-center gap-1.5 text-[length:var(--t-micro)] font-semibold uppercase tracking-widest text-chalk-600 mb-2">
           <ArrowRightLeft className="w-3.5 h-3.5 text-grass-400" strokeWidth={2.5} /> Altas y bajas
           <span className="text-chalk-600 font-normal normal-case tracking-normal">· {tempLabel(sel)}</span>
         </h2>

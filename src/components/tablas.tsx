@@ -27,7 +27,7 @@ export function GrupoBadge({ grupo }: { grupo?: { label: string; href: string } 
   return (
     <Link
       href={grupo.href}
-      className="flex-shrink-0 whitespace-nowrap inline-block align-middle text-[10px] px-1.5 py-0.5 rounded bg-pitch-700 text-chalk-400 hover:bg-grass-500 hover:text-white transition-colors"
+      className="flex-shrink-0 whitespace-nowrap inline-block align-middle text-[length:var(--t-micro)] px-1.5 py-0.5 rounded bg-pitch-700 text-chalk-400 hover:bg-grass-500 hover:text-white transition-colors"
     >
       {grupo.label}
     </Link>
@@ -149,7 +149,7 @@ function FilaEquipoMovil({ escudo, nombre, goles, gana, codequipo }: { escudo: s
   const golesC  = gana ? 'text-white font-bold'     : 'text-chalk-600'
   return (
     <div className="flex items-center gap-2">
-      <span className={`w-7 text-center font-display text-[13px] tabular-nums flex-shrink-0 ${golesC}`}>{goles}</span>
+      <span className={`w-7 text-center font-display text-[length:var(--t-sm)] tabular-nums flex-shrink-0 ${golesC}`}>{goles}</span>
       {escudoUrl(escudo) ? (
         <span className="inline-flex items-center justify-center w-5 h-5 bg-white rounded-sm flex-shrink-0 p-px">
           <EscudoImg escudo={escudo} nombre={nombre} />
@@ -157,7 +157,7 @@ function FilaEquipoMovil({ escudo, nombre, goles, gana, codequipo }: { escudo: s
       ) : (
         <span className="w-5 h-5 flex-shrink-0" />
       )}
-      <span className={`flex-1 min-w-0 truncate font-display text-[13px] leading-tight ${nombreC}`}><NombreEquipo codequipo={codequipo} nombre={nombre} /></span>
+      <span className={`flex-1 min-w-0 truncate font-display text-[length:var(--t-sm)] leading-tight ${nombreC}`}><NombreEquipo codequipo={codequipo} nombre={nombre} /></span>
     </div>
   )
 }
@@ -368,7 +368,7 @@ export function PorterosTemporadaTab({ jugadores, fichas }: { jugadores: any[]; 
     <p className="mt-2 text-xs text-chalk-600 leading-relaxed">
       <strong>PJ</strong> Partidos jugados · <strong>P0</strong> Porterías a cero · <strong>P0%</strong> Porcentaje de porterías a cero · <strong>Goles enc.</strong> Goles encajados · <strong>Goles enc./PJ</strong> Goles encajados por partido jugado
     </p>
-    <p className="mt-1 text-[11px] text-chalk-600/80 leading-relaxed">
+    <p className="mt-1 text-[length:var(--t-micro)] text-chalk-600/80 leading-relaxed">
       Desde la jornada 3, elegibles solo los porteros con al menos el 65% de las jornadas disputadas y una media de 60 minutos por partido (a 34 jornadas, ≥22 partidos).
     </p>
     </>
