@@ -30,7 +30,10 @@ export type PartidoMini = { codacta: string; fecha: string | null; local: string
   // (elo_pre/post local y visitante, denormalizado por el pipeline en web_resultados). grupo/jornada/temporada se
   // conservan por contexto. eloDelta = el Δ ya resuelto (post − pre del lado del equipo de la forma).
   codLocal?: string; codVisitante?: string; codgrupo?: string | null; jornada?: number | null; codtemporada?: number | null
-  eloPreLocal?: number | null; eloPostLocal?: number | null; eloPreVisitante?: number | null; eloPostVisitante?: number | null; eloDelta?: number | null }
+  eloPreLocal?: number | null; eloPostLocal?: number | null; eloPreVisitante?: number | null; eloPostVisitante?: number | null; eloDelta?: number | null
+  // Para la forma de la ficha de PARTIDO: fantasy del equipo en ese partido (suma de puntos de sus jugadores) y
+  // nombre de la competición (contexto liga/copa). fantasy null = sin datos (silencio, nunca 0 inventado).
+  fantasy?: number | null; compNombre?: string | null }
 export type PartidoFicha = {
   id: string; codacta: string; jugado: boolean; esJuvenil: boolean; codtemporada: number
   categoria: string; slugComp: string; slugGrupo: string; temporada: string; nombreComp: string; jornada: number; compHref: string
@@ -307,7 +310,43 @@ export async function getPartido(codacta: string): Promise<PartidoFicha | null> 
       const post = esLocal ? m.eloPostLocal : m.eloPostVisitante
       return (pre != null && post != null) ? Math.round((post - pre) * 10) / 10 : null
     }
-    const conElo = (arr: PartidoMini[], cod: string) => arr.filter(actaEq).slice(0, 5).map((m) => ({ ...m, eloDelta: deltaEloForma(cod, m) }))
+    const formaLbase = histL.filter(actaEq).slice(0, 5)
+    const formaVbase = histV.filter(actaEq).slice(0, 5)
+
+    // FORMA de la ficha de partido: además del ΔELO, el FANTASY del equipo por partido (suma de los puntos de sus
+    // jugadores en ese acta) y el nombre de la COMPETICIÓN (contexto liga/copa). Dos consultas baratas y por índice
+    // (`codacta` y `codgrupo`), acotadas a las ~10 actas / pocos grupos de las dos formas — no engordan el coste.
+    const formaMinis = [...formaLbase, ...formaVbase]
+    const formaActas = Array.from(new Set(formaMinis.map((m) => m.codacta)))
+    const formaGrupos = Array.from(new Set(formaMinis.map((m) => m.codgrupo).filter(Boolean))) as string[]
+    const [fanRaw, grpRaw] = await Promise.all([
+      formaActas.length
+        ? supabase.from('web_jugador_partidos').select('codacta, codequipo, puntos').in('codacta', formaActas)
+        : Promise.resolve({ data: [] as Array<{ codacta: string; codequipo: string; puntos: number | null }> }),
+      formaGrupos.length
+        ? supabase.from('web_grupos').select('codgrupo, nombre_comp').in('codgrupo', formaGrupos)
+        : Promise.resolve({ data: [] as Array<{ codgrupo: string; nombre_comp: string | null }> }),
+    ])
+    // fantasy por (acta, equipo): suma de puntos de la plantilla; ausencia de filas -> null (silencio, nunca 0).
+    const fanMap = new Map<string, number>()
+    for (const p of (fanRaw.data || []) as Array<{ codacta: string; codequipo: string; puntos: number | null }>) {
+      if (p.puntos == null) continue
+      const k = `${p.codacta}|${p.codequipo}`
+      fanMap.set(k, (fanMap.get(k) || 0) + p.puntos)
+    }
+    const grpMap = new Map<string, string>()
+    for (const gg of (grpRaw.data || []) as Array<{ codgrupo: string; nombre_comp: string | null }>) {
+      if (gg.nombre_comp) grpMap.set(String(gg.codgrupo), gg.nombre_comp)
+    }
+    const conElo = (arr: PartidoMini[], cod: string): PartidoMini[] => arr.map((m) => {
+      const fk = `${m.codacta}|${cod}`
+      return {
+        ...m,
+        eloDelta: deltaEloForma(cod, m),
+        fantasy: fanMap.has(fk) ? Math.round(fanMap.get(fk) as number) : null,
+        compNombre: m.codgrupo ? (grpMap.get(String(m.codgrupo)) ?? null) : null,
+      }
+    })
 
     return {
       id: String(r.id), codacta: String(r.codacta ?? ''), jugado, esJuvenil, codtemporada: r.codtemporada,
@@ -315,8 +354,8 @@ export async function getPartido(codacta: string): Promise<PartidoFicha | null> 
       local, visitante, golesLocal: r.goles_local, golesVisitante: r.goles_visitante, fecha: r.fecha, hora: r.hora,
       campoNombre: campoNombre || null, campoSuperficie, campoHref, campoLat: r.campo_lat, campoLng: r.campo_lng,
       mvp,
-      formaLocal: conElo(histL, codeqL),
-      formaVisitante: conElo(histV, codeqV),
+      formaLocal: conElo(formaLbase, codeqL),
+      formaVisitante: conElo(formaVbase, codeqV),
       rachasLocal: rachasDe(codeqL, histL.filter(actaEq)),
       rachasVisitante: rachasDe(codeqV, histV.filter(actaEq)),
       h2h: h2h.filter(actaEq).slice(0, 5),

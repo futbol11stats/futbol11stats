@@ -13,6 +13,8 @@ import { formatNombre } from '@/lib/supabase'
 import { googleRenderUrl } from '@/lib/ics'
 import { SITE_URL } from '@/lib/seo'
 import { partidoSlug } from '@/lib/partidoSlug'
+import MatchRow from '@/components/ficha/v2/MatchRow'
+import { colorFan } from '@/lib/equipoV2'
 import type { PartidoFicha, PartidoJugador, PartidoMini, PartidoLado } from '@/lib/partido'
 
 // Helpers portados del hero de plantilla (equipo): avatar de iniciales coloreado por demarcación.
@@ -179,22 +181,34 @@ function MiniPartido({ m }: { m: PartidoMini }) {
 
 // Fila COMPACTA de forma reciente (dos columnas a 390px): rival + marcador (orden local-visitante del sitio, coloreado
 // por el resultado del EQUIPO) + casa/avión + Δ ELO del partido (verde sube / rojo baja; solo liga — en copa viene null).
+// Forma de la ficha de partido: la MISMA fila .match compartida (MatchRow), en su variante compacta para caber a
+// dos columnas. Añade el FANTASY del equipo (pastilla, mismo color que la ficha de equipo) y la COMPETICIÓN en la
+// meta (contexto liga/copa); mantiene el ΔELO. Enlaza a la ficha del partido. Orden Puntos · ELO como en todo el sitio.
 function MiniForma({ m, teamCod }: { m: PartidoMini; teamCod: string }) {
   const jugado = m.golesLocal != null && m.golesVisitante != null
   const esLocal = m.codLocal === teamCod
   const rival = esLocal ? m.visitante : m.local
   const rivalEsc = esLocal ? m.escudoVisitante : m.escudoLocal
+  const rivalCod = esLocal ? m.codVisitante : m.codLocal
   const gL = (m.golesLocal ?? 0), gV = (m.golesVisitante ?? 0)
   const gf = esLocal ? gL : gV, gc = esLocal ? gV : gL
-  const col = !jugado ? 'var(--ink-2)' : gf > gc ? 'var(--e3)' : gf < gc ? 'var(--e0)' : 'var(--ink-3)'
+  const signo: 'G' | 'E' | 'P' | null = !jugado ? null : gf > gc ? 'G' : gf < gc ? 'P' : 'E'
   return (
-    <Link className="mforma" href={`/madrid/partido/${partidoSlug(m.codacta, m.local, m.visitante)}`}>
-      <EscudoBox escudo={rivalEsc} nombre={rival} size={18} radius={4} />
-      <span className="mf-nm">{rival}</span>
-      <IndicadorLocal esLocal={esLocal} />
-      <span className="mf-sc" style={{ color: col }}>{jugado ? `${gL}-${gV}` : 'vs'}</span>
-      {m.eloDelta != null && <span className="mf-elo" style={{ color: m.eloDelta >= 0 ? 'var(--e3)' : 'var(--e0)' }}>{m.eloDelta >= 0 ? '+' : '−'}{Math.abs(Math.round(m.eloDelta))}</span>}
-    </Link>
+    <MatchRow
+      compact
+      marcador={jugado ? `${gL}-${gV}` : null}
+      signo={signo}
+      rivalEscudo={rivalEsc}
+      rivalNombre={rival}
+      rivalCod={rivalCod ?? null}
+      esLocal={esLocal}
+      fecha={m.fecha}
+      etiqueta={m.compNombre || undefined}
+      pts={m.fantasy}
+      ptsBg={m.fantasy != null ? colorFan(m.fantasy) : undefined}
+      eloDelta={m.eloDelta}
+      href={`/madrid/partido/${partidoSlug(m.codacta, m.local, m.visitante)}`}
+    />
   )
 }
 

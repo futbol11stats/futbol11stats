@@ -25,6 +25,7 @@ export type MatchRowProps = {
   ptsBg?: string                     // color de la pastilla de puntos
   eloDelta?: number | null           // ELO: Δ del partido
   href?: string | null               // -> ficha de partido
+  compact?: boolean                  // versión estrecha (ficha de partido, dos columnas): mismo diseño, menos ancho
 }
 
 const MESES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic']
@@ -38,7 +39,7 @@ function Cuerpo(p: MatchRowProps) {
   return (
     <>
       <div className="m-score" style={{ color: p.marcador ? col : 'var(--ink-3)' }}>{p.marcador ?? 'vs'}</div>
-      <EscudoBox escudo={p.rivalEscudo ?? null} nombre={p.rivalNombre ?? undefined} size={26} radius={4} />
+      <EscudoBox escudo={p.rivalEscudo ?? null} nombre={p.rivalNombre ?? undefined} size={p.compact ? 22 : 26} radius={4} />
       <div className="m-mid">
         <div className="m-riv"><span className="m-vs">vs</span> <NombreEquipo codequipo={p.rivalCod ?? null} nombre={p.rivalNombre ?? null} /></div>
         <div className="m-meta">
@@ -56,7 +57,8 @@ function Cuerpo(p: MatchRowProps) {
 }
 
 export default function MatchRow(p: MatchRowProps) {
+  const cls = `match${p.compact ? ' match-compact' : ''}`
   return p.href
-    ? <Link className="match match-link" href={p.href}><Cuerpo {...p} /></Link>
-    : <div className="match"><Cuerpo {...p} /></div>
+    ? <Link className={`${cls} match-link`} href={p.href}><Cuerpo {...p} /></Link>
+    : <div className={cls}><Cuerpo {...p} /></div>
 }
