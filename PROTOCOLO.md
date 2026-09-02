@@ -6,6 +6,9 @@ datos, que cubre los scripts de Python.)
 > **Diseño / UI:** antes de crear cualquier componente, pastilla, nombre o cabecera, lee el
 > **[Manual de estilo y catálogo de componentes](./MANUAL_DE_ESTILO.md)**. La primera pregunta siempre
 > es «¿qué pieza hay ya para esto?». No se crean variantes nuevas de algo que ya existe.
+>
+> **Codificación:** NUNCA edites ficheros con texto en español con PowerShell `Set-Content`/`Out-File`
+> — corrompen los acentos (mojibake: «Fútbol»→«FÃºtbol») y el build no avisa. Usa `sed -i` o el editor.
 
 ## OBLIGATORIO antes de cualquier modificación
 

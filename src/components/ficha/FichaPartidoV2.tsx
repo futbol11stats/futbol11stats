@@ -12,18 +12,12 @@ import { Balon, TarjetaAmarilla, TarjetaDoble, TarjetaRoja, FlechaEntra, FlechaS
 import { googleRenderUrl } from '@/lib/ics'
 import { SITE_URL } from '@/lib/seo'
 import { partidoSlug } from '@/lib/partidoSlug'
-import { inicialesNombre, nombreCompleto, nombreEquipo } from '@/lib/nombre'
+import { nombreCompleto, nombreEquipo } from '@/lib/nombre'
 import MatchRow from '@/components/ficha/v2/MatchRow'
+import PlayerRow from '@/components/ui/PlayerRow'
+import PlayerAvatar from '@/components/ui/PlayerAvatar'
 import { colorFan } from '@/lib/equipoV2'
 import type { PartidoFicha, PartidoJugador, PartidoMini, PartidoLado } from '@/lib/partido'
-
-// Helpers portados del hero de plantilla (equipo): avatar de iniciales coloreado por demarcación.
-const iniciales = inicialesNombre
-const AVA_POS: Record<string, string> = { POR: '249,115,22', DEF: '59,130,246', MED: '34,160,80', DEL: '239,68,68' }
-const avaStyle = (pos: string | null) => {
-  const c = AVA_POS[pos || ''] || '100,116,139'
-  return { background: `linear-gradient(to bottom right, rgba(${c},.45), var(--pitch-800))`, border: `1.5px solid rgba(${c},.55)`, color: '#fff' }
-}
 // Fondo de la pastilla de PUNTOS fantasy (baza propia; verde para lo bueno, el ámbar está reservado).
 const ptsStyle = (p: number | null) => p == null ? { background: 'rgba(255,255,255,.05)', color: 'var(--ink-4)' }
   : p >= 8 ? { background: 'var(--e3)', color: '#08111f' }
@@ -63,17 +57,14 @@ function Portero({ j }: { j: PartidoJugador }) {
 // Fila de jugador con el marcado REAL de la plantilla (.pl): avatar, nombre (Barlow), .pl-me (Pastilla + eventos con
 // icono + portero), .pl-elo (Δ ELO del partido, verde sube / rojo baja) y .pl-val con los puntos fantasy.
 function Fila({ j }: { j: PartidoJugador }) {
-  const nombre = nombreCompleto(j.nombre) || j.nombre
   return (
-    <div className={`pl${j.jugado ? '' : ' pl-nojugo'}`}>
-      <div className="pl-av" style={avaStyle(j.pos)}>{j.dorsal || iniciales(j.nombre)}</div>
-      <div className="pl-mid">
-        <div className="pl-nm">{j.href ? <Link href={j.href}>{nombre}</Link> : nombre}</div>
-        <div className="pl-me">{j.pos && <Pastilla pos={j.pos} size="mini" />}<Eventos j={j} /><Portero j={j} /></div>
-      </div>
-      <div className="pl-val" style={ptsStyle(j.puntos)}>{j.puntos != null ? j.puntos : '—'}</div>
-      {j.eloDelta != null && <div className="pl-elo" style={{ color: j.eloDelta >= 0 ? 'var(--e3)' : 'var(--e0)' }} title="Δ ELO del partido">{j.eloDelta >= 0 ? '+' : '−'}{Math.abs(Math.round(j.eloDelta))}</div>}
-    </div>
+    <PlayerRow
+      nombre={j.nombre} pos={j.pos} dorsal={j.dorsal || undefined} href={j.href}
+      muted={!j.jugado}
+      meta={<><Eventos j={j} /><Portero j={j} /></>}
+      valor={j.puntos != null ? j.puntos : '—'} valorStyle={ptsStyle(j.puntos)}
+      elo={j.eloDelta}
+    />
   )
 }
 
@@ -93,15 +84,7 @@ function FormaDots({ nombre, minis }: { nombre: string; minis: PartidoMini[] }) 
 // se muestra TENUE y sin pastilla, para distinguirlo de un nombre real.
 function CuerpoTecnico({ nombre }: { nombre: string }) {
   if (/no\s*presenta/i.test(nombre)) return <div className="al-tec-none">No presenta</div>
-  return (
-    <div className="pl pl-tec">
-      <div className="pl-av" style={avaStyle(null)}>{iniciales(nombre)}</div>
-      <div className="pl-mid">
-        <div className="pl-nm">{nombreCompleto(nombre)}</div>
-        <div className="pl-me"><span className="rol-pill">Entrenador</span></div>
-      </div>
-    </div>
-  )
+  return <PlayerRow tec nombreCompletoUI pastilla={false} nombre={nombre} meta={<span className="rol-pill">Entrenador</span>} />
 }
 
 const TeamHead = ({ lado, forma }: { lado: PartidoLado; forma: PartidoMini[] }) => (
@@ -387,7 +370,7 @@ export default function FichaPartidoV2({ p }: { p: PartidoFicha }) {
         <section>
           <div className="s-head"><h2 className="s-title">MVP del partido</h2><div className="s-sub">por puntos fantasy</div></div>
           <div className="pl">
-            <div className="pl-av" style={avaStyle(p.mvp.pos)}>{iniciales(p.mvp.nombre)}</div>
+            <PlayerAvatar className="pl-av" nombre={p.mvp.nombre} pos={p.mvp.pos} />
             <div className="pl-mid">
               <div className="pl-nm">{p.mvp.href ? <Link href={p.mvp.href}>{nombreCompleto(p.mvp.nombre)}</Link> : nombreCompleto(p.mvp.nombre)}</div>
               <div className="pl-me">{p.mvp.pos && <Pastilla pos={p.mvp.pos} size="mini" />}<span className="mvp-eq">{nombreEquipo(mvpLado.nombre)}</span></div>

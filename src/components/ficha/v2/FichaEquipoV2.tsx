@@ -43,12 +43,11 @@ import {
 } from '@/lib/equipoV2'
 import type { CompEquipo } from '@/components/ficha/v2/JornadasEquipo'
 import Badge11 from '@/components/ui/Badge11'
-import { inicialesNombre } from '@/lib/nombre'
+import PlayerRow from '@/components/ui/PlayerRow'
 import { fmtNum } from '@/lib/formato'
 
 const med1 = (v: number | null) => (v == null ? '—' : v.toFixed(1).replace('.', ','))
 const conSigno = (n: number) => (n > 0 ? `+${n}` : `${n}`)
-const iniciales = inicialesNombre
 
 export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: string; temporadaLabel: string | null }) {
   const [e, temporadas, copaTemps, copasPorTemp] = await Promise.all([
@@ -155,12 +154,6 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
   const starterIds = new Set(onceIds.map((p) => p.codjugador))
   const hayOcultos = plantilla.length > starterIds.size
 
-  // Color del botón de iniciales por demarcación, como el avatar del hero de la ficha de jugador (AVA_POS).
-  const AVA_POS: Record<string, string> = { POR: '249,115,22', DEF: '59,130,246', MED: '34,160,80', DEL: '239,68,68' }
-  const avaStyle = (pos: string | null) => {
-    const c = AVA_POS[pos || ''] || '100,116,139'
-    return { background: `linear-gradient(to bottom right, rgba(${c},.45), var(--pitch-800))`, border: `1.5px solid rgba(${c},.55)`, color: '#fff' }
-  }
   // Fila de datos bajo el nombre (mismo lenguaje que Totales de jugador): PJ · Min · Goles (o P.a cero para
   // porteros), iconos en vez de etiquetas; tarjetas (TA/2TA/TR) solo cuando las hay, para que quepa.
   const filaDatos = (p: PlantillaEqRow) => (
@@ -675,15 +668,8 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
                   <div className="s-head"><h2 className="s-title">Top de la plantilla</h2><div className="s-sub">por puntos fantasy</div></div>
                   <div>
                     {topPlantilla.map((p, i) => (
-                      <div className="pl" key={p.codjugador}>
-                        <div className="pl-rk">{i + 1}</div>
-                        <div className="pl-av" style={avaStyle(p.pos)}>{iniciales(p.nombre)}</div>
-                        <div className="pl-mid">
-                          <div className="pl-nm">{plantillaFichas.has(String(p.codjugador)) ? <Link href={jugadorHref(p.codjugador, p.nombre)}>{nombreCompleto(p.nombre)}</Link> : nombreCompleto(p.nombre)}</div>
-                          <div className="pl-me">{p.pos && <Pastilla pos={p.pos} size="mini" />}{filaDatos(p)}</div>
-                        </div>
-                        <div className="pl-val" style={{ background: 'var(--e2)' }}>{fmtNum(p.pts)}</div>
-                      </div>
+                      <PlayerRow key={p.codjugador} rank={i + 1} cod={p.codjugador} nombre={p.nombre} pos={p.pos}
+                        meta={filaDatos(p)} valor={fmtNum(p.pts)} fichas={plantillaFichas} />
                     ))}
                   </div>
                 </>
@@ -696,14 +682,8 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
                   <Fragment key={L.k}>
                     <div className="line-h"><span className="line-lp" style={{ color: L.c, background: `${L.c}26` }}>{L.k}</span><span className="line-ln">{L.nm}</span><span className="num" style={{ fontSize: 'var(--t-body)', color: 'var(--ink-3)' }}>{L.jug.length}</span></div>
                     {L.jug.map((p) => (
-                      <div className={`pl${starterIds.has(p.codjugador) ? '' : ' pl-hid'}`} key={p.codjugador}>
-                        <div className="pl-av" style={avaStyle(p.pos)}>{iniciales(p.nombre)}</div>
-                        <div className="pl-mid">
-                          <div className="pl-nm">{plantillaFichas.has(String(p.codjugador)) ? <Link href={jugadorHref(p.codjugador, p.nombre)}>{nombreCompleto(p.nombre)}</Link> : nombreCompleto(p.nombre)}</div>
-                          <div className="pl-me">{filaDatos(p)}</div>
-                        </div>
-                        <div className="pl-val" style={{ background: 'var(--e2)' }}>{fmtNum(p.pts)}</div>
-                      </div>
+                      <PlayerRow key={p.codjugador} cod={p.codjugador} nombre={p.nombre} pos={p.pos} pastilla={false}
+                        meta={filaDatos(p)} valor={fmtNum(p.pts)} fichas={plantillaFichas} hidden={!starterIds.has(p.codjugador)} />
                     ))}
                   </Fragment>
                 ))}

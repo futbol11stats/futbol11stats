@@ -342,6 +342,14 @@
 .fjv2 .pl-open-cb{position:absolute;width:0;height:0;opacity:0;pointer-events:none}
 .fjv2 .pl.pl-hid{display:none}
 .fjv2 .pl-open-cb:checked ~ #plantilla-eq .pl.pl-hid{display:flex}
+/* Reflow de la fila .pl en ESCRITORIO: el meta (eventos/stats/equipo) sube a la MISMA línea que el nombre
+   y RELLENA el centro con flex:1, en vez de apilarse a la izquierda dejando el hueco muerto antes del valor.
+   El nombre no crece (flex:none) para cederle el centro al meta; el valor/ELO se quedan en su carril derecho. */
+@media(min-width:1000px){
+  .fjv2 .pl-mid{display:flex;align-items:baseline;gap:14px}
+  .fjv2 .pl-mid .pl-nm{flex:none;max-width:240px}
+  .fjv2 .pl-mid .pl-me{margin-top:0;flex:1;min-width:0}
+}
 .fjv2 label.pl-open-btn{display:block;margin:12px var(--pad) 0;cursor:pointer}
 .fjv2 label.pl-open-btn::after{content:'Ver plantilla completa'}
 .fjv2 .pl-open-cb:checked ~ label.pl-open-btn::after{content:'Ver menos'}
@@ -708,6 +716,9 @@
    border-left de .alg-r y el de fila el border-top de .alg-pl. Las celdas .alg-empty (colas de suplentes dispares)
    no llevan bordes -> no descolocan ni dejan hueco raro a la columna llena. Antes .desk-2col (apilado en móvil). */
 .fpv2 .al-grid{display:grid;grid-template-columns:1fr 1fr}
+/* Escritorio: se acota el ancho de las dos columnas de alineación (si no, cada mitad son ~640px y la fila
+   deja un hueco muerto de ~250px). Centrada, cada mitad ~520px = lo que ocupa la fila con el meta en línea. */
+@media(min-width:1000px){ .fpv2 .al-grid{max-width:1040px;margin-left:auto;margin-right:auto} }
 .fpv2 .al-grid .alg-c{min-width:0}
 .fpv2 .al-grid .alg-r{border-left:1px solid var(--line-2)}
 .fpv2 .al-grid .alg-pl{border-top:1px solid var(--line-2)}
