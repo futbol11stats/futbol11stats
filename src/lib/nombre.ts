@@ -53,19 +53,37 @@ export function inicialesNombre(raw: string | null | undefined): string {
   return (a + b || pila.slice(0, 2) || apellidos.slice(0, 2)).toUpperCase()
 }
 
-// Nombre de EQUIPO en capitalización normal, preservando siglas (C.F., S.A.D., R.C.D., U.D., 'A'…) y
-// sin truncar nunca. El dato llega en MAYÚSCULAS ("LAS ROZAS C.F. 'A'") -> "Las Rozas C.F. 'A'".
+// Normaliza UN token de nombre de equipo: siglas/comillas/una-letra intactas (mayúsculas), el resto Title
+// Case respetando preposiciones.
+function normTokEquipo(tok: string, i: number): string {
+  if (tok.includes('.') || /['"]/.test(tok) || tok.length === 1) return tok.toUpperCase()
+  if (tok.length <= 3 && !/[aeiouáéíóú]/i.test(tok)) return tok.toUpperCase() // siglas sin punto (RCD, UDA)
+  const low = tok.toLowerCase()
+  return i > 0 && MINUS.has(low) ? low : cap(low)
+}
+
+// Forma jurídica del club: sigla de letras con puntos (C.F., S.A.D., A.D., F.C., U.D., C.D., R.C.D.…).
+const ES_SIGLA_JURIDICA = (t: string) => /^([A-ZÁÉÍÓÚ]\.)+$/.test(t)
+// Filial: letra suelta entre comillas ('A', 'B', 'C') — SIEMPRE se conserva (distingue de verdad).
+const ES_FILIAL = (t: string) => /^['"][A-ZÁÉÍÓÚ]['"]$/.test(t)
+
+// Nombre de EQUIPO ÚNICO del sitio (capitalización normal, sin truncar). Se QUITA la forma jurídica
+// (C.F., S.A.D., A.D.…) — no aporta nada al aficionado y es lo primero que sobra — conservando SIEMPRE la
+// letra del filial ('A'/'B'). Último recurso si aún es muy largo: quitar la localidad (" de <sitio>").
+// "LAS ROZAS C.F. 'A'" -> "Las Rozas 'A'"; "C.D.A. NAVALCARNERO 'A'" -> "Navalcarnero 'A'". El slug del
+// enlace se calcula aparte con el nombre COMPLETO, así que no se rompen URLs.
 export function nombreEquipo(raw: string | null | undefined): string {
   if (!raw) return ''
-  return raw
-    .split(/\s+/)
-    .filter(Boolean)
-    .map((tok, i) => {
-      // Siglas con punto (C.F., S.A.D.) o entre comillas ('A') o de una sola letra -> intactas (mayúsculas).
-      if (tok.includes('.') || /['"]/.test(tok) || tok.length === 1) return tok.toUpperCase()
-      if (tok.length <= 3 && !/[aeiouáéíóú]/i.test(tok)) return tok.toUpperCase() // siglas sin punto (RCD, UDA)
-      const low = tok.toLowerCase()
-      return i > 0 && MINUS.has(low) ? low : cap(low)
-    })
-    .join(' ')
+  const toks = raw.split(/\s+/).filter(Boolean)
+  const kept = toks.filter((t) => ES_FILIAL(t) || !ES_SIGLA_JURIDICA(t))
+  let out = kept.map((t, i) => normTokEquipo(t, i)).join(' ').trim()
+  if (out.length > 26) out = out.replace(/\sde\s+\S+/i, '').trim() // último recurso: fuera la localidad
+  return out
+}
+
+// Nombre de equipo COMPLETO (con forma jurídica), Title Case. Para contextos con sitio de sobra si hiciera
+// falta; por defecto se usa el corto (nombreEquipo).
+export function nombreEquipoCompleto(raw: string | null | undefined): string {
+  if (!raw) return ''
+  return raw.split(/\s+/).filter(Boolean).map((t, i) => normTokEquipo(t, i)).join(' ')
 }
