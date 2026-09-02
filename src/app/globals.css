@@ -64,26 +64,6 @@ body {
   }
 }
 
-/* StatTable (.st): identidad FIJA (sticky) + scroll horizontal de métricas. La columna de identidad se
-   ancla a la izquierda; las métricas pasan por debajo al hacer scroll. El nombre NO se trunca a ninguna
-   anchura (regla de oro nº2): anula el max-width/ellipsis de .col-nombre y va en una sola línea con
-   ancho natural. En escritorio suele caber todo => no hay scroll y el sticky es inocuo. */
-.st td.st-id,
-.st th.st-id {
-  position: sticky;
-  left: 0;
-  z-index: 1;
-  background: var(--pitch-800);          /* opaco: tapa las métricas que pasan por detrás */
-}
-.st th.st-id { z-index: 2; }             /* la cabecera fija por encima de las celdas */
-.st tr:hover td.st-id { background: #122549; }   /* = pitch-700/50 sobre pitch-800 (hover de fila, opaco) */
-.st td.col-nombre {
-  max-width: none;                       /* anula el recorte de .tabla-clasificacion td.col-nombre */
-  overflow: visible;
-}
-.st .st-nm { white-space: nowrap; }      /* nombre entero, nunca partido ni con ellipsis */
-.st .st-rk { min-width: 1.25rem; text-align: right; }
-
 /* Trayectoria con acordeón de partidos: en desktop apretamos el padding horizontal para que las 10-11
    columnas (incluida ELO) quepan sin scroll en la columna principal de la ficha. Móvil no se toca
    (ya usa el padding denso de la media query de arriba). */

@@ -1,6 +1,13 @@
 # Manual de estilo y reglas de construcción — Fútbol11Stats
 
-> **Antes de crear nada, una sola pregunta: «¿qué pieza hay ya para esto?»**
+> **Antes de tocar una superficie, VERIFICAR QUE ESTÁ VIVA.** Que un componente exista en el repo no
+> significa que se renderice. Antes de rediseñar, unificar o migrar nada, comprobar que algo lo importa
+> y que una ruta lo sirve (grep de imports + la ruta real en el navegador). **Contar ficheros no
+> distingue lo que se sirve de lo que solo existe.** Esta comprobación va **primero, siempre** — se
+> saltó dos veces (la vieja ficha de equipo en `equipo/`, y las ~13 tablas de `tablas.tsx`, ambas
+> muertas y sustituidas por sus v2) y en ambas se estuvo a punto de invertir trabajo en un fantasma.
+>
+> **Después, una sola pregunta: «¿qué pieza hay ya para esto?»**
 > Si existe, se reutiliza. Si no encaja del todo, se **amplía** la pieza existente (una prop nueva),
 > **nunca** se crea una variante paralela. Así no volvemos a acumular 5 pastillas para lo mismo.
 
@@ -120,7 +127,7 @@ Helpers de nombre: **`src/lib/nombre.ts`** — `abreviaNombre` (por defecto), `n
 | **`CompeticionCard`** ✅ | tarjeta de competición (sello + título + chips a grupos) | 3 copias casi literales (home, /aficionados, /juveniles) | índices; `categoria` por prop, leyenda histórica opcional |
 | **`MatchRow`** ✅ | fila de "partido reciente" | (ya existía, Fase 3) | equipo/jugador/partido |
 | **`PlayerRow`** ✅ | fila `.pl` de jugador | 5 reimplementaciones (FilaJugador + plantilla ×2 + alineación + técnico) | usa PlayerAvatar/NombreJugador/Pastilla/EloDelta + pastilla `.pl-val`; reflow escritorio: meta en línea, sin hueco muerto |
-| **`StatTable`** — _pendiente_ | tabla dirigida por config de columnas | ~11 tablas gemelas de `tablas.tsx` | móvil: 1ª col fija + scroll; escritorio: todo visible |
+| ~~`StatTable`~~ — **no procede** | tabla dirigida por config | — | Las ~13 tablas de `tablas.tsx` que iba a unificar **ya estaban muertas**: la ficha de competición **v2** las sustituyó en su día por rankings de barras (`RankingComp`) + clasificación inline. No hay flota de tablas gemelas viva que unificar. El único `<table>` de stats vivo es `Trayectoria` (ficha de jugador), específico y sin gemelas. El patrón de tabla ancha queda documentado abajo (§ Patrones) por si reaparece. |
 
 ### Cabeceras y layout (Tanda 3) — _pendiente_
 `EntityHero`, `PageLayout` (con aside), `SectionHeader`, `TabBar`.
@@ -129,6 +136,9 @@ Helpers de nombre: **`src/lib/nombre.ts`** — `abreviaNombre` (por defecto), `n
 
 ## 4 · Cómo añadir algo nuevo
 
+0. **VERIFICA QUE LA SUPERFICIE ESTÁ VIVA** (antes que nada). Grep de imports del componente/tabla que
+   vas a tocar + abre la ruta real. Si nadie lo importa o ninguna ruta lo sirve, es un fantasma: no lo
+   rediseñes, **bórralo** (o déjalo si la decisión es de otro). Contar ficheros ≠ contar renders.
 1. **Busca en el catálogo (§3).** ¿Hay una pieza para esto? Úsala.
 2. **¿Casi encaja?** Amplía la pieza con una prop (`variant`, `size`, `compact`…). No la clones.
 3. **¿No existe?** Créala en `src/components/ui/`, autocontenida (estilos por token/inline, sin depender
@@ -140,3 +150,35 @@ Helpers de nombre: **`src/lib/nombre.ts`** — `abreviaNombre` (por defecto), `n
    se recoloca en escritorio). Nunca «estirar» la versión móvil.
 6. **Verifica:** `npx tsc --noEmit && npm run build`. Agrupa cambios; no despliegues por cada uno (cada
    deploy regenera páginas ISR y consume cupo de Vercel — ver [[revalidacion-coste-vercel]]).
+
+---
+
+## 5 · Patrones documentados (no son componentes)
+
+Recetas probadas que **no** justifican un componente propio hoy, pero que conviene no reinventar si
+reaparece el caso. Se guardan aquí, no en `src/`, para no dejar código sin cablear (átomo fantasma).
+
+### Tabla ancha en móvil — identidad fija + scroll, sin truncar el nombre
+
+**Problema:** una tabla con muchas columnas no cabe en 390px. La salida MALA (y la que había en el
+difunto `tablas.tsx`) era **ocultar** columnas (`hidden md:table-cell`) y **truncar** el nombre
+(`col-nombre` con `max-width` + `ellipsis`) → rompe la regla de oro nº2.
+
+**Patrón:** la **columna de identidad** (nombre) se ancla (`position: sticky; left: 0`) y las métricas
+hacen **scroll horizontal** por debajo (contenedor `overflow-x: auto`). El nombre va `white-space:
+nowrap` con **ancho natural** (sin `max-width`): cabe entero a cualquier anchura; la métrica que no
+quepa se descubre haciendo scroll, **nunca comiéndose el nombre**. La celda fija necesita fondo
+**opaco** (tapa lo que pasa por detrás), también en `:hover`.
+
+```css
+/* .wide = table; .id = celda de identidad (th y td) */
+.wide td.id, .wide th.id { position: sticky; left: 0; z-index: 1; background: var(--pitch-800); }
+.wide th.id { z-index: 2; }
+.wide tr:hover td.id { background: #122549; }  /* = pitch-700/50 sobre pitch-800, pero opaco */
+.wide td.id .nombre { white-space: nowrap; }   /* nombre entero, jamás max-width ni ellipsis */
+```
+
+**Aviso de diseño (lo que verificar si se usa):** que fijar la 1ª columna no la re-estreche hasta
+truncar. El ancho lo manda el nombre, no una cifra fija. Con nombres patológicos muy largos la columna
+fija puede tapar casi todo el viewport — es el coste aceptado de no truncar; se resuelve por diseño
+(menos columnas, otra densidad), nunca recortando el nombre.
