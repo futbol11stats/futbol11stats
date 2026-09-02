@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import Pastilla from '@/components/Pastilla'
+import { fmtNum } from '@/lib/formato'
 
 // Plantilla del equipo (colapsada a ~6 + "ver completa"). Filas ya normalizadas por la página:
 // aficionados llevan href a la ficha del jugador + pts/elo; juvenil NO (menores, sin pts/elo).
@@ -66,13 +67,13 @@ export default function Plantilla({
                   ) : r.nombre}
                 </td>
                 <td className="text-center text-chalk-400 tabular-nums">{r.pj ?? 0}</td>
-                <td className="text-center text-chalk-600 tabular-nums hidden sm:table-cell">{r.minutos != null ? r.minutos.toLocaleString('es-ES') : ''}</td>
+                <td className="text-center text-chalk-600 tabular-nums hidden sm:table-cell">{r.minutos != null ? fmtNum(r.minutos) : ''}</td>
                 <td className="text-center text-white font-medium tabular-nums">{r.goles ?? 0}</td>
                 <td className="text-center text-chalk-600 tabular-nums hidden sm:table-cell">{r.ta ?? 0}</td>
                 <td className="text-center text-chalk-600 tabular-nums hidden sm:table-cell">{r.dobles ?? 0}</td>
                 <td className="text-center text-chalk-600 tabular-nums hidden sm:table-cell">{r.tr ?? 0}</td>
-                {completa && <td className="text-center text-grass-400 font-medium tabular-nums">{r.pts != null ? Math.round(r.pts) : ''}</td>}
-                {completa && <td className="text-center text-grass-400 tabular-nums">{r.elo != null ? Math.round(r.elo) : ''}</td>}
+                {completa && <td className="text-center text-grass-400 font-medium tabular-nums">{r.pts != null ? fmtNum(r.pts) : ''}</td>}
+                {completa && <td className="text-center text-grass-400 tabular-nums">{r.elo != null ? fmtNum(r.elo) : ''}</td>}
               </tr>
             ))}
           </tbody>

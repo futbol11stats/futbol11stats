@@ -27,7 +27,8 @@ import { getCampoEquipo, campoMapsUrl, parseCampo } from '@/lib/club'
 import { getCamposConFicha, campoSlug } from '@/lib/campo'
 import SuperficieCampo from '@/components/SuperficieCampo'
 import CalendarLink from '@/components/calendario/CalendarLink'
-import { escudoUrl, formatNombre } from '@/lib/supabase'
+import { escudoUrl } from '@/lib/supabase'
+import { nombreCompleto, nombreEquipo } from '@/lib/nombre'
 import { jugadorHref, fechaCorta, fichasExistentes } from '@/lib/jugador'
 import { familiaSello, familiaCorto } from '@/lib/sellos'
 import {
@@ -43,8 +44,8 @@ import {
 import type { CompEquipo } from '@/components/ficha/v2/JornadasEquipo'
 import Badge11 from '@/components/ui/Badge11'
 import { inicialesNombre } from '@/lib/nombre'
+import { fmtNum } from '@/lib/formato'
 
-const mil = (n: number | null | undefined) => (n == null ? '—' : Math.round(Number(n)).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.'))
 const med1 = (v: number | null) => (v == null ? '—' : v.toFixed(1).replace('.', ','))
 const conSigno = (n: number) => (n > 0 ? `+${n}` : `${n}`)
 const iniciales = inicialesNombre
@@ -166,11 +167,11 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
     <div className="pl-stats">
       {/* PJ y minutos SIEMPRE (un jugador de la plantilla ha jugado; el 0 ahí es información). El resto son
           "hizo/no hizo": se omiten a cero (goles, porterías a cero, tarjetas), como en las fichas solo-copa. */}
-      <span>{mil(p.pj)}<Escudo size={11} /></span>
-      <span>{mil(p.minutos)}<Reloj size={11} /></span>
+      <span>{fmtNum(p.pj)}<Escudo size={11} /></span>
+      <span>{fmtNum(p.minutos)}<Reloj size={11} /></span>
       {p.portero
-        ? (p.porteriasCero ?? 0) > 0 && <span>{mil(p.porteriasCero)}<span style={{ color: 'var(--amber)', display: 'inline-flex' }}><Guante size={11} /></span></span>
-        : (p.goles ?? 0) > 0 && <span>{mil(p.goles)}<span style={{ color: 'var(--e3)', display: 'inline-flex' }}><Balon size={11} /></span></span>}
+        ? (p.porteriasCero ?? 0) > 0 && <span>{fmtNum(p.porteriasCero)}<span style={{ color: 'var(--amber)', display: 'inline-flex' }}><Guante size={11} /></span></span>
+        : (p.goles ?? 0) > 0 && <span>{fmtNum(p.goles)}<span style={{ color: 'var(--e3)', display: 'inline-flex' }}><Balon size={11} /></span></span>}
       {p.ta > 0 && <span style={{ color: 'var(--card-y)' }}>{p.ta}<TarjetaAmarilla size={10} /></span>}
       {p.td > 0 && <span style={{ color: 'var(--card-y)' }}>{p.td}<TarjetaDoble size={11} /></span>}
       {p.tr > 0 && <span style={{ color: 'var(--card-r)' }}>{p.tr}<TarjetaRoja size={10} /></span>}
@@ -308,7 +309,7 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
             {/* club_root en el dato es un CÓDIGO interno ("C:00..."), no un nombre de club legible -> no se muestra. */}
             {/* H1: el nombre del equipo es el encabezado principal de la página (uno solo). Tailwind preflight
                 resetea el h1 -> la clase .last controla el estilo, idéntico al div anterior. */}
-            <h1 className="last">{e.nombre}</h1>
+            <h1 className="last">{nombreEquipo(e.nombre)}</h1>
             {/* Campo bajo el nombre (contexto, discreto): chincheta + nombre del campo + superficie legible en
                 pequeño. Enlace INTERNO a nuestra ficha /campos/[slug] si el campo la tiene (más rico que Maps:
                 equipos, mapa, dirección y los dos enlaces); si no, cae a Maps (externo). Silencio si no hay campo. */}
@@ -352,7 +353,7 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
               la ficha: el selector manda en todo. Antes, con liga, mostraba las copas de la temporada VIVA
               (getEquipoActualInfo) aunque se estuviera viendo otra -> incoherente. */}
           <CopasLinea copas={copasSel} />
-          {e.temporada_elo_max && <span className="pill n">{badge11Sello}<span>ELO máx {mil(e.elo_max)} · {tempLabel(e.temporada_elo_max)}</span></span>}
+          {e.temporada_elo_max && <span className="pill n">{badge11Sello}<span>ELO máx {fmtNum(e.elo_max)} · {tempLabel(e.temporada_elo_max)}</span></span>}
         </div>
       </div>
 
@@ -362,10 +363,10 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
       {!esSoloCopa && (
       <div className="kpis kpis-eq">
         <div className="kpi"><div className="kpi-i"><Tabla size={14} /></div><div className="v num">{posSel != null ? `${posSel}º` : '—'}</div><div className="k">Pos</div></div>
-        <div className="kpi"><div className="kpi-i"><Estrella size={14} /></div><div className="v num">{mil(ptsSel)}</div><div className="k">Pts</div></div>
+        <div className="kpi"><div className="kpi-i"><Estrella size={14} /></div><div className="v num">{fmtNum(ptsSel)}</div><div className="k">Pts</div></div>
         <div className="kpi"><div className="kpi-i"><Balon size={14} /></div><div className="v num">{dgSel != null ? conSigno(dgSel) : '—'}</div><div className="k">DG</div></div>
         <div className="kpi"><div className="kpi-i">{badge11}</div><div className="v num" style={{ color: colorMedia(mediaFan) }}>{med1(mediaFan)}</div><div className="k">Media PF</div></div>
-        <div className="kpi"><div className="kpi-i">{badge11}</div><div className="v num" style={{ color: colorElo(eloTemp) }}>{mil(eloTemp)}</div><div className="k">ELO</div></div>
+        <div className="kpi"><div className="kpi-i">{badge11}</div><div className="v num" style={{ color: colorElo(eloTemp) }}>{fmtNum(eloTemp)}</div><div className="k">ELO</div></div>
       </div>
       )}
 
@@ -393,7 +394,7 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
             <div className="s-head"><h2 className="s-title">Nivel</h2><div className="s-sub"><span className="allscope">Situación actual</span></div></div>
             <div className="box">
               <div className="elo-top">
-                <div><div className="cap">ELO F11S</div><div className="elo-v" style={{ color: colorElo(eloTemp) }}>{mil(eloTemp)}</div></div>
+                <div><div className="cap">ELO F11S</div><div className="elo-v" style={{ color: colorElo(eloTemp) }}>{fmtNum(eloTemp)}</div></div>
                 {!esSoloCopa && posSel != null && <div style={{ textAlign: 'right' }}><div className="cap">En su grupo</div><div className="elo-v" style={{ color: colorElo(eloTemp) }}>{posSel}º</div></div>}
               </div>
               {/* Percentil/batería degradados: web_percentiles no tiene métricas de equipo. */}
@@ -411,7 +412,7 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
                 <div style={{ display: 'flex', gap: 14, alignItems: 'center' }}>
                   {/* Se omiten los tipos de tarjeta a 0 (mismo criterio icono+número): un 0 no aporta. */}
                   {disc.filter(([, n]) => n > 0).map(([ic, n, k]) => (
-                    <span key={k} style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>{ic}<b className="num" style={{ fontSize: 'var(--n-sm)' }}>{mil(n)}</b></span>
+                    <span key={k} style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>{ic}<b className="num" style={{ fontSize: 'var(--n-sm)' }}>{fmtNum(n)}</b></span>
                   ))}
                 </div>
               </div>
@@ -430,7 +431,7 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
                     <div key={r.codequipo} className={`mini-r${r.me ? ' me' : ''}`}>
                       <div className="mp">{r.pos}</div>
                       <EscudoBox escudo={r.escudo} nombre={r.nombre} size={22} radius={4} />
-                      <div className="mn">{r.me ? r.nombre : <NombreEquipo codequipo={r.codequipo} nombre={r.nombre} />}</div>
+                      <div className="mn">{r.me ? nombreEquipo(r.nombre) : <NombreEquipo codequipo={r.codequipo} nombre={r.nombre} />}</div>
                       <div className="mpts num">{r.pts}</div>
                     </div>
                   ))}
@@ -614,9 +615,9 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
                         </div>
                         <div className="s-duo">
                           <div><div className="d-v" style={{ color: colorMedia(media) }}>{med1(media)}</div><div className="d-k">MEDIA PF</div></div>
-                          <div><div className="d-v" style={{ color: colorElo(elo) }}>{mil(elo)}</div><div className="d-k">ELO</div></div>
+                          <div><div className="d-v" style={{ color: colorElo(elo) }}>{fmtNum(elo)}</div><div className="d-k">ELO</div></div>
                         </div>
-                        <div className="s-stats"><div><b>{mil(t.pts)}</b>PTS</div><div><b>{mil(t.gf)}</b>GF</div><div><b>{mil(t.gc)}</b>GC</div></div>
+                        <div className="s-stats"><div><b>{fmtNum(t.pts)}</b>PTS</div><div><b>{fmtNum(t.gf)}</b>GF</div><div><b>{fmtNum(t.gc)}</b>GC</div></div>
                         <div className="s-final"><span className={`badge ${badgeCls || 'neu'}`}>{badgeCls ? (BADGE[t.badge]?.label ?? t.badge) : (t.posicion_final != null ? `${t.posicion_final}º` : '—')}</span></div>
                       </div>
                     ) })
@@ -646,7 +647,7 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
                         {nTop > 0 && (
                           <div className="s-duo" style={{ gridTemplateColumns: nTop === 2 ? '1fr 1fr' : '1fr' }}>
                             {topMedia && <div><div className="d-v" style={{ color: colorMedia(cp.media) }}>{med1(cp.media)}</div><div className="d-k">MEDIA PF</div></div>}
-                            {topElo && <div><div className="d-v" style={{ color: colorElo(elo) }}>{mil(elo)}</div><div className="d-k">ELO</div></div>}
+                            {topElo && <div><div className="d-v" style={{ color: colorElo(elo) }}>{fmtNum(elo)}</div><div className="d-k">ELO</div></div>}
                           </div>
                         )}
                         {hayStats && (
@@ -678,10 +679,10 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
                         <div className="pl-rk">{i + 1}</div>
                         <div className="pl-av" style={avaStyle(p.pos)}>{iniciales(p.nombre)}</div>
                         <div className="pl-mid">
-                          <div className="pl-nm">{plantillaFichas.has(String(p.codjugador)) ? <Link href={jugadorHref(p.codjugador, p.nombre)}>{formatNombre(p.nombre)}</Link> : formatNombre(p.nombre)}</div>
+                          <div className="pl-nm">{plantillaFichas.has(String(p.codjugador)) ? <Link href={jugadorHref(p.codjugador, p.nombre)}>{nombreCompleto(p.nombre)}</Link> : nombreCompleto(p.nombre)}</div>
                           <div className="pl-me">{p.pos && <Pastilla pos={p.pos} size="mini" />}{filaDatos(p)}</div>
                         </div>
-                        <div className="pl-val" style={{ background: 'var(--e2)' }}>{mil(p.pts)}</div>
+                        <div className="pl-val" style={{ background: 'var(--e2)' }}>{fmtNum(p.pts)}</div>
                       </div>
                     ))}
                   </div>
@@ -698,10 +699,10 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
                       <div className={`pl${starterIds.has(p.codjugador) ? '' : ' pl-hid'}`} key={p.codjugador}>
                         <div className="pl-av" style={avaStyle(p.pos)}>{iniciales(p.nombre)}</div>
                         <div className="pl-mid">
-                          <div className="pl-nm">{plantillaFichas.has(String(p.codjugador)) ? <Link href={jugadorHref(p.codjugador, p.nombre)}>{formatNombre(p.nombre)}</Link> : formatNombre(p.nombre)}</div>
+                          <div className="pl-nm">{plantillaFichas.has(String(p.codjugador)) ? <Link href={jugadorHref(p.codjugador, p.nombre)}>{nombreCompleto(p.nombre)}</Link> : nombreCompleto(p.nombre)}</div>
                           <div className="pl-me">{filaDatos(p)}</div>
                         </div>
-                        <div className="pl-val" style={{ background: 'var(--e2)' }}>{mil(p.pts)}</div>
+                        <div className="pl-val" style={{ background: 'var(--e2)' }}>{fmtNum(p.pts)}</div>
                       </div>
                     ))}
                   </Fragment>
@@ -731,11 +732,11 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
                   const alta = !prom && m.direccion === 'entra'
                   const cls = prom ? 'prom' : alta ? 'alta' : 'baja'
                   const ic = prom ? <Promocion size={13} /> : alta ? <FlechaEntra size={13} /> : <FlechaSale size={13} />
-                  const nm = formatNombre(m.nombre)
+                  const nm = nombreCompleto(m.nombre)
                   const fecha = fechaCortaYMD(m.fecha)
                   const sub = prom ? `Promoción interna${fecha ? ` · ${fecha}` : ''}`
-                    : alta ? `Ficha${m.equipo_rel_nombre ? ` del ${m.equipo_rel_nombre}` : ''}${fecha ? ` · ${fecha}` : ''}`
-                      : `${m.equipo_rel_nombre ? `Al ${m.equipo_rel_nombre}` : 'Baja'}${fecha ? ` · ${fecha}` : ''}`
+                    : alta ? `Ficha${m.equipo_rel_nombre ? ` del ${nombreEquipo(m.equipo_rel_nombre)}` : ''}${fecha ? ` · ${fecha}` : ''}`
+                      : `${m.equipo_rel_nombre ? `Al ${nombreEquipo(m.equipo_rel_nombre)}` : 'Baja'}${fecha ? ` · ${fecha}` : ''}`
                   return (
                     <div className="mv" key={i}>
                       <div className={`mv-ic ${cls}`}>{ic}</div>

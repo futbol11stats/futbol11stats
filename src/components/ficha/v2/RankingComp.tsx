@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import EscudoBox from '@/components/ficha/v2/EscudoBox'
 import NombreEquipo from '@/components/NombreEquipo'
+import { nombreEquipo } from '@/lib/nombre'
 import FilaJugador from '@/components/ficha/v2/FilaJugador'
 
 export type RankItem = {
@@ -41,7 +42,7 @@ export default function RankingComp({ items, fichas, barColor }: {
           <div className="rp" style={r.rankColor ? { color: r.rankColor, fontSize: 'var(--t-cap)' } : undefined}>{r.rank}</div>
           <EscudoBox escudo={r.escudo ?? null} nombre={r.nombreEquipo ?? r.nombre} size={34} radius={9} />
           <div className="rm">
-            <div className="rn">{r.codequipo ? <NombreEquipo codequipo={r.codequipo} nombre={r.nombre} /> : r.nombre}</div>
+            <div className="rn">{r.codequipo ? <NombreEquipo codequipo={r.codequipo} nombre={r.nombre} /> : nombreEquipo(r.nombre)}</div>
             {r.extra && <div className="re">{r.extra}</div>}
             {r.barPct != null && <div className="rbar"><span style={{ width: `${r.barPct}%`, background: barColor || 'var(--e3)' }} /></div>}
           </div>

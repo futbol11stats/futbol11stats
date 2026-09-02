@@ -3,8 +3,8 @@
 import { useComp } from './compStore'
 import { Escudo, Reloj, Balon, Guante } from '@/components/iconos'
 import Badge11 from '@/components/ui/Badge11'
+import { fmtNum } from '@/lib/formato'
 
-const mil = (n: number | null | undefined) => (n == null ? '—' : Math.round(Number(n)).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.'))
 const med1 = (v: number | null) => (v == null ? '—' : v.toFixed(1).replace('.', ','))
 
 export type CompKpi = { pj: number; minutos: number; goles: number; porterias_cero: number; ptsFantasy: number; media: number | null; mediaColor: string }
@@ -20,16 +20,16 @@ export default function KpiJugador({ comps, fallback, portero, elo, eloColor }: 
   const c = comps.length ? comps[Math.min(sel, comps.length - 1)] : fallback
   return (
     <div className="kpis">
-      <div className="kpi"><div className="kpi-i"><Escudo size={14} /></div><div className="v num">{mil(c.pj)}</div><div className="k">PJ</div></div>
-      <div className="kpi"><div className="kpi-i"><Reloj size={14} /></div><div className="v num">{mil(c.minutos)}</div><div className="k">Min</div></div>
+      <div className="kpi"><div className="kpi-i"><Escudo size={14} /></div><div className="v num">{fmtNum(c.pj)}</div><div className="k">PJ</div></div>
+      <div className="kpi"><div className="kpi-i"><Reloj size={14} /></div><div className="v num">{fmtNum(c.minutos)}</div><div className="k">Min</div></div>
       <div className="kpi kpi-goles">
         <div className="kpi-i">{portero ? <Guante size={14} /> : <Balon size={14} />}</div>
-        <div className="v num">{portero ? mil(c.porterias_cero) : mil(c.goles)}</div>
+        <div className="v num">{portero ? fmtNum(c.porterias_cero) : fmtNum(c.goles)}</div>
         <div className="k">{portero ? 'P. a cero' : 'Goles'}</div>
       </div>
-      <div className="kpi"><div className="kpi-i"><Badge11 /></div><div className="v num">{mil(c.ptsFantasy)}</div><div className="k">PF</div></div>
+      <div className="kpi"><div className="kpi-i"><Badge11 /></div><div className="v num">{fmtNum(c.ptsFantasy)}</div><div className="k">PF</div></div>
       <div className="kpi"><div className="kpi-i"><Badge11 /></div><div className="v num" style={{ color: c.mediaColor }}>{c.media != null ? med1(c.media) : '—'}</div><div className="k">Media</div></div>
-      <div className="kpi"><div className="kpi-i"><Badge11 /></div><div className="v num" style={{ color: eloColor }}>{elo != null ? mil(elo) : '—'}</div><div className="k">ELO</div></div>
+      <div className="kpi"><div className="kpi-i"><Badge11 /></div><div className="v num" style={{ color: eloColor }}>{elo != null ? fmtNum(elo) : '—'}</div><div className="k">ELO</div></div>
     </div>
   )
 }

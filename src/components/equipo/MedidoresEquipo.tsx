@@ -1,6 +1,7 @@
 import { tempLabel } from '@/lib/equipo'
 import { ShieldCheck } from 'lucide-react'
 import Badge11 from '@/components/ui/Badge11'
+import { fmtNum } from '@/lib/formato'
 
 // Medidores de la ficha de equipo (misma familia que la de jugador): ELO con sparkline de cierre por
 // temporada + máx histórico, y Deportividad (puesto de juego limpio del grupo + TA·TR). Si no hay ELO
@@ -56,10 +57,10 @@ export default function MedidoresEquipo({
             <Badge11 size={14} /> ELO
           </span>
           <div className="mt-1.5 flex items-baseline gap-2">
-            <span className="font-display text-3xl font-bold text-white tabular-nums">{Math.round(elo!)}</span>
+            <span className="font-display text-3xl font-bold text-white tabular-nums">{fmtNum(elo!)}</span>
             {eloMax != null && (
               <span className="text-xs text-chalk-600">
-                máx <span className="text-chalk-400 font-medium tabular-nums">{Math.round(eloMax)}</span>
+                máx <span className="text-chalk-400 font-medium tabular-nums">{fmtNum(eloMax)}</span>
                 {tempMax ? ` · ${tempLabel(tempMax)}` : ''}
               </span>
             )}

@@ -2,8 +2,7 @@
 
 import type { ReactNode } from 'react'
 import { useComp } from './compStore'
-
-const mil = (n: number | null | undefined) => (n == null ? '—' : Math.round(Number(n)).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.'))
+import { fmtNum } from '@/lib/formato'
 
 export type CompPct = { pct: number | null; nombreComp: string | null; selloSm?: ReactNode }
 
@@ -22,7 +21,7 @@ export default function NivelElo({ elo, eloColor, comps, maxLbl }: {
   return (
     <>
       <div className="elo-top">
-        <div><div className="cap">ELO F11S</div><div className="elo-v" style={{ color: eloColor }}>{elo != null ? mil(elo) : '—'}</div></div>
+        <div><div className="cap">ELO F11S</div><div className="elo-v" style={{ color: eloColor }}>{elo != null ? fmtNum(elo) : '—'}</div></div>
         <div style={{ textAlign: 'right' }}><div className="cap">Percentil</div><div className="elo-v" style={{ color: eloColor }}>{pct != null ? pct : '—'}</div></div>
       </div>
       {maxLbl}

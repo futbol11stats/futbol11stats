@@ -6,9 +6,11 @@ import EscudoBox from '@/components/ficha/v2/EscudoBox'
 import NombreEquipo from '@/components/NombreEquipo'
 import { FlechaEntra } from '@/components/iconos'
 import { nombreOficial, denominacion, familiaSello } from '@/lib/sellos'
+import { nombreEquipo } from '@/lib/nombre'
 import { ensureMadrid } from '@/lib/seo'
 import { esTemporadaActiva } from '@/lib/temporadas'
 import { colorElo } from '@/lib/equipoV2'
+import { fmtNum } from '@/lib/formato'
 import { fichasInfo } from '@/lib/jugador'
 import RankingComp, { type RankItem } from '@/components/ficha/v2/RankingComp'
 import { campoXI, POSC } from '@/components/ficha/v2/campoXI'
@@ -36,8 +38,6 @@ import type { ReactNode } from 'react'
 const G_TABS_J: [string, string][] = [['clasificacion', 'Clasificación'], ['top5-jugadores-jornada', 'Top 5 Jugadores'], ['top5-equipos-jornada', 'Top 5 Equipos'], ['once-optimo-jornada', 'XI Óptimo']]
 const G_TABS_T: [string, string][] = [['top10-goleadores-temporada', 'Goleadores'], ['top10-porteros-temporada', 'Porteros'], ['top10-tarjetas-temporada', 'Tarjetas'], ['top10-fantasy-temporada', 'Fantasy'], ['top10-elo-jugadores-temporada', 'ELO'], ['once-optimo-temporada', 'XI Óptimo'], ['estadisticas', 'Estadísticas']]
 const G_TEMP = new Set(G_TABS_T.map((t) => t[0]))
-
-const mil = (n: number | null | undefined) => (n == null ? '—' : Math.round(Number(n)).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.'))
 
 // La clasificación GLOBAL es la única pestaña especial; el resto se atienden desde cada grupo. En este
 // incremento la vista global implementa la CLASIFICACIÓN por zonas (la que más cuidado pedía Fernando).
@@ -91,8 +91,8 @@ export default async function FichaCompeticionGlobalV2({ categoria, slugComp, te
     const base3 = (j: any) => ({ rank: j.rank, codjugador: j.codjugador, nombre: j.nombre, pos: j.posicion, escudo: j.escudo, nombreEquipo: j.nombre_equipo })
     if (tabEf === 'top10-goleadores-temporada') { const max = Math.max(1, ...t.goleadores.map((j) => j.goles ?? 0)); gRank = { title: 'Goleadores', sub, barColor: 'var(--e4)', leyenda: leyGoleadorTemp, items: t.goleadores.map((j) => ({ ...base3(j), valor: j.goles, valorColor: 'var(--e4)', barPct: ((j.goles ?? 0) / max) * 100, extra: datosGoleadorTemp(j) })) } }
     else if (tabEf === 'top10-porteros-temporada') { const max = Math.max(1, ...t.porteros.map((j) => j.goles ?? 0)); gRank = { title: 'Porterías a cero', sub, barColor: 'var(--amber)', leyenda: leyPorteroTemp, items: t.porteros.map((j) => ({ ...base3(j), valor: j.goles ?? 0, valorColor: 'var(--amber)', barPct: ((j.goles ?? 0) / max) * 100, extra: datosPorteroTemp(j) })) } }
-    else if (tabEf === 'top10-fantasy-temporada') { const max = Math.max(1, ...t.fantasy.map((j) => Math.round(j.pts_fantasy ?? 0))); gRank = { title: 'Ranking fantasy', sub, barColor: 'var(--e3)', leyenda: leyFantasyTemp, items: t.fantasy.map((j) => ({ ...base3(j), valor: Math.round(j.pts_fantasy ?? 0), valorColor: 'var(--e3)', barPct: (Math.round(j.pts_fantasy ?? 0) / max) * 100, extra: datosFantasyTemp(j) })) } }
-    else { gRank = { title: 'ELO jugadores', sub: `tras J${jornadaNum} · ${subCat}`, leyenda: leyEloTemp, items: t.elo.map((j) => ({ ...base3(j), valor: j.elo != null ? mil(j.elo) : '—', valorColor: colorElo(j.elo) || 'var(--e1)', extra: datosEloTemp(j) })) } }
+    else if (tabEf === 'top10-fantasy-temporada') { const max = Math.max(1, ...t.fantasy.map((j) => Math.round(j.pts_fantasy ?? 0))); gRank = { title: 'Ranking fantasy', sub, barColor: 'var(--e3)', leyenda: leyFantasyTemp, items: t.fantasy.map((j) => ({ ...base3(j), valor: fmtNum(j.pts_fantasy ?? 0), valorColor: 'var(--e3)', barPct: (Math.round(j.pts_fantasy ?? 0) / max) * 100, extra: datosFantasyTemp(j) })) } }
+    else { gRank = { title: 'ELO jugadores', sub: `tras J${jornadaNum} · ${subCat}`, leyenda: leyEloTemp, items: t.elo.map((j) => ({ ...base3(j), valor: j.elo != null ? fmtNum(j.elo) : '—', valorColor: colorElo(j.elo) || 'var(--e1)', extra: datosEloTemp(j) })) } }
   }
 
   // XI Óptimo global (lo calcula el pipeline con normalización entre grupos: tipo temporada_global / jornada_global).
@@ -102,7 +102,7 @@ export default async function FichaCompeticionGlobalV2({ categoria, slugComp, te
     let xi = await getGlobalXiV2(codgrupos, codtemporada, esTemp ? 'temporada_global' : 'jornada_global', jornadaNum)
     if (esTemp && xi.length === 0) xi = await getGlobalXiV2(codgrupos, codtemporada, 'temporada_global')
     fichas = await fichasInfo(xi.map((j) => j.codjugador))
-    const valOf = (j: any) => Math.round((esTemp ? j.pts_totales : (j.pts_jornada ?? j.pts_totales)) ?? 0)
+    const valOf = (j: any) => fmtNum((esTemp ? j.pts_totales : (j.pts_jornada ?? j.pts_totales)) ?? 0)
     xiG = {
       title: esTemp ? 'XI Óptimo de la temporada' : 'XI Óptimo de la jornada',
       sub: `${esTemp ? `acumulado hasta J${jornadaNum}` : `jornada ${jornadaNum}`} · ${subCat}`,
@@ -226,7 +226,7 @@ export default async function FichaCompeticionGlobalV2({ categoria, slugComp, te
               <div className="lg-card" key={grupo.codgrupo}>
                 <div className="lg-g">{grupo.nombre_grupo}</div>
                 <div className="lg-cr"><EscudoBox escudo={lider.escudo} nombre={lider.nombre_equipo} size={30} radius={7} /></div>
-                <div className="lg-nm">{lider.nombre_equipo}</div>
+                <div className="lg-nm">{nombreEquipo(lider.nombre_equipo)}</div>
               </div>
             ))}
           </div></ScrollRail>

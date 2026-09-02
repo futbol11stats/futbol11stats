@@ -1,7 +1,8 @@
 import Link from 'next/link'
 import { MapPin } from 'lucide-react'
 import EscudoImg from '@/components/EscudoImg'
-import { escudoUrl, formatNombre } from '@/lib/supabase'
+import { escudoUrl } from '@/lib/supabase'
+import { nombreCompleto, nombreEquipo } from '@/lib/nombre'
 import { jugadorHref, tempLabel } from '@/lib/jugador'
 import { equipoHref } from '@/lib/equipo'
 import Pastilla from '@/components/Pastilla'
@@ -44,7 +45,7 @@ export function ResultadoJugador({ j, tokens, onNavigate, active, suelo }: {
       <span className="min-w-0 flex-1">
         <span className="flex items-center gap-1.5 min-w-0">
           <span className="font-display font-semibold text-white uppercase truncate text-[length:var(--t-lead)] leading-tight">
-            <Highlight text={formatNombre(j.nombre)} tokens={tokens} />
+            <Highlight text={nombreCompleto(j.nombre)} tokens={tokens} />
           </span>
           <Pastilla pos={j.posicion_pastilla} estimada={j.posicion_es_estimada} size="mini" />
         </span>
@@ -76,7 +77,7 @@ export function ResultadoEquipo({ e, tokens, onNavigate, active }: {
       <span className="min-w-0 flex-1">
         <span className="flex items-center gap-1.5 min-w-0">
           <span className="font-display font-semibold text-white uppercase truncate text-[length:var(--t-lead)] leading-tight">
-            <Highlight text={e.nombre} tokens={tokens} />
+            <Highlight text={nombreEquipo(e.nombre)} tokens={tokens} />
           </span>
           {juvenil && <span className="flex-shrink-0 text-[length:var(--t-micro)] font-semibold uppercase tracking-wide text-blue-300 bg-blue-500/15 rounded px-1 py-px">Juvenil</span>}
         </span>

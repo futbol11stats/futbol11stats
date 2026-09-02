@@ -318,7 +318,7 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
       title: 'ELO jugadores', sub: `tras J${jornadaNum}`,
       items: topTemp.elo.map((j, i) => ({
         rank: j.rank ?? i + 1, codjugador: j.codjugador, nombre: j.nombre, pos: j.posicion, escudo: j.escudo, nombreEquipo: j.nombre_equipo,
-        valor: j.elo != null ? Math.round(j.elo) : '—', valorColor: colorElo(j.elo) || 'var(--e1)',
+        valor: fmtNum(j.elo), valorColor: colorElo(j.elo) || 'var(--e1)',
         extra: datosEloTemp(j),
       })),
       leyenda: leyEloTemp,
@@ -329,7 +329,7 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
       title: 'Ranking fantasy', sub: acum, barColor: 'var(--e3)',
       items: topTemp.fantasy.map((j) => ({
         rank: j.rank, codjugador: j.codjugador, nombre: j.nombre, pos: j.posicion, escudo: j.escudo, nombreEquipo: j.nombre_equipo,
-        valor: Math.round(j.pts_fantasy ?? 0), valorColor: 'var(--e3)', barPct: (Math.round(j.pts_fantasy ?? 0) / max) * 100,
+        valor: fmtNum(j.pts_fantasy ?? 0), valorColor: 'var(--e3)', barPct: (Math.round(j.pts_fantasy ?? 0) / max) * 100,
         extra: datosFantasyTemp(j),
       })),
       leyenda: leyFantasyTemp,
@@ -341,7 +341,7 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
   let xiView: XiView | null = null
   if (xi.length && (tabEf === 'once-optimo-jornada' || tabEf === 'once-optimo-temporada')) {
     const esTemp = tabEf === 'once-optimo-temporada'
-    const valOf = (j: any) => Math.round((esTemp ? j.pts_totales : (j.pts_fantasy ?? j.pts_jornada)) ?? 0)
+    const valOf = (j: any) => fmtNum((esTemp ? j.pts_totales : (j.pts_fantasy ?? j.pts_jornada)) ?? 0)
     xiView = {
       title: esTemp ? 'XI Óptimo de la temporada' : 'XI Óptimo de la jornada',
       sub: esTemp ? acum : (rondaSel?.label ?? `jornada ${jornadaNum}`),

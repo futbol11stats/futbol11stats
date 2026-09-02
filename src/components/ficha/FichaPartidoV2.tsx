@@ -9,11 +9,10 @@ import Pastilla from '@/components/Pastilla'
 import SuperficieCampo from '@/components/SuperficieCampo'
 import CalendarLink from '@/components/calendario/CalendarLink'
 import { Balon, TarjetaAmarilla, TarjetaDoble, TarjetaRoja, FlechaEntra, FlechaSale, Guante } from '@/components/iconos'
-import { formatNombre } from '@/lib/supabase'
 import { googleRenderUrl } from '@/lib/ics'
 import { SITE_URL } from '@/lib/seo'
 import { partidoSlug } from '@/lib/partidoSlug'
-import { inicialesNombre } from '@/lib/nombre'
+import { inicialesNombre, nombreCompleto, nombreEquipo } from '@/lib/nombre'
 import MatchRow from '@/components/ficha/v2/MatchRow'
 import { colorFan } from '@/lib/equipoV2'
 import type { PartidoFicha, PartidoJugador, PartidoMini, PartidoLado } from '@/lib/partido'
@@ -64,7 +63,7 @@ function Portero({ j }: { j: PartidoJugador }) {
 // Fila de jugador con el marcado REAL de la plantilla (.pl): avatar, nombre (Barlow), .pl-me (Pastilla + eventos con
 // icono + portero), .pl-elo (Δ ELO del partido, verde sube / rojo baja) y .pl-val con los puntos fantasy.
 function Fila({ j }: { j: PartidoJugador }) {
-  const nombre = formatNombre(j.nombre) || j.nombre
+  const nombre = nombreCompleto(j.nombre) || j.nombre
   return (
     <div className={`pl${j.jugado ? '' : ' pl-nojugo'}`}>
       <div className="pl-av" style={avaStyle(j.pos)}>{j.dorsal || iniciales(j.nombre)}</div>
@@ -98,7 +97,7 @@ function CuerpoTecnico({ nombre }: { nombre: string }) {
     <div className="pl pl-tec">
       <div className="pl-av" style={avaStyle(null)}>{iniciales(nombre)}</div>
       <div className="pl-mid">
-        <div className="pl-nm">{formatNombre(nombre)}</div>
+        <div className="pl-nm">{nombreCompleto(nombre)}</div>
         <div className="pl-me"><span className="rol-pill">Entrenador</span></div>
       </div>
     </div>
@@ -371,7 +370,7 @@ export default function FichaPartidoV2({ p }: { p: PartidoFicha }) {
               : <span className="hero-campo"><MapPin size={12} /><span>{p.campoNombre}</span></span>
           )}
           {/* #2 Árbitros aquí, bajo el campo: es donde el usuario los busca. Solo nombre + rol, sin enlace (privacidad). */}
-          {p.arbitros.length > 0 && <span className="hero-arb">{p.arbitros.map((a, i) => <span key={i}>{i > 0 ? ' · ' : ''}<span className="cap">{a.rol}</span> {formatNombre(a.nombre)}</span>)}</span>}
+          {p.arbitros.length > 0 && <span className="hero-arb">{p.arbitros.map((a, i) => <span key={i}>{i > 0 ? ' · ' : ''}<span className="cap">{a.rol}</span> {nombreCompleto(a.nombre)}</span>)}</span>}
         </div>
         {!p.jugado && puedeIcs && (
           <div className="cal-wrap">
@@ -390,8 +389,8 @@ export default function FichaPartidoV2({ p }: { p: PartidoFicha }) {
           <div className="pl">
             <div className="pl-av" style={avaStyle(p.mvp.pos)}>{iniciales(p.mvp.nombre)}</div>
             <div className="pl-mid">
-              <div className="pl-nm">{p.mvp.href ? <Link href={p.mvp.href}>{formatNombre(p.mvp.nombre)}</Link> : formatNombre(p.mvp.nombre)}</div>
-              <div className="pl-me">{p.mvp.pos && <Pastilla pos={p.mvp.pos} size="mini" />}<span className="mvp-eq">{mvpLado.nombre}</span></div>
+              <div className="pl-nm">{p.mvp.href ? <Link href={p.mvp.href}>{nombreCompleto(p.mvp.nombre)}</Link> : nombreCompleto(p.mvp.nombre)}</div>
+              <div className="pl-me">{p.mvp.pos && <Pastilla pos={p.mvp.pos} size="mini" />}<span className="mvp-eq">{nombreEquipo(mvpLado.nombre)}</span></div>
             </div>
             <div className="pl-val" style={{ background: 'var(--e2)', color: '#08111f' }}>{p.mvp.puntos}</div>
           </div>
@@ -423,7 +422,7 @@ export default function FichaPartidoV2({ p }: { p: PartidoFicha }) {
           <div className="hitos">
             {p.hitos.map((h, i) => (
               <div className={`hito hito-${h.lado}`} key={`${h.codjugador}-${h.tipo}-${i}`}>
-                <span className="hito-nm">{h.href ? <Link href={h.href}>{formatNombre(h.nombre)}</Link> : formatNombre(h.nombre)}</span>
+                <span className="hito-nm">{h.href ? <Link href={h.href}>{nombreCompleto(h.nombre)}</Link> : nombreCompleto(h.nombre)}</span>
                 <span className="hito-tx">{hitoTexto(h)}</span>
               </div>
             ))}
@@ -465,8 +464,8 @@ export default function FichaPartidoV2({ p }: { p: PartidoFicha }) {
           <div className="s-head"><h2 className="s-title">Últimos partidos</h2></div>
           {/* Dos columnas TAMBIÉN en móvil: cada equipo su forma con la fila compacta (rival + marcador + Δ ELO). */}
           <div className="forma-2col">
-            <div className="forma-col">{p.formaLocal.length > 0 && <><div className="al-sub forma-h">{p.local.nombre}</div>{p.formaLocal.map((m) => <MiniForma key={m.codacta} m={m} teamCod={p.local.codequipo} />)}</>}</div>
-            <div className="forma-col">{p.formaVisitante.length > 0 && <><div className="al-sub forma-h">{p.visitante.nombre}</div>{p.formaVisitante.map((m) => <MiniForma key={m.codacta} m={m} teamCod={p.visitante.codequipo} />)}</>}</div>
+            <div className="forma-col">{p.formaLocal.length > 0 && <><div className="al-sub forma-h">{nombreEquipo(p.local.nombre)}</div>{p.formaLocal.map((m) => <MiniForma key={m.codacta} m={m} teamCod={p.local.codequipo} />)}</>}</div>
+            <div className="forma-col">{p.formaVisitante.length > 0 && <><div className="al-sub forma-h">{nombreEquipo(p.visitante.nombre)}</div>{p.formaVisitante.map((m) => <MiniForma key={m.codacta} m={m} teamCod={p.visitante.codequipo} />)}</>}</div>
           </div>
         </section>
       )}

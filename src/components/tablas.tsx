@@ -8,6 +8,7 @@ import NombreEquipo from '@/components/NombreEquipo'
 import Pastilla from '@/components/Pastilla'
 import { TarjetaAmarilla, TarjetaDoble, TarjetaRoja } from '@/components/iconos'
 import type { FichaInfo } from '@/lib/jugador'
+import { fmtNum } from '@/lib/formato'
 
 // Iconos de tarjeta (SVG del sitio, nunca emoji): amarilla/doble en var(--card-y), roja en var(--card-r).
 // Tamaños homogéneos con las fichas v2 (12 amarilla/roja, 13 doble).
@@ -130,8 +131,8 @@ export function ClasificacionTab({ rows, jornadaNum, totalJornadas }: { rows: an
                 : row.mov?.startsWith('↓') ? 'text-red-400'
                 : 'text-chalk-600'
               }`}>{row.mov}</td>
-              <td className="text-center text-chalk-600 hidden md:table-cell text-xs">{Math.round(row.elo)}</td>
-              <td className="text-center text-chalk-600 hidden md:table-cell text-xs">{row.pts_fantasy ? Math.round(row.pts_fantasy) : ''}</td>
+              <td className="text-center text-chalk-600 hidden md:table-cell text-xs">{fmtNum(row.elo)}</td>
+              <td className="text-center text-chalk-600 hidden md:table-cell text-xs">{row.pts_fantasy ? fmtNum(row.pts_fantasy) : ''}</td>
               <td className="text-center hidden md:table-cell whitespace-nowrap text-xs">{row.forma}</td>
               <td className="text-center text-chalk-600 hidden md:table-cell text-xs">{row.racha}</td>
               <td className="hidden md:table-cell text-center text-chalk-600">{row.p0}</td>
@@ -327,7 +328,7 @@ export function EloTemporadaTab({ jugadores, fichas }: { jugadores: any[]; ficha
               <td className="col-nombre font-medium text-white"><span className="flex items-center gap-2 min-w-0"><span className="truncate min-w-0 flex-1"><NombreJugador codjugador={j.codjugador} nombre={j.nombre} fichas={fichas} /></span><GrupoBadge grupo={j.grupo} /></span></td>
               <EscudoCell escudo={j.escudo} nombre={j.nombre_equipo} />
               <td className="text-chalk-600 hidden md:table-cell text-xs"><NombreEquipo codequipo={j.codequipo} nombre={j.nombre_equipo} /></td>
-              <td className="text-center font-bold text-white">{j.elo != null ? Math.round(j.elo) : ''}</td>
+              <td className="text-center font-bold text-white">{j.elo != null ? fmtNum(j.elo) : ''}</td>
               <td className="text-center text-chalk-600">{j.pj}</td>
             </tr>
           ))}
@@ -805,7 +806,7 @@ export function Top5EquiposTab({ equipos }: { equipos: any[] }) {
               <td className="text-chalk-600 font-mono text-xs">{e.rank}</td>
               <EscudoCell escudo={e.escudo} nombre={e.nombre_equipo} />
               <td className="col-nombre font-medium text-white"><span className="flex items-center gap-2 min-w-0"><span className="truncate min-w-0 flex-1"><NombreEquipo codequipo={e.codequipo} nombre={e.nombre_equipo} /></span><GrupoBadge grupo={e.grupo} /></span></td>
-              <td className="text-center font-bold text-white">{e.pts_fantasy ? Math.round(e.pts_fantasy) : ''}</td>
+              <td className="text-center font-bold text-white">{e.pts_fantasy ? fmtNum(e.pts_fantasy) : ''}</td>
             </tr>
           ))}
           {equipos.length === 0 && (

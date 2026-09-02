@@ -8,12 +8,11 @@ import { supabase } from '@/lib/supabase'
 import { COLS_JUGADOR, codFromSlug, jugadorSlug, formatNombre, type JugadorFicha } from '@/lib/jugador'
 import { cacheJugador } from '@/lib/cacheComp'
 import FichaJugadorV2 from '@/components/ficha/v2/FichaJugadorV2'
+import { fmtNum } from '@/lib/formato'
 
 // La ficha de jugador la renderiza FichaJugadorV2. Este page.tsx conserva el generateMetadata, el canonical,
 // el redirect 308 al slug canónico y los exports de ISR; el JSON-LD (breadcrumb) lo emite FichaJugadorV2.
 // getJugador se mantiene porque lo usan generateMetadata y el 308 (los datos del render los trae jugadorV2.ts).
-
-const num = (n: number | null | undefined) => (n ?? 0).toLocaleString('es-ES')
 
 async function getJugador(cod: string): Promise<JugadorFicha | null> {
   return cacheJugador(async () => {
@@ -37,7 +36,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const equipo = j.equipo_actual_nombre ? ` del ${j.equipo_actual_nombre}` : ''
   const cat = j.categoria_rama ? ` en ${j.categoria_rama}` : ''
   const title = `${nombre} — estadísticas, trayectoria e hitos | Fútbol11Stats`
-  const description = `Estadísticas de ${nombre}${equipo}${cat}: ${num(j.pj_total)} partidos, ${num(j.goles_total)} goles, ` +
+  const description = `Estadísticas de ${nombre}${equipo}${cat}: ${fmtNum(j.pj_total)} partidos, ${fmtNum(j.goles_total)} goles, ` +
     `ELO, ranking F11S y trayectoria completa en el fútbol aficionado de Madrid.`
   return {
     title,

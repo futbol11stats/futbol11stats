@@ -32,9 +32,10 @@ import { getEquipoActualInfo, getGrupoInfo, grupoHref, getCopasPorTemporada } fr
 import { graphLd, breadcrumbLd } from '@/lib/jsonld'
 import { SITE_URL } from '@/lib/seo'
 import {
-  formatNombre, tempLabel, jugadorSlug, jugadorHref, curarHitos, HITO_CONFIG, fechaCorta,
+  tempLabel, jugadorSlug, jugadorHref, curarHitos, HITO_CONFIG, fechaCorta,
   marcadorLocalVisitante, POS_LABEL, companerosActivos, type HitoRow, type CompaneroTop,
 } from '@/lib/jugador'
+import { nombreCompleto } from '@/lib/nombre'
 import { CORTES_FIJOS } from '@/lib/escala'
 import MatchRow from '@/components/ficha/v2/MatchRow'
 import { partidoSlug } from '@/lib/partidoSlug'
@@ -47,11 +48,10 @@ import {
   getActuacionesV2, getHitosV2, alertaHumana, getTarjetasTotales,
   type CarreraRow,
 } from '@/lib/jugadorV2'
+import { fmtNum } from '@/lib/formato'
 
 const PAL = ['#f87171', '#94a3b8', '#22a050', '#2ee56b', '#8cf0a2']
 function esc(v: number, c: readonly [number, number, number, number]) { if (v < 0) return 0; let n = 1; for (let i = 0; i < 4; i++) if (v >= c[i]) n = i + 1; return n }
-// Separador de millares MANUAL (el runtime de Vercel tiene ICU reducido y toLocaleString no agrupa).
-const mil = (n: number | null | undefined) => (n == null ? '—' : Math.round(Number(n)).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.'))
 const med1 = (v: number) => v.toFixed(1).replace('.', ',')
 
 export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: string; temporadaLabel: string | null }) {
@@ -61,7 +61,7 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
   const rawNombre = j.nombre || ''
   const apellidos = (rawNombre.split(',')[0] || '').trim().toUpperCase()
   const pila = ((rawNombre.split(',')[1] || '').trim() || apellidos).toUpperCase()
-  const nombre = formatNombre(j.nombre)
+  const nombre = nombreCompleto(j.nombre)
   const ini = ((pila[0] || '') + (apellidos[0] || '')).toUpperCase()
   // Color del avatar por demarcación, como en la ficha antigua (AVATAR_POS en [slug]/page.tsx):
   // gradiente + aro por posición (POR naranja, DEF azul, MED verde, DEL rojo), texto blanco.
@@ -293,20 +293,20 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
   // la mera existencia de goles_encajados: un jugador de campo que actuó de portero de emergencia una vez
   // tiene ese dato y NO debe pasar por portero.
   const golesTile: [ReactNode, string, string] = portero
-    ? [<Guante size={13} key="i" />, mil(j.porterias_cero_total), 'P. a cero']
-    : [<Balon size={13} key="i" />, mil(j.goles_total), 'Goles']
+    ? [<Guante size={13} key="i" />, fmtNum(j.porterias_cero_total), 'P. a cero']
+    : [<Balon size={13} key="i" />, fmtNum(j.goles_total), 'Goles']
   // Dos filas por naturaleza del dato: arriba PARTICIPACIÓN (PJ·Min·Titular·Supl.), abajo EVENTOS
   // (Goles/P.a0 · TA · 2TA · TR). TA · 2TA · TR son DISJUNTAS (amarilla simple / doble amarilla / roja
   // directa) desde web_jugador_partidos, que las separa a nivel de evento. Ver getTarjetasTotales.
   const totales: Array<[ReactNode, string, string]> = [
-    [<Escudo size={13} key="i" />, mil(j.pj_total), 'PJ'],
-    [<Reloj size={13} key="i" />, mil(j.minutos_total), 'Min'],
-    [<Camiseta size={13} key="i" />, mil(j.titular_total), 'Titular'],
-    [<CamisetaHueca size={13} key="i" />, mil(j.suplente_total), 'Supl.'],
+    [<Escudo size={13} key="i" />, fmtNum(j.pj_total), 'PJ'],
+    [<Reloj size={13} key="i" />, fmtNum(j.minutos_total), 'Min'],
+    [<Camiseta size={13} key="i" />, fmtNum(j.titular_total), 'Titular'],
+    [<CamisetaHueca size={13} key="i" />, fmtNum(j.suplente_total), 'Supl.'],
     golesTile,
-    [<span style={{ color: 'var(--card-y)', display: 'flex' }} key="i"><TarjetaAmarilla size={11} /></span>, mil(tarjetas.amarillas), 'TA'],
-    [<span style={{ color: 'var(--card-y)', display: 'flex' }} key="i"><TarjetaDoble size={12} /></span>, mil(tarjetas.dobles), '2TA'],
-    [<span style={{ color: 'var(--card-r)', display: 'flex' }} key="i"><TarjetaRoja size={11} /></span>, mil(tarjetas.rojas), 'TR'],
+    [<span style={{ color: 'var(--card-y)', display: 'flex' }} key="i"><TarjetaAmarilla size={11} /></span>, fmtNum(tarjetas.amarillas), 'TA'],
+    [<span style={{ color: 'var(--card-y)', display: 'flex' }} key="i"><TarjetaDoble size={12} /></span>, fmtNum(tarjetas.dobles), '2TA'],
+    [<span style={{ color: 'var(--card-r)', display: 'flex' }} key="i"><TarjetaRoja size={11} /></span>, fmtNum(tarjetas.rojas), 'TR'],
   ]
   // Totales de carrera que no caben en la parrilla principal (participación/eventos): recuento de temporadas
   // y, para porteros, goles encajados y GC por partido. Van en una segunda parrilla con tantas columnas como
@@ -314,10 +314,10 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
   const gc = j.gc_pj != null ? med1(j.gc_pj) : '—'
   const extras: Array<[ReactNode, string, string]> = []
   if (portero) {
-    extras.push([<Balon size={13} key="i" />, mil(j.goles_encajados_total), 'Goles enc.'])
+    extras.push([<Balon size={13} key="i" />, fmtNum(j.goles_encajados_total), 'Goles enc.'])
     extras.push([<Guante size={13} key="i" />, gc, 'GC/partido'])
   }
-  if (j.temporadas != null) extras.push([<Calendario size={13} key="i" />, mil(j.temporadas), 'Temporadas'])
+  if (j.temporadas != null) extras.push([<Calendario size={13} key="i" />, fmtNum(j.temporadas), 'Temporadas'])
 
 
   return (
@@ -413,7 +413,7 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
                   (elo_percentil_temp de la etapa). El techo histórico (máx) va entre el ELO y la batería. */}
               <NivelElo elo={eloBig != null ? Math.round(eloBig) : null} eloColor={cElo(eloBig)} comps={compsPct}
                 maxLbl={j.elo_max != null
-                  ? <div className="elo-max">máx {mil(Math.round(j.elo_max))}{j.temporada_elo_max ? ` · ${tempLabel(j.temporada_elo_max)}` : ''}</div>
+                  ? <div className="elo-max">máx {fmtNum(Math.round(j.elo_max))}{j.temporada_elo_max ? ` · ${tempLabel(j.temporada_elo_max)}` : ''}</div>
                   : null} />
               {/* Evolución del ELO (cierre por temporada) — mismo sparkline que la ficha actual (Medidores). */}
               <EloSparkline serie={j.elo_serie || []} className="w-full h-9 mt-3" />
@@ -500,14 +500,14 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
               <div className="s-head"><h2 className="s-title">Ha jugado con</h2><div className="s-sub">top {companeros.length} por ELO</div></div>
               <div className="track"><div className="rail">
                 {companeros.map((c: CompaneroTop) => {
-                  const nm = formatNombre(c.nombre)
+                  const nm = nombreCompleto(c.nombre)
                   const mi = nm.split(/\s+/).map((w) => w[0]).slice(0, 2).join('').toUpperCase()
                   return (
                     <Link key={c.codjugador} href={jugadorHref(c.codjugador, c.nombre)} className="mate">
                       {/* El escudo representa al COMPAÑERO (persona): alt/title = "{jugador} en {equipo}". */}
                       {escudoUrl(c.escudo_actual) ? <EscudoBox escudo={c.escudo_actual} nombre={c.equipo_actual ?? undefined} altText={`${nm}${c.equipo_actual ? ` en ${c.equipo_actual}` : ''}`} size={46} radius={9} /> : <div className="m-av">{mi}</div>}
                       <div className="m-n">{nm}</div>
-                      <div className="m-e" style={{ color: cElo(c.elo ?? null) }}>ELO {c.elo != null ? mil(Math.round(c.elo)) : '—'}</div>
+                      <div className="m-e" style={{ color: cElo(c.elo ?? null) }}>ELO {c.elo != null ? fmtNum(Math.round(c.elo)) : '—'}</div>
                     </Link>
                   )
                 })}
@@ -604,10 +604,10 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
                     </div>
                     <div className="s-duo">
                       <div><div className="d-v" style={{ color: cMed(c.media_fantasy) }}>{c.media_fantasy != null ? med1(c.media_fantasy) : '—'}</div><div className="d-k">MEDIA</div></div>
-                      <div><div className="d-v" style={{ color: cElo(c.elo_final) }}>{c.elo_final != null ? mil(Math.round(c.elo_final)) : '—'}</div><div className="d-k">ELO</div></div>
+                      <div><div className="d-v" style={{ color: cElo(c.elo_final) }}>{c.elo_final != null ? fmtNum(Math.round(c.elo_final)) : '—'}</div><div className="d-k">ELO</div></div>
                     </div>
                     <div className="s-stats">
-                      <div><b>{mil(c.pj)}</b>PJ</div><div><b>{mil(c.minutos)}</b>MIN</div><div><b>{mil(c.goles)}</b>GOLES</div>
+                      <div><b>{fmtNum(c.pj)}</b>PJ</div><div><b>{fmtNum(c.minutos)}</b>MIN</div><div><b>{fmtNum(c.goles)}</b>GOLES</div>
                     </div>
                   </div>
                 )
@@ -625,8 +625,8 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
                 {/* #7 Reparto titular/suplente y minutos totales de la carrera (web_jugador.*_total, LIGA) -> fuera en solo-copa. */}
                 {!esSoloCopa && (j.titular_total != null || j.suplente_total != null) && (
                   <p className="tray-note">
-                    <b>{mil(j.titular_total)}</b> como titular · <b>{mil(j.suplente_total)}</b> como suplente
-                    {portero ? '' : <> · <b>{mil(j.minutos_total)}</b> minutos</>}
+                    <b>{fmtNum(j.titular_total)}</b> como titular · <b>{fmtNum(j.suplente_total)}</b> como suplente
+                    {portero ? '' : <> · <b>{fmtNum(j.minutos_total)}</b> minutos</>}
                   </p>
                 )}
               </div>

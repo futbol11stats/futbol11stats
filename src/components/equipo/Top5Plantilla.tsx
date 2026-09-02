@@ -6,6 +6,7 @@ import { useTemporada } from './TemporadaContext'
 import { tempLabel } from '@/lib/equipo'
 import Pastilla from '@/components/Pastilla'
 import { type PlantillaRow } from './Plantilla'
+import { fmtNum } from '@/lib/formato'
 
 // Top 5 de la plantilla de la TEMPORADA SELECCIONADA (reactivo al mismo selector, vía TemporadaContext).
 // Ordenados por PTS fantasy (desempate por ELO). Formato "Ha jugado con": nombre enlazado + pastilla +
@@ -31,8 +32,8 @@ export default function Top5Plantilla({ plantilla }: { plantilla: PlantillaRow[]
             <span className="flex-1 min-w-0 truncate text-sm font-display uppercase text-white">
               {r.href ? <Link href={r.href} className="hover:text-grass-300 transition-colors">{r.nombre}</Link> : r.nombre}
             </span>
-            <span className="flex-shrink-0 text-xs text-grass-400 font-medium tabular-nums">{r.pts != null ? Math.round(r.pts) : ''}<span className="text-chalk-600 font-normal"> pts</span></span>
-            <span className="flex-shrink-0 w-9 text-right text-xs text-chalk-500 tabular-nums">{r.elo != null ? Math.round(r.elo) : ''}</span>
+            <span className="flex-shrink-0 text-xs text-grass-400 font-medium tabular-nums">{r.pts != null ? fmtNum(r.pts) : ''}<span className="text-chalk-600 font-normal"> pts</span></span>
+            <span className="flex-shrink-0 w-9 text-right text-xs text-chalk-500 tabular-nums">{r.elo != null ? fmtNum(r.elo) : ''}</span>
           </div>
         ))}
       </div>

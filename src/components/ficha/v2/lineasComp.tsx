@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import { Balon, Guante, Escudo, Reloj, Camiseta, CamisetaHueca, TarjetaAmarilla, TarjetaDoble, TarjetaRoja } from '@/components/iconos'
 import { colorMediaJug } from '@/lib/competicionV2'
+import { fmtNum } from '@/lib/formato'
 
 // Líneas de datos de las pestañas de TEMPORADA, con los mismos glifos y colores que las de jornada
 // (gol verde, guante ámbar, reloj minutos, tarjetas cada una su color). Compartidas por grupo y global.
@@ -16,7 +17,6 @@ import { colorMediaJug } from '@/lib/competicionV2'
 //   - JORNADA (partido único): el 0 nunca informa → se omite SIEMPRE (goles, portería a cero y tarjetas).
 //     Ver filaJornada() en FichaCompeticionV2.tsx.
 const fmt2 = (v: number | null | undefined) => (v == null ? '—' : Number(v).toFixed(2).replace('.', ','))
-const mil = (n: number | null | undefined) => (n == null ? '—' : Math.round(Number(n)).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.'))
 const med1 = (v: number | null | undefined) => (v == null ? '—' : Number(v).toFixed(1).replace('.', ','))
 
 // Goleadores (temporada): PJ · goles/PJ · partidos con gol · minutos por gol. El chip son los goles.
@@ -61,8 +61,8 @@ export function datosEloTemp(j: any): ReactNode {
   return (
     <>
       {j.pj != null && <span>{j.pj}<Escudo size={11} /></span>}
-      <span>máx <b className="num">{j.elo_max != null ? mil(j.elo_max) : '—'}</b></span>
-      <span>mín <b className="num">{j.elo_min != null ? mil(j.elo_min) : '—'}</b></span>
+      <span>máx <b className="num">{j.elo_max != null ? fmtNum(j.elo_max) : '—'}</b></span>
+      <span>mín <b className="num">{j.elo_min != null ? fmtNum(j.elo_min) : '—'}</b></span>
     </>
   )
 }

@@ -9,6 +9,7 @@ import { MapPin, Navigation } from 'lucide-react'
 import { getCampo, campoSlug, codigoCampoFromSlug } from '@/lib/campo'
 import { parseCampo, campoMapsUrl, campoDirUrl } from '@/lib/club'
 import { equipoSlug } from '@/lib/equipo'
+import { nombreEquipo } from '@/lib/nombre'
 import { tempLabel } from '@/lib/jugador'
 import { escudoUrl } from '@/lib/supabase'
 import EscudoImg from '@/components/EscudoImg'
@@ -144,7 +145,7 @@ export default async function CampoPage({ params }: { params: Promise<{ slug: st
                   </span>
                   <span className="min-w-0 flex-1">
                     <span className="flex items-center gap-1.5 min-w-0">
-                      <span className="font-display font-semibold text-white uppercase truncate text-[length:var(--t-lead)] leading-tight">{e.nombre}</span>
+                      <span className="font-display font-semibold text-white truncate text-[length:var(--t-lead)] leading-tight">{nombreEquipo(e.nombre)}</span>
                       {juvenil && <span className="flex-shrink-0 text-[length:var(--t-micro)] font-semibold uppercase tracking-wide text-blue-300 bg-blue-500/15 rounded px-1 py-px">Juvenil</span>}
                     </span>
                     {/* Categoría · grupo · PJ del equipo EN ESTE campo, seguido en la misma línea (el nº ordena la

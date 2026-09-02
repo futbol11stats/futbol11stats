@@ -1,6 +1,5 @@
 import type { ReactNode } from 'react'
-
-const mil = (n: number | null | undefined) => (n == null ? '—' : Math.round(Number(n)).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.'))
+import { fmtNum } from '@/lib/formato'
 
 // Fila de ranking: insignia + etiqueta + #rank/total + barra de percentil (10 segmentos). Presentacional
 // (sirve en servidor y en cliente). La usa el bloque Nivel: el ranking GENERAL en servidor (fijo) y las filas
@@ -17,7 +16,7 @@ export default function RankFila({ insignia, label, rank, total }: {
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, fontSize: 'var(--t-cap)' }}>
           <span style={{ color: 'var(--ink-3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label}</span>
-          <span className="num" style={{ fontSize: 'var(--t-sm)', flexShrink: 0 }}><span style={{ color: 'var(--e3)' }}>#{mil(rank)}</span><span style={{ color: 'var(--ink-4)' }}> / {mil(total)}</span></span>
+          <span className="num" style={{ fontSize: 'var(--t-sm)', flexShrink: 0 }}><span style={{ color: 'var(--e3)' }}>#{fmtNum(rank)}</span><span style={{ color: 'var(--ink-4)' }}> / {fmtNum(total)}</span></span>
         </div>
         <div style={{ display: 'flex', gap: 2, marginTop: 5 }}>
           {Array.from({ length: 10 }).map((_, i) => <span key={i} style={{ height: 6, flex: 1, borderRadius: 2, background: (p != null && i < ll) ? 'var(--e3)' : 'rgba(255,255,255,.1)' }} />)}

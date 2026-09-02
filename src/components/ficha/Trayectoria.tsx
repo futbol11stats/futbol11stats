@@ -7,6 +7,7 @@ import { Balon, Guante } from '@/components/iconos'
 import { supabase, escudoUrl } from '@/lib/supabase'
 import EscudoImg from '@/components/EscudoImg'
 import NombreEquipo from '@/components/NombreEquipo'
+import { nombreEquipo } from '@/lib/nombre'
 import { fmtNum } from '@/lib/formato'
 import Sello from '@/components/Sello'
 import IndicadorLocal from '@/components/IndicadorLocal'
@@ -59,7 +60,7 @@ function PartidoFila({ p, portero }: { p: any; portero: boolean }) {
           {escudoUrl(p.rival_escudo)
             ? <span className="inline-flex items-center justify-center w-5 h-5 bg-white rounded-sm flex-shrink-0 p-px"><EscudoImg escudo={p.rival_escudo} nombre={p.rival_nombre ?? undefined} /></span>
             : <span className="w-5 h-5 flex-shrink-0" />}
-          <span className="truncate min-w-0 uppercase font-display">{p.rival_nombre}</span>
+          <span className="truncate min-w-0 font-display">{nombreEquipo(p.rival_nombre)}</span>
         </div>
         <div className="sm:hidden flex items-center gap-1.5 pl-7 mt-0.5 text-[length:var(--t-micro)] whitespace-nowrap">
           <span className={`font-semibold ${colorSigno(signo)}`}>{marcador}</span>
@@ -180,7 +181,7 @@ export default function Trayectoria({ carrera, portero, codjugador, railWrap = f
                     <span className="inline-flex items-center gap-1.5"><Sello nombreComp={c.nombre_comp} size={20} />{c.nombre_comp}{c.grupo_nombre ? ` · ${c.grupo_nombre}` : ''}</span>
                   </td>
                   <td className="text-center text-chalk-400 tabular-nums">{c.pj}</td>
-                  <td className="text-center text-chalk-600 tabular-nums">{(c.minutos ?? 0).toLocaleString('es-ES')}</td>
+                  <td className="text-center text-chalk-600 tabular-nums">{fmtNum(c.minutos ?? 0)}</td>
                   <td className="text-center font-bold text-white tabular-nums">{portero ? (c.porterias_cero ?? 0) : c.goles}</td>
                   {portero && <td className="text-center text-chalk-400 tabular-nums">{c.goles_encajados ?? 0}</td>}
                   <td className="text-center text-chalk-600 tabular-nums">{c.tarjetas_amarillas ?? 0}</td>

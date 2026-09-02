@@ -8,6 +8,7 @@ import { notFound, permanentRedirect } from 'next/navigation'
 import { getClub, clubSlug, codclubFromSlug, parseCampo } from '@/lib/club'
 import SuperficieCampo from '@/components/SuperficieCampo'
 import { equipoSlug } from '@/lib/equipo'
+import { nombreEquipo } from '@/lib/nombre'
 import EscudoBox from '@/components/ficha/v2/EscudoBox'
 import JsonLd from '@/components/JsonLd'
 import { graphLd, breadcrumbLd } from '@/lib/jsonld'
@@ -68,7 +69,7 @@ export default async function ClubPage({ params }: { params: Promise<{ slug: str
             <Link href={`/madrid/equipo/${equipoSlug(e.codequipo, e.nombre)}`} className="flex items-center gap-3 p-2.5 rounded-lg bg-pitch-800 border border-pitch-700 hover:border-grass-500/50 transition-colors">
               {e.escudo ? <EscudoBox escudo={e.escudo} nombre={e.nombre} size={30} radius={6} /> : <span className="w-[30px] h-[30px] flex-none rounded-md bg-pitch-700" />}
               <span className="min-w-0">
-                <span className="block text-sm font-semibold text-white truncate">{e.nombre}{e.activo === false && <span className="text-chalk-600 font-normal"> · inactivo</span>}</span>
+                <span className="block text-sm font-semibold text-white truncate">{nombreEquipo(e.nombre)}{e.activo === false && <span className="text-chalk-600 font-normal"> · inactivo</span>}</span>
                 <span className="block text-xs text-chalk-600 truncate">
                   {(() => {
                     const cp = e.campo_codigo && e.campo_nombre ? parseCampo(e.campo_nombre) : null
