@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { Star } from 'lucide-react'
+import { Estrella } from '@/components/iconos'
 import { useTemporada } from './TemporadaContext'
 import { tempLabel } from '@/lib/equipo'
 import Pastilla from '@/components/Pastilla'
@@ -20,7 +20,7 @@ export default function Top5Plantilla({ plantilla }: { plantilla: PlantillaRow[]
   return (
     <div>
       <h2 className="flex items-center gap-1.5 text-[length:var(--t-micro)] font-semibold uppercase tracking-widest text-chalk-600 mb-2">
-        <Star className="w-3.5 h-3.5 text-grass-400" strokeWidth={2.5} /> Top 5 de la plantilla
+        <Estrella className="w-3.5 h-3.5 text-grass-400" strokeWidth={2.5} /> Top 5 de la plantilla
         <span className="text-chalk-600 font-normal normal-case tracking-normal">· {tempLabel(sel)}</span>
       </h2>
       <div className="bg-pitch-800 rounded-xl border border-pitch-700">

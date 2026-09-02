@@ -29,6 +29,10 @@ el catálogo (en tandas), no al final. Vive junto a [`PROTOCOLO.md`](./PROTOCOLO
      **Si en algún sitio no cabe, se resuelve por DISEÑO, no recortando el nombre:** menos columnas, otra
      densidad, o **el escudo sin nombre** donde el contexto ya dice de qué equipo se trata.
 3. **Un concepto, un icono, en todo el sitio.** Nada de gol=SVG aquí y emoji allá.
+   - Ante duda entre **nuestro set** (`src/components/iconos.tsx`) y **lucide-react**, gana **nuestro set**
+     — es el que da personalidad al sitio.
+   - **NUNCA emojis** (`📅`, `🟨`, `🟥`…): cada sistema operativo/navegador los dibuja distinto, así que
+     nunca se ven igual. Icono propio siempre.
 4. **Puntos primero, ELO después.** El fantasy es el dato principal; el ELO, su efecto.
 5. **Silencio antes que dato dudoso.** Un valor ausente no se pinta (ni `0`, ni `1000`, ni `—` cuando
    induce a error). `null` = no se renderiza.
@@ -93,7 +97,7 @@ y el CSS de las fichas consumen estas variables; **resuelven en todo el sitio**.
 | **`TeamName`** | nombre de equipo, sin truncar | `NombreEquipo` + truncados CSS | toda referencia a un equipo |
 | **`PointPill`** | pastilla de puntos fantasy | `.m-pts`, `.pl-val`, `.rr .rv`, `.chip`, `.rsc` | siempre ANTES del ELO |
 | **`EloDelta`** | Δ ELO del partido (verde/rojo) | `.m-elo`, `.pl-elo`, inline sueltos | siempre DESPUÉS de los puntos |
-| **`Badge11`** | sello «11» (marca / chip ELO) | 5 copias inline | KPIs, líderes, Panorama |
+| **`Badge11`** | sello «11» — **marca de DATO PROPIO** (lo calculamos nosotros: ELO, PF, media…), NO el icono de un dato concreto. Va en todos ellos, **mismo color**; los distingue el RÓTULO (`PF`/`ELO`), no el color (verde/rojo ya significan bueno/malo y subida/bajada, un sello verde junto a un delta rojo daría señales cruzadas) | 5 copias inline | KPIs, líderes, Panorama |
 | **`FormaStrip`** | últimos N resultados (puntos) | dots v2 / cuadros clasificación / letras FormaHero | forma de equipo/jugador |
 | **`MicroLabel`** | rótulo micro-mayúsculas | ~8 clases + ~10 usos Tailwind | etiquetas de sección/columna/campo |
 

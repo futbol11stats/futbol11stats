@@ -1,14 +1,9 @@
 import { fechaCortaDMY, diasDesdeDMY, type ChipRacha } from '@/lib/equipo'
+import FormaStrip from '@/components/ui/FormaStrip'
 
-// Racha del hero (equipo y jugador, mismo componente): micro-etiqueta "RACHA" + 5 cuadraditos con
-// LETRA — V (victoria, césped) / E (empate, pizarra) / D (derrota, rojo) — más reciente a la DERECHA.
-// Cada chip lleva tooltip "Jnn · marcador vs Rival" (título + aria-label). El equipo añade debajo
-// "Última victoria · <fecha>"; el jugador pasa la miga "últimos 5 · reciente →".
-const CHIP: Record<'G' | 'E' | 'P', { letra: string; cls: string }> = {
-  G: { letra: 'V', cls: 'bg-grass-500 text-white' },
-  E: { letra: 'E', cls: 'bg-pitch-600 text-chalk-200' },   // gris pizarra
-  P: { letra: 'D', cls: 'bg-red-500 text-white' },
-}
+// Racha del hero (equipo y jugador, mismo componente): micro-etiqueta "RACHA" + la tira de forma ÚNICA del
+// sitio (FormaStrip: cuadrito con letra G/E/P, más reciente a la DERECHA), con tooltip "Jnn · marcador vs
+// Rival" por cuadro. El equipo añade debajo "Última victoria · <fecha>"; el jugador pasa la miga.
 
 export default function FormaHero({ forma, ultimaVictoria, tempEtiqueta, mostrarDias, miga }: {
   forma: ChipRacha[]
@@ -24,18 +19,11 @@ export default function FormaHero({ forma, ultimaVictoria, tempEtiqueta, mostrar
       <div className="flex items-center gap-2 flex-wrap">
         <span className="text-[length:var(--t-micro)] font-semibold uppercase tracking-widest text-chalk-600">Racha</span>
         {tempEtiqueta && <span className="text-[length:var(--t-micro)] text-chalk-600 tabular-nums">{tempEtiqueta}</span>}
-        <div className="flex items-center gap-1">
-          {forma.map((c, i) => {
-            const cfg = CHIP[c.signo]
-            const tip = `${c.jornada != null ? `J${c.jornada} · ` : ''}${c.marcador}${c.rival ? ` vs ${c.rival}` : ''}`
-            return (
-              <span key={i} title={tip} aria-label={tip}
-                className={`w-5 h-5 rounded-md flex items-center justify-center flex-shrink-0 font-display font-semibold text-[length:var(--t-micro)] leading-none ${cfg.cls}`}>
-                {cfg.letra}
-              </span>
-            )
-          })}
-        </div>
+        <FormaStrip
+          items={forma.map((c) => c.signo)}
+          titles={forma.map((c) => `${c.jornada != null ? `J${c.jornada} · ` : ''}${c.marcador}${c.rival ? ` vs ${c.rival}` : ''}`)}
+          size={20}
+        />
         {miga && <span className="text-[length:var(--t-micro)] text-chalk-600">{miga}</span>}
       </div>
       {ultimaVictoria && (

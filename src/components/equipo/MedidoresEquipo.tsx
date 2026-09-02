@@ -1,5 +1,6 @@
 import { tempLabel } from '@/lib/equipo'
-import { TrendingUp, ShieldCheck } from 'lucide-react'
+import { ShieldCheck } from 'lucide-react'
+import Badge11 from '@/components/ui/Badge11'
 
 // Medidores de la ficha de equipo (misma familia que la de jugador): ELO con sparkline de cierre por
 // temporada + máx histórico, y Deportividad (puesto de juego limpio del grupo + TA·TR). Si no hay ELO
@@ -52,7 +53,7 @@ export default function MedidoresEquipo({
       {hayElo && (
         <div className="bg-pitch-800 rounded-xl border border-pitch-700 p-4">
           <span className="flex items-center gap-1.5 text-[length:var(--t-micro)] font-semibold uppercase tracking-wider text-chalk-600">
-            <TrendingUp className="w-3.5 h-3.5 text-grass-400" strokeWidth={2.5} /> ELO
+            <Badge11 size={14} /> ELO
           </span>
           <div className="mt-1.5 flex items-baseline gap-2">
             <span className="font-display text-3xl font-bold text-white tabular-nums">{Math.round(elo!)}</span>

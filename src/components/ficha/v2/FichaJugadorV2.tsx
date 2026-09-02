@@ -39,6 +39,7 @@ import { CORTES_FIJOS } from '@/lib/escala'
 import MatchRow from '@/components/ficha/v2/MatchRow'
 import { partidoSlug } from '@/lib/partidoSlug'
 import Badge11 from '@/components/ui/Badge11'
+import FormaStrip from '@/components/ui/FormaStrip'
 import { getSueloVivo } from '@/lib/temporadas'
 import {
   getJugadorV2, getCarreraV2, getAlertaActual, getAmbitoTemporada, getCortesElo, labelToCod,
@@ -318,7 +319,6 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
   }
   if (j.temporadas != null) extras.push([<Calendario size={13} key="i" />, mil(j.temporadas), 'Temporadas'])
 
-  const RC: Record<string, string> = { G: 'var(--e3)', E: 'var(--ink-3)', P: 'var(--e0)' }
 
   return (
     <div className="fjv2">
@@ -543,9 +543,11 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
             </div>
             <div style={{ padding: '12px var(--pad) 2px', display: 'flex', gap: 5, alignItems: 'center' }}>
               <span style={{ fontSize: 'var(--t-cap)', color: 'var(--ink-3)', marginRight: 5 }}>Racha</span>
-              {racha.map((r, i) => (
-                <span key={i} className="num" style={{ width: 22, height: 22, borderRadius: 6, display: 'grid', placeItems: 'center', fontSize: 'var(--t-sm)', color: '#0a1628', background: RC[r.signo] }}>{r.signo}</span>
-              ))}
+              <FormaStrip
+                items={racha.map((r) => r.signo)}
+                titles={racha.map((r) => `${r.jornada != null ? `J${r.jornada} · ` : ''}${r.marcador ?? ''}${r.rival ? ` vs ${r.rival}` : ''}`.trim() || undefined)}
+                size={22}
+              />
             </div>
           </section>
 

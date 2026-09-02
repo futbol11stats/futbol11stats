@@ -2,7 +2,8 @@
 
 import { useState, Fragment } from 'react'
 import ScrollRail from '@/components/ficha/v2/ScrollRail'
-import { ChevronDown, Loader2, CircleDot, Hand } from 'lucide-react'
+import { ChevronDown, Loader2 } from 'lucide-react'
+import { Balon, Guante } from '@/components/iconos'
 import { supabase, escudoUrl } from '@/lib/supabase'
 import EscudoImg from '@/components/EscudoImg'
 import NombreEquipo from '@/components/NombreEquipo'
@@ -72,11 +73,11 @@ function PartidoFila({ p, portero }: { p: any; portero: boolean }) {
       <td className="text-center text-chalk-600 tabular-nums">{min}′</td>
       {/* G (campo) / P0 (portero: guante si portería a cero) */}
       {portero ? (
-        <td className="text-center">{gc === 0 ? <Hand className="inline w-3.5 h-3.5" style={{ color: '#38bdf8' }} strokeWidth={2.25} /> : null}</td>
+        <td className="text-center">{gc === 0 ? <Guante className="inline w-3.5 h-3.5" style={{ color: '#38bdf8' }} strokeWidth={2.25} /> : null}</td>
       ) : (
         <td className="text-center tabular-nums">
           {goles > 0
-            ? <span className="inline-flex items-center gap-0.5"><CircleDot className="w-3 h-3 text-grass-400" strokeWidth={2.5} /><span className="text-white font-semibold">{goles}</span></span>
+            ? <span className="inline-flex items-center gap-0.5"><Balon className="w-3 h-3 text-grass-400" strokeWidth={2.5} /><span className="text-white font-semibold">{goles}</span></span>
             : <span className="text-chalk-700">0</span>}
         </td>
       )}

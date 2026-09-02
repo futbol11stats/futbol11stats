@@ -566,8 +566,8 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
                       {['PJ', 'PG', 'PE', 'PP', 'GF', 'GC', 'DG'].map((c) => <span key={c} className={`cc${c === 'DG' ? ' dg' : ''}`}>{c}</span>)}
                       <span className="cc pts">Pts</span>
                       <span className="cc">Mov</span>
-                      <span className="cc">ELO</span>
                       <span className="cc">PF</span>
+                      <span className="cc">ELO</span>
                       <span className="cracha">Forma</span>
                       <span className="ccom">Racha</span>
                       <span className="cc">PO</span>
@@ -576,7 +576,7 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
                       const z = zonaEf(r.zona)
                       const movCol = r.mov?.startsWith('↑') ? 'var(--e3)' : r.mov?.startsWith('↓') ? 'var(--e0)' : 'var(--ink-3)'
                       return (
-                        <div key={r.codequipo} className="ctr" style={ZONA_BG[z]}>
+                        <div key={r.codequipo} className="ctr" style={ZONA_BG[z] ? { backgroundColor: ZONA_BG[z].backgroundColor } : undefined}>
                           <div className="cfix">
                             <span className="czona" style={{ background: zonaColor(r.zona) }} />
                             <span className="cpos">{r.pos}</span>
@@ -588,9 +588,9 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
                           <span className="cc dg">{r.dg > 0 ? `+${r.dg}` : r.dg}</span>
                           <span className="cc pts">{r.pts}</span>
                           <span className="cc" style={{ color: movCol }}>{r.mov || '—'}</span>
-                          <span className="cc" style={sinEmpezar ? { color: colorElo(r.elo) || undefined } : undefined}>{r.elo != null ? Math.round(r.elo) : '—'}</span>
                           <span className="cc">{r.pts_fantasy != null ? Math.round(r.pts_fantasy) : '—'}</span>
-                          <span className="cracha"><FormaStrip items={Array.from(r.forma || '').slice(-5)} size={11} /></span>
+                          <span className="cc" style={sinEmpezar ? { color: colorElo(r.elo) || undefined } : undefined}>{r.elo != null ? Math.round(r.elo) : '—'}</span>
+                          <span className="cracha"><FormaStrip items={Array.from(r.forma || '').slice(-5)} size={13} gap={2} /></span>
                           <span className="ccom">{r.racha || ''}</span>
                           <span className="cc">{r.p0 ?? '—'}</span>
                         </div>

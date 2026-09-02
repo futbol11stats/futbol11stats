@@ -1,6 +1,7 @@
 import { tempLabel } from '@/lib/jugador'
 import Sello from '@/components/Sello'
-import { TrendingUp, Gauge } from 'lucide-react'
+import { Gauge } from 'lucide-react'
+import Badge11 from '@/components/ui/Badge11'
 
 // Medidores de la ficha (spec v3): ELO con sparkline de cierre por temporada + máx histórico +
 // percentil; rating F11S como anillo 0-100 con chip beta. El rating solo se pinta si existe; si no,
@@ -68,7 +69,7 @@ function TarjetaElo({
   return (
     <div className="bg-pitch-800 rounded-xl border border-pitch-700 p-4">
       <span className="flex items-center gap-1.5 text-[length:var(--t-micro)] font-semibold uppercase tracking-wider text-chalk-600">
-        <TrendingUp className="w-3.5 h-3.5 text-grass-400" strokeWidth={2.5} /> ELO
+        <Badge11 size={14} /> ELO
       </span>
       <div className="mt-1.5 flex items-baseline gap-2">
         <span className="font-display text-3xl font-bold text-white tabular-nums">{Math.round(elo)}</span>

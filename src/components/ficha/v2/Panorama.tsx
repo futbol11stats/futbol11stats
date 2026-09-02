@@ -2,8 +2,9 @@ import EscudoBox from '@/components/ficha/v2/EscudoBox'
 import NombreJugador from '@/components/NombreJugador'
 import { colorElo } from '@/lib/equipoV2'
 import {
-  Balon, Guante, Escudo, Calendario, Casa, Guion, Avion, TarjetaAmarilla, TarjetaDoble, TarjetaRoja,
+  Balon, Guante, Escudo, Guion, TarjetaAmarilla, TarjetaDoble, TarjetaRoja,
 } from '@/components/iconos'
+import { Home, Plane } from 'lucide-react'
 import type { CifrasComp } from '@/lib/competicionV2'
 import Badge11 from '@/components/ui/Badge11'
 
@@ -63,7 +64,7 @@ export default function Panorama({ lideres, cifras, kpis, fichas, subLideres, su
           <div className="cifras">
             <div className="cgrupo"><h4>Competición</h4>
               <div className="cfila"><span className="ci"><Escudo size={13} /></span><span className="ck">Equipos</span><span className="cv">{kpis.equipos || '—'}</span></div>
-              <div className="cfila"><span className="ci"><Calendario size={13} /></span><span className="ck">Partidos jugados</span><span className="cv">{mil(cifras.disputados)} <small>de {mil(cifras.totalPartidos)}</small></span></div>
+              <div className="cfila"><span className="ci"><span style={{ fontFamily: 'var(--font-display), sans-serif', fontWeight: 700, fontSize: 'var(--t-cap)', color: 'var(--ink-3)', lineHeight: 1 }}>PJ</span></span><span className="ck">Partidos jugados</span><span className="cv">{mil(cifras.disputados)} <small>de {mil(cifras.totalPartidos)}</small></span></div>
               <div className="cfila"><span className="ci" style={{ color: colorElo(kpis.eloMedio) || 'var(--e3)' }}><Badge11 bg={colorElo(kpis.eloMedio) || 'var(--e3)'} ink="#0a1628" size={15} /></span><span className="ck">ELO medio por equipo</span><span className="cv" style={{ color: colorElo(kpis.eloMedio) || undefined }}>{mil(kpis.eloMedio)}</span></div>
             </div>
             <div className="cgrupo"><h4>Goles</h4>
@@ -72,9 +73,9 @@ export default function Panorama({ lideres, cifras, kpis, fichas, subLideres, su
               <div className="cfila"><span className="ci" style={{ color: 'var(--amber)' }}><Guante size={13} /></span><span className="ck">Porterías a cero</span><span className="cv">{mil(cifras.p0)}</span></div>
             </div>
             <div className="cgrupo"><h4>Resultados</h4>
-              <div className="cfila"><span className="ci" style={{ color: 'var(--e3)' }}><Casa size={13} /></span><span className="ck">Victoria local</span><span className="cv">{cifras.vLocalPct} %</span></div>
+              <div className="cfila"><span className="ci" style={{ color: 'var(--e3)' }}><Home size={13} /></span><span className="ck">Victoria local</span><span className="cv">{cifras.vLocalPct} %</span></div>
               <div className="cfila"><span className="ci"><Guion size={13} /></span><span className="ck">Empates</span><span className="cv">{cifras.empPct} %</span></div>
-              <div className="cfila"><span className="ci" style={{ color: 'var(--e3)' }}><Avion size={13} /></span><span className="ck">Victoria visitante</span><span className="cv">{cifras.vVisitPct} %</span></div>
+              <div className="cfila"><span className="ci" style={{ color: 'var(--e3)' }}><Plane size={13} /></span><span className="ck">Victoria visitante</span><span className="cv">{cifras.vVisitPct} %</span></div>
             </div>
             <div className="cgrupo"><h4>Disciplina</h4>
               <div className="cfila"><span className="ci" style={{ color: 'var(--card-y)' }}><TarjetaAmarilla size={12} /></span><span className="ck">Amarillas</span><span className="cv">{mil(cifras.amarillas)}</span></div>

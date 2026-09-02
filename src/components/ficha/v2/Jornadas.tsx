@@ -6,7 +6,7 @@ import IndicadorLocal from '@/components/IndicadorLocal'
 import EscudoBox from '@/components/ficha/v2/EscudoBox'
 import {
   Balon, Guante, TarjetaAmarilla, TarjetaDoble, TarjetaRoja, Camiseta, CamisetaHueca,
-  TrianguloArriba, TrianguloAbajo, Guion, Escudo,
+  FlechaEntra, FlechaSale, Guion, Escudo,
 } from '@/components/iconos'
 import { derivarRol } from '@/lib/escala'
 import { marcadorLocalVisitante } from '@/lib/jugador'
@@ -120,8 +120,8 @@ export default function Jornadas({ comps, cortes }: { comps: CompAmbito[]; corte
     const shirt = d.titular
       ? <span style={{ color: 'var(--ink)', display: 'flex' }}><Camiseta size={13} /></span>
       : <span style={{ color: 'var(--ink-3)', display: 'flex' }}><CamisetaHueca size={13} /></span>
-    const marca = r === 'sustituido' ? <span style={{ color: 'var(--e0)', display: 'flex' }}><TrianguloAbajo size={9} /></span>
-      : r === 'entro' ? <span style={{ color: 'var(--e3)', display: 'flex' }}><TrianguloArriba size={9} /></span> : null
+    const marca = r === 'sustituido' ? <span style={{ color: 'var(--e0)', display: 'flex' }}><FlechaSale size={9} /></span>
+      : r === 'entro' ? <span style={{ color: 'var(--e3)', display: 'flex' }}><FlechaEntra size={9} /></span> : null
     return (<><span style={{ display: 'flex', alignItems: 'center', gap: 2 }}>{shirt}{marca}</span><span className="mins">{d.minutos}&#39;</span></>)
   }
 
@@ -203,8 +203,8 @@ export default function Jornadas({ comps, cortes }: { comps: CompAmbito[]; corte
           <span className="lg-item"><span className="gl" style={{ color: 'var(--ink-4)' }}><Guion size={11} /></span>No jugó</span>
         </div>
         <div className="lg-row" style={{ marginTop: 6 }}>
-          <span className="lg-item"><span className="gl" style={{ color: 'var(--e0)' }}><TrianguloAbajo size={9} /></span>Salió</span>
-          <span className="lg-item"><span className="gl" style={{ color: 'var(--e3)' }}><TrianguloArriba size={9} /></span>Entró</span>
+          <span className="lg-item"><span className="gl" style={{ color: 'var(--e0)' }}><FlechaSale size={9} /></span>Salió</span>
+          <span className="lg-item"><span className="gl" style={{ color: 'var(--e3)' }}><FlechaEntra size={9} /></span>Entró</span>
         </div>
         <div className="lg-row" style={{ marginTop: 6 }}>
           <span className="lg-item"><span className="gl"><IndicadorLocal esLocal={true} /></span>Casa</span>

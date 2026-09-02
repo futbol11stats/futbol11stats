@@ -6,7 +6,24 @@ import EscudoImg from '@/components/EscudoImg'
 import NombreJugador from '@/components/NombreJugador'
 import NombreEquipo from '@/components/NombreEquipo'
 import Pastilla from '@/components/Pastilla'
+import { TarjetaAmarilla, TarjetaDoble, TarjetaRoja } from '@/components/iconos'
 import type { FichaInfo } from '@/lib/jugador'
+
+// Iconos de tarjeta (SVG del sitio, nunca emoji): amarilla/doble en var(--card-y), roja en var(--card-r).
+// Tamaños homogéneos con las fichas v2 (12 amarilla/roja, 13 doble).
+const IcoTA = ({ size = 12 }: { size?: number }) => (
+  <span style={{ color: 'var(--card-y)', display: 'inline-flex', verticalAlign: 'middle' }}><TarjetaAmarilla size={size} /></span>
+)
+const IcoTD = ({ size = 13 }: { size?: number }) => (
+  <span style={{ color: 'var(--card-y)', display: 'inline-flex', verticalAlign: 'middle' }}><TarjetaDoble size={size} /></span>
+)
+const IcoTR = ({ size = 12 }: { size?: number }) => (
+  <span style={{ color: 'var(--card-r)', display: 'inline-flex', verticalAlign: 'middle' }}><TarjetaRoja size={size} /></span>
+)
+// Ciclo de N amarillas: número + amarilla, todo coloreado.
+const IcoCiclo = ({ n }: { n: number | string }) => (
+  <span style={{ color: 'var(--card-y)', display: 'inline-flex', alignItems: 'center', verticalAlign: 'middle' }}>{n}×<TarjetaAmarilla size={12} /></span>
+)
 
 // Map codjugador -> { pos, estimada } de quien tiene ficha en web_jugador (ambas ramas). Presencia de
 // la clave = tiene ficha => se enlaza; ausente = texto plano. La posición alimenta la pastilla.
@@ -80,7 +97,7 @@ export function ClasificacionTab({ rows, jornadaNum, totalJornadas }: { rows: an
             <th className="text-grass-400">Pts</th>
             <th className="hidden md:table-cell">Mov</th>
             <th className="hidden md:table-cell">ELO</th>
-            <th className="hidden md:table-cell">Pts Fantasy</th>
+            <th className="hidden md:table-cell">PF</th>
             <th className="hidden md:table-cell">Forma</th>
             <th className="hidden md:table-cell">Racha</th>
             <th className="hidden md:table-cell">P0</th>
@@ -134,7 +151,7 @@ export function ClasificacionTab({ rows, jornadaNum, totalJornadas }: { rows: an
       </div>
     )}
     <p className="mt-2 text-xs text-chalk-600 leading-relaxed">
-      <strong>PJ</strong> Partidos jugados · <strong>PG</strong> Ganados · <strong>PE</strong> Empatados · <strong>PP</strong> Perdidos · <strong>GF</strong> Goles a favor · <strong>GC</strong> Goles en contra · <strong>DG</strong> Diferencia de goles · <strong>Pts</strong> Puntos · <strong>Mov</strong> Movimiento en la clasificación · <strong>ELO</strong> Rating ELO · <strong>Pts Fantasy</strong> Puntos fantasy acumulados por el equipo · <strong>Forma</strong> Últimos 5 resultados · <strong>Racha</strong> Racha actual · <strong>P0</strong> Porterías a cero
+      <strong>PJ</strong> Partidos jugados · <strong>PG</strong> Ganados · <strong>PE</strong> Empatados · <strong>PP</strong> Perdidos · <strong>GF</strong> Goles a favor · <strong>GC</strong> Goles en contra · <strong>DG</strong> Diferencia de goles · <strong>Pts</strong> Puntos · <strong>Mov</strong> Movimiento en la clasificación · <strong>ELO</strong> Rating ELO · <strong>PF</strong> Puntos fantasy acumulados por el equipo · <strong>Forma</strong> Últimos 5 resultados · <strong>Racha</strong> Racha actual · <strong>P0</strong> Porterías a cero
     </p>
     </>
   )
@@ -239,7 +256,7 @@ export function JugadoresTab({ jugadores, tipo, fichas }: { jugadores: any[]; ti
             ) : (
               <>
                 <th>PJ</th>
-                <th className="text-grass-400">Pts Fantasy</th>
+                <th className="text-grass-400">PF</th>
                 <th className="hidden md:table-cell">Media</th>
               </>
             )}
@@ -279,7 +296,7 @@ export function JugadoresTab({ jugadores, tipo, fichas }: { jugadores: any[]; ti
       </p>
     ) : (
       <p className="mt-2 text-xs text-chalk-600 leading-relaxed">
-        <strong>Pos</strong> Demarcación del jugador (POR · DEF · MED · DEL) · <strong>PJ</strong> Partidos jugados · <strong>Pts Fantasy</strong> Puntos acumulados en el sistema fantasy · <strong>Media</strong> Puntos por partido
+        <strong>Pos</strong> Demarcación del jugador (POR · DEF · MED · DEL) · <strong>PJ</strong> Partidos jugados · <strong>PF</strong> Puntos acumulados en el sistema fantasy · <strong>Media</strong> Puntos por partido
       </p>
     )}
     </>
@@ -415,9 +432,9 @@ export function TarjetasTemporadaTab(
           <tr className="border-b border-pitch-700">
             <th className="text-left w-8">#</th>
             <th className="text-left">Equipo</th>
-            <th>🟨</th>
-            <th>🟨🟨</th>
-            <th>🟥</th>
+            <th><IcoTA /></th>
+            <th><IcoTD /></th>
+            <th><IcoTR /></th>
           </tr>
         </thead>
         <tbody>
@@ -447,7 +464,7 @@ export function TarjetasTemporadaTab(
       </table>
     </div>
     <p className="mt-2 text-xs text-chalk-600 leading-relaxed">
-      Ordenado por deportividad (menos expulsiones primero). <strong>🟨</strong> Amarillas · <strong>🟨🟨</strong> Dobles amarillas (expulsión) · <strong>🟥</strong> Rojas directas
+      Ordenado por deportividad (menos expulsiones primero). <strong><IcoTA /></strong> Amarillas · <strong><IcoTD /></strong> Dobles amarillas (expulsión) · <strong><IcoTR /></strong> Rojas directas
     </p>
 
     {/* BLOQUE 1b — Banquillos más calientes (técnicos/banquillo); se oculta si no hay */}
@@ -461,9 +478,9 @@ export function TarjetasTemporadaTab(
             <tr className="border-b border-pitch-700">
               <th className="text-left w-8">#</th>
               <th className="text-left">Equipo</th>
-              <th>🟨</th>
-              <th>🟨🟨</th>
-              <th>🟥</th>
+              <th><IcoTA /></th>
+              <th><IcoTD /></th>
+              <th><IcoTR /></th>
             </tr>
           </thead>
           <tbody>
@@ -489,7 +506,7 @@ export function TarjetasTemporadaTab(
         </table>
       </div>
       <p className="mt-2 text-xs text-chalk-600 leading-relaxed">
-        Top 5 por expulsiones del banquillo (dobles + rojas). <strong>🟨</strong> Amarillas · <strong>🟨🟨</strong> Dobles amarillas · <strong>🟥</strong> Rojas directas — al cuerpo técnico/banquillo.
+        Top 5 por expulsiones del banquillo (dobles + rojas). <strong><IcoTA /></strong> Amarillas · <strong><IcoTD /></strong> Dobles amarillas · <strong><IcoTR /></strong> Rojas directas — al cuerpo técnico/banquillo.
       </p>
       </>
     )}
@@ -505,9 +522,9 @@ export function TarjetasTemporadaTab(
             <th className="text-left">Jugador</th>
             <th className="text-left w-10"></th>
             <th className="text-left hidden md:table-cell">Equipo</th>
-            <th>{umbral}×🟨</th>
-            <th>🟨🟨</th>
-            <th>🟥</th>
+            <th><IcoCiclo n={umbral} /></th>
+            <th><IcoTD /></th>
+            <th><IcoTR /></th>
           </tr>
         </thead>
         <tbody>
@@ -531,7 +548,7 @@ export function TarjetasTemporadaTab(
     </div>
     <p className="mt-2 text-xs text-chalk-600 leading-relaxed">
       Jugadores con al menos un ciclo completo de {umbral} amarillas, una doble amarilla o una roja directa.
-      <strong> {umbral}×🟨</strong> Ciclos completos de {umbral} amarillas · <strong>🟨🟨</strong> Dobles amarillas (expulsión) · <strong>🟥</strong> Rojas directas · No contempla sanciones adicionales del Comité de Competición{umbral === 3 ? ' (las sanciones pueden extenderse a otras competiciones según su gravedad; aquí solo la derivada de tarjetas en esta competición)' : ''}.
+      <strong> <IcoCiclo n={umbral} /></strong> Ciclos completos de {umbral} amarillas · <strong><IcoTD /></strong> Dobles amarillas (expulsión) · <strong><IcoTR /></strong> Rojas directas · No contempla sanciones adicionales del Comité de Competición{umbral === 3 ? ' (las sanciones pueden extenderse a otras competiciones según su gravedad; aquí solo la derivada de tarjetas en esta competición)' : ''}.
     </p>
     </>
   )
@@ -549,7 +566,7 @@ export function XiOptimoTemporadaTab({ jugadores, fichas }: { jugadores: any[]; 
             <th className="text-left">Jugador</th>
             <th className="text-left w-10"></th>
             <th className="text-left hidden md:table-cell">Equipo</th>
-            <th className="text-grass-400">Pts Fantasy</th>
+            <th className="text-grass-400">PF</th>
             <th>Goles</th>
             <th className="hidden md:table-cell">Racha 5p</th>
             <th className="hidden md:table-cell">Power Ranking</th>
@@ -576,7 +593,7 @@ export function XiOptimoTemporadaTab({ jugadores, fichas }: { jugadores: any[]; 
       </table>
     </div>
     <p className="mt-2 text-xs text-chalk-600 leading-relaxed">
-      <strong>Pos</strong> Posición en el campo · <strong>Pts Fantasy</strong> Puntos acumulados en el sistema fantasy · <strong>Goles</strong> Goles marcados en la temporada · <strong>Racha 5p</strong> Suma de puntos fantasy en las últimas 5 jornadas del equipo · <strong>Power Ranking</strong> Índice combinado de rendimiento (pts, racha, momentum, consistencia)
+      <strong>Pos</strong> Posición en el campo · <strong>PF</strong> Puntos acumulados en el sistema fantasy · <strong>Goles</strong> Goles marcados en la temporada · <strong>Racha 5p</strong> Suma de puntos fantasy en las últimas 5 jornadas del equipo · <strong>Power Ranking</strong> Índice combinado de rendimiento (pts, racha, momentum, consistencia)
     </p>
     </>
   )
@@ -632,16 +649,16 @@ export function EscudoCell({ escudo, nombre }: { escudo: string | null; nombre?:
   )
 }
 
-function motivoEmoji(motivo: string | null): string {
-  if (!motivo) return ''
-  if (motivo.includes('Roja')) return '🟥'
-  if (motivo.includes('Doble')) return '🟨🟨'
+function motivoEmoji(motivo: string | null) {
+  if (!motivo) return null
+  if (motivo.includes('Roja')) return <IcoTR />
+  if (motivo.includes('Doble')) return <IcoTD />
   // Ciclo de amarillas: liga "…(Ciclo)" = 5; copa/playoff "…(ciclo 3)" = 3 (nº del texto).
   if (/ciclo/i.test(motivo)) {
     const m = motivo.match(/ciclo\s*(\d+)/i)
-    return `${m ? m[1] : 5}×🟨`
+    return <IcoCiclo n={m ? m[1] : 5} />
   }
-  return ''
+  return null
 }
 
 export function SuspendidosTab({ jugadores, umbral = 5, fichas }: { jugadores: any[]; umbral?: number; fichas?: Fichas }) {
@@ -680,7 +697,7 @@ export function SuspendidosTab({ jugadores, umbral = 5, fichas }: { jugadores: a
       </table>
     </div>
     <p className="mt-2 text-xs text-chalk-600 leading-relaxed">
-      <strong>Motivo</strong> Causa de la suspensión (ciclo de amarillas, doble amarilla o roja directa) · <strong>🟥</strong> Roja directa · <strong>🟨🟨</strong> Doble amarilla · <strong>{umbral}×🟨</strong> Ciclo de {umbral} amarillas · Incluye únicamente sanciones derivadas de tarjetas (ciclo, doble amarilla, roja directa); no contempla sanciones adicionales del Comité de Competición{umbral === 3 ? ' (en copa/playoff la sanción puede extenderse a otras competiciones según su gravedad; aquí solo la de esta competición)' : ''}.
+      <strong>Motivo</strong> Causa de la suspensión (ciclo de amarillas, doble amarilla o roja directa) · <strong><IcoTR /></strong> Roja directa · <strong><IcoTD /></strong> Doble amarilla · <strong><IcoCiclo n={umbral} /></strong> Ciclo de {umbral} amarillas · Incluye únicamente sanciones derivadas de tarjetas (ciclo, doble amarilla, roja directa); no contempla sanciones adicionales del Comité de Competición{umbral === 3 ? ' (en copa/playoff la sanción puede extenderse a otras competiciones según su gravedad; aquí solo la de esta competición)' : ''}.
     </p>
     </>
   )
@@ -699,9 +716,9 @@ export function TarjetasJornadaTab({ jugadores, fichas }: { jugadores: any[]; fi
             <th className="text-left">Jugador</th>
             <th className="text-left w-10"></th>
             <th className="text-left hidden md:table-cell">Equipo</th>
-            <th>🟨</th>
-            <th>🟨🟨</th>
-            <th>🟥</th>
+            <th><IcoTA /></th>
+            <th><IcoTD /></th>
+            <th><IcoTR /></th>
           </tr>
         </thead>
         <tbody>
@@ -724,7 +741,7 @@ export function TarjetasJornadaTab({ jugadores, fichas }: { jugadores: any[]; fi
       </table>
     </div>
     <p className="mt-2 text-xs text-chalk-600 leading-relaxed">
-      <strong>🟨</strong> Tarjeta amarilla · <strong>🟨🟨</strong> Doble amarilla (expulsión) · <strong>🟥</strong> Tarjeta roja directa
+      <strong><IcoTA /></strong> Tarjeta amarilla · <strong><IcoTD /></strong> Doble amarilla (expulsión) · <strong><IcoTR /></strong> Tarjeta roja directa
     </p>
     </>
   )
@@ -742,7 +759,7 @@ export function Top5JugadoresTab({ jugadores, fichas }: { jugadores: any[]; fich
             <th className="text-left">Jugador</th>
             <th className="text-left w-10"></th>
             <th className="text-left hidden md:table-cell">Equipo</th>
-            <th className="text-grass-400">Pts Fantasy</th>
+            <th className="text-grass-400">PF</th>
           </tr>
         </thead>
         <tbody>
@@ -763,7 +780,7 @@ export function Top5JugadoresTab({ jugadores, fichas }: { jugadores: any[]; fich
       </table>
     </div>
     <p className="mt-2 text-xs text-chalk-600 leading-relaxed">
-      <strong>Pos</strong> Demarcación del jugador (POR · DEF · MED · DEL) · <strong>Pts Fantasy</strong> Puntos acumulados en el sistema fantasy
+      <strong>Pos</strong> Demarcación del jugador (POR · DEF · MED · DEL) · <strong>PF</strong> Puntos acumulados en el sistema fantasy
     </p>
     </>
   )
@@ -779,7 +796,7 @@ export function Top5EquiposTab({ equipos }: { equipos: any[] }) {
             <th className="text-left w-8">#</th>
             <th className="text-left w-10"></th>
             <th className="text-left">Equipo</th>
-            <th className="text-grass-400">Pts Fantasy</th>
+            <th className="text-grass-400">PF</th>
           </tr>
         </thead>
         <tbody>
@@ -798,7 +815,7 @@ export function Top5EquiposTab({ equipos }: { equipos: any[] }) {
       </table>
     </div>
     <p className="mt-2 text-xs text-chalk-600 leading-relaxed">
-      <strong>Pts Fantasy</strong> Puntos acumulados en el sistema fantasy
+      <strong>PF</strong> Puntos acumulados en el sistema fantasy
     </p>
     </>
   )
@@ -815,7 +832,7 @@ export function XiOptimoJornadaTab({ jugadores, fichas }: { jugadores: any[]; fi
             <th className="text-left">Jugador</th>
             <th className="text-left w-10"></th>
             <th className="text-left hidden md:table-cell">Equipo</th>
-            <th className="text-grass-400">Pts Fantasy</th>
+            <th className="text-grass-400">PF</th>
             <th>Goles</th>
           </tr>
         </thead>
@@ -837,7 +854,7 @@ export function XiOptimoJornadaTab({ jugadores, fichas }: { jugadores: any[]; fi
       </table>
     </div>
     <p className="mt-2 text-xs text-chalk-600 leading-relaxed">
-      <strong>Pos</strong> Posición en el campo · <strong>Pts Fantasy</strong> Puntos obtenidos en la jornada · <strong>Goles</strong> Goles marcados en la jornada
+      <strong>Pos</strong> Posición en el campo · <strong>PF</strong> Puntos obtenidos en la jornada · <strong>Goles</strong> Goles marcados en la jornada
     </p>
     </>
   )

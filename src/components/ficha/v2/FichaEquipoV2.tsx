@@ -1,6 +1,6 @@
 import './ficha.css'
 import { Fragment, type ReactNode } from 'react'
-import { MapPin } from 'lucide-react'
+import { MapPin, CalendarPlus } from 'lucide-react'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import EscudoBox from '@/components/ficha/v2/EscudoBox'
@@ -193,7 +193,7 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
       return a
     })
   const facetaTiles: Array<[number | null, string]> = [
-    [facetas.gf, 'GF'], [facetas.gc, 'GC'], [facetas.ptsFan, 'Pts F.'], [e.posicion_juego_limpio ?? null, 'Juego limpio'],
+    [facetas.gf, 'GF'], [facetas.gc, 'GC'], [facetas.ptsFan, 'PF'], [e.posicion_juego_limpio ?? null, 'Juego limpio'],
   ]
   const BADGE_CLS: Record<string, string> = { CAMPEON: 'camp', ASCENSO: 'asc', DESCENSO: 'desc', PLAYOFF: 'po' }
 
@@ -335,7 +335,7 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
               const googleAdd = `https://calendar.google.com/calendar/render?cid=${encodeURIComponent(webcal)}`  // Android/escritorio: suscribir por URL
               return (
                 <CalendarLink appleHref={webcal} otherHref={googleAdd} className="cal-follow">
-                  📅 Sigue a este equipo en tu calendario
+                  <CalendarPlus size={14} /> Sigue a este equipo en tu calendario
                 </CalendarLink>
               )
             })()}
@@ -364,7 +364,7 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
         <div className="kpi"><div className="kpi-i"><Tabla size={14} /></div><div className="v num">{posSel != null ? `${posSel}º` : '—'}</div><div className="k">Pos</div></div>
         <div className="kpi"><div className="kpi-i"><Estrella size={14} /></div><div className="v num">{mil(ptsSel)}</div><div className="k">Pts</div></div>
         <div className="kpi"><div className="kpi-i"><Balon size={14} /></div><div className="v num">{dgSel != null ? conSigno(dgSel) : '—'}</div><div className="k">DG</div></div>
-        <div className="kpi"><div className="kpi-i">{badge11}</div><div className="v num" style={{ color: colorMedia(mediaFan) }}>{med1(mediaFan)}</div><div className="k">Media F.</div></div>
+        <div className="kpi"><div className="kpi-i">{badge11}</div><div className="v num" style={{ color: colorMedia(mediaFan) }}>{med1(mediaFan)}</div><div className="k">Media PF</div></div>
         <div className="kpi"><div className="kpi-i">{badge11}</div><div className="v num" style={{ color: colorElo(eloTemp) }}>{mil(eloTemp)}</div><div className="k">ELO</div></div>
       </div>
       )}
@@ -566,7 +566,7 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
                   <div className="cap" style={{ marginBottom: 9 }}>Ranking por faceta · en su grupo</div>
                   <div className="ranks" style={{ marginTop: 0, gridTemplateColumns: 'repeat(4,1fr)' }}>
                     {facetaTiles.map(([v, k]) => {
-                      const ic = k === 'GF' ? balV : k === 'GC' ? balR : k === 'Pts F.' ? badge11
+                      const ic = k === 'GF' ? balV : k === 'GC' ? balR : k === 'PF' ? badge11
                         : <span style={{ color: 'var(--card-y)', display: 'inline-flex' }}><TarjetaAmarilla size={12} /></span>
                       return <div className="rk" key={k}><div className="r-ic">{ic}</div><div className="r-v">{v != null ? `${v}º` : '—'}</div><div className="r-k">{k}</div></div>
                     })}
@@ -613,7 +613,7 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
                           )}
                         </div>
                         <div className="s-duo">
-                          <div><div className="d-v" style={{ color: colorMedia(media) }}>{med1(media)}</div><div className="d-k">MEDIA F.</div></div>
+                          <div><div className="d-v" style={{ color: colorMedia(media) }}>{med1(media)}</div><div className="d-k">MEDIA PF</div></div>
                           <div><div className="d-v" style={{ color: colorElo(elo) }}>{mil(elo)}</div><div className="d-k">ELO</div></div>
                         </div>
                         <div className="s-stats"><div><b>{mil(t.pts)}</b>PTS</div><div><b>{mil(t.gf)}</b>GF</div><div><b>{mil(t.gc)}</b>GC</div></div>
@@ -645,7 +645,7 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
                         </div>
                         {nTop > 0 && (
                           <div className="s-duo" style={{ gridTemplateColumns: nTop === 2 ? '1fr 1fr' : '1fr' }}>
-                            {topMedia && <div><div className="d-v" style={{ color: colorMedia(cp.media) }}>{med1(cp.media)}</div><div className="d-k">MEDIA F.</div></div>}
+                            {topMedia && <div><div className="d-v" style={{ color: colorMedia(cp.media) }}>{med1(cp.media)}</div><div className="d-k">MEDIA PF</div></div>}
                             {topElo && <div><div className="d-v" style={{ color: colorElo(elo) }}>{mil(elo)}</div><div className="d-k">ELO</div></div>}
                           </div>
                         )}
