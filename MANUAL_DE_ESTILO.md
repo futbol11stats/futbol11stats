@@ -73,6 +73,14 @@ y el CSS de las fichas consumen estas variables; **resuelven en todo el sitio**.
 - **Prohibido** `text-[Npx]` de Tailwind y `font-size` a pelo. Si falta un tamaño, se añade a la escala,
   no se inventa suelto.
 
+### Formato numérico
+- **Punto de millar en toda cifra de 4+ dígitos**, en todo el sitio (minutos, PF, ELO, partidos, goles
+  acumulados, cualquier total): `1.175`, no `1154`. Es lo correcto en español y se lee de un vistazo.
+- **Función única: `fmtNum`** (`src/lib/formato.ts`). Todo número se pinta a través de ella (es no-op para
+  <1000, y devuelve `—` para `null`). No usar `toLocaleString` suelto ni `Math.round(...).toString()` a mano.
+- **Dos excepciones sin punto:** los **DELTAS** (`+11`, `−24` — usa `fmtDelta`) y los **AÑOS/temporadas**
+  (`2026`, `2025-26`).
+
 ### Color — significados (no reutilizar fuera de su rol)
 | Token | Valor | Significado |
 |---|---|---|

@@ -17,6 +17,7 @@ import { googleRenderUrl } from '@/lib/ics'
 import CalendarLink from '@/components/calendario/CalendarLink'
 import { partidoSlug } from '@/lib/partidoSlug'
 import FormaStrip from '@/components/ui/FormaStrip'
+import { fmtNum } from '@/lib/formato'
 import JsonLd from '@/components/JsonLd'
 import { graphLd, sportsEventLd } from '@/lib/jsonld'
 import { escudoUrl } from '@/lib/supabase'
@@ -164,6 +165,13 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
     : sinEmpezarLiga ? await getClasifPretemporada(grupo.codgrupo, codtemporada)
       : await getClasifV2(grupo.codgrupo, codtemporada, jornadaNum)
   const kpis = kpisDeClasif(clasif)
+  // ELO por jornada: variación respecto a la jornada anterior (misma tabla web_clasificacion, mismo
+  // matchday) para colorear el ELO en la clasificación —verde sube / rojo baja—. Ganar/perder ELO
+  // significa hacerlo contra las expectativas. Solo liga empezada y jornada > 1; si no, sin color.
+  const clasifPrev = (!isCopa && !sinEmpezarLiga && jornadaNum > 1)
+    ? await getClasifV2(grupo.codgrupo, codtemporada, jornadaNum - 1) : []
+  const eloPrev = new Map<string, number>()
+  for (const rp of clasifPrev) if (rp.elo != null) eloPrev.set(String(rp.codequipo), rp.elo)
   // Carrera de posiciones (gráfico protagonista) — solo en Clasificación y con partidos jugados (en pretemporada
   // no hay serie que dibujar).
   const carrera = !isCopa && tabEf === 'clasificacion' && hayJugados
@@ -524,7 +532,7 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
       )}
 
       {/* PESTAÑAS sticky: Reportes de (pastilla) · Jornada (pastilla) · Ver (subrayado) */}
-      <ReportesScroll tab={tabEf} land={tabEf !== tabsJ[0][0]} />
+      <ReportesScroll tab={tabEf} land={true} />
       <div className="tabs" id="reportes-anchor">
         <div className="modo">
           <div className="sel-lbl">Reportes de</div>
@@ -588,8 +596,14 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
                           <span className="cc dg">{r.dg > 0 ? `+${r.dg}` : r.dg}</span>
                           <span className="cc pts">{r.pts}</span>
                           <span className="cc" style={{ color: movCol }}>{r.mov || '—'}</span>
-                          <span className="cc">{r.pts_fantasy != null ? Math.round(r.pts_fantasy) : '—'}</span>
-                          <span className="cc" style={sinEmpezar ? { color: colorElo(r.elo) || undefined } : undefined}>{r.elo != null ? Math.round(r.elo) : '—'}</span>
+                          <span className="cc">{fmtNum(r.pts_fantasy)}</span>
+                          {(() => {
+                            const prev = eloPrev.get(String(r.codequipo))
+                            const eloD = !sinEmpezar && r.elo != null && prev != null ? Math.round(r.elo - prev) : null
+                            const col = sinEmpezar ? (colorElo(r.elo) || undefined)
+                              : eloD ? (eloD > 0 ? 'var(--e3)' : 'var(--e0)') : undefined   // verde sube / rojo baja
+                            return <span className="cc" style={{ color: col }} title={eloD ? `${eloD > 0 ? '+' : '−'}${Math.abs(eloD)} esta jornada` : undefined}>{fmtNum(r.elo)}</span>
+                          })()}
                           <span className="cracha"><FormaStrip items={Array.from(r.forma || '').slice(-5)} size={13} gap={2} /></span>
                           <span className="ccom">{r.racha || ''}</span>
                           <span className="cc">{r.p0 ?? '—'}</span>

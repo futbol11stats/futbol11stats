@@ -1,5 +1,6 @@
 import EscudoBox from '@/components/ficha/v2/EscudoBox'
 import NombreJugador from '@/components/NombreJugador'
+import { nombreEquipo } from '@/lib/nombre'
 import { colorElo } from '@/lib/equipoV2'
 import {
   Balon, Guante, Escudo, Guion, TarjetaAmarilla, TarjetaDoble, TarjetaRoja,
@@ -24,7 +25,7 @@ function LidCard({ k, icon, color, val, unit, j, fichas }: {
       <div className="mid">
         <div className="k"><span style={{ color, display: 'flex' }}>{icon}</span>{k}</div>
         <div className="nm"><NombreJugador codjugador={j.codjugador} nombre={j.nombre} fichas={fichas} /></div>
-        <div className="eq">{j.nombre_equipo}</div>
+        <div className="eq">{nombreEquipo(j.nombre_equipo)}</div>
       </div>
       <div className="lval"><b style={{ color }}>{val}</b><span>{unit}</span></div>
     </div>

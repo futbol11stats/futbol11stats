@@ -7,6 +7,7 @@ import { Balon, Guante } from '@/components/iconos'
 import { supabase, escudoUrl } from '@/lib/supabase'
 import EscudoImg from '@/components/EscudoImg'
 import NombreEquipo from '@/components/NombreEquipo'
+import { fmtNum } from '@/lib/formato'
 import Sello from '@/components/Sello'
 import IndicadorLocal from '@/components/IndicadorLocal'
 import { tempLabel, fechaCorta, signoCls, conSigno, marcadorLocalVisitante, colorSigno } from '@/lib/jugador'
@@ -141,7 +142,7 @@ export default function Trayectoria({ carrera, portero, codjugador, railWrap = f
             <th>TA</th>
             <th>2A</th>
             <th>TR</th>
-            <th className="hidden sm:table-cell">Pts</th>
+            <th>PF</th>
             <th className="text-grass-400">ELO</th>
           </tr>
         </thead>
@@ -185,8 +186,8 @@ export default function Trayectoria({ carrera, portero, codjugador, railWrap = f
                   <td className="text-center text-chalk-600 tabular-nums">{c.tarjetas_amarillas ?? 0}</td>
                   <td className="text-center text-chalk-600 tabular-nums">{c.tarjetas_dobles ?? 0}</td>
                   <td className="text-center text-chalk-600 tabular-nums">{c.tarjetas_rojas ?? 0}</td>
-                  <td className="text-center text-chalk-600 tabular-nums hidden sm:table-cell">{c.pts_fantasy != null ? Math.round(c.pts_fantasy) : ''}</td>
-                  <td className="text-center text-grass-400 font-medium tabular-nums">{c.elo_final != null ? Math.round(c.elo_final) : ''}</td>
+                  <td className="text-center text-chalk-400 tabular-nums">{c.pts_fantasy != null ? fmtNum(c.pts_fantasy) : ''}</td>
+                  <td className="text-center text-grass-400 font-medium tabular-nums">{c.elo_final != null ? fmtNum(c.elo_final) : ''}</td>
                 </tr>
                 {open && box?.loading && (
                   <tr className="bg-pitch-900/30 border-b border-pitch-700/50">
