@@ -13,7 +13,6 @@ import { nombreEquipo } from '@/lib/nombre'
 import { tempLabel } from '@/lib/jugador'
 import { escudoUrl } from '@/lib/supabase'
 import EscudoImg from '@/components/EscudoImg'
-import { Escudo } from '@/components/iconos'
 import SuperficieCampo from '@/components/SuperficieCampo'
 import JsonLd from '@/components/JsonLd'
 import { graphLd, breadcrumbLd } from '@/lib/jsonld'
@@ -157,7 +156,7 @@ export default async function CampoPage({ params }: { params: Promise<{ slug: st
                           : `${e.nombre_comp ?? ''}${e.grupo_nombre ? ` · ${e.grupo_nombre}` : ''}`}
                       </span>
                       <span className="flex-none inline-flex items-center gap-1 tabular-nums" title="Partidos jugados en este campo">
-                        <span className="text-chalk-700">·</span><Escudo size={11} className="text-chalk-600" />{e.nPartidos}<span className="text-chalk-700"> PJ</span>
+                        <span className="text-chalk-700">·</span>{e.nPartidos}<span className="text-chalk-700"> PJ</span>
                       </span>
                     </span>
                   </span>

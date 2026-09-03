@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { Balon, Guante, Escudo, Reloj, Camiseta, CamisetaHueca, TarjetaAmarilla, TarjetaDoble, TarjetaRoja } from '@/components/iconos'
+import { Balon, Guante, Reloj, Camiseta, CamisetaHueca, TarjetaAmarilla, TarjetaDoble, TarjetaRoja } from '@/components/iconos'
 import { colorMediaJug } from '@/lib/competicionV2'
 import { fmtNum } from '@/lib/formato'
 
@@ -23,7 +23,7 @@ const med1 = (v: number | null | undefined) => (v == null ? '—' : Number(v).to
 export function datosGoleadorTemp(j: any): ReactNode {
   return (
     <>
-      {j.pj != null && <span>{j.pj}<Escudo size={11} /></span>}
+      {j.pj != null && <span>{j.pj}<span style={{ fontSize: 'var(--t-micro)', color: 'var(--ink-4)', marginLeft: 2 }}>PJ</span></span>}
       {j.goles_pj != null && <span style={{ color: 'var(--e3)' }}>{fmt2(j.goles_pj)}<Balon size={11} />/PJ</span>}
       {j.partidos_con_gol != null && <span>{j.partidos_con_gol} con gol</span>}
       {j.min_gol != null && j.min_gol > 0 && <span>{Math.round(j.min_gol)}<Reloj size={11} />/gol</span>}
@@ -36,7 +36,7 @@ export function datosPorteroTemp(j: any): ReactNode {
   const encPj = j.goles_enc != null && j.pj ? fmt2(j.goles_enc / j.pj) : null
   return (
     <>
-      {j.pj != null && <span>{j.pj}<Escudo size={11} /></span>}
+      {j.pj != null && <span>{j.pj}<span style={{ fontSize: 'var(--t-micro)', color: 'var(--ink-4)', marginLeft: 2 }}>PJ</span></span>}
       {j.goles_enc != null && <span style={{ color: 'var(--e0)' }}>{j.goles_enc}<Balon size={11} /> enc.</span>}
       {encPj != null && <span>{encPj} enc/PJ</span>}
       {j.p0_pct != null && <span style={{ color: 'var(--amber)' }}>{Math.round(j.p0_pct)}%<Guante size={11} /></span>}
@@ -50,7 +50,7 @@ export function datosFantasyTemp(j: any): ReactNode {
   return (
     <>
       <span className="mediabadge" style={{ color: c || 'var(--ink-2)', borderColor: c || 'var(--line)' }}>⌀ {med1(j.media_fantasy)}</span>
-      {j.pj != null && <span>{j.pj}<Escudo size={11} /></span>}
+      {j.pj != null && <span>{j.pj}<span style={{ fontSize: 'var(--t-micro)', color: 'var(--ink-4)', marginLeft: 2 }}>PJ</span></span>}
       {j.goles != null && j.goles > 0 && <span style={{ color: 'var(--e3)' }}>{j.goles}<Balon size={11} /></span>}
     </>
   )
@@ -60,7 +60,7 @@ export function datosFantasyTemp(j: any): ReactNode {
 export function datosEloTemp(j: any): ReactNode {
   return (
     <>
-      {j.pj != null && <span>{j.pj}<Escudo size={11} /></span>}
+      {j.pj != null && <span>{j.pj}<span style={{ fontSize: 'var(--t-micro)', color: 'var(--ink-4)', marginLeft: 2 }}>PJ</span></span>}
       <span>máx <b className="num">{j.elo_max != null ? fmtNum(j.elo_max) : '—'}</b></span>
       <span>mín <b className="num">{j.elo_min != null ? fmtNum(j.elo_min) : '—'}</b></span>
     </>
@@ -106,10 +106,10 @@ const leyItem = (icon: ReactNode, label: string, color?: string): ReactNode => (
     {icon && <span style={{ color, display: 'inline-flex' }}>{icon}</span>}{label}
   </span>
 )
-export const leyGoleadorTemp = (<>{leyItem(<Balon size={12} />, 'valor: goles', 'var(--e4)')}{leyItem(<Escudo size={12} />, 'PJ')}{leyItem(<Balon size={12} />, '/PJ: media de goles', 'var(--e3)')}{leyItem(null, 'con gol: partidos en los que marcó')}{leyItem(<Reloj size={12} />, 'minutos por gol')}</>)
-export const leyPorteroTemp = (<>{leyItem(<Guante size={12} />, 'valor: porterías a cero', 'var(--amber)')}{leyItem(<Escudo size={12} />, 'PJ')}{leyItem(<Balon size={12} />, 'goles encajados', 'var(--e0)')}{leyItem(null, 'enc/PJ · % a cero')}</>)
-export const leyFantasyTemp = (<>{leyItem(null, 'valor: puntos fantasy acumulados')}{leyItem(null, '⌀ media por partido')}{leyItem(<Escudo size={12} />, 'PJ')}{leyItem(<Balon size={12} />, 'goles', 'var(--e3)')}</>)
-export const leyEloTemp = (<>{leyItem(null, 'valor: ELO actual')}{leyItem(<Escudo size={12} />, 'PJ')}{leyItem(null, 'máx / mín de la temporada')}</>)
+export const leyGoleadorTemp = (<>{leyItem(<Balon size={12} />, 'valor: goles', 'var(--e4)')}{leyItem(null, 'PJ: partidos jugados')}{leyItem(<Balon size={12} />, '/PJ: media de goles', 'var(--e3)')}{leyItem(null, 'con gol: partidos en los que marcó')}{leyItem(<Reloj size={12} />, 'minutos por gol')}</>)
+export const leyPorteroTemp = (<>{leyItem(<Guante size={12} />, 'valor: porterías a cero', 'var(--amber)')}{leyItem(null, 'PJ: partidos jugados')}{leyItem(<Balon size={12} />, 'goles encajados', 'var(--e0)')}{leyItem(null, 'enc/PJ · % a cero')}</>)
+export const leyFantasyTemp = (<>{leyItem(null, 'valor: puntos fantasy acumulados')}{leyItem(null, '⌀ media por partido')}{leyItem(null, 'PJ: partidos jugados')}{leyItem(<Balon size={12} />, 'goles', 'var(--e3)')}</>)
+export const leyEloTemp = (<>{leyItem(null, 'valor: ELO actual')}{leyItem(null, 'PJ: partidos jugados')}{leyItem(null, 'máx / mín de la temporada')}</>)
 export const leyXiTemp = (<>{leyItem(null, 'valor: puntos fantasy acumulados')}{leyItem(<Balon size={12} />, 'goles', 'var(--e3)')}{leyItem(null, 'racha 5p · power ranking')}</>)
 export const leySancionados = (umbral: number): ReactNode => (<>{leyItem(<TarjetaAmarilla size={11} />, `ciclos de ${umbral} amarillas`, 'var(--card-y)')}{leyItem(<TarjetaDoble size={12} />, 'dobles amarillas', 'var(--card-y)')}{leyItem(<TarjetaRoja size={11} />, 'rojas directas', 'var(--card-r)')}</>)
 export const leyJuegoLimpio = (<>{leyItem(<TarjetaAmarilla size={11} />, 'amarillas', 'var(--card-y)')}{leyItem(<TarjetaDoble size={12} />, 'dobles (expulsión)', 'var(--card-y)')}{leyItem(<TarjetaRoja size={11} />, 'rojas directas', 'var(--card-r)')}</>)

@@ -16,6 +16,7 @@ import { nombreCompleto, nombreEquipo } from '@/lib/nombre'
 import MatchRow from '@/components/ficha/v2/MatchRow'
 import PlayerRow from '@/components/ui/PlayerRow'
 import SectionHeader from '@/components/ui/SectionHeader'
+import PartidoTabs from '@/components/ficha/PartidoTabs'
 import PlayerAvatar from '@/components/ui/PlayerAvatar'
 import { colorFan } from '@/lib/equipoV2'
 import type { PartidoFicha, PartidoJugador, PartidoMini, PartidoLado } from '@/lib/partido'
@@ -366,96 +367,109 @@ export default function FichaPartidoV2({ p }: { p: PartidoFicha }) {
         )}
       </div>
 
-      {/* #3/#4 Pronóstico + ELO pre/post + contexto de puesto (tarjeta enfrentada, como el marcador). */}
-      <PronoCard p={p} />
+      {/* Pestañas (BeSoccer): el contenido de TODAS se sirve en el HTML y se oculta por CSS (SEO). Resumen agrupa
+          lo digest; Alineaciones (el bloque más largo) y Cara a cara van cada una a la suya -> el scroll a 390px
+          baja de ~4,6 a ~1,6 pantallas. */}
+      <PartidoTabs tabs={[
+        {
+          id: 'resumen', label: 'Resumen', show: true, panel: (
+            <>
+              {/* #3/#4 Pronóstico + ELO pre/post + contexto de puesto (tarjeta enfrentada, como el marcador). */}
+              <PronoCard p={p} />
 
-      {/* MVP fantasy — mismo tratamiento que "Top de la plantilla" (fila .pl + rótulo bien visible) */}
-      {p.jugado && p.mvp && (
-        <section>
-          <SectionHeader title="MVP del partido" sub="por puntos fantasy" />
-          <div className="pl">
-            <PlayerAvatar className="pl-av" nombre={p.mvp.nombre} pos={p.mvp.pos} />
-            <div className="pl-mid">
-              <div className="pl-nm">{p.mvp.href ? <Link href={p.mvp.href}>{nombreCompleto(p.mvp.nombre)}</Link> : nombreCompleto(p.mvp.nombre)}</div>
-              <div className="pl-me">{p.mvp.pos && <Pastilla pos={p.mvp.pos} size="mini" />}<span className="mvp-eq">{nombreEquipo(mvpLado.nombre)}</span></div>
-            </div>
-            <div className="pl-val" style={{ background: 'var(--e2)', color: '#08111f' }}>{p.mvp.puntos}</div>
-          </div>
-        </section>
-      )}
+              {/* MVP fantasy — mismo tratamiento que "Top de la plantilla" (fila .pl + rótulo bien visible) */}
+              {p.jugado && p.mvp && (
+                <section>
+                  <SectionHeader title="MVP del partido" sub="por puntos fantasy" />
+                  <div className="pl">
+                    <PlayerAvatar className="pl-av" nombre={p.mvp.nombre} pos={p.mvp.pos} />
+                    <div className="pl-mid">
+                      <div className="pl-nm">{p.mvp.href ? <Link href={p.mvp.href}>{nombreCompleto(p.mvp.nombre)}</Link> : nombreCompleto(p.mvp.nombre)}</div>
+                      <div className="pl-me">{p.mvp.pos && <Pastilla pos={p.mvp.pos} size="mini" />}<span className="mvp-eq">{nombreEquipo(mvpLado.nombre)}</span></div>
+                    </div>
+                    <div className="pl-val" style={{ background: 'var(--e2)', color: '#08111f' }}>{p.mvp.puntos}</div>
+                  </div>
+                </section>
+              )}
 
-      {/* ALINEACIONES — dos columnas en desktop (.desk-2col), apiladas en móvil. Filas .pl con puntos fantasy. */}
-      {p.jugado && (p.local.titulares.length > 0 || p.visitante.titulares.length > 0) && (
-        <section>
-          <SectionHeader title="Alineaciones" />
-          <AlineacionesGrid p={p} />
-          {/* Leyenda de iconos (misma que la plantilla) para que la ficha se lea igual que las demás. */}
-          <div className="pl-ley">
-            <span className="lg-item"><span style={{ color: 'var(--e3)', display: 'inline-flex' }}><Balon size={11} /></span>Gol</span>
-            <span className="lg-item"><span style={{ color: 'var(--card-y)', display: 'inline-flex' }}><TarjetaAmarilla size={10} /></span>Amarilla</span>
-            <span className="lg-item"><span style={{ color: 'var(--e0)', display: 'inline-flex' }}><TarjetaRoja size={11} /></span>Roja</span>
-            <span className="lg-item"><span style={{ color: 'var(--e3)', display: 'inline-flex' }}><FlechaEntra size={11} /></span><span style={{ color: 'var(--e0)', display: 'inline-flex' }}><FlechaSale size={11} /></span>Cambio</span>
-            <span className="lg-item"><span style={{ color: 'var(--amber)', display: 'inline-flex' }}><Guante size={11} /></span>Portería a cero</span>
-            <span className="lg-item"><b style={{ color: 'var(--e3)' }}>+</b>/<b style={{ color: 'var(--e0)' }}>−</b> Δ ELO del partido</span>
-            <span className="lg-item">nº = puntos fantasy</span>
-          </div>
-        </section>
-      )}
+              {/* #5 EFEMÉRIDES — hitos ligados al partido (web_jugador_hitos por codacta). Funciona en copa y liga. */}
+              {p.hitos.length > 0 && (
+                <section>
+                  <SectionHeader title="Efemérides del partido" />
+                  <div className="hitos">
+                    {p.hitos.map((h, i) => (
+                      <div className={`hito hito-${h.lado}`} key={`${h.codjugador}-${h.tipo}-${i}`}>
+                        <span className="hito-nm">{h.href ? <Link href={h.href}>{nombreCompleto(h.nombre)}</Link> : nombreCompleto(h.nombre)}</span>
+                        <span className="hito-tx">{hitoTexto(h)}</span>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              )}
 
-      {/* #5 EFEMÉRIDES — hitos ligados al partido (web_jugador_hitos por codacta). Funciona en copa y liga. */}
-      {p.hitos.length > 0 && (
-        <section>
-          <SectionHeader title="Efemérides del partido" />
-          <div className="hitos">
-            {p.hitos.map((h, i) => (
-              <div className={`hito hito-${h.lado}`} key={`${h.codjugador}-${h.tipo}-${i}`}>
-                <span className="hito-nm">{h.href ? <Link href={h.href}>{nombreCompleto(h.nombre)}</Link> : nombreCompleto(h.nombre)}</span>
-                <span className="hito-tx">{hitoTexto(h)}</span>
+              {/* RACHAS — comparación local | etiqueta | visitante (actual + récord), marcando / victorias / invicto. */}
+              {(p.formaLocal.length > 0 || p.formaVisitante.length > 0) && (
+                <section>
+                  <SectionHeader title="Rachas" />
+                  <div className="rachas">
+                    {([
+                      ['Marcando', p.rachasLocal.marcandoAct, p.rachasLocal.marcandoRec, p.rachasVisitante.marcandoAct, p.rachasVisitante.marcandoRec],
+                      ['Victorias', p.rachasLocal.victoriasAct, p.rachasLocal.victoriasRec, p.rachasVisitante.victoriasAct, p.rachasVisitante.victoriasRec],
+                      ['Sin perder', p.rachasLocal.invictoAct, p.rachasLocal.invictoRec, p.rachasVisitante.invictoAct, p.rachasVisitante.invictoRec],
+                    ] as const).map(([k, la, lr, va, vr]) => (
+                      <div className="rrow" key={k}>
+                        <span className="rv"><span className="r-cap">ahora</span><b>{la}</b><span className="r-rec">récord {lr}</span></span>
+                        <span className="rk">{k}</span>
+                        <span className="rv rv-v"><span className="r-cap">ahora</span><b>{va}</b><span className="r-rec">récord {vr}</span></span>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              )}
+
+              {/* ÚLTIMOS PARTIDOS de cada equipo */}
+              {(p.formaLocal.length > 0 || p.formaVisitante.length > 0) && (
+                <section>
+                  <SectionHeader title="Últimos partidos" />
+                  {/* Dos columnas TAMBIÉN en móvil: cada equipo su forma con la fila compacta (rival + marcador + Δ ELO). */}
+                  <div className="forma-2col">
+                    <div className="forma-col">{p.formaLocal.length > 0 && <><div className="al-sub forma-h">{nombreEquipo(p.local.nombre)}</div>{p.formaLocal.map((m) => <MiniForma key={m.codacta} m={m} teamCod={p.local.codequipo} />)}</>}</div>
+                    <div className="forma-col">{p.formaVisitante.length > 0 && <><div className="al-sub forma-h">{nombreEquipo(p.visitante.nombre)}</div>{p.formaVisitante.map((m) => <MiniForma key={m.codacta} m={m} teamCod={p.visitante.codequipo} />)}</>}</div>
+                  </div>
+                </section>
+              )}
+            </>
+          ),
+        },
+        {
+          id: 'alineaciones', label: 'Alineaciones',
+          show: p.jugado && (p.local.titulares.length > 0 || p.visitante.titulares.length > 0),
+          panel: (
+            <section>
+              <SectionHeader title="Alineaciones" />
+              <AlineacionesGrid p={p} />
+              {/* Leyenda de iconos (misma que la plantilla) para que la ficha se lea igual que las demás. */}
+              <div className="pl-ley">
+                <span className="lg-item"><span style={{ color: 'var(--e3)', display: 'inline-flex' }}><Balon size={11} /></span>Gol</span>
+                <span className="lg-item"><span style={{ color: 'var(--card-y)', display: 'inline-flex' }}><TarjetaAmarilla size={10} /></span>Amarilla</span>
+                <span className="lg-item"><span style={{ color: 'var(--e0)', display: 'inline-flex' }}><TarjetaRoja size={11} /></span>Roja</span>
+                <span className="lg-item"><span style={{ color: 'var(--e3)', display: 'inline-flex' }}><FlechaEntra size={11} /></span><span style={{ color: 'var(--e0)', display: 'inline-flex' }}><FlechaSale size={11} /></span>Cambio</span>
+                <span className="lg-item"><span style={{ color: 'var(--amber)', display: 'inline-flex' }}><Guante size={11} /></span>Portería a cero</span>
+                <span className="lg-item"><b style={{ color: 'var(--e3)' }}>+</b>/<b style={{ color: 'var(--e0)' }}>−</b> Δ ELO del partido</span>
+                <span className="lg-item">nº = puntos fantasy</span>
               </div>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {/* CARA A CARA */}
-      {p.h2h.length > 0 && (
-        <section>
-          <SectionHeader title="Cara a cara" />
-          {p.h2h.map((m) => <MiniPartido key={m.codacta} m={m} />)}
-        </section>
-      )}
-
-      {/* RACHAS — comparación local | etiqueta | visitante (actual + récord), marcando / victorias / invicto. */}
-      {(p.formaLocal.length > 0 || p.formaVisitante.length > 0) && (
-        <section>
-          <SectionHeader title="Rachas" />
-          <div className="rachas">
-            {([
-              ['Marcando', p.rachasLocal.marcandoAct, p.rachasLocal.marcandoRec, p.rachasVisitante.marcandoAct, p.rachasVisitante.marcandoRec],
-              ['Victorias', p.rachasLocal.victoriasAct, p.rachasLocal.victoriasRec, p.rachasVisitante.victoriasAct, p.rachasVisitante.victoriasRec],
-              ['Sin perder', p.rachasLocal.invictoAct, p.rachasLocal.invictoRec, p.rachasVisitante.invictoAct, p.rachasVisitante.invictoRec],
-            ] as const).map(([k, la, lr, va, vr]) => (
-              <div className="rrow" key={k}>
-                <span className="rv"><span className="r-cap">ahora</span><b>{la}</b><span className="r-rec">récord {lr}</span></span>
-                <span className="rk">{k}</span>
-                <span className="rv rv-v"><span className="r-cap">ahora</span><b>{va}</b><span className="r-rec">récord {vr}</span></span>
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {/* ÚLTIMOS PARTIDOS de cada equipo */}
-      {(p.formaLocal.length > 0 || p.formaVisitante.length > 0) && (
-        <section>
-          <SectionHeader title="Últimos partidos" />
-          {/* Dos columnas TAMBIÉN en móvil: cada equipo su forma con la fila compacta (rival + marcador + Δ ELO). */}
-          <div className="forma-2col">
-            <div className="forma-col">{p.formaLocal.length > 0 && <><div className="al-sub forma-h">{nombreEquipo(p.local.nombre)}</div>{p.formaLocal.map((m) => <MiniForma key={m.codacta} m={m} teamCod={p.local.codequipo} />)}</>}</div>
-            <div className="forma-col">{p.formaVisitante.length > 0 && <><div className="al-sub forma-h">{nombreEquipo(p.visitante.nombre)}</div>{p.formaVisitante.map((m) => <MiniForma key={m.codacta} m={m} teamCod={p.visitante.codequipo} />)}</>}</div>
-          </div>
-        </section>
-      )}
+            </section>
+          ),
+        },
+        {
+          id: 'h2h', label: 'Cara a cara', show: p.h2h.length > 0, panel: (
+            <section>
+              <SectionHeader title="Cara a cara" />
+              {p.h2h.map((m) => <MiniPartido key={m.codacta} m={m} />)}
+            </section>
+          ),
+        },
+      ]} />
 
     </div>
   )

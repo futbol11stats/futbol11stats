@@ -1,7 +1,7 @@
 'use client'
 
 import { useComp } from './compStore'
-import { Escudo, Reloj, Balon, Guante } from '@/components/iconos'
+import { Reloj, Balon, Guante } from '@/components/iconos'
 import Badge11 from '@/components/ui/Badge11'
 import { fmtNum } from '@/lib/formato'
 
@@ -20,7 +20,7 @@ export default function KpiJugador({ comps, fallback, portero, elo, eloColor }: 
   const c = comps.length ? comps[Math.min(sel, comps.length - 1)] : fallback
   return (
     <div className="kpis">
-      <div className="kpi"><div className="kpi-i"><Escudo size={14} /></div><div className="v num">{fmtNum(c.pj)}</div><div className="k">PJ</div></div>
+      <div className="kpi"><div className="kpi-i" /><div className="v num">{fmtNum(c.pj)}</div><div className="k">PJ</div></div>
       <div className="kpi"><div className="kpi-i"><Reloj size={14} /></div><div className="v num">{fmtNum(c.minutos)}</div><div className="k">Min</div></div>
       <div className="kpi kpi-goles">
         <div className="kpi-i">{portero ? <Guante size={14} /> : <Balon size={14} />}</div>

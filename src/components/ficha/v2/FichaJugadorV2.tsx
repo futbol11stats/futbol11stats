@@ -25,7 +25,7 @@ import RankFila from '@/components/ficha/v2/RankFila'
 import Echo from '@/components/ficha/v2/Echo'
 import Jornadas from '@/components/ficha/v2/Jornadas'
 import {
-  Balon, Reloj, Escudo, Camiseta, CamisetaHueca, TarjetaAmarilla, TarjetaDoble, TarjetaRoja, Guante,
+  Balon, Reloj, Camiseta, CamisetaHueca, TarjetaAmarilla, TarjetaDoble, TarjetaRoja, Guante,
   Estrella, Calendario,
 } from '@/components/iconos'
 import { getEquipoActualInfo, getGrupoInfo, grupoHref, getCopasPorTemporada } from '@/lib/equipo'
@@ -299,7 +299,7 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
   // (Goles/P.a0 · TA · 2TA · TR). TA · 2TA · TR son DISJUNTAS (amarilla simple / doble amarilla / roja
   // directa) desde web_jugador_partidos, que las separa a nivel de evento. Ver getTarjetasTotales.
   const totales: Array<[ReactNode, string, string]> = [
-    [<Escudo size={13} key="i" />, fmtNum(j.pj_total), 'PJ'],
+    [null, fmtNum(j.pj_total), 'PJ'],
     [<Reloj size={13} key="i" />, fmtNum(j.minutos_total), 'Min'],
     [<Camiseta size={13} key="i" />, fmtNum(j.titular_total), 'Titular'],
     [<CamisetaHueca size={13} key="i" />, fmtNum(j.suplente_total), 'Supl.'],

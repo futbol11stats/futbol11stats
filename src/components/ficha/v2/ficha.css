@@ -815,6 +815,16 @@
 .fpv2 .match-compact .m-meta svg{display:block}
 .fpv2 .match-compact .m-pts{font-size:var(--t-cap);padding:3px 7px;border-radius:5px}
 .fpv2 .match-compact .m-elo{width:auto;min-width:24px;font-size:var(--t-cap)}
+
+/* Pestañas de la ficha de PARTIDO (Resumen / Alineaciones / Cara a cara): MISMO tratamiento que las de
+   competición (.verrail a.on con borde inferior verde), pero con <button> (toggle en la misma página) y una
+   sola fila. Barra sticky. Los paneles inactivos se ocultan con [hidden] (display:none) pero siguen en el HTML. */
+.fpv2 .ptabs{position:sticky;top:0;z-index:30;background:rgba(10,22,40,.96);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+.fpv2 .ptabs .verrow{display:flex;align-items:flex-end;gap:10px;padding:8px var(--pad) 0}
+.fpv2 .ptabs .verrail{display:flex}
+.fpv2 .ptabs .verrail button{appearance:none;background:none;border:0;border-bottom:2px solid transparent;padding:9px 12px;font-family:var(--font-display),sans-serif;font-size:var(--t-lead);font-weight:600;letter-spacing:.04em;color:var(--ink-3);white-space:nowrap;cursor:pointer}
+.fpv2 .ptabs .verrail button.on{color:var(--ink);border-bottom-color:var(--e3)}
+.fpv2 .ptab-panel[hidden]{display:none}
 @media(max-width:999px){
   .fpv2 .forma-2col .match-compact{padding-left:7px;padding-right:7px;gap:5px}
   .fpv2 .forma-2col .forma-h{padding-left:7px;padding-right:7px}
