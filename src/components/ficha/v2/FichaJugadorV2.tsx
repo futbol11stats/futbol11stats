@@ -40,6 +40,7 @@ import { CORTES_FIJOS } from '@/lib/escala'
 import MatchRow from '@/components/ficha/v2/MatchRow'
 import { partidoSlug } from '@/lib/partidoSlug'
 import Badge11 from '@/components/ui/Badge11'
+import SectionHeader from '@/components/ui/SectionHeader'
 import FormaStrip from '@/components/ui/FormaStrip'
 import PlayerAvatar from '@/components/ui/PlayerAvatar'
 import { getSueloVivo } from '@/lib/temporadas'
@@ -403,7 +404,7 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
                 etapa de la temporada (eloCierre; valor propio del jugador, mismo que la KpiBar), coloreado con
                 los cortes de SU categoría (categoriaElo). El percentil sigue siendo el de web_jugador (mide
                 ELO, otro KPI; pendiente uno por temporada — ver DECISIONES). El subtítulo indica la temporada. */}
-            <div className="s-head"><h2 className="s-title">Nivel</h2><div className="s-sub"><span className="allscope">{tempTxt ? `en ${tempTxt}` : 'Situación actual'}</span></div></div>
+            <SectionHeader title="Nivel" scope={tempTxt ? `en ${tempTxt}` : 'Situación actual'} />
             <div className="box">
               {/* ELO + percentil REACTIVOS: el ELO no cambia (cierre de la temporada, última etapa); el percentil
                   sí sigue la competición del selector -> con la copa activa, el percentil es el de SU pool
