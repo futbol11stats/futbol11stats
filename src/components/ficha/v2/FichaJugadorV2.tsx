@@ -41,6 +41,7 @@ import MatchRow from '@/components/ficha/v2/MatchRow'
 import { partidoSlug } from '@/lib/partidoSlug'
 import Badge11 from '@/components/ui/Badge11'
 import SectionHeader from '@/components/ui/SectionHeader'
+import PageLayout from '@/components/ui/PageLayout'
 import FormaStrip from '@/components/ui/FormaStrip'
 import PlayerAvatar from '@/components/ui/PlayerAvatar'
 import { getSueloVivo } from '@/lib/temporadas'
@@ -395,8 +396,8 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
       {/* NAV */}
       <NavSpy secciones={secciones} />
 
-      <div className="layout">
-        <div className="aside">
+      <PageLayout>
+        <PageLayout.Aside>
           {/* NIVEL */}
           <section id="s-nivel">
             {/* Rankings y etiqueta de categoría: de la fila rank_principal de la TEMPORADA seleccionada
@@ -512,9 +513,9 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
               </div></div>
             </section>
           )}
-        </div>
+        </PageLayout.Aside>
 
-        <div className="main">
+        <PageLayout.Main>
           {/* JORNADAS */}
           <section id="s-jornadas">
             <SectionHeader title="Puntos y ELO por jornada" sub={<Echo temporada={tempTxt} comps={compNames} />} />
@@ -685,8 +686,8 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
               <a className="btn" href={`mailto:futbol11stats@gmail.com?subject=${encodeURIComponent(`Corrección en la ficha de ${nombre}`)}&body=${encodeURIComponent(`Jugador: ${nombre} (código ${j.codjugador})\nFicha: ${SITE_URL}/madrid/jugador/${slug}\n\nQué está mal:\n`)}`}>Corregir datos</a>
             </div>
           </section>
-        </div>
-      </div>
+        </PageLayout.Main>
+      </PageLayout>
       </>)}
     </div>
   )

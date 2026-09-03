@@ -44,6 +44,7 @@ import {
 import type { CompEquipo } from '@/components/ficha/v2/JornadasEquipo'
 import Badge11 from '@/components/ui/Badge11'
 import SectionHeader from '@/components/ui/SectionHeader'
+import PageLayout from '@/components/ui/PageLayout'
 import PlayerRow from '@/components/ui/PlayerRow'
 import { fmtNum } from '@/lib/formato'
 
@@ -381,8 +382,8 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
 
       <NavSpy secciones={secciones} />
 
-      <div className="layout">
-        <div className="aside">
+      <PageLayout>
+        <PageLayout.Aside>
           {/* NIVEL */}
           <section id="s-nivel">
             <SectionHeader title="Nivel" scope="Situación actual" />
@@ -435,9 +436,9 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
             ) : <p style={{ padding: '0 var(--pad)', color: 'var(--ink-3)', fontSize: 'var(--t-sm)' }}>Sin clasificación en esta temporada.</p>}
           </section>
           )}
-        </div>
+        </PageLayout.Aside>
 
-        <div className="main">
+        <PageLayout.Main>
           {/* ÚLTIMOS PARTIDOS — mismo patrón que "Mejores actuaciones" de jugador. */}
           {ultimos.length > 0 && (
             <section id="s-ultimos">
@@ -761,8 +762,8 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
               </div>
             </section>
           )}
-        </div>
-      </div>
+        </PageLayout.Main>
+      </PageLayout>
     </div>
   )
 }

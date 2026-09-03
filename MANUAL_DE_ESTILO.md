@@ -138,7 +138,7 @@ Helpers de nombre: **`src/lib/nombre.ts`** — `abreviaNombre` (por defecto), `n
 | Componente | Resuelve | Sustituye a | Uso |
 |---|---|---|---|
 | **`SectionHeader`** ✅ | cabecera de sección (`.s-head/.s-title/.s-sub`) | **49 copias inline** del mismo trío en las 5 fichas + JornadasEquipo + TarjetasTemporadaV2 | `title` + `sub` (libre) o `scope` (chip `.allscope`) + `style` puntual. **Absorbe los micro-rótulos** que quedaron inline al retirar MicroLabel |
-| **`PageLayout`** (aside) — _pendiente_ | grid `.layout` 360/1fr + `.aside` sticky + `.main` | 2 fichas idénticas (**jugador + equipo**) | Competición usa `.full` (sin aside) — NO la cubre. Barrer de paso el CSS muerto `.fcv2 .layout/.aside` |
+| **`PageLayout`** ✅ (aside) | grid `.layout` 360/1fr + `.aside` sticky + `.main` | 2 fichas idénticas (**jugador + equipo**) | API compuesta (`PageLayout.Aside`/`.Main`). Competición NO la usa (`.full`, ancho completo). Barrido de paso el CSS muerto `.fcv2 .layout/.aside`. **Revisión del escritorio (motivo de la Tanda 3): el 360/1fr es correcto** — la ficha va topada a `max-width:1160px`, así que a 1400px+ NO se estira (centra); split 360/798 balanceado, sin huecos. Los huecos que señaló Fernando eran las alineaciones del partido (`.al-grid`), ya resueltas. No se toca la proporción |
 | **`EntityHero`** — _pendiente_ | hero `.hero/.hero-top/.hero-pills` | 2 fichas (**jugador + equipo**) | Competición (`.ident`) y Partido (`.mhero`) son heroes DISTINTOS — no unificar con este |
 | **`TabBar`** — _pendiente_ | route-tabs `.tabs/.modo/.jrow/.verrow` (sobre `ScrollRail`) | 2 fichas de competición (grupo + global) | NO mezclar con `NavSpy` (scroll-spy de jugador/equipo) ni `MatchdaySelector`: son conceptos distintos |
 
