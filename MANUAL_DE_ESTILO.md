@@ -88,6 +88,13 @@ y el CSS de las fichas consumen estas variables; **resuelven en todo el sitio**.
 - **Dos excepciones sin punto:** los **DELTAS** (`+11`, `−24` — usa `fmtDelta`) y los **AÑOS/temporadas**
   (`2026`, `2025-26`).
 
+### Fechas de partido
+- **Referencia COMPLETA: día + mes + año** (`7 jun 2025`). El año es parte de la referencia (una
+  temporada cruza dos años; en listas de varias temporadas el día·mes solo no ubica el año). Formato
+  único vía `fechaCorta` (`src/lib/jugador.ts`) y la fecha de `MatchRow` — mismo aspecto en todo el sitio.
+- **No repetir la temporada** junto a una fecha que ya lleva el año (era redundante). La temporada solo
+  aparece como rótulo de sección/grupo, no pegada a la fecha en la misma referencia.
+
 ### Color — significados (no reutilizar fuera de su rol)
 | Token | Valor | Significado |
 |---|---|---|
@@ -113,8 +120,9 @@ y el CSS de las fichas consumen estas variables; **resuelven en todo el sitio**.
 | **`EloDelta`** | Δ ELO del partido (verde/rojo) | `.m-elo`, `.pl-elo`, inline sueltos | siempre DESPUÉS de los puntos |
 | **`Badge11`** | sello «11» — **marca de DATO PROPIO** (lo calculamos nosotros: ELO, PF, media…), NO el icono de un dato concreto. Va en todos ellos, **mismo color**; los distingue el RÓTULO (`PF`/`ELO`), no el color (verde/rojo ya significan bueno/malo y subida/bajada, un sello verde junto a un delta rojo daría señales cruzadas) | 5 copias inline | KPIs, líderes, Panorama |
 | **`FormaStrip`** | últimos N resultados (puntos) | dots v2 / cuadros clasificación / letras FormaHero | forma de equipo/jugador |
+| **`PlayerAvatar`** | avatar de iniciales coloreado por demarcación (`avaStyle`) | `avaStyle`/`iniciales` inline duplicados en 2 sitios | hero, campoXI, PlayerRow, MVP; `label` sustituye las iniciales por el dorsal |
 
-> La **pastilla de puntos fantasy** NO es un átomo suelto: se realiza como CSS (`.pl-val` en `PlayerRow`, `.m-pts` en `MatchRow`) — ya consistente, siempre ANTES del `EloDelta`. Los **rótulos micro-mayúsculas** siguen inline hasta que `SectionHeader` (Tanda 3) los absorba. Se intentaron como átomos (`PointPill`, `MicroLabel`) en la Tanda 1, pero quedaron sin cablear → se retiraron (no se dejan átomos fantasma). Si se necesitan, se reintroducen **ya cableados**.
+> La **pastilla de puntos fantasy** NO es un átomo suelto: se realiza como CSS (`.pl-val` en `PlayerRow`, `.m-pts` en `MatchRow`) — ya consistente, siempre ANTES del `EloDelta`. Los **rótulos micro-mayúsculas de ámbito** ("Todas las temporadas"…) los absorbe ya `SectionHeader` vía su prop `scope` (chip `.allscope`) — no se escriben a mano. Se intentaron como átomos sueltos (`PointPill`, `MicroLabel`) en la Tanda 1, pero quedaron sin cablear → se retiraron (no se dejan átomos fantasma). Si se necesitan, se reintroducen **ya cableados**.
 
 Helpers de nombre: **`src/lib/nombre.ts`** — `abreviaNombre` (por defecto), `nombreCompleto` (héroe),
 `inicialesNombre` (avatar), `nombreEquipo`. No volver a escribir `formatNombre(...).split(...)` inline.
@@ -125,7 +133,7 @@ Helpers de nombre: **`src/lib/nombre.ts`** — `abreviaNombre` (por defecto), `n
 |---|---|---|---|
 | **`EntityCard`** ✅ | tarjeta-fila de directorio (icono + título + subtítulo) | `ClubesLista` y `CamposLista` (gemelas; solo cambiaba el icono) | /clubes, /campos |
 | **`CompeticionCard`** ✅ | tarjeta de competición (sello + título + chips a grupos) | 3 copias casi literales (home, /aficionados, /juveniles) | índices; `categoria` por prop, leyenda histórica opcional |
-| **`MatchRow`** ✅ | fila de "partido reciente" | (ya existía, Fase 3) | equipo/jugador/partido |
+| **`MatchRow`** ✅ | fila de "partido reciente" | (ya existía, Fase 3) | equipo/jugador/partido. Lleva **eventos** en la meta (icono + ×N) por PRIORIDAD: roja · doble · amarilla · goles · P0 (goles/P0 al final, deducibles del marcador). Variante `compact` (forma del partido, 2 col) con tope de 2 líneas — ver § Patrones |
 | **`PlayerRow`** ✅ | fila `.pl` de jugador | 5 reimplementaciones (FilaJugador + plantilla ×2 + alineación + técnico) | usa PlayerAvatar/NombreJugador/Pastilla/EloDelta + pastilla `.pl-val`; reflow escritorio: meta en línea, sin hueco muerto |
 | ~~`StatTable`~~ — **no procede** | tabla dirigida por config | — | Las ~13 tablas de `tablas.tsx` que iba a unificar **ya estaban muertas**: la ficha de competición **v2** las sustituyó en su día por rankings de barras (`RankingComp`) + clasificación inline. No hay flota de tablas gemelas viva que unificar. El único `<table>` de stats vivo es `Trayectoria` (ficha de jugador), específico y sin gemelas. El patrón de tabla ancha queda documentado abajo (§ Patrones) por si reaparece. |
 
@@ -192,3 +200,26 @@ quepa se descubre haciendo scroll, **nunca comiéndose el nombre**. La celda fij
 truncar. El ancho lo manda el nombre, no una cifra fija. Con nombres patológicos muy largos la columna
 fija puede tapar casi todo el viewport — es el coste aceptado de no truncar; se resuelve por diseño
 (menos columnas, otra densidad), nunca recortando el nombre.
+
+### Tope de N líneas en una fila de chips, sin sliver ni corte a medias
+
+**Problema:** una línea de chips (iconos + ×N) que puede saturar en poco ancho (p.ej. la meta de la
+forma compacta del partido, a dos columnas). Queremos permitir hasta N líneas y ocultar lo que sobre
+**sin** que asome media línea ni se parta un icono — que se lea como si simplemente hubiera menos.
+
+**Patrón (CSS puro, sin JS):** `flex-wrap` envuelve **chips enteros** (nunca parte un icono). Si se
+fuerza un **`line-height` uniforme** y se pone `max-height = N × line-height` + `overflow: hidden`, la
+línea N+1 empieza EXACTAMENTE en el corte y se oculta entera → cero sliver. Ordenar los chips por
+prioridad hace que lo que se oculta sea siempre lo menos importante (lo deducible de otra parte).
+
+```css
+/* cap a 2 líneas de 18px, chips y meta con el MISMO line-height para que el corte sea exacto */
+.meta{ line-height:18px; max-height:36px; overflow:hidden; align-content:flex-start }
+.meta > *{ line-height:18px }
+.meta svg{ display:block }   /* el icono no estira la caja de línea por encima de 18px */
+```
+
+Verificado: a 250px todas las filas quedan en 36px exactos (0 filas >36 → imposible que asome media
+línea). Solo aplicar donde el espacio aprieta (variante `compact`); las filas a ancho completo van sin
+tope. Ojo: el contexto (fecha, etc.) va antes que los chips en el DOM, así que en anchos absurdamente
+pequeños (&lt;300px, ningún dispositivo real) el recorte cae antes sobre los chips — asumido a propósito.
