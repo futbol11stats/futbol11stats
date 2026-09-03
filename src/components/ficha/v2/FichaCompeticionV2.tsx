@@ -34,7 +34,7 @@ import { campoXI, POSC } from '@/components/ficha/v2/campoXI'
 import TarjetasTemporadaV2 from '@/components/ficha/v2/TarjetasTemporadaV2'
 import Panorama from '@/components/ficha/v2/Panorama'
 import ScrollRail from '@/components/ficha/v2/ScrollRail'
-import ReportesScroll from '@/components/ficha/v2/ReportesScroll'
+import TabBar from '@/components/ui/TabBar'
 import {
   datosGoleadorTemp, datosPorteroTemp, datosFantasyTemp, datosEloTemp, datosXiTemp,
   leyGoleadorTemp, leyPorteroTemp, leyFantasyTemp, leyEloTemp, leyXiTemp, leyJornada,
@@ -534,33 +534,23 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
       )}
 
       {/* PESTAÑAS sticky: Reportes de (pastilla) · Jornada (pastilla) · Ver (subrayado) */}
-      <ReportesScroll tab={tabEf} land={true} />
-      <div className="tabs" id="reportes-anchor">
-        <div className="modo">
-          <div className="sel-lbl">Reportes de</div>
+      <TabBar
+        tab={tabEf} land={true}
+        modo={<>
           <Link href={`${baseTab}/${tabsJ[0][0]}`} className={modo === 'jornada' ? 'on' : ''}>Jornada</Link>
           <Link href={`${base}/jornada-${jornadaNum}/${tabsT[0][0]}`} className={modo === 'temporada' ? 'on' : ''}>Temporada</Link>
-        </div>
-        <div className="jrow">
-          <div className="sel-lbl">{jlbl}</div>
-          <ScrollRail><div className="jbar-rail">
-            {esFamilia
-              ? rondas.map((r) => <Link key={r.slug} href={`${base}/${r.slug}/${tab}`} className={r.idx === jornadaNum ? 'on' : ''}>{r.label}</Link>)
-              : Array.from({ length: grupo.total_jornadas || 0 }, (_, i) => i + 1).map((j) => (
-                <Link key={j} href={`${base}/jornada-${j}/${tab}`} className={j === jornadaNum ? 'on' : ''}>J{j}</Link>
-              ))}
-          </div></ScrollRail>
-        </div>
-        <div className="verrow">
-          <div className="sel-lbl">Ver</div>
-          <ScrollRail><div className="verrail">
-            {tabsActivas.map(([id, label]) => {
-              const href = modo === 'temporada' ? `${base}/jornada-${jornadaNum}/${id}` : `${baseTab}/${id}`
-              return <Link key={id} href={href} className={id === tabEf ? 'on' : ''}>{label}</Link>
-            })}
-          </div></ScrollRail>
-        </div>
-      </div>
+        </>}
+        jornadaLabel={jlbl}
+        jornadas={esFamilia
+          ? rondas.map((r) => <Link key={r.slug} href={`${base}/${r.slug}/${tab}`} className={r.idx === jornadaNum ? 'on' : ''}>{r.label}</Link>)
+          : Array.from({ length: grupo.total_jornadas || 0 }, (_, i) => i + 1).map((j) => (
+            <Link key={j} href={`${base}/jornada-${j}/${tab}`} className={j === jornadaNum ? 'on' : ''}>J{j}</Link>
+          ))}
+        ver={tabsActivas.map(([id, label]) => {
+          const href = modo === 'temporada' ? `${base}/jornada-${jornadaNum}/${id}` : `${baseTab}/${id}`
+          return <Link key={id} href={href} className={id === tabEf ? 'on' : ''}>{label}</Link>
+        })}
+      />
 
       <div className="full">
         <div className="main">
