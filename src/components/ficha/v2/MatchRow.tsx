@@ -3,7 +3,7 @@ import type { ReactNode } from 'react'
 import EscudoBox from '@/components/ficha/v2/EscudoBox'
 import IndicadorLocal from '@/components/IndicadorLocal'
 import NombreEquipo from '@/components/NombreEquipo'
-import { Balon } from '@/components/iconos'
+import { Balon, Guante, TarjetaAmarilla, TarjetaDoble, TarjetaRoja } from '@/components/iconos'
 
 // Fila de "partido reciente" COMPARTIDA por la ficha de equipo (Últimos partidos), la de jugador (Mejores
 // actuaciones) y la de partido (forma de cada equipo). Reutiliza el diseño .match que ya estaba en producción y le
@@ -19,8 +19,14 @@ export type MatchRowProps = {
   esLocal?: boolean | null
   fecha?: string | null              // "DD/MM/YYYY"
   etiqueta?: ReactNode               // "J10" / "Final" / competición (va en la meta)
-  goles?: number                     // extra (jugador): balón ×N
+  goles?: number                     // balón ×N — goles del jugador (Mejores actuaciones) o del equipo a favor (Últimos partidos)
   minutos?: number | null            // extra (jugador)
+  // Eventos agregados de EQUIPO por partido (Últimos partidos), mismo estilo icono+contador que los goles.
+  // Solo se pintan si se cumplen (silencio si no). El jugador no los pasa -> no aparecen ahí.
+  p0?: boolean                       // portería a cero (goles en contra = 0)
+  ta?: number                        // amarillas del equipo en el partido
+  td?: number                        // dobles amarillas
+  tr?: number                        // rojas
   pts?: number | null                // PUNTOS (fantasy)
   ptsBg?: string                     // color de la pastilla de puntos
   eloDelta?: number | null           // ELO: Δ del partido
@@ -47,6 +53,11 @@ function Cuerpo(p: MatchRowProps) {
           {(p.fecha || p.etiqueta) && <span>{[fechaCortaDMY(p.fecha), p.etiqueta].filter(Boolean).map((x, i) => <span key={i}>{i > 0 ? ' · ' : ''}{x}</span>)}</span>}
           {(p.goles ?? 0) > 0 && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 2, color: 'var(--e4)' }}><Balon size={12} />{(p.goles as number) > 1 ? `×${p.goles}` : ''}</span>}
           {p.minutos != null && <span>{p.minutos}&#39;</span>}
+          {/* Eventos de equipo (Últimos partidos): P0 (guante ámbar, como la plantilla) + tarjetas (icono propio + ×N). */}
+          {p.p0 && <span title="Portería a cero" style={{ display: 'inline-flex', alignItems: 'center', color: 'var(--amber)' }}><Guante size={12} /></span>}
+          {(p.ta ?? 0) > 0 && <span title="Amarillas" style={{ display: 'inline-flex', alignItems: 'center', gap: 2, color: 'var(--card-y)' }}><TarjetaAmarilla size={11} />{(p.ta as number) > 1 ? `×${p.ta}` : ''}</span>}
+          {(p.td ?? 0) > 0 && <span title="Dobles amarillas" style={{ display: 'inline-flex', alignItems: 'center', gap: 2, color: 'var(--card-y)' }}><TarjetaDoble size={12} />{(p.td as number) > 1 ? `×${p.td}` : ''}</span>}
+          {(p.tr ?? 0) > 0 && <span title="Rojas" style={{ display: 'inline-flex', alignItems: 'center', gap: 2, color: 'var(--card-r)' }}><TarjetaRoja size={11} />{(p.tr as number) > 1 ? `×${p.tr}` : ''}</span>}
         </div>
       </div>
       {/* Puntos PRIMERO, ELO DESPUÉS (orden unificado en todo el sitio). */}

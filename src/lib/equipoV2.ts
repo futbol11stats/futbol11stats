@@ -360,4 +360,31 @@ export async function getCopasAmbito(codequipo: string, tempSel: string | null, 
   }, ['getCopasAmbito', 'v5-orden', codequipo, String(tempSel)], codequipo, { codtemporada: tempSel })
 }
 
+// Eventos de EQUIPO por partido (Últimos partidos): tarjetas agregadas sumando las de sus jugadores en
+// cada acta (web_jugador_partidos, único sitio con tarjetas por partido; web_resultados solo trae goles).
+// Los goles a favor y la portería a cero NO salen de aquí: se derivan del marcador (autoritativo, incluye
+// goles en propia). Devuelve Map codacta -> {ta,td,tr}. Lote pequeño (las ~3 actas de "Últimos partidos").
+export async function getEventosEquipo(
+  codequipo: string | number | null | undefined,
+  codactas: string[],
+): Promise<Map<string, { ta: number; td: number; tr: number }>> {
+  const out = new Map<string, { ta: number; td: number; tr: number }>()
+  if (codequipo == null || codactas.length === 0) return out
+  const { data, error } = await supabase
+    .from('web_jugador_partidos')
+    .select('codacta, amarillas, dobles_amarilla, rojas')
+    .eq('codequipo', String(codequipo))
+    .in('codacta', codactas)
+  if (error) throw error   // no enmascarar un fallo transitorio como "sin tarjetas"
+  for (const r of (data || []) as { codacta: string; amarillas: number | null; dobles_amarilla: number | null; rojas: number | null }[]) {
+    const k = String(r.codacta)
+    const cur = out.get(k) || { ta: 0, td: 0, tr: 0 }
+    cur.ta += r.amarillas || 0
+    cur.td += r.dobles_amarilla || 0
+    cur.tr += r.rojas || 0
+    out.set(k, cur)
+  }
+  return out
+}
+
 export { getResultadosGrupo }

@@ -39,7 +39,7 @@ import {
   getEquipoV2, getTemporadasEquipo, getCopaTemporadas, getSerieLiga, getResultadosGrupo, buildJornadasEquipo,
   escudosPorNombre, getMiniClasif, colorMedia, colorElo, colorFan, CORTES_EQUIPO,
   analisisResultados, getTramos, getFacetasGrupo, getPlantillaEquipoV2, getMovimientosEquipo,
-  getHitosEquipo, getMediasPorTemporada, getCopasAmbito, formaEquipo, type PlantillaEqRow,
+  getHitosEquipo, getMediasPorTemporada, getCopasAmbito, formaEquipo, getEventosEquipo, type PlantillaEqRow,
 } from '@/lib/equipoV2'
 import type { CompEquipo } from '@/components/ficha/v2/JornadasEquipo'
 import Badge11 from '@/components/ui/Badge11'
@@ -175,6 +175,8 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
 
   // Últimos 3 partidos jugados (de la serie del gráfico, con fantasy de esa jornada).
   const ultimos = jornadas.filter((j) => j.fan != null && j.marcador).slice(-3).reverse()
+  // Eventos de equipo por partido (tarjetas) para "Últimos partidos": tira mínima de ~3 actas.
+  const evUltimos = await getEventosEquipo(e.codequipo, ultimos.map((u) => u.codacta).filter(Boolean) as string[])
 
   // Donut de balance V/E/D.
   const donutTot = ana.v + ana.e + ana.d || 1
@@ -449,11 +451,19 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
                 {ultimos.map((m, i) => {
                   const local = m.esLocal ? e.nombre : m.rivalNombre
                   const visitante = m.esLocal ? m.rivalNombre : e.nombre
+                  // Goles a favor y portería a cero desde el marcador absoluto "L-V" según localía (autoritativo).
+                  const [gL, gV] = (m.marcador || '').split('-').map((x) => parseInt(x, 10))
+                  const gf = m.esLocal ? gL : gV
+                  const gc = m.esLocal ? gV : gL
+                  const ev = m.codacta ? evUltimos.get(String(m.codacta)) : undefined
                   return (
                     <MatchRow key={i}
                       marcador={m.marcador} signo={m.signo}
                       rivalEscudo={m.rivalEscudo} rivalNombre={m.rivalNombre} rivalCod={null} esLocal={m.esLocal}
                       fecha={m.fecha} etiqueta={`J${m.jornada}`}
+                      goles={Number.isFinite(gf) ? gf : undefined}
+                      p0={Number.isFinite(gc) && gc === 0}
+                      ta={ev?.ta} td={ev?.td} tr={ev?.tr}
                       pts={m.fan} ptsBg={m.fan != null ? colorFan(m.fan) : undefined}
                       eloDelta={m.eloDelta}
                       href={m.codacta ? `/madrid/partido/${partidoSlug(m.codacta, local, visitante)}` : null}
