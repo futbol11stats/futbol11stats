@@ -188,6 +188,9 @@ function MiniForma({ m, teamCod }: { m: PartidoMini; teamCod: string }) {
       esLocal={esLocal}
       fecha={m.fecha}
       etiqueta={m.compNombre || undefined}
+      goles={jugado && gf > 0 ? gf : undefined}
+      p0={jugado && gc === 0}
+      ta={m.ta} td={m.td} tr={m.tr}
       pts={m.fantasy}
       ptsBg={m.fantasy != null ? colorFan(m.fantasy) : undefined}
       eloDelta={m.eloDelta}

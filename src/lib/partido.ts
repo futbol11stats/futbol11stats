@@ -33,7 +33,9 @@ export type PartidoMini = { codacta: string; fecha: string | null; local: string
   eloPreLocal?: number | null; eloPostLocal?: number | null; eloPreVisitante?: number | null; eloPostVisitante?: number | null; eloDelta?: number | null
   // Para la forma de la ficha de PARTIDO: fantasy del equipo en ese partido (suma de puntos de sus jugadores) y
   // nombre de la competición (contexto liga/copa). fantasy null = sin datos (silencio, nunca 0 inventado).
-  fantasy?: number | null; compNombre?: string | null }
+  fantasy?: number | null; compNombre?: string | null
+  // Eventos de equipo del partido (suma de los de sus jugadores en el acta), para la forma de la ficha de partido.
+  ta?: number; td?: number; tr?: number }
 export type PartidoFicha = {
   id: string; codacta: string; jugado: boolean; esJuvenil: boolean; codtemporada: number
   categoria: string; slugComp: string; slugGrupo: string; temporada: string; nombreComp: string; jornada: number; compHref: string
@@ -321,18 +323,22 @@ export async function getPartido(codacta: string): Promise<PartidoFicha | null> 
     const formaGrupos = Array.from(new Set(formaMinis.map((m) => m.codgrupo).filter(Boolean))) as string[]
     const [fanRaw, grpRaw] = await Promise.all([
       formaActas.length
-        ? supabase.from('web_jugador_partidos').select('codacta, codequipo, puntos').in('codacta', formaActas)
-        : Promise.resolve({ data: [] as Array<{ codacta: string; codequipo: string; puntos: number | null }> }),
+        ? supabase.from('web_jugador_partidos').select('codacta, codequipo, puntos, amarillas, dobles_amarilla, rojas').in('codacta', formaActas)
+        : Promise.resolve({ data: [] as Array<{ codacta: string; codequipo: string; puntos: number | null; amarillas: number | null; dobles_amarilla: number | null; rojas: number | null }> }),
       formaGrupos.length
         ? supabase.from('web_grupos').select('codgrupo, nombre_comp').in('codgrupo', formaGrupos)
         : Promise.resolve({ data: [] as Array<{ codgrupo: string; nombre_comp: string | null }> }),
     ])
     // fantasy por (acta, equipo): suma de puntos de la plantilla; ausencia de filas -> null (silencio, nunca 0).
+    // En la MISMA pasada, tarjetas del equipo por partido (suma de las de sus jugadores) para los eventos de la forma.
     const fanMap = new Map<string, number>()
-    for (const p of (fanRaw.data || []) as Array<{ codacta: string; codequipo: string; puntos: number | null }>) {
-      if (p.puntos == null) continue
+    const cardMap = new Map<string, { ta: number; td: number; tr: number }>()
+    for (const p of (fanRaw.data || []) as Array<{ codacta: string; codequipo: string; puntos: number | null; amarillas: number | null; dobles_amarilla: number | null; rojas: number | null }>) {
       const k = `${p.codacta}|${p.codequipo}`
-      fanMap.set(k, (fanMap.get(k) || 0) + p.puntos)
+      if (p.puntos != null) fanMap.set(k, (fanMap.get(k) || 0) + p.puntos)
+      const c = cardMap.get(k) || { ta: 0, td: 0, tr: 0 }
+      c.ta += p.amarillas || 0; c.td += p.dobles_amarilla || 0; c.tr += p.rojas || 0
+      cardMap.set(k, c)
     }
     const grpMap = new Map<string, string>()
     for (const gg of (grpRaw.data || []) as Array<{ codgrupo: string; nombre_comp: string | null }>) {
@@ -340,11 +346,13 @@ export async function getPartido(codacta: string): Promise<PartidoFicha | null> 
     }
     const conElo = (arr: PartidoMini[], cod: string): PartidoMini[] => arr.map((m) => {
       const fk = `${m.codacta}|${cod}`
+      const c = cardMap.get(fk)
       return {
         ...m,
         eloDelta: deltaEloForma(cod, m),
         fantasy: fanMap.has(fk) ? Math.round(fanMap.get(fk) as number) : null,
         compNombre: m.codgrupo ? (grpMap.get(String(m.codgrupo)) ?? null) : null,
+        ta: c?.ta ?? 0, td: c?.td ?? 0, tr: c?.tr ?? 0,
       }
     })
 
