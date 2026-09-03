@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import RankingComp, { type RankItem } from '@/components/ficha/v2/RankingComp'
+import SectionHeader from '@/components/ui/SectionHeader'
 import { TarjetaDoble, TarjetaRoja } from '@/components/iconos'
 import { datosSancionado, leySancionados, leyJuegoLimpio } from '@/components/ficha/v2/lineasComp'
 
@@ -62,19 +63,19 @@ export default function TarjetasTemporadaV2({ equipos = [], jugadores = [], fich
   return (
     <>
       <section>
-        <div className="s-head"><h2 className="s-title">Juego limpio</h2><div className="s-sub">menos expulsiones primero · {ambito}</div></div>
+        <SectionHeader title="Juego limpio" sub={`menos expulsiones primero · ${ambito}`} />
         {jlItems.length > 0
           ? <><RankingComp items={jlItems} /><div className="leyenda">{leyJuegoLimpio}{limiteJL ? ` Los ${limiteJL} más deportivos de la categoría.` : ''}</div></>
           : <p className="vacio">Sin datos disciplinarios.</p>}
       </section>
       {banqItems.length > 0 && (
         <section>
-          <div className="s-head"><h2 className="s-title">Banquillos más calientes</h2><div className="s-sub">amonestaciones al cuerpo técnico · {ambito}</div></div>
+          <SectionHeader title="Banquillos más calientes" sub={`amonestaciones al cuerpo técnico · ${ambito}`} />
           <RankingComp items={banqItems} />
         </section>
       )}
       <section>
-        <div className="s-head"><h2 className="s-title">Jugadores expulsados/ciclos de amarillas</h2><div className="s-sub">a fecha actual · {ambito}</div></div>
+        <SectionHeader title="Jugadores expulsados/ciclos de amarillas" sub={`a fecha actual · ${ambito}`} />
         {sancItems.length > 0
           ? <><RankingComp items={sancItems} fichas={fichas} /><div className="leyenda">{leySancionados(umbral)} Jugadores con al menos un ciclo de {umbral} amarillas, una doble o una roja directa. No contempla sanciones adicionales del Comité.</div></>
           : <p className="vacio">Ningún jugador sancionado.</p>}

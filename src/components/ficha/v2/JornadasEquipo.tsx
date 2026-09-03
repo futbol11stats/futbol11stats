@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import IndicadorLocal from '@/components/IndicadorLocal'
 import EscudoBox from '@/components/ficha/v2/EscudoBox'
+import SectionHeader from '@/components/ui/SectionHeader'
 import { Marcador, Tabla, Escudo, TrianguloArriba, TrianguloAbajo, Guion } from '@/components/iconos'
 import { fechaCorta } from '@/lib/jugador'
 import { nombreEquipo } from '@/lib/nombre'
@@ -51,10 +52,10 @@ export default function JornadasEquipo({ comps, cortes, temporada }: { comps: Co
   if (!comp) return null
 
   const head = (
-    <div className="s-head">
-      <h2 className="s-title">{comp.tipo !== 'copa' ? 'Puntos por jornada' : /play\s*off/i.test(comp.competicion || comp.label) ? 'Recorrido en el play off' : 'Recorrido en copa'}</h2>
-      <div className="s-sub">{[temporada, comp.label].filter(Boolean).join(' · ')}</div>
-    </div>
+    <SectionHeader
+      title={comp.tipo !== 'copa' ? 'Puntos por jornada' : /play\s*off/i.test(comp.competicion || comp.label) ? 'Recorrido en el play off' : 'Recorrido en copa'}
+      sub={[temporada, comp.label].filter(Boolean).join(' · ')}
+    />
   )
 
   // ── COPA: tira de rondas (patrón de "Últimos partidos"), sin barras de fantasy ──

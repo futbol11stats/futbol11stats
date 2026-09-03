@@ -13,6 +13,7 @@ import { colorElo } from '@/lib/equipoV2'
 import { fmtNum } from '@/lib/formato'
 import { fichasInfo } from '@/lib/jugador'
 import RankingComp, { type RankItem } from '@/components/ficha/v2/RankingComp'
+import SectionHeader from '@/components/ui/SectionHeader'
 import { campoXI, POSC } from '@/components/ficha/v2/campoXI'
 import { FilaEspejo, EspejoHead } from '@/components/ficha/v2/barrasGoles'
 import TarjetasTemporadaV2 from '@/components/ficha/v2/TarjetasTemporadaV2'
@@ -218,7 +219,7 @@ export default async function FichaCompeticionGlobalV2({ categoria, slugComp, te
       <div className="full"><div className="main">
         {tabEf === 'clasificacion' && (
         <section id="s-clasif">
-          <div className="s-head"><h2 className="s-title">Clasificación global</h2><div className="s-sub">{nombre} · {grupos.length} grupos · tras J{jornadaNum}</div></div>
+          <SectionHeader title="Clasificación global" sub={`${nombre} · ${grupos.length} grupos · tras J${jornadaNum}`} />
 
           <div className="cap" style={{ padding: '0 var(--pad) 8px' }}>Líderes de grupo</div>
           <ScrollRail><div className="lideres-g">
@@ -267,7 +268,7 @@ export default async function FichaCompeticionGlobalV2({ categoria, slugComp, te
 
         {gRank && (
           <section>
-            <div className="s-head"><h2 className="s-title">{gRank.title}</h2><div className="s-sub">{gRank.sub}</div></div>
+            <SectionHeader title={gRank.title} sub={gRank.sub} />
             {gRank.items.length > 0
               ? <><RankingComp items={gRank.items} fichas={fichas} barColor={gRank.barColor} />{gRank.leyenda && <div className="leyenda">{gRank.leyenda}</div>}</>
               : <p className="vacio">Sin datos agregados en esta {modo === 'temporada' ? 'temporada' : 'jornada'}.</p>}
@@ -276,7 +277,7 @@ export default async function FichaCompeticionGlobalV2({ categoria, slugComp, te
 
         {xiG && (
           <section>
-            <div className="s-head"><h2 className="s-title">{xiG.title}</h2><div className="s-sub">{xiG.sub}</div></div>
+            <SectionHeader title={xiG.title} sub={xiG.sub} />
             {xiG.items.length > 0 ? (
               <>
                 <div className="xi-wrap">
@@ -295,7 +296,7 @@ export default async function FichaCompeticionGlobalV2({ categoria, slugComp, te
 
         {estG && (
           <section>
-            <div className="s-head"><h2 className="s-title">Estadísticas</h2><div className="s-sub">acumulado hasta J{jornadaNum} · toda la categoría</div></div>
+            <SectionHeader title="Estadísticas" sub={`acumulado hasta J${jornadaNum} · toda la categoría`} />
             {estG.cifras.disputados > 0 && (
               <div className="statbox">
                 <div className="cap" style={{ marginBottom: 9 }}>Reparto de resultados</div>
@@ -336,7 +337,7 @@ export default async function FichaCompeticionGlobalV2({ categoria, slugComp, te
 
         {tabEf !== 'clasificacion' && !gRank && !xiG && !tarG && !estG && (
           <section>
-            <div className="s-head"><h2 className="s-title">{tabsA.find((t) => t[0] === tabEf)?.[1]}</h2></div>
+            <SectionHeader title={tabsA.find((t) => t[0] === tabEf)?.[1]} />
             <p className="vacio">Vista global de esta pestaña: próximamente. Disponible por grupo.</p>
           </section>
         )}

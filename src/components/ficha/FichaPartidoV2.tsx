@@ -15,6 +15,7 @@ import { partidoSlug } from '@/lib/partidoSlug'
 import { nombreCompleto, nombreEquipo } from '@/lib/nombre'
 import MatchRow from '@/components/ficha/v2/MatchRow'
 import PlayerRow from '@/components/ui/PlayerRow'
+import SectionHeader from '@/components/ui/SectionHeader'
 import PlayerAvatar from '@/components/ui/PlayerAvatar'
 import { colorFan } from '@/lib/equipoV2'
 import type { PartidoFicha, PartidoJugador, PartidoMini, PartidoLado } from '@/lib/partido'
@@ -368,7 +369,7 @@ export default function FichaPartidoV2({ p }: { p: PartidoFicha }) {
       {/* MVP fantasy — mismo tratamiento que "Top de la plantilla" (fila .pl + rótulo bien visible) */}
       {p.jugado && p.mvp && (
         <section>
-          <div className="s-head"><h2 className="s-title">MVP del partido</h2><div className="s-sub">por puntos fantasy</div></div>
+          <SectionHeader title="MVP del partido" sub="por puntos fantasy" />
           <div className="pl">
             <PlayerAvatar className="pl-av" nombre={p.mvp.nombre} pos={p.mvp.pos} />
             <div className="pl-mid">
@@ -383,7 +384,7 @@ export default function FichaPartidoV2({ p }: { p: PartidoFicha }) {
       {/* ALINEACIONES — dos columnas en desktop (.desk-2col), apiladas en móvil. Filas .pl con puntos fantasy. */}
       {p.jugado && (p.local.titulares.length > 0 || p.visitante.titulares.length > 0) && (
         <section>
-          <div className="s-head"><h2 className="s-title">Alineaciones</h2></div>
+          <SectionHeader title="Alineaciones" />
           <AlineacionesGrid p={p} />
           {/* Leyenda de iconos (misma que la plantilla) para que la ficha se lea igual que las demás. */}
           <div className="pl-ley">
@@ -401,7 +402,7 @@ export default function FichaPartidoV2({ p }: { p: PartidoFicha }) {
       {/* #5 EFEMÉRIDES — hitos ligados al partido (web_jugador_hitos por codacta). Funciona en copa y liga. */}
       {p.hitos.length > 0 && (
         <section>
-          <div className="s-head"><h2 className="s-title">Efemérides del partido</h2></div>
+          <SectionHeader title="Efemérides del partido" />
           <div className="hitos">
             {p.hitos.map((h, i) => (
               <div className={`hito hito-${h.lado}`} key={`${h.codjugador}-${h.tipo}-${i}`}>
@@ -416,7 +417,7 @@ export default function FichaPartidoV2({ p }: { p: PartidoFicha }) {
       {/* CARA A CARA */}
       {p.h2h.length > 0 && (
         <section>
-          <div className="s-head"><h2 className="s-title">Cara a cara</h2></div>
+          <SectionHeader title="Cara a cara" />
           {p.h2h.map((m) => <MiniPartido key={m.codacta} m={m} />)}
         </section>
       )}
@@ -424,7 +425,7 @@ export default function FichaPartidoV2({ p }: { p: PartidoFicha }) {
       {/* RACHAS — comparación local | etiqueta | visitante (actual + récord), marcando / victorias / invicto. */}
       {(p.formaLocal.length > 0 || p.formaVisitante.length > 0) && (
         <section>
-          <div className="s-head"><h2 className="s-title">Rachas</h2></div>
+          <SectionHeader title="Rachas" />
           <div className="rachas">
             {([
               ['Marcando', p.rachasLocal.marcandoAct, p.rachasLocal.marcandoRec, p.rachasVisitante.marcandoAct, p.rachasVisitante.marcandoRec],
@@ -444,7 +445,7 @@ export default function FichaPartidoV2({ p }: { p: PartidoFicha }) {
       {/* ÚLTIMOS PARTIDOS de cada equipo */}
       {(p.formaLocal.length > 0 || p.formaVisitante.length > 0) && (
         <section>
-          <div className="s-head"><h2 className="s-title">Últimos partidos</h2></div>
+          <SectionHeader title="Últimos partidos" />
           {/* Dos columnas TAMBIÉN en móvil: cada equipo su forma con la fila compacta (rival + marcador + Δ ELO). */}
           <div className="forma-2col">
             <div className="forma-col">{p.formaLocal.length > 0 && <><div className="al-sub forma-h">{nombreEquipo(p.local.nombre)}</div>{p.formaLocal.map((m) => <MiniForma key={m.codacta} m={m} teamCod={p.local.codequipo} />)}</>}</div>

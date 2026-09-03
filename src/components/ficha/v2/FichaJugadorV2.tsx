@@ -450,7 +450,7 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
               (mismo criterio que la ficha de equipo solo-copa: ocultar, no mostrar ceros). */}
           {!esSoloCopa && (
           <section id="s-totales">
-            <div className="s-head"><h2 className="s-title">Totales</h2><div className="s-sub"><span className="allscope">Todas las temporadas</span></div></div>
+            <SectionHeader title="Totales" scope="Todas las temporadas" />
             <div className="totales">
               {totales.map(([ic, v, k], i) => (
                 <div className="tot" key={i}><div className="t-i">{ic}</div><div className="t-v">{v}</div><div className="t-k">{k}</div></div>
@@ -495,7 +495,7 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
             <section id="s-mates">
               {/* slice(0,6) preparado para dos filas de tres, pero web_jugador.companeros_top viene con
                   exactamente 5 desde el pipeline: el subtítulo refleja el nº real y saldrá 6 solo. */}
-              <div className="s-head"><h2 className="s-title">Ha jugado con</h2><div className="s-sub">top {companeros.length} por ELO</div></div>
+              <SectionHeader title="Ha jugado con" sub={`top ${companeros.length} por ELO`} />
               <div className="track"><div className="rail">
                 {companeros.map((c: CompaneroTop) => {
                   const nm = nombreCompleto(c.nombre)
@@ -517,7 +517,7 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
         <div className="main">
           {/* JORNADAS */}
           <section id="s-jornadas">
-            <div className="s-head"><h2 className="s-title">Puntos y ELO por jornada</h2><div className="s-sub"><Echo temporada={tempTxt} comps={compNames} /></div></div>
+            <SectionHeader title="Puntos y ELO por jornada" sub={<Echo temporada={tempTxt} comps={compNames} />} />
             {comps.length > 0
               ? <Jornadas comps={compsOrd} cortes={CORTES_FIJOS.puntosPartido} />
               : <p style={{ padding: '0 var(--pad)', color: 'var(--ink-3)', fontSize: 'var(--t-sm)' }}>Sin partidos en esta temporada.</p>}
@@ -525,7 +525,7 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
 
           {/* FORMA */}
           <section id="s-forma">
-            <div className="s-head"><h2 className="s-title">Forma</h2><div className="s-sub">media de puntos por partido</div></div>
+            <SectionHeader title="Forma" sub="media de puntos por partido" />
             <div className="windows">
               {ventanas.map((v) => {
                 const d = v.delta
@@ -551,7 +551,7 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
 
           {/* ANÁLISIS */}
           <section id="s-analisis">
-            <div className="s-head"><h2 className="s-title">Análisis</h2><div className="s-sub"><Echo temporada={tempTxt} comps={compNames} /></div></div>
+            <SectionHeader title="Análisis" sub={<Echo temporada={tempTxt} comps={compNames} />} />
             <div className="box">
               <div className="cap" style={{ marginBottom: 5 }}>Balance del equipo</div>
               {/* Línea base (Global) + con él, y sin él cuando hay contraparte suficiente (>=8 por lado).
@@ -582,7 +582,7 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
 
           {/* TEMPORADAS */}
           <section id="s-temporadas">
-            <div className="s-head"><h2 className="s-title">Temporadas</h2><div className="s-sub"><span className="allscope">Todas las temporadas</span></div></div>
+            <SectionHeader title="Temporadas" scope="Todas las temporadas" />
             <div className="track"><div className="rail" id="seasons">
               {carreraOrd.map((c, i) => {
                 const compartida = (cuentaTemp.get(c.codtemporada) ?? 0) > 1
@@ -617,7 +617,7 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
               muestra TODOS los partidos de esa etapa, liga y copa, no solo liga) */}
           {carrera.length > 0 && (
             <section id="s-trayectoria">
-              <div className="s-head"><h2 className="s-title">Trayectoria</h2><div className="s-sub"><span className="allscope">Todas las temporadas</span></div></div>
+              <SectionHeader title="Trayectoria" scope="Todas las temporadas" />
               <div style={{ padding: '0 var(--pad)' }}>
                 <Trayectoria carrera={carreraOrd} portero={portero} codjugador={j.codjugador} railWrap />
                 {/* #7 Reparto titular/suplente y minutos totales de la carrera (web_jugador.*_total, LIGA) -> fuera en solo-copa. */}
@@ -633,7 +633,7 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
 
           {/* MEJORES ACTUACIONES */}
           <section id="s-partidos">
-            <div className="s-head"><h2 className="s-title">Mejores actuaciones</h2><div className="s-sub"><span className="allscope">Todas las temporadas</span></div></div>
+            <SectionHeader title="Mejores actuaciones" scope="Todas las temporadas" />
             <div>
               {actuaciones.slice(0, 3).map((a: any, i: number) => {
                 const { marcador, signo } = marcadorLocalVisitante(a.resultado, a.es_local)
@@ -660,7 +660,7 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
 
           {/* HITOS */}
           <section id="s-hitos" style={{ borderBottom: 0 }}>
-            <div className="s-head"><h2 className="s-title">Hitos</h2><div className="s-sub"><span className="allscope">Todas las temporadas</span></div></div>
+            <SectionHeader title="Hitos" scope="Todas las temporadas" />
             <div>
               {curados.slice(0, 8).map((h: HitoRow, i: number) => {
                 const cfg = HITO_CONFIG[h.tipo_hito]

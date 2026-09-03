@@ -129,8 +129,18 @@ Helpers de nombre: **`src/lib/nombre.ts`** — `abreviaNombre` (por defecto), `n
 | **`PlayerRow`** ✅ | fila `.pl` de jugador | 5 reimplementaciones (FilaJugador + plantilla ×2 + alineación + técnico) | usa PlayerAvatar/NombreJugador/Pastilla/EloDelta + pastilla `.pl-val`; reflow escritorio: meta en línea, sin hueco muerto |
 | ~~`StatTable`~~ — **no procede** | tabla dirigida por config | — | Las ~13 tablas de `tablas.tsx` que iba a unificar **ya estaban muertas**: la ficha de competición **v2** las sustituyó en su día por rankings de barras (`RankingComp`) + clasificación inline. No hay flota de tablas gemelas viva que unificar. El único `<table>` de stats vivo es `Trayectoria` (ficha de jugador), específico y sin gemelas. El patrón de tabla ancha queda documentado abajo (§ Patrones) por si reaparece. |
 
-### Cabeceras y layout (Tanda 3) — _pendiente_
-`EntityHero`, `PageLayout` (con aside), `SectionHeader`, `TabBar`.
+### Cabeceras y layout (Tanda 3)
+
+> Alcance recortado tras verificar qué está VIVO (regla nº0): 3 de las 4 piezas tienen menos
+> consumidores de lo que sugería el nombre. **No forzar una pieza sobre superficies que no comparten
+> su forma.**
+
+| Componente | Resuelve | Sustituye a | Uso |
+|---|---|---|---|
+| **`SectionHeader`** ✅ | cabecera de sección (`.s-head/.s-title/.s-sub`) | **49 copias inline** del mismo trío en las 5 fichas + JornadasEquipo + TarjetasTemporadaV2 | `title` + `sub` (libre) o `scope` (chip `.allscope`) + `style` puntual. **Absorbe los micro-rótulos** que quedaron inline al retirar MicroLabel |
+| **`PageLayout`** (aside) — _pendiente_ | grid `.layout` 360/1fr + `.aside` sticky + `.main` | 2 fichas idénticas (**jugador + equipo**) | Competición usa `.full` (sin aside) — NO la cubre. Barrer de paso el CSS muerto `.fcv2 .layout/.aside` |
+| **`EntityHero`** — _pendiente_ | hero `.hero/.hero-top/.hero-pills` | 2 fichas (**jugador + equipo**) | Competición (`.ident`) y Partido (`.mhero`) son heroes DISTINTOS — no unificar con este |
+| **`TabBar`** — _pendiente_ | route-tabs `.tabs/.modo/.jrow/.verrow` (sobre `ScrollRail`) | 2 fichas de competición (grupo + global) | NO mezclar con `NavSpy` (scroll-spy de jugador/equipo) ni `MatchdaySelector`: son conceptos distintos |
 
 ---
 
