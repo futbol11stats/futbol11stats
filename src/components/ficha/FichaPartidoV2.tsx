@@ -330,7 +330,7 @@ function RachaLado({ act, rec, side }: { act: number; rec: number; side: 'l' | '
   // Racha activa (act>0) -> al menos 1 celda, para no confundir "poco" con "rota" (0). Rota -> 0 celdas.
   const cells = rec > 0 && act > 0 ? Math.max(1, Math.min(10, Math.round((act / rec) * 10))) : 0
   const fill = hit ? 'var(--amber)' : side === 'l' ? 'var(--zona-po)' : 'rgb(249,115,22)'
-  const nCls = act === 0 ? 'ra-n zero' : hit ? 'ra-n hit' : `ra-n ${side === 'l' ? 'loc' : 'vis'}`
+  const nCls = act === 0 ? 'ra-n rota' : hit ? 'ra-n hit' : `ra-n ${side === 'l' ? 'loc' : 'vis'}`
   return (
     <div className={`ra-side ra-${side}`}>
       <span className={nCls}>{act}</span>

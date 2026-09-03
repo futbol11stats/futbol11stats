@@ -807,7 +807,7 @@
 .fpv2 .ra-n{font-family:var(--font-display),sans-serif;font-weight:700;font-size:var(--n-md);line-height:.9;font-variant-numeric:tabular-nums;flex:none}
 .fpv2 .ra-n.loc{color:var(--zona-po)}
 .fpv2 .ra-n.vis{color:rgb(249,115,22)}
-.fpv2 .ra-n.zero{color:var(--ink-4)}
+.fpv2 .ra-n.rota{color:var(--ink-4)}
 .fpv2 .ra-n.hit{color:var(--amber)}
 .fpv2 .ra-track{flex:1;min-width:0;display:flex;flex-direction:column;gap:5px}
 .fpv2 .ra-batt{display:flex;gap:2px}
@@ -872,6 +872,11 @@
   .fpv2 .gc-destacados > section:last-child{border-bottom:0}
   .fpv2 .gc-h2h{order:5}
   .fpv2 .gc-alineaciones{order:6;grid-column:1 / -1}
+  /* MVP: es un DESTACADO único, no una fila de lista. El reflow de lista (meta a flex:1 pegado al borde)
+     lo dejaba disperso (nombre a la izquierda, equipo al centro, puntos al fondo). Aquí se agrupa a la
+     izquierda —avatar+nombre+meta+puntos juntos— con el espacio sobrante FUERA, a la derecha. */
+  .fpv2 .gc-destacados .pl-mid{flex:0 1 auto}
+  .fpv2 .gc-destacados .pl-mid .pl-me{flex:0 1 auto;justify-content:flex-start}
 }
 @media(max-width:999px){
   .fpv2 .forma-2col .match-compact{padding-left:7px;padding-right:7px;gap:5px}
