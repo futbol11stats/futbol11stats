@@ -45,6 +45,7 @@ import type { CompEquipo } from '@/components/ficha/v2/JornadasEquipo'
 import Badge11 from '@/components/ui/Badge11'
 import SectionHeader from '@/components/ui/SectionHeader'
 import PageLayout from '@/components/ui/PageLayout'
+import EntityHero from '@/components/ui/EntityHero'
 import PlayerRow from '@/components/ui/PlayerRow'
 import { fmtNum } from '@/lib/formato'
 
@@ -297,11 +298,12 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
       <JsonLd data={graphLd(breadcrumbLd(crumbs), sportsTeamLd({ name: e.nombre, url: `${SITE_URL}/madrid/equipo/${slug}`, logo: escudoUrl(e.escudo), competicion: nombreComp }))} />
 
       {/* HERO */}
-      <div className="hero">
-        <div className="hero-top">
-          {escudoUrl(e.escudo)
-            ? <EscudoBox escudo={e.escudo} nombre={e.nombre} size={70} radius={14} />
-            : <div className="avatar" style={{ background: 'var(--pitch-700)', color: 'var(--ink-2)' }}>{(e.nombre || '').slice(0, 3).toUpperCase()}</div>}
+      <EntityHero
+        shareTitulo={`${e.nombre} · Fútbol11Stats`}
+        visual={escudoUrl(e.escudo)
+          ? <EscudoBox escudo={e.escudo} nombre={e.nombre} size={70} radius={14} />
+          : <div className="avatar" style={{ background: 'var(--pitch-700)', color: 'var(--ink-2)' }}>{(e.nombre || '').slice(0, 3).toUpperCase()}</div>}
+        title={
           <div className="hero-name">
             {/* club_root en el dato es un CÓDIGO interno ("C:00..."), no un nombre de club legible -> no se muestra. */}
             {/* H1: el nombre del equipo es el encabezado principal de la página (uno solo). Tailwind preflight
@@ -338,9 +340,8 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
               )
             })()}
           </div>
-          <CompartirBtn titulo={`${e.nombre} · Fútbol11Stats`} variant="icon" />
-        </div>
-        <div className="hero-pills">
+        }
+        pills={<>
           {nombreComp && (
             <LigaPastilla nombreComp={nombreComp}
               segments={[nombreComp, grupoNombre, inactivo || posSel == null ? null : `${posSel}º`]}
@@ -351,8 +352,8 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
               (getEquipoActualInfo) aunque se estuviera viendo otra -> incoherente. */}
           <CopasLinea copas={copasSel} />
           {e.temporada_elo_max && <span className="pill n">{badge11Sello}<span>ELO máx {fmtNum(e.elo_max)} · {tempLabel(e.temporada_elo_max)}</span></span>}
-        </div>
-      </div>
+        </>}
+      />
 
       {/* KPIs — 5 columnas fijas (Pos·Pts·DG·Media F.·ELO). Icono encima del número, como en jugador:
           Pos/Pts/DG con icono del dato; Media F./ELO (métricas F11S) con el badge (11). En solo-copa NO se pintan

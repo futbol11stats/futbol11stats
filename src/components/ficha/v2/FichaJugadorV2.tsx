@@ -42,6 +42,7 @@ import { partidoSlug } from '@/lib/partidoSlug'
 import Badge11 from '@/components/ui/Badge11'
 import SectionHeader from '@/components/ui/SectionHeader'
 import PageLayout from '@/components/ui/PageLayout'
+import EntityHero from '@/components/ui/EntityHero'
 import FormaStrip from '@/components/ui/FormaStrip'
 import PlayerAvatar from '@/components/ui/PlayerAvatar'
 import { getSueloVivo } from '@/lib/temporadas'
@@ -324,16 +325,16 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
       <CompReset dep={j.codjugador} />
       <JsonLd data={graphLd(breadcrumbLd(crumbs))} />
       {/* 1 · HERO */}
-      <div className="hero">
-        <div className="hero-top">
-          <PlayerAvatar nombre={j.nombre} pos={j.posicion_pastilla} className="avatar">{j.dorsal_ultimo != null && <div className="dorsal">{j.dorsal_ultimo}</div>}</PlayerAvatar>
+      <EntityHero
+        shareTitulo={`${nombre} · Fútbol11Stats`}
+        visual={<PlayerAvatar nombre={j.nombre} pos={j.posicion_pastilla} className="avatar">{j.dorsal_ultimo != null && <div className="dorsal">{j.dorsal_ultimo}</div>}</PlayerAvatar>}
+        title={
           <h1 className="hero-name">
             <span className="first">{pila}</span>
             <span className="last">{apellidos}</span>
           </h1>
-          <CompartirBtn titulo={`${nombre} · Fútbol11Stats`} variant="icon" />
-        </div>
-        <div className="hero-pills">
+        }
+        pills={<>
           <Pastilla pos={j.posicion_pastilla} estimada={!!j.posicion_es_estimada} />
           {j.edad != null && <span className="pill n">{j.edad} años</span>}
           {j.equipo_actual_nombre && (
@@ -355,7 +356,8 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
           {/* Honores de copa de la temporada SELECCIONADA (no la viva). Sin la copa ya fusionada arriba. Vacío ->
               CopasLinea no renderiza. Mismo criterio que la ficha de equipo. */}
           <CopasLinea copas={copasResto} />
-        </div>
+        </>}
+      >
         {alertaTxt && (
           <div className="alert">
             <span style={{ color: 'var(--card-y)', display: 'flex' }}><TarjetaAmarilla size={13} /></span>
@@ -364,7 +366,7 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
         )}
         {/* Sin posición: el aviso se queda en el hero, donde el hueco es visible (los demás casos bajan al pie). */}
         {sinPosicion && avisoNode}
-      </div>
+      </EntityHero>
 
       {carrera.length === 0 ? (
         /* Incidente temporal (re-export del pipeline): sin carrera no hay temporada ni gráfico, aunque el
