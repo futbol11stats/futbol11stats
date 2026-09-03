@@ -879,10 +879,16 @@
   .fpv2 .gc-destacados .pl-mid .pl-me{flex:0 1 auto;justify-content:flex-start}
 }
 @media(max-width:999px){
-  .fpv2 .forma-2col .match-compact{padding-left:7px;padding-right:7px;gap:5px}
-  .fpv2 .forma-2col .forma-h{padding-left:7px;padding-right:7px}
-  .fpv2 .forma-2col .match-compact .m-riv{font-size:var(--t-micro)}
-  .fpv2 .forma-2col .match-compact .m-score{min-width:26px;font-size:var(--t-cap)}
+  /* «Últimos partidos» en MÓVIL: UNA columna (un equipo debajo del otro), fila a ANCHO COMPLETO en vez de dos
+     columnas de ~185px que comprimían todo e impedían leer. Sin los recortes de la variante de 2 columnas: la
+     fila usa tamaños normales y la meta cabe sin tope (no clipping). Se prioriza que se ENTIENDA aunque ocupe más. */
+  .fpv2 .forma-2col{grid-template-columns:1fr}
+  .fpv2 .forma-2col .forma-col+.forma-col{border-left:0;border-top:1px solid var(--line-2);margin-top:2px;padding-top:2px}
+  .fpv2 .forma-2col .match-compact{padding:9px var(--pad);gap:9px}
+  .fpv2 .forma-2col .match-compact .m-score{min-width:34px;font-size:var(--t-lead)}
+  .fpv2 .forma-2col .match-compact .m-riv{font-size:var(--t-body)}
+  .fpv2 .forma-2col .match-compact .m-meta{max-height:none;overflow:visible}
+  .fpv2 .forma-2col .forma-h{padding-left:var(--pad);padding-right:var(--pad)}
 }
 /* #2 Movimiento de ELO por equipo, al pie de cada columna de alineación. */
 .fpv2 .al-elo{margin-top:8px;padding:7px var(--pad) 0;border-top:1px solid var(--line-2);font-size:var(--t-cap);color:var(--ink-3)}
