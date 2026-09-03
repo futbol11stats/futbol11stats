@@ -40,6 +40,14 @@ el catálogo (en tandas), no al final. Vive junto a [`PROTOCOLO.md`](./PROTOCOLO
      — es el que da personalidad al sitio.
    - **NUNCA emojis** (`📅`, `🟨`, `🟥`…): cada sistema operativo/navegador los dibuja distinto, así que
      nunca se ven igual. Icono propio siempre.
+   - **La violación MÁS DIFÍCIL de detectar es un icono con DOBLE FUNCIÓN** — el mismo glifo para dos
+     conceptos. El escudo significaba equipo/rival **y** «partidos jugados» a la vez: pasa desapercibido
+     porque en cada sitio, por separado, «parece bien». Regla práctica: cuando un icono no case con su
+     dato, **grep del icono en TODO el repo** — casi siempre está mal en varios sitios, y se esconde en
+     helpers **inline** que no pasan por un componente compartido (ahí no llega el barrido). Se corrigió
+     el escudo→sigla «PJ» en todas las filas + KPIs + `campos`, dejando el escudo solo para equipo/rival.
+   - **Iconos donde APRIETA, palabras donde hay SITIO.** Un icono gana en una fila densa; en un pie de
+     tabla o un bloque con aire, «como titular» se entiende sin descifrar. No forzar iconos por estética.
 4. **Puntos primero, ELO después.** El fantasy es el dato principal; el ELO, su efecto.
 5. **Silencio antes que dato dudoso.** Un valor ausente no se pinta (ni `0`, ni `1000`, ni `—` cuando
    induce a error). `null` = no se renderiza.
@@ -149,6 +157,7 @@ Helpers de nombre: **`src/lib/nombre.ts`** — `abreviaNombre` (por defecto), `n
 | **`PageLayout`** ✅ (aside) | grid `.layout` 360/1fr + `.aside` sticky + `.main` | 2 fichas idénticas (**jugador + equipo**) | API compuesta (`PageLayout.Aside`/`.Main`). Competición NO la usa (`.full`, ancho completo). Barrido de paso el CSS muerto `.fcv2 .layout/.aside`. **Revisión del escritorio (motivo de la Tanda 3): el 360/1fr es correcto** — la ficha va topada a `max-width:1160px`, así que a 1400px+ NO se estira (centra); split 360/798 balanceado, sin huecos. Los huecos que señaló Fernando eran las alineaciones del partido (`.al-grid`), ya resueltas. No se toca la proporción |
 | **`EntityHero`** ✅ | hero `.hero/.hero-top/.hero-pills` | 2 fichas (**jugador + equipo**) | Slots `visual`/`title`/`pills`/`children` (lo que difiere) + integra el `CompartirBtn` (era idéntico). Competición (`.ident`) y Partido (`.mhero`) son heroes DISTINTOS — NO usan este |
 | **`TabBar`** ✅ | route-tabs `.tabs/.modo/.jrow/.verrow` (sobre `ScrollRail`+`ReportesScroll`) | 2 fichas de competición (grupo + global) | Slots `modo`/`jornadas`/`ver` (listas de `<Link>`, los hrefs difieren); TabBar posee el esqueleto + raíles. NO mezclar con `NavSpy` (scroll-spy de jugador/equipo) ni `MatchdaySelector`: conceptos distintos |
+| **`PartidoTabs`** ✅ | pestañas de la ficha de PARTIDO (Resumen / Alineaciones / Cara a cara) | scroll de ~4,6 pantallas a 390px | Cliente: toggle **en la misma página** (un partido = 1 URL), con `<button>` — NO es `TabBar` (esa navega por RUTAS). Reutiliza el estilo `.verrail` de competición vía `.fpv2 .ptabs` (mismo subrayado verde activo) + `ScrollRail`. El contenido de TODAS las pestañas se sirve en el HTML y se oculta con `[hidden]` — patrón § abajo. Bajó el scroll por defecto a ~2,1 pantallas |
 
 ---
 
@@ -223,3 +232,25 @@ Verificado: a 250px todas las filas quedan en 36px exactos (0 filas >36 → impo
 línea). Solo aplicar donde el espacio aprieta (variante `compact`); las filas a ancho completo van sin
 tope. Ojo: el contexto (fecha, etc.) va antes que los chips en el DOM, así que en anchos absurdamente
 pequeños (&lt;300px, ningún dispositivo real) el recorte cae antes sobre los chips — asumido a propósito.
+
+### Pestañas dentro de una página SIN perder SEO — ocultar por CSS, no render condicional
+
+**Problema:** una ficha larga (la de partido eran ~4,6 pantallas a 390px) se agrupa en pestañas para
+bajar el scroll, pero un buscador debe seguir viendo TODO el contenido. Las pestañas son de **una sola
+página** (un partido = 1 URL), no rutas — así que no valen `<Link>` a rutas (eso es `TabBar`).
+
+**Patrón:** un componente **cliente** con `useState` para la pestaña activa, que renderiza el contenido
+de TODAS las pestañas (viene server-rendered como `ReactNode` en props) y **oculta las inactivas con el
+atributo `hidden`** (= `display:none`). El contenido sigue **en el HTML servido** (indexable), solo no se
+pinta. **NUNCA render condicional** (`activo && <Panel/>`) — eso lo quitaría del HTML y perdería SEO.
+
+```tsx
+{tabs.map(t => <div key={t.id} hidden={t.id !== activo}>{t.panel}</div>)}  // panel siempre en el DOM
+```
+
+- **Estilo:** reutilizar el de las pestañas de competición (`.verrail`, subrayado verde en la activa),
+  no inventar otro. Como el partido es `.fpv2` y aquel CSS está scoped a `.fcv2`, se replican los MISMOS
+  valores en `.fpv2 .ptabs` (con `<button>` en vez de `<a>`).
+- **«Hay más pestañas»:** envolver el raíl en `ScrollRail` — ya da degradado + flechas cuando no caben.
+- Verificado en producción: el panel oculto de Alineaciones sigue en el HTML (1.341 chars); scroll por
+  defecto 4,6 → 2,1 pantallas (el hero se queda arriba siempre, de ahí que no baje a 1,6).
