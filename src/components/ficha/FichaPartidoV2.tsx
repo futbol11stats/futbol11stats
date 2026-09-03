@@ -1,7 +1,7 @@
 import './v2/ficha.css'
 import Link from 'next/link'
 import { Fragment, type ReactNode } from 'react'
-import { CalendarPlus, MapPin } from 'lucide-react'
+import { CalendarPlus, MapPin, Trophy, ShieldCheck } from 'lucide-react'
 import EscudoBox from '@/components/ficha/v2/EscudoBox'
 import IndicadorLocal from '@/components/IndicadorLocal'
 import NombreEquipo from '@/components/NombreEquipo'
@@ -255,12 +255,23 @@ function probsElo(a: number | null, b: number | null): { l: number; e: number; v
   const s = l + e + v || 1
   return { l: l / s, e: e / s, v: v / s }
 }
+// Porcentajes ENTEROS (sin decimales) que SUMAN 100, por mayor resto (evita 99/101). Uno por tramo: local/empate/
+// visitante. "62% · 23% · 15%" informa sin parecer una cuota de apuestas; la proporción exacta la da la barra.
+function pct3(p: { l: number; e: number; v: number }): [number, number, number] {
+  const raw = [p.l * 100, p.e * 100, p.v * 100]
+  const out = raw.map(Math.floor)
+  const resto = 100 - out.reduce((a, b) => a + b, 0)
+  const orden = raw.map((x, i) => [x - Math.floor(x), i] as [number, number]).sort((a, b) => b[0] - a[0])
+  for (let k = 0; k < resto; k++) out[orden[k % 3][1]]++
+  return out as [number, number, number]
+}
 
 function PronoCard({ p }: { p: PartidoFicha }) {
   const hayPre = p.eloPreLocal != null && p.eloPreVisitante != null
   const hayPost = p.eloPostLocal != null && p.eloPostVisitante != null
   const fav = favoritoFrase(p.eloPreLocal, p.eloPreVisitante)
   const prob = probsElo(p.eloPreLocal, p.eloPreVisitante)
+  const pc = prob ? pct3(prob) : null
   const ctxL = ctxPuesto(p.posPreLocal, p.posPostLocal)
   const ctxV = ctxPuesto(p.posPreVisitante, p.posPostVisitante)
   if (!hayPre && !hayPost && !ctxL && !ctxV) return null
@@ -273,7 +284,7 @@ function PronoCard({ p }: { p: PartidoFicha }) {
     </div>
   )
   return (
-    <section className="prono">
+    <section className="prono gc-prono">
       <div className="prono-k">Pronóstico · probabilidad por ELO</div>
       {hayPre && (
         <div className="prono-elos">
@@ -282,14 +293,18 @@ function PronoCard({ p }: { p: PartidoFicha }) {
           <EscudoBox escudo={p.visitante.escudo} nombre={p.visitante.nombre} size={20} radius={4} />
         </div>
       )}
-      {prob && (<>
-        {/* Barra de probabilidad DERIVADA DEL ELO: local | empate | visitante. La proporción la da la barra; sin % en
-            pantalla (una cifra con decimal se leería como cuota, y descartamos las apuestas). El ancho lleva 2 decimales
-            SOLO en el CSS, nunca visibles. */}
+      {prob && pc && (<>
+        {/* Barra de probabilidad DERIVADA DEL ELO: local | empate | visitante. El ancho lleva 2 decimales SOLO en el
+            CSS (nunca visibles); sobre cada tramo, el % ENTERO (sin decimales, suman 100) — informa sin parecer cuota. */}
         <div className="prono-bar" aria-hidden="true">
           <span className="pb pb-l" style={{ width: `${(prob.l * 100).toFixed(2)}%` }} />
           <span className="pb pb-e" style={{ width: `${(prob.e * 100).toFixed(2)}%` }} />
           <span className="pb pb-v" style={{ width: `${(prob.v * 100).toFixed(2)}%` }} />
+        </div>
+        <div className="prono-barpct">
+          <span style={{ width: `${(prob.l * 100).toFixed(2)}%` }}>{pc[0]}%</span>
+          <span style={{ width: `${(prob.e * 100).toFixed(2)}%` }}>{pc[1]}%</span>
+          <span style={{ width: `${(prob.v * 100).toFixed(2)}%` }}>{pc[2]}%</span>
         </div>
         <div className="prono-barleg"><span>Local</span><span>Empate</span><span>Visitante</span></div>
       </>)}
@@ -305,6 +320,32 @@ function PronoCard({ p }: { p: PartidoFicha }) {
     </section>
   )
 }
+
+// RACHAS — un lado de un concepto (marcando/victorias/invicto). Reutiliza la batería del percentil (.batt): 10 celdas
+// rellenas en proporción al récord (round(act/rec·10)). El número ACTUAL va hacia FUERA (extremo) y "Récord N" hacia
+// el CENTRO (borde interior), enfrentados local↔visitante sin cruzar la vista. Récord igualado (act≥rec) → ámbar +
+// banderín, es noticia. Racha rota (0) → batería vacía + número atenuado: se lee como cero, no como error.
+function RachaLado({ act, rec, side }: { act: number; rec: number; side: 'l' | 'v' }) {
+  const hit = rec > 0 && act >= rec
+  // Racha activa (act>0) -> al menos 1 celda, para no confundir "poco" con "rota" (0). Rota -> 0 celdas.
+  const cells = rec > 0 && act > 0 ? Math.max(1, Math.min(10, Math.round((act / rec) * 10))) : 0
+  const fill = hit ? 'var(--amber)' : side === 'l' ? 'var(--zona-po)' : 'rgb(249,115,22)'
+  const nCls = act === 0 ? 'ra-n zero' : hit ? 'ra-n hit' : `ra-n ${side === 'l' ? 'loc' : 'vis'}`
+  return (
+    <div className={`ra-side ra-${side}`}>
+      <span className={nCls}>{act}</span>
+      <div className="ra-track">
+        <div className="batt ra-batt">{Array.from({ length: 10 }).map((_, i) => <i key={i} style={i < cells ? { background: fill } : undefined} />)}</div>
+        {hit ? <span className="ra-hit">▲ iguala su récord</span> : <span className="ra-rec">Récord <b>{rec}</b></span>}
+      </div>
+    </div>
+  )
+}
+const RACHA_DEFS = [
+  { k: 'Marcando', ic: <Balon size={17} /> },
+  { k: 'Victorias', ic: <Trophy size={16} /> },
+  { k: 'Sin perder', ic: <ShieldCheck size={16} /> },
+] as const
 
 export default function FichaPartidoV2({ p }: { p: PartidoFicha }) {
   const tieneHora = !!p.hora && /^\d{1,2}:\d{2}$/.test(p.hora) && p.hora !== '00:00'   // la RFFM publica la hora la semana del partido
@@ -377,6 +418,10 @@ export default function FichaPartidoV2({ p }: { p: PartidoFicha }) {
               {/* #3/#4 Pronóstico + ELO pre/post + contexto de puesto (tarjeta enfrentada, como el marcador). */}
               <PronoCard p={p} />
 
+              {/* MVP + Efemérides: destacados del partido. Se agrupan en una sola celda (.gc-destacados) para que en
+                  escritorio queden apilados en una columna, emparejados con el Cara a cara. */}
+              {((p.jugado && p.mvp) || p.hitos.length > 0) && (
+                <div className="gc-destacados">
               {/* MVP fantasy — mismo tratamiento que "Top de la plantilla" (fila .pl + rótulo bien visible) */}
               {p.jugado && p.mvp && (
                 <section>
@@ -406,21 +451,24 @@ export default function FichaPartidoV2({ p }: { p: PartidoFicha }) {
                   </div>
                 </section>
               )}
+                </div>
+              )}
 
-              {/* RACHAS — comparación local | etiqueta | visitante (actual + récord), marcando / victorias / invicto. */}
+              {/* RACHAS — una barra (batería del percentil) por concepto, enfrentada local | concepto | visitante.
+                  Actual hacia fuera, récord hacia el centro; récord igualado en ámbar; racha rota (0) vacía. */}
               {(p.formaLocal.length > 0 || p.formaVisitante.length > 0) && (
-                <section>
-                  <SectionHeader title="Rachas" />
+                <section className="gc-rachas">
+                  <SectionHeader title="Rachas" sub="ahora vs récord" />
                   <div className="rachas">
                     {([
-                      ['Marcando', p.rachasLocal.marcandoAct, p.rachasLocal.marcandoRec, p.rachasVisitante.marcandoAct, p.rachasVisitante.marcandoRec],
-                      ['Victorias', p.rachasLocal.victoriasAct, p.rachasLocal.victoriasRec, p.rachasVisitante.victoriasAct, p.rachasVisitante.victoriasRec],
-                      ['Sin perder', p.rachasLocal.invictoAct, p.rachasLocal.invictoRec, p.rachasVisitante.invictoAct, p.rachasVisitante.invictoRec],
-                    ] as const).map(([k, la, lr, va, vr]) => (
-                      <div className="rrow" key={k}>
-                        <span className="rv"><span className="r-cap">ahora</span><b>{la}</b><span className="r-rec">récord {lr}</span></span>
-                        <span className="rk">{k}</span>
-                        <span className="rv rv-v"><span className="r-cap">ahora</span><b>{va}</b><span className="r-rec">récord {vr}</span></span>
+                      [RACHA_DEFS[0], p.rachasLocal.marcandoAct, p.rachasLocal.marcandoRec, p.rachasVisitante.marcandoAct, p.rachasVisitante.marcandoRec],
+                      [RACHA_DEFS[1], p.rachasLocal.victoriasAct, p.rachasLocal.victoriasRec, p.rachasVisitante.victoriasAct, p.rachasVisitante.victoriasRec],
+                      [RACHA_DEFS[2], p.rachasLocal.invictoAct, p.rachasLocal.invictoRec, p.rachasVisitante.invictoAct, p.rachasVisitante.invictoRec],
+                    ] as const).map(([def, la, lr, va, vr]) => (
+                      <div className="rrow" key={def.k}>
+                        <RachaLado act={la} rec={lr} side="l" />
+                        <div className="ra-mid"><span className="ra-ic">{def.ic}</span><span className="ra-k">{def.k}</span></div>
+                        <RachaLado act={va} rec={vr} side="v" />
                       </div>
                     ))}
                   </div>
@@ -429,7 +477,7 @@ export default function FichaPartidoV2({ p }: { p: PartidoFicha }) {
 
               {/* ÚLTIMOS PARTIDOS de cada equipo */}
               {(p.formaLocal.length > 0 || p.formaVisitante.length > 0) && (
-                <section>
+                <section className="gc-ultimos">
                   <SectionHeader title="Últimos partidos" />
                   {/* Dos columnas TAMBIÉN en móvil: cada equipo su forma con la fila compacta (rival + marcador + Δ ELO). */}
                   <div className="forma-2col">
@@ -445,7 +493,7 @@ export default function FichaPartidoV2({ p }: { p: PartidoFicha }) {
           id: 'alineaciones', label: 'Alineaciones',
           show: p.jugado && (p.local.titulares.length > 0 || p.visitante.titulares.length > 0),
           panel: (
-            <section>
+            <section className="gc-alineaciones">
               <SectionHeader title="Alineaciones" />
               <AlineacionesGrid p={p} />
               {/* Leyenda de iconos (misma que la plantilla) para que la ficha se lea igual que las demás. */}
@@ -463,7 +511,7 @@ export default function FichaPartidoV2({ p }: { p: PartidoFicha }) {
         },
         {
           id: 'h2h', label: 'Cara a cara', show: p.h2h.length > 0, panel: (
-            <section>
+            <section className="gc-h2h">
               <SectionHeader title="Cara a cara" />
               {p.h2h.map((m) => <MiniPartido key={m.codacta} m={m} />)}
             </section>

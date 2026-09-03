@@ -29,9 +29,14 @@ export default function PartidoTabs({ tabs }: { tabs: PartidoTab[] }) {
           </div></ScrollRail>
         </div>
       </div>
-      {vis.map((t) => (
-        <div key={t.id} className="ptab-panel" hidden={t.id !== activo}>{t.panel}</div>
-      ))}
+      {/* Envoltorio de los paneles: en móvil es un bloque normal (paneles apilados, toggle por `hidden`); en
+          escritorio (≥1000px) se convierte en la RETÍCULA de widgets en paralelo — la barra de pestañas se oculta
+          y los paneles se "desenvuelven" (display:contents) para que sus bloques sean celdas del grid. Ver ficha.css. */}
+      <div className="ptab-panels">
+        {vis.map((t) => (
+          <div key={t.id} className="ptab-panel" hidden={t.id !== activo}>{t.panel}</div>
+        ))}
+      </div>
     </>
   )
 }

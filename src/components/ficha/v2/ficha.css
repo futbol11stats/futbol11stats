@@ -783,18 +783,41 @@
 .fpv2 .prono-barleg span:nth-child(1){color:var(--zona-po)}
 .fpv2 .prono-barleg span:nth-child(2){color:var(--e1)}
 .fpv2 .prono-barleg span:nth-child(3){color:rgb(249,115,22)}
+/* Porcentaje ENTERO sobre cada tramo (ancho = tramo, centrado). Cifra corta -> cabe aun en tramos estrechos; los
+   rótulos Local/Empate/Visitante siguen en su fila (extremos), como eje. */
+.fpv2 .prono-barpct{display:flex;margin-top:5px;font-family:var(--font-display),sans-serif;font-weight:700;font-size:var(--t-body);font-variant-numeric:tabular-nums}
+.fpv2 .prono-barpct span{text-align:center;white-space:nowrap;min-width:0}
+.fpv2 .prono-barpct span:nth-child(1){color:var(--zona-po)}
+.fpv2 .prono-barpct span:nth-child(2){color:var(--e1)}
+.fpv2 .prono-barpct span:nth-child(3){color:rgb(249,115,22)}
 .fpv2 .prono-note{text-align:center;margin-top:8px;font-size:var(--t-micro);color:var(--ink-4)}
-/* Rachas: comparación local | etiqueta | visitante (actual grande + récord tenue). Marcando / victorias / invicto. */
-.fpv2 .rachas{padding:2px var(--pad) 6px}
-.fpv2 .rrow{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:10px;padding:9px 0;border-top:1px solid var(--line-2)}
+/* Rachas: una barra (batería del percentil, .batt) por concepto, enfrentada local | concepto | visitante. Número
+   ACTUAL hacia FUERA (extremo), "Récord N" hacia el CENTRO (borde interior) -> los dos récords quedan enfrentados y
+   se comparan sin cruzar la vista. Local azul, visitante naranja (mismos identificadores que la barra del pronóstico).
+   Récord igualado -> ámbar + banderín (es noticia); racha rota (0) -> batería vacía + número atenuado (cero, no error). */
+.fpv2 .rachas{padding:2px var(--pad) 8px}
+.fpv2 .rrow{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:12px;padding:11px 0;border-top:1px solid var(--line-2)}
 .fpv2 .rrow:first-child{border-top:0}
-.fpv2 .rk{font-family:var(--font-display),sans-serif;font-size:var(--t-cap);text-transform:uppercase;letter-spacing:.04em;color:var(--ink-2);font-weight:700;text-align:center;min-width:82px}
-/* Cada lado es un mini-stat vertical, auto-explicativo: "ahora" (racha en curso) · número grande · "récord N". */
-.fpv2 .rv{display:flex;flex-direction:column;line-height:1.08;min-width:0}
-.fpv2 .rv .r-cap{font-size:var(--t-micro);text-transform:uppercase;letter-spacing:.05em;color:var(--ink-4);font-weight:600}
-.fpv2 .rv b{font-family:var(--font-display),sans-serif;font-weight:700;font-size:var(--n-sm);color:var(--ink);font-variant-numeric:tabular-nums}
-.fpv2 .rv .r-rec{font-size:var(--t-micro);color:var(--ink-3);white-space:nowrap}
-.fpv2 .rv-v{align-items:flex-end;text-align:right}
+.fpv2 .ra-mid{display:flex;flex-direction:column;align-items:center;gap:2px;min-width:74px}
+.fpv2 .ra-ic{display:inline-flex;color:var(--ink-2)}
+.fpv2 .ra-k{font-family:var(--font-display),sans-serif;font-size:var(--t-cap);text-transform:uppercase;letter-spacing:.04em;color:var(--ink-2);font-weight:700;text-align:center;line-height:1.05}
+.fpv2 .ra-side{display:flex;align-items:center;gap:10px;min-width:0}
+.fpv2 .ra-l{flex-direction:row}           /* número (fuera) | track (récord hacia el centro) */
+.fpv2 .ra-v{flex-direction:row-reverse}   /* track (récord hacia el centro) | número (fuera) */
+.fpv2 .ra-n{font-family:var(--font-display),sans-serif;font-weight:700;font-size:var(--n-md);line-height:.9;font-variant-numeric:tabular-nums;flex:none}
+.fpv2 .ra-n.loc{color:var(--zona-po)}
+.fpv2 .ra-n.vis{color:rgb(249,115,22)}
+.fpv2 .ra-n.zero{color:var(--ink-4)}
+.fpv2 .ra-n.hit{color:var(--amber)}
+.fpv2 .ra-track{flex:1;min-width:0;display:flex;flex-direction:column;gap:5px}
+.fpv2 .ra-batt{display:flex;gap:2px}
+.fpv2 .ra-batt i{height:9px;flex:1;border-radius:2px;background:rgba(255,255,255,.1)}
+.fpv2 .ra-v .ra-batt{flex-direction:row-reverse}   /* visitante: rellena desde su número (derecha) hacia el centro */
+.fpv2 .ra-rec{font-size:var(--t-micro);color:var(--ink-3);white-space:nowrap;text-align:right}   /* local: récord al borde interior */
+.fpv2 .ra-rec b{color:var(--ink-2);font-weight:600}
+.fpv2 .ra-v .ra-rec{text-align:left}   /* visitante: récord al borde interior */
+.fpv2 .ra-hit{font-size:var(--t-micro);font-weight:700;letter-spacing:.02em;color:#08111f;background:var(--amber);border-radius:4px;padding:1px 6px;white-space:nowrap;align-self:flex-end}
+.fpv2 .ra-v .ra-hit{align-self:flex-start}
 /* Forma reciente: dos columnas (una por equipo) TAMBIÉN en móvil, con fila compacta rival+marcador+Δ ELO. */
 .fpv2 .forma-2col{display:grid;grid-template-columns:1fr 1fr}
 .fpv2 .forma-2col .forma-col{min-width:0}   /* imprescindible: si no, la track se expande al nombre y desborda */
@@ -825,6 +848,31 @@
 .fpv2 .ptabs .verrail button{appearance:none;background:none;border:0;border-bottom:2px solid transparent;padding:9px 12px;font-family:var(--font-display),sans-serif;font-size:var(--t-lead);font-weight:600;letter-spacing:.04em;color:var(--ink-3);white-space:nowrap;cursor:pointer}
 .fpv2 .ptabs .verrail button.on{color:var(--ink);border-bottom-color:var(--e3)}
 .fpv2 .ptab-panel[hidden]{display:none}
+/* ESCRITORIO — widgets en paralelo. Las pestañas son SOLO de móvil: en ≥1000px se ocultan y los tres paneles se
+   "desenvuelven" (display:contents, ignorando [hidden]) para que sus bloques sean celdas de una RETÍCULA de 2 columnas
+   dentro del cap de 1160. El contenido ya viaja entero en el HTML (patrón SEO), así que mostrarlo todo a la vez no
+   cuesta nada. Hairlines por el truco del gap (1px) sobre fondo line-2 con celdas opacas. Colocación por `order`:
+   pronóstico+rachas conviven (fila 1); Últimos partidos a ancho completo; destacados (MVP+efemérides)+cara a cara
+   emparejan; alineaciones a ancho completo al final. */
+@media(min-width:1000px){
+  .fpv2 .ptabs{display:none}
+  .fpv2 .ptab-panel,.fpv2 .ptab-panel[hidden]{display:contents}
+  .fpv2 .ptab-panels{display:grid;grid-template-columns:1.32fr 1fr;gap:1px;background:var(--line-2)}
+  /* Las celdas del grid son los hijos de cada panel (los paneles son display:contents) -> celdas OPACAS para que
+     el fondo line-2 del contenedor solo asome en el gap de 1px (hairlines). */
+  .fpv2 .ptab-panels .ptab-panel > *{background:var(--pitch-900);min-width:0}
+  .fpv2 .ptab-panels .ptab-panel > section{border-bottom:0}
+  /* El pronóstico conserva su tarjeta: gradiente OPACO (acaba en pitch-900, no en transparent) para no dejar ver
+     el hairline bajo la tarjeta. */
+  .fpv2 .ptab-panels .gc-prono{background:linear-gradient(180deg,var(--pitch-800),var(--pitch-900))}
+  .fpv2 .gc-prono{order:1}
+  .fpv2 .gc-rachas{order:2}
+  .fpv2 .gc-ultimos{order:3;grid-column:1 / -1}
+  .fpv2 .gc-destacados{order:4;display:flex;flex-direction:column}
+  .fpv2 .gc-destacados > section:last-child{border-bottom:0}
+  .fpv2 .gc-h2h{order:5}
+  .fpv2 .gc-alineaciones{order:6;grid-column:1 / -1}
+}
 @media(max-width:999px){
   .fpv2 .forma-2col .match-compact{padding-left:7px;padding-right:7px;gap:5px}
   .fpv2 .forma-2col .forma-h{padding-left:7px;padding-right:7px}
