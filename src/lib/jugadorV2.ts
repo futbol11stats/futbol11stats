@@ -90,7 +90,7 @@ export async function getHitosV2(cod: string): Promise<HitoRow[]> {
   return cacheJugador(async () => {
     const { data } = await supabase.from('web_jugador_hitos').select(COLS_HITOS).eq('codjugador', cod)
     return (data || []) as unknown as HitoRow[]
-  }, ['getHitosV2', cod], cod)
+  }, ['getHitosV2', 'v2-rival', cod], cod)   // v2-rival: +rival_cod/nombre/escudo/resultado (bump: columnas nuevas)
 }
 
 // Alerta disciplinaria MÁS RECIENTE del jugador (web_alertas_tarjetas es por jornada). Null si no hay.

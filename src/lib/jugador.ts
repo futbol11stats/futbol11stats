@@ -92,7 +92,7 @@ export const COLS_CARRERA =
 
 export const COLS_HITOS =
   'tipo_hito, ambito, fecha, codacta, codtemporada, contexto_cod, contexto_nombre, escudo, ' +
-  'categoria_rama, categoria_nivel, detalle, valor'
+  'categoria_rama, categoria_nivel, detalle, valor, rival_cod, rival_nombre, rival_escudo, resultado'
 
 export const COLS_ACTUACIONES =
   'rank, codacta, fecha, codtemporada, codequipo, equipo_nombre, escudo, rival_cod, rival_nombre, ' +
@@ -188,6 +188,12 @@ export type HitoRow = {
   categoria_nivel: number | null
   detalle: string | null
   valor: number | null
+  // Rival del hito (mayor_goleada…): campos propios del pipeline. Si rival_cod != null, detalle es null y la
+  // frase se compone aquí ("vs {rival} {resultado}", rival por NombreEquipo+escudo). rival_nombre va CRUDO.
+  rival_cod: string | null
+  rival_nombre: string | null
+  rival_escudo: string | null
+  resultado: string | null
 }
 
 // Pastilla de posición: color por demarcación (spec v3). Guion gris si no hay posición.

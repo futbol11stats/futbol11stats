@@ -275,9 +275,9 @@ export async function getMovimientosEquipo(cod: string) {
 }
 export async function getHitosEquipo(cod: string) {
   return cacheEquipo(async () => {
-    const { data } = await supabase.from('web_equipo_hitos').select('tipo_hito, fecha, codtemporada, detalle, valor').eq('codequipo', String(cod))
+    const { data } = await supabase.from('web_equipo_hitos').select('tipo_hito, fecha, codtemporada, detalle, valor, rival_cod, rival_nombre, rival_escudo, resultado').eq('codequipo', String(cod))
     return (data || []) as any[]
-  }, ['getHitosEquipo', cod], cod)
+  }, ['getHitosEquipo', 'v2-rival', cod], cod)   // v2-rival: +campos de rival (bump: columnas nuevas)
 }
 
 // Media de fantasy y ELO de cierre POR temporada (para las tarjetas de Temporadas). Una query: todas las

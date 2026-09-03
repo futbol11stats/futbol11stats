@@ -4,6 +4,7 @@ import { MapPin, CalendarPlus } from 'lucide-react'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import EscudoBox from '@/components/ficha/v2/EscudoBox'
+import HitoRival from '@/components/ficha/v2/HitoRival'
 import Sello from '@/components/Sello'
 import Pastilla from '@/components/Pastilla'
 import NombreEquipo from '@/components/NombreEquipo'
@@ -761,7 +762,7 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
                     <div className="hito" key={i}>
                       <div className="h-dot" />
                       <div>
-                        <div className="h-t">{texto}{ctx ? <span style={{ color: 'var(--ink-3)' }}> · {ctx}</span> : ''}</div>
+                        <div className="h-t">{texto}{h.rival_cod != null && <HitoRival cod={h.rival_cod} nombre={h.rival_nombre} escudo={h.rival_escudo} resultado={h.resultado} />}{ctx ? <span style={{ color: 'var(--ink-3)' }}> · {ctx}</span> : ''}</div>
                         {meta && <div className="h-m">{meta}</div>}
                       </div>
                     </div>

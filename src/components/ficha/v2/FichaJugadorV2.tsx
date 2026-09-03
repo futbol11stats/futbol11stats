@@ -38,6 +38,7 @@ import {
 import { nombreCompleto, nombreEquipo } from '@/lib/nombre'
 import { CORTES_FIJOS } from '@/lib/escala'
 import MatchRow from '@/components/ficha/v2/MatchRow'
+import HitoRival from '@/components/ficha/v2/HitoRival'
 import { partidoSlug } from '@/lib/partidoSlug'
 import Badge11 from '@/components/ui/Badge11'
 import SectionHeader from '@/components/ui/SectionHeader'
@@ -674,7 +675,7 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
                   <div className="hito" key={i}>
                     <div className="h-dot" />
                     <div>
-                      <div className="h-t">{texto}{h.contexto_nombre ? <span style={{ color: 'var(--ink-3)' }}> · {nombreEquipo(h.contexto_nombre)}</span> : ''}</div>
+                      <div className="h-t">{texto}{h.rival_cod != null && <HitoRival cod={h.rival_cod} nombre={h.rival_nombre} escudo={h.rival_escudo} resultado={h.resultado} />}{h.contexto_nombre ? <span style={{ color: 'var(--ink-3)' }}> · {nombreEquipo(h.contexto_nombre)}</span> : ''}</div>
                       <div className="h-m">{fechaCorta(h.fecha)}{edad != null && edad > 0 ? <> · <span className="h-age">{edad} años</span></> : ''}</div>
                     </div>
                   </div>
