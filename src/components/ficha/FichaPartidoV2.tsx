@@ -18,6 +18,7 @@ import PlayerRow from '@/components/ui/PlayerRow'
 import SectionHeader from '@/components/ui/SectionHeader'
 import PartidoTabs from '@/components/ficha/PartidoTabs'
 import PlayerAvatar from '@/components/ui/PlayerAvatar'
+import FormaStrip from '@/components/ui/FormaStrip'
 import { colorFan } from '@/lib/equipoV2'
 import type { PartidoFicha, PartidoJugador, PartidoMini, PartidoLado } from '@/lib/partido'
 // Fondo de la pastilla de PUNTOS fantasy (baza propia; verde para lo bueno, el ámbar está reservado).
@@ -70,15 +71,18 @@ function Fila({ j }: { j: PartidoJugador }) {
   )
 }
 
+// Forma reciente junto al nombre del equipo: la tira ÚNICA del sitio (FormaStrip, cuadrito con letra G/E/P),
+// la MISMA que la clasificación — no dots sueltos. Más reciente a la derecha (reverse: los minis vienen DESC).
 function FormaDots({ nombre, minis }: { nombre: string; minis: PartidoMini[] }) {
   if (!minis.length) return null
-  const dots = minis.slice(0, 5).map((m) => {
+  const arr = minis.slice(0, 5).map((m) => {
     const home = m.local === nombre
     const gf = home ? (m.golesLocal ?? 0) : (m.golesVisitante ?? 0)
     const gc = home ? (m.golesVisitante ?? 0) : (m.golesLocal ?? 0)
-    return gf > gc ? 'var(--e3)' : gf < gc ? 'var(--e0)' : 'var(--ink-3)'
+    const s: 'G' | 'E' | 'P' = gf > gc ? 'G' : gf < gc ? 'P' : 'E'
+    return { s, t: `${gf}-${gc}` }
   }).reverse()
-  return <span className="cracha" title="Últimos resultados">{dots.map((c, i) => <i key={i} style={{ background: c }} />)}</span>
+  return <FormaStrip items={arr.map((x) => x.s)} titles={arr.map((x) => x.t)} size={15} gap={3} />
 }
 
 // #1 Cuerpo técnico: solo hay ENTRENADOR en el dato. Fila estilo .pl con pastilla de rol; el día que el pipeline
