@@ -641,14 +641,16 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
                 // Enlace a la ficha del PARTIDO (antes iba al equipo rival). local/visitante según de qué lado jugó.
                 const local = a.es_local ? a.equipo_nombre : a.rival_nombre
                 const visitante = a.es_local ? a.rival_nombre : a.equipo_nombre
-                // "Mejores actuaciones" es de TODAS las temporadas: la fecha día·mes no dice de qué año es.
-                // Se muestra jornada · temporada ("J23 · 2025-26"), que ubica mejor y ocupa lo mismo.
+                // Referencia COMPLETA (de todas las temporadas): fecha con AÑO · jornada · temporada
+                // ("7 jun 2025 · J23 · 2025-26"). El año de la fecha resuelve la ambigüedad que antes hizo
+                // quitarla; la fecha es información y no se renuncia a ella.
                 const jlbl = a.ronda_label || (a.jornada != null ? `J${a.jornada}` : '')
                 const tlbl = a.codtemporada != null ? tempLabel(a.codtemporada) : ''
                 return (
                   <MatchRow key={i}
                     marcador={marcador} signo={(signo || null) as 'G' | 'E' | 'P' | null}
                     rivalEscudo={a.rival_escudo} rivalNombre={a.rival_nombre} rivalCod={a.rival_cod} esLocal={a.es_local}
+                    fecha={a.fecha}
                     etiqueta={[jlbl, tlbl].filter(Boolean).join(' · ') || undefined}
                     goles={a.goles ?? 0}
                     pts={a.pts != null ? Math.round(a.pts) : null} ptsBg={a.pts != null ? cPts(Math.round(a.pts)) : undefined}

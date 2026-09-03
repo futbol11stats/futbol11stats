@@ -76,14 +76,14 @@ export async function getActuacionesV2(cod: string): Promise<any[]> {
     // se cruza por codacta para poder mostrarlos. Ver punto 10.
     const codactas = rows.map((a) => a.codacta).filter(Boolean)
     if (codactas.length) {
-      const { data } = await supabase.from('web_jugador_partidos').select('codacta, jornada, minutos, ronda_label')
+      const { data } = await supabase.from('web_jugador_partidos').select('codacta, jornada, minutos, ronda_label, fecha')
         .eq('codjugador', cod).in('codacta', codactas)
-      const m = new Map<string, { jornada: number | null; minutos: number | null; ronda_label: string | null }>()
-      for (const p of (data || []) as any[]) m.set(String(p.codacta), { jornada: p.jornada, minutos: p.minutos, ronda_label: p.ronda_label ?? null })
-      for (const a of rows) { const e = m.get(String(a.codacta)); if (e) { a.jornada = e.jornada; a.minutos = e.minutos; a.ronda_label = e.ronda_label } }
+      const m = new Map<string, { jornada: number | null; minutos: number | null; ronda_label: string | null; fecha: string | null }>()
+      for (const p of (data || []) as any[]) m.set(String(p.codacta), { jornada: p.jornada, minutos: p.minutos, ronda_label: p.ronda_label ?? null, fecha: p.fecha ?? null })
+      for (const a of rows) { const e = m.get(String(a.codacta)); if (e) { a.jornada = e.jornada; a.minutos = e.minutos; a.ronda_label = e.ronda_label; a.fecha = e.fecha } }
     }
     return rows
-  }, ['getActuacionesV2', 'copa-fc', cod], cod)   // copa-fc: resultado ya favor-contra en TODAS las superficies
+  }, ['getActuacionesV2', 'copa-fc-fecha', cod], cod)   // copa-fc: resultado favor-contra; -fecha: +fecha al cruce (bump caché)
 }
 
 export async function getHitosV2(cod: string): Promise<HitoRow[]> {

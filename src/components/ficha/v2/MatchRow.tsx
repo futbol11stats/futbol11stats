@@ -35,9 +35,11 @@ export type MatchRowProps = {
 }
 
 const MESES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic']
+// Fecha COMPLETA: día + mes + año. El año es parte de la referencia (una temporada cruza dos años; en
+// listas de varias temporadas el día·mes solo no ubica el año). Formato "7 jun 2025".
 const fechaCortaDMY = (f: string | null | undefined): string => {
-  const m = f ? /^(\d{2})\/(\d{2})\/\d{4}$/.exec(f) : null
-  return m ? `${parseInt(m[1], 10)} ${MESES[parseInt(m[2], 10) - 1] ?? ''}`.trim() : (f || '')
+  const m = f ? /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(f) : null
+  return m ? `${parseInt(m[1], 10)} ${MESES[parseInt(m[2], 10) - 1] ?? ''} ${m[3]}`.trim() : (f || '')
 }
 
 function Cuerpo(p: MatchRowProps) {
