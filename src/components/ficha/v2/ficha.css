@@ -842,7 +842,8 @@
 .fpv2 a.mini-link{display:block;text-decoration:none}
 .fpv2 a.mini-link:hover .rmatch .rnm{color:var(--ink)}
 /* Suscripción del calendario del equipo (hero): la frase completa es el enlace. */
-.fjv2 a.cal-follow{display:inline-flex;align-items:center;gap:5px;margin-top:6px;font-size:var(--t-cap);color:var(--ink-2);text-decoration:none;font-weight:600}
+/* Calendario a SU PROPIA línea, separado del campo (antes iban inline, pegados). */
+.fjv2 a.cal-follow{display:flex;width:fit-content;align-items:center;gap:5px;margin-top:8px;font-size:var(--t-cap);color:var(--ink-2);text-decoration:none;font-weight:600}
 .fjv2 a.cal-follow:hover{color:var(--ink)}
 
 /* Trayectoria v2: la tabla de partidos en ScrollRail. La caja (borde/fondo/redondeo) va en el wrap; el

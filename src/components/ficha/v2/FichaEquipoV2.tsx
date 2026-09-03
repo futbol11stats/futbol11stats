@@ -158,12 +158,13 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
   const hayOcultos = plantilla.length > starterIds.size
 
   // Fila de datos bajo el nombre (mismo lenguaje que Totales de jugador): PJ · Min · Goles (o P.a cero para
-  // porteros), iconos en vez de etiquetas; tarjetas (TA/2TA/TR) solo cuando las hay, para que quepa.
+  // porteros). PJ va como SIGLA (no icono: el escudo significa equipo/rival, no partidos jugados); Min/Goles
+  // con su icono. Tarjetas (TA/2TA/TR) solo cuando las hay, para que quepa.
   const filaDatos = (p: PlantillaEqRow) => (
     <div className="pl-stats">
       {/* PJ y minutos SIEMPRE (un jugador de la plantilla ha jugado; el 0 ahí es información). El resto son
           "hizo/no hizo": se omiten a cero (goles, porterías a cero, tarjetas), como en las fichas solo-copa. */}
-      <span>{fmtNum(p.pj)}<Escudo size={11} /></span>
+      <span>{fmtNum(p.pj)}<span style={{ fontSize: 'var(--t-micro)', color: 'var(--ink-4)', marginLeft: 2 }}>PJ</span></span>
       <span>{fmtNum(p.minutos)}<Reloj size={11} /></span>
       {p.portero
         ? (p.porteriasCero ?? 0) > 0 && <span>{fmtNum(p.porteriasCero)}<span style={{ color: 'var(--amber)', display: 'inline-flex' }}><Guante size={11} /></span></span>
@@ -704,7 +705,6 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
               {hayOcultos && <label htmlFor="pl-open-eq" className="btn pl-open-btn" />}
               {/* Leyenda de los iconos de la fila de datos de cada jugador. */}
               <div className="pl-ley">
-                <span className="lg-item"><Escudo size={11} />PJ</span>
                 <span className="lg-item"><Reloj size={11} />Min</span>
                 <span className="lg-item"><span style={{ color: 'var(--e3)', display: 'inline-flex' }}><Balon size={11} /></span>Goles</span>
                 <span className="lg-item"><span style={{ color: 'var(--amber)', display: 'inline-flex' }}><Guante size={11} /></span>P. a cero</span>

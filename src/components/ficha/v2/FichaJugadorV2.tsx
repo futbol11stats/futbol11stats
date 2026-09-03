@@ -626,7 +626,7 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
                 {/* #7 Reparto titular/suplente y minutos totales de la carrera (web_jugador.*_total, LIGA) -> fuera en solo-copa. */}
                 {!esSoloCopa && (j.titular_total != null || j.suplente_total != null) && (
                   <p className="tray-note">
-                    <b>{fmtNum(j.titular_total)}</b> como titular · <b>{fmtNum(j.suplente_total)}</b> como suplente
+                    <b>{fmtNum((j.titular_total ?? 0) + (j.suplente_total ?? 0))}</b> PJ · <b>{fmtNum(j.titular_total)}</b> como titular · <b>{fmtNum(j.suplente_total)}</b> como suplente
                     {portero ? '' : <> · <b>{fmtNum(j.minutos_total)}</b> minutos</>}
                   </p>
                 )}
