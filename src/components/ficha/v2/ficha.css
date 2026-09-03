@@ -805,7 +805,14 @@
 .fpv2 .match-compact{gap:7px;padding:8px 10px}
 .fpv2 .match-compact .m-score{width:auto;min-width:30px;font-size:var(--t-lead)}
 .fpv2 .match-compact .m-riv{font-size:var(--t-cap)}
-.fpv2 .match-compact .m-meta{gap:5px;margin-top:1px;font-size:var(--t-micro)}
+/* Meta compacta (forma del partido, 2 columnas): tope de DOS líneas. line-height uniforme (18px) para que la
+   3ª línea empiece EXACTAMENTE en 36px y overflow:hidden la oculte ENTERA, sin sliver ni corte a mitad de chip
+   (flex-wrap envuelve chips completos). Con el orden de prioridad de los chips, lo que rara vez se recorta es
+   lo deducible del marcador (goles, P0). Solo afecta a .match-compact; la meta a ancho completo (Últimos
+   partidos del equipo) NO lleva tope y sigue en una línea. */
+.fpv2 .match-compact .m-meta{gap:5px;margin-top:1px;font-size:var(--t-micro);line-height:18px;max-height:36px;overflow:hidden;align-content:flex-start}
+.fpv2 .match-compact .m-meta > *{line-height:18px}
+.fpv2 .match-compact .m-meta svg{display:block}
 .fpv2 .match-compact .m-pts{font-size:var(--t-cap);padding:3px 7px;border-radius:5px}
 .fpv2 .match-compact .m-elo{width:auto;min-width:24px;font-size:var(--t-cap)}
 @media(max-width:999px){
