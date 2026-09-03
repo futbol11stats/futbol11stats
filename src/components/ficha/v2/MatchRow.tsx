@@ -53,13 +53,15 @@ function Cuerpo(p: MatchRowProps) {
         <div className="m-meta">
           {p.esLocal != null && <IndicadorLocal esLocal={p.esLocal} />}
           {(p.fecha || p.etiqueta) && <span>{[fechaCortaDMY(p.fecha), p.etiqueta].filter(Boolean).map((x, i) => <span key={i}>{i > 0 ? ' · ' : ''}{x}</span>)}</span>}
+          {/* Eventos por PRIORIDAD (lo primero, lo que más aporta): roja · doble · amarilla · goles · min · P0.
+              Goles y P0 al final: se DEDUCEN del marcador (ya en la fila); las tarjetas no tienen otra fuente
+              aquí, así que van delante. Si la línea envuelve, lo deducible es lo que queda abajo/al final. */}
+          {(p.tr ?? 0) > 0 && <span title="Rojas" style={{ display: 'inline-flex', alignItems: 'center', gap: 2, color: 'var(--card-r)' }}><TarjetaRoja size={11} />{(p.tr as number) > 1 ? `×${p.tr}` : ''}</span>}
+          {(p.td ?? 0) > 0 && <span title="Dobles amarillas" style={{ display: 'inline-flex', alignItems: 'center', gap: 2, color: 'var(--card-y)' }}><TarjetaDoble size={12} />{(p.td as number) > 1 ? `×${p.td}` : ''}</span>}
+          {(p.ta ?? 0) > 0 && <span title="Amarillas" style={{ display: 'inline-flex', alignItems: 'center', gap: 2, color: 'var(--card-y)' }}><TarjetaAmarilla size={11} />{(p.ta as number) > 1 ? `×${p.ta}` : ''}</span>}
           {(p.goles ?? 0) > 0 && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 2, color: 'var(--e4)' }}><Balon size={12} />{(p.goles as number) > 1 ? `×${p.goles}` : ''}</span>}
           {p.minutos != null && <span>{p.minutos}&#39;</span>}
-          {/* Eventos de equipo (Últimos partidos): P0 (guante ámbar, como la plantilla) + tarjetas (icono propio + ×N). */}
           {p.p0 && <span title="Portería a cero" style={{ display: 'inline-flex', alignItems: 'center', color: 'var(--amber)' }}><Guante size={12} /></span>}
-          {(p.ta ?? 0) > 0 && <span title="Amarillas" style={{ display: 'inline-flex', alignItems: 'center', gap: 2, color: 'var(--card-y)' }}><TarjetaAmarilla size={11} />{(p.ta as number) > 1 ? `×${p.ta}` : ''}</span>}
-          {(p.td ?? 0) > 0 && <span title="Dobles amarillas" style={{ display: 'inline-flex', alignItems: 'center', gap: 2, color: 'var(--card-y)' }}><TarjetaDoble size={12} />{(p.td as number) > 1 ? `×${p.td}` : ''}</span>}
-          {(p.tr ?? 0) > 0 && <span title="Rojas" style={{ display: 'inline-flex', alignItems: 'center', gap: 2, color: 'var(--card-r)' }}><TarjetaRoja size={11} />{(p.tr as number) > 1 ? `×${p.tr}` : ''}</span>}
         </div>
       </div>
       {/* Puntos PRIMERO, ELO DESPUÉS (orden unificado en todo el sitio). */}
