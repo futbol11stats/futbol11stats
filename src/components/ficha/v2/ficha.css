@@ -743,12 +743,16 @@
 .fpv2 .mmeta .campo-sup{color:var(--ink-4)}
 .fpv2 .mteam .cracha{width:auto;justify-content:center;padding:0}
 .fpv2 .mmid .pill{margin-top:1px}
+/* Forma del hero: el tamaño del cuadro RESPONDE al dispositivo (variable --fs-size que lee FormaStrip), como el
+   resto de la escala; pequeño en móvil, grande en escritorio. No es un valor fijo en línea. */
+.fpv2 .forma-hero{--fs-size:16px}
 /* #7 Jerarquía del hero en ESCRITORIO: lo relevante (nombres de equipo, competición, Forma) crece; lo secundario
    (fecha, campo, árbitros) se reduce. En móvil se queda como está (ahí la jerarquía ya funcionaba). */
 @media(min-width:1000px){
   .fpv2 .mhero .over{font-size:var(--t-lead)}
   .fpv2 .mteam .tn{font-size:var(--h-sec)}
   .fpv2 .mmeta{font-size:var(--t-micro)}
+  .fpv2 .forma-hero{--fs-size:26px}
 }
 .fpv2 .cal-wrap{display:flex;justify-content:center;margin-top:13px}
 .fpv2 .cal-btn{display:inline-flex;align-items:center;gap:7px;padding:8px 14px;border-radius:9px;font-family:var(--font-display),sans-serif;font-weight:600;font-size:var(--t-body);
@@ -893,8 +897,9 @@
    y marcador algo menores para caber; en móvil pasa a una columna (más abajo) a tamaño normal. */
 .fpv2 .forma-2col .match-hb{padding:9px 12px}
 .fpv2 .forma-2col .mh-top{gap:8px}
-.fpv2 .forma-2col .mh-nm{font-size:var(--t-cap)}
-.fpv2 .forma-2col .mh-sc{font-size:var(--t-lead)}
+/* #2 Nombre y marcador al MISMO tamaño que el resto de usos de MatchRow (base --t-lead / --n-sm): en escritorio las
+   dos columnas de "Últimos partidos" son anchas (~580px), así que NO hace falta encogerlos -> quedan iguales que
+   "Cara a cara" y las demás superficies. El móvil ya usaba el tamaño base (ver @media max-width:999px). */
 .fpv2 .forma-2col .mh-meta{margin-top:5px}
 
 /* Pestañas de la ficha de PARTIDO (Resumen / Alineaciones / Cara a cara): MISMO tratamiento que las de

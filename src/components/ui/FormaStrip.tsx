@@ -9,22 +9,27 @@ const SIG: Record<string, 'G' | 'E' | 'P'> = { '🟢': 'G', '🟡': 'E', '🔴':
 const COL: Record<'G' | 'E' | 'P', string> = { G: 'var(--e3)', E: 'var(--ink-3)', P: 'var(--e0)' }
 
 export default function FormaStrip({
-  items, size = 18, gap = 3, titles,
+  items, size = 18, gap = 3, titles, className,
 }: {
   items: readonly string[]
   size?: number
   gap?: number
   titles?: readonly (string | undefined)[]
+  className?: string   // permite que el TAMAÑO responda al dispositivo por CSS: fija --fs-size en un media query
 }) {
   if (!items?.length) return null
+  // El lado del cuadro sale de la variable CSS --fs-size (si un contenedor la define, p. ej. por breakpoint) y cae
+  // al `size` en píxeles si nadie la fija -> los usos con tamaño fijo (clasificación) siguen igual, y el hero puede
+  // crecer en escritorio sin valores en línea que el CSS no pueda pisar. Radio y tipografía escalan con el lado.
+  const sz = `var(--fs-size, ${size}px)`
   const chip: CSSProperties = {
-    width: size, height: size, borderRadius: Math.max(3, Math.round(size * 0.27)),
+    width: sz, height: sz, borderRadius: `max(3px, calc(${sz} * 0.27))`,
     display: 'grid', placeItems: 'center', flex: 'none',
     fontFamily: 'var(--font-display), "Barlow Condensed", sans-serif', fontWeight: 700,
-    fontSize: Math.max(9, Math.round(size * 0.55)), lineHeight: 1, color: '#0a1628',
+    fontSize: `max(9px, calc(${sz} * 0.55))`, lineHeight: 1, color: '#0a1628',
   }
   return (
-    <span style={{ display: 'inline-flex', gap, alignItems: 'center' }}>
+    <span className={className} style={{ display: 'inline-flex', gap, alignItems: 'center' }}>
       {items.map((raw, i) => {
         const s = SIG[raw]
         if (!s) return null

@@ -82,7 +82,7 @@ function FormaDots({ nombre, minis }: { nombre: string; minis: PartidoMini[] }) 
     const s: 'G' | 'E' | 'P' = gf > gc ? 'G' : gf < gc ? 'P' : 'E'
     return { s, t: `${gf}-${gc}` }
   }).reverse()
-  return <FormaStrip items={arr.map((x) => x.s)} titles={arr.map((x) => x.t)} size={18} gap={3} />
+  return <FormaStrip className="forma-hero" items={arr.map((x) => x.s)} titles={arr.map((x) => x.t)} size={16} gap={4} />
 }
 
 // #1 Cuerpo técnico: solo hay ENTRENADOR en el dato. Fila estilo .pl con pastilla de rol; el día que el pipeline
