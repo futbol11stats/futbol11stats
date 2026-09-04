@@ -318,9 +318,11 @@ export async function getPartido(codacta: string): Promise<PartidoFicha | null> 
     // FORMA de la ficha de partido: además del ΔELO, el FANTASY del equipo por partido (suma de los puntos de sus
     // jugadores en ese acta) y el nombre de la COMPETICIÓN (contexto liga/copa). Dos consultas baratas y por índice
     // (`codacta` y `codgrupo`), acotadas a las ~10 actas / pocos grupos de las dos formas — no engordan el coste.
+    const h2hBase = h2h.filter(actaEq).slice(0, 5)
     const formaMinis = [...formaLbase, ...formaVbase]
     const formaActas = Array.from(new Set(formaMinis.map((m) => m.codacta)))
-    const formaGrupos = Array.from(new Set(formaMinis.map((m) => m.codgrupo).filter(Boolean))) as string[]
+    // El nombre de la competición se resuelve para la forma Y para el Cara a cara (H2H lo pedía expresamente).
+    const formaGrupos = Array.from(new Set([...formaMinis, ...h2hBase].map((m) => m.codgrupo).filter(Boolean))) as string[]
     const [fanRaw, grpRaw] = await Promise.all([
       formaActas.length
         ? supabase.from('web_jugador_partidos').select('codacta, codequipo, puntos, amarillas, dobles_amarilla, rojas').in('codacta', formaActas)
@@ -366,7 +368,7 @@ export async function getPartido(codacta: string): Promise<PartidoFicha | null> 
       formaVisitante: conElo(formaVbase, codeqV),
       rachasLocal: rachasDe(codeqL, histL.filter(actaEq)),
       rachasVisitante: rachasDe(codeqV, histV.filter(actaEq)),
-      h2h: h2h.filter(actaEq).slice(0, 5),
+      h2h: h2hBase.map((m) => ({ ...m, compNombre: m.codgrupo ? (grpMap.get(String(m.codgrupo)) ?? null) : null })),
       arbitros, entrenadorLocal: entMap.get(codeqL) ?? null, entrenadorVisitante: entMap.get(codeqV) ?? null,
       eloPreLocal, eloPreVisitante,
       eloPostLocal, eloPostVisitante,

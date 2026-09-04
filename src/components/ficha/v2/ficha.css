@@ -743,6 +743,13 @@
 .fpv2 .mmeta .campo-sup{color:var(--ink-4)}
 .fpv2 .mteam .cracha{width:auto;justify-content:center;padding:0}
 .fpv2 .mmid .pill{margin-top:1px}
+/* #7 Jerarquía del hero en ESCRITORIO: lo relevante (nombres de equipo, competición, Forma) crece; lo secundario
+   (fecha, campo, árbitros) se reduce. En móvil se queda como está (ahí la jerarquía ya funcionaba). */
+@media(min-width:1000px){
+  .fpv2 .mhero .over{font-size:var(--t-lead)}
+  .fpv2 .mteam .tn{font-size:var(--h-sec)}
+  .fpv2 .mmeta{font-size:var(--t-micro)}
+}
 .fpv2 .cal-wrap{display:flex;justify-content:center;margin-top:13px}
 .fpv2 .cal-btn{display:inline-flex;align-items:center;gap:7px;padding:8px 14px;border-radius:9px;font-family:var(--font-display),sans-serif;font-weight:600;font-size:var(--t-body);
   color:#a8f2bd;border:1px solid rgba(140,239,165,.34);background:rgba(140,239,165,.1);text-decoration:none;cursor:pointer}
@@ -805,12 +812,17 @@
 .fpv2 .prono-fav{text-align:center;margin-top:6px;font-family:var(--font-display),sans-serif;font-size:var(--t-body);color:var(--ink-2)}
 .fpv2 .prono-fav b{color:var(--ink);font-weight:700}
 .fpv2 .prono-fav b a{color:inherit;text-decoration:none}
-.fpv2 .prono-div{display:flex;align-items:center;gap:8px;margin:9px 0 7px;font-size:var(--t-micro);letter-spacing:.06em;text-transform:uppercase;color:var(--ink-4)}
+.fpv2 .prono-div{display:flex;align-items:center;gap:8px;margin:9px 0 7px;font-size:var(--t-micro);letter-spacing:.09em;text-transform:uppercase;color:var(--ink-3);font-weight:700}
 .fpv2 .prono-div::before,.fpv2 .prono-div::after{content:'';flex:1;height:1px;background:var(--line)}
-.fpv2 .prono-post{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.fpv2 .pp-team{display:flex;align-items:flex-start;gap:7px;font-size:var(--t-cap);color:var(--ink-3)}
-.fpv2 .pp-v{justify-content:flex-end;text-align:right}
-.fpv2 .pp-info{display:flex;flex-direction:column;gap:2px;min-width:0}
+/* Móvil: los dos equipos APILADOS a ancho completo (escudo izquierda + datos), sin amontonar. Escritorio: enfrentados
+   en dos columnas y el visitante volteado (escudo a la derecha), alineado con el pronóstico de arriba. */
+.fpv2 .prono-post{display:grid;grid-template-columns:1fr;gap:10px}
+.fpv2 .pp-team{display:flex;align-items:center;gap:8px;font-size:var(--t-cap);color:var(--ink-3)}
+.fpv2 .pp-info{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}
+@media(min-width:1000px){
+  .fpv2 .prono-post{grid-template-columns:1fr 1fr;gap:8px}
+  .fpv2 .pp-v{flex-direction:row-reverse;text-align:right}
+}
 .fpv2 .pp-elo{font-family:var(--font-display),sans-serif;font-weight:700;font-size:var(--t-lead);font-variant-numeric:tabular-nums;color:var(--ink-2)}
 .fpv2 .pp-elo b{font-size:var(--t-cap)}
 .fpv2 .pp-elo-lbl{font-family:var(--font-sans),sans-serif;font-weight:600;font-size:var(--t-cap);letter-spacing:.03em;color:var(--ink-3)}
@@ -873,8 +885,10 @@
 .fpv2 .forma-2col{display:grid;grid-template-columns:1fr 1fr}
 .fpv2 .forma-2col .forma-col{min-width:0}   /* imprescindible: si no, la track se expande al nombre y desborda */
 .fpv2 .forma-2col .forma-col+.forma-col{border-left:1px solid var(--line-2)}
-.fpv2 .forma-h{font-family:var(--font-display),sans-serif;font-weight:700;font-size:var(--t-body);color:var(--ink);border-top:0;margin-top:0;padding:9px var(--pad) 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.fpv2 .forma-h a{color:inherit;text-decoration:none}
+/* Cabecera de cada columna de "Últimos partidos": MISMO tratamiento que Alineaciones (escudo delante + nombre a --t-lead). */
+.fpv2 .forma-h{display:flex;align-items:center;gap:8px;border-top:0;margin-top:0;padding:10px var(--pad) 7px;min-width:0}
+.fpv2 .forma-h .tn{font-family:var(--font-display),sans-serif;font-weight:700;font-size:var(--t-lead);color:var(--ink);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fpv2 .forma-h .tn a{color:inherit;text-decoration:none}
 /* La forma del partido usa MatchRow HÍBRIDO (.match-hb). En ESCRITORIO va a dos columnas (una por equipo): nombres
    y marcador algo menores para caber; en móvil pasa a una columna (más abajo) a tamaño normal. */
 .fpv2 .forma-2col .match-hb{padding:9px 12px}

@@ -13,6 +13,7 @@ import { googleRenderUrl } from '@/lib/ics'
 import { SITE_URL } from '@/lib/seo'
 import { partidoSlug } from '@/lib/partidoSlug'
 import { nombreCompleto, nombreEquipo } from '@/lib/nombre'
+import { fmtNum } from '@/lib/formato'
 import MatchRow from '@/components/ficha/v2/MatchRow'
 import PlayerRow from '@/components/ui/PlayerRow'
 import SectionHeader from '@/components/ui/SectionHeader'
@@ -81,7 +82,7 @@ function FormaDots({ nombre, minis }: { nombre: string; minis: PartidoMini[] }) 
     const s: 'G' | 'E' | 'P' = gf > gc ? 'G' : gf < gc ? 'P' : 'E'
     return { s, t: `${gf}-${gc}` }
   }).reverse()
-  return <FormaStrip items={arr.map((x) => x.s)} titles={arr.map((x) => x.t)} size={15} gap={3} />
+  return <FormaStrip items={arr.map((x) => x.s)} titles={arr.map((x) => x.t)} size={18} gap={3} />
 }
 
 // #1 Cuerpo técnico: solo hay ENTRENADOR en el dato. Fila estilo .pl con pastilla de rol; el día que el pipeline
@@ -189,7 +190,8 @@ function MiniForma({ m, teamCod }: { m: PartidoMini; teamCod: string }) {
 }
 
 // #1 Pronóstico ELO: prosa, sin % ni cuota. Solo la FRASE (las cifras van enfrentadas en la tarjeta).
-const fmtElo = (n: number) => Math.round(n).toString()
+// ELO con PUNTO DE MILLAR (regla del sitio: 4+ cifras -> "1.266"): usa el formateador único fmtNum, no toString.
+const fmtElo = (n: number) => fmtNum(Math.round(n))
 const fmtDelta = (m: number) => `${m >= 0 ? '+' : '−'}${Math.abs(Math.round(m))}`
 function favoritoFrase(a: number | null, b: number | null): { texto: string; lado: 'local' | 'visitante' | 'igual' } | null {
   if (a == null || b == null) return null
@@ -220,7 +222,11 @@ const HITO_TX: Record<string, (v: number | null) => string> = {
 }
 function hitoTexto(h: PartidoFicha['hitos'][number]): string {
   const base = HITO_TX[h.tipo]?.(h.valor) || h.detalle || h.tipo.replace(/_/g, ' ')
-  return h.contexto ? `${base} · ${h.contexto}` : base
+  if (!h.contexto) return base
+  // El contexto es un EQUIPO (ambito 'equipo', dato federativo en MAYÚSCULAS) o una CATEGORÍA (ya bien escrita).
+  // Solo el equipo se recapitaliza con el formateador del sitio; la categoría se deja como viene.
+  const ctx = h.ambito === 'equipo' ? nombreEquipo(h.contexto) : h.contexto
+  return `${base} · ${ctx}`
 }
 
 // #3/#4 Tarjeta de pronóstico: ELO con el que llegaban ENFRENTADOS (como el marcador), la frase del favorito, y tras
@@ -266,17 +272,17 @@ function PronoCard({ p }: { p: PartidoFicha }) {
   const ctxV = ctxPuesto(p.posPreVisitante, p.posPostVisitante)
   if (!hayPre && !hayPost && !ctxL && !ctxV) return null
   const favLado = fav && fav.lado !== 'igual' ? (fav.lado === 'local' ? p.local : p.visitante) : null
-  const teamPost = (post: number | null, mov: number | null, ctx: string | null, lado: PartidoLado, side: 'l' | 'v') => {
-    const esc = <EscudoBox escudo={lado.escudo} nombre={lado.nombre} size={18} radius={4} />
-    const info = (
+  // Escudo SIEMPRE primero en el marcado; el CSS coloca el del visitante a la derecha en escritorio (fila enfrentada)
+  // y apila ambos a ancho completo en móvil (escudo a la izquierda). pp-info toma el ancho restante -> sin amontonar.
+  const teamPost = (post: number | null, mov: number | null, ctx: string | null, lado: PartidoLado, side: 'l' | 'v') => (
+    <div className={`pp-team pp-${side}`}>
+      <EscudoBox escudo={lado.escudo} nombre={lado.nombre} size={18} radius={4} />
       <div className="pp-info">
         {post != null && <span className="pp-elo"><span className="pp-elo-lbl">ELO</span> {fmtElo(post)}{mov != null && <b style={{ color: mov >= 0 ? 'var(--e3)' : 'var(--e0)' }}> {fmtDelta(mov)}</b>}</span>}
         {ctx && <span className="pp-ctx">{ctx}</span>}
       </div>
-    )
-    // Visitante: escudo a la DERECHA de sus datos (alineado con la estructura enfrentada del pronóstico de arriba).
-    return <div className={`pp-team pp-${side}`}>{side === 'v' ? <>{info}{esc}</> : <>{esc}{info}</>}</div>
-  }
+    </div>
+  )
   return (
     <section className="prono gc-prono">
       <div className="prono-k">Pronóstico · probabilidad por ELO</div>
@@ -489,8 +495,8 @@ export default function FichaPartidoV2({ p }: { p: PartidoFicha }) {
                   {/* Escritorio: dos columnas (una por equipo). Móvil: una columna a ancho completo (ver ficha.css).
                       Fila híbrida (MatchRow): cara a cara + meta; el dato del bloque es el ΔELO del equipo (sin PF). */}
                   <div className="forma-2col">
-                    <div className="forma-col">{p.formaLocal.length > 0 && <><div className="forma-h"><NombreEquipo codequipo={p.local.codequipo} nombre={p.local.nombre} /></div>{p.formaLocal.map((m) => <MiniForma key={m.codacta} m={m} teamCod={p.local.codequipo} />)}</>}</div>
-                    <div className="forma-col">{p.formaVisitante.length > 0 && <><div className="forma-h"><NombreEquipo codequipo={p.visitante.codequipo} nombre={p.visitante.nombre} /></div>{p.formaVisitante.map((m) => <MiniForma key={m.codacta} m={m} teamCod={p.visitante.codequipo} />)}</>}</div>
+                    <div className="forma-col">{p.formaLocal.length > 0 && <><div className="forma-h"><EscudoBox escudo={p.local.escudo} nombre={p.local.nombre} size={22} radius={5} /><span className="tn"><NombreEquipo codequipo={p.local.codequipo} nombre={p.local.nombre} /></span></div>{p.formaLocal.map((m) => <MiniForma key={m.codacta} m={m} teamCod={p.local.codequipo} />)}</>}</div>
+                    <div className="forma-col">{p.formaVisitante.length > 0 && <><div className="forma-h"><EscudoBox escudo={p.visitante.escudo} nombre={p.visitante.nombre} size={22} radius={5} /><span className="tn"><NombreEquipo codequipo={p.visitante.codequipo} nombre={p.visitante.nombre} /></span></div>{p.formaVisitante.map((m) => <MiniForma key={m.codacta} m={m} teamCod={p.visitante.codequipo} />)}</>}</div>
                   </div>
                 </section>
               )}
