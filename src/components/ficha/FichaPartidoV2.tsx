@@ -92,11 +92,11 @@ function CuerpoTecnico({ nombre }: { nombre: string }) {
   return <PlayerRow tec nombreCompletoUI pastilla={false} nombre={nombre} meta={<span className="rol-pill">Entrenador</span>} />
 }
 
-const TeamHead = ({ lado, forma }: { lado: PartidoLado; forma: PartidoMini[] }) => (
+// La Forma (últimos 5) ya vive en la cabecera del partido, bajo los nombres -> aquí sería duplicado: se omite.
+const TeamHead = ({ lado }: { lado: PartidoLado }) => (
   <div className="al-team">
     <EscudoBox escudo={lado.escudo} nombre={lado.nombre} size={24} radius={5} />
     <span className="tn"><NombreEquipo codequipo={lado.codequipo} nombre={lado.nombre} /></span>
-    <FormaDots nombre={lado.nombre} minis={forma} />
   </div>
 )
 // #6 encabezado de columna: rotula las dos cifras de la derecha (la leyenda de abajo refuerza).
@@ -127,8 +127,8 @@ function AlineacionesGrid({ p }: { p: PartidoFicha }) {
   const hayMov = p.movEloLocal != null || p.movEloVisitante != null
   return (
     <div className="al-grid">
-      {cel(<TeamHead lado={L} forma={p.formaLocal} />, 'l', 'alg-head')}
-      {cel(<TeamHead lado={V} forma={p.formaVisitante} />, 'r', 'alg-head')}
+      {cel(<TeamHead lado={L} />, 'l', 'alg-head')}
+      {cel(<TeamHead lado={V} />, 'r', 'alg-head')}
       {cel(<ColsHead />, 'l')}
       {cel(<ColsHead />, 'r')}
       {filas(L.titulares, V.titulares, 't')}
@@ -148,22 +148,6 @@ function AlineacionesGrid({ p }: { p: PartidoFicha }) {
         {cel(p.movEloVisitante != null ? <MovElo mov={p.movEloVisitante} /> : null, 'r')}
       </>}
     </div>
-  )
-}
-
-// Fila de resultado reutilizando el componente del sitio (.rmatch), enlazada a la ficha del partido.
-function MiniPartido({ m }: { m: PartidoMini }) {
-  const jugado = m.golesLocal != null && m.golesVisitante != null
-  const gL = m.golesLocal as number, gV = m.golesVisitante as number
-  return (
-    <Link className="rmatch-wrap mini-link" href={`/madrid/partido/${partidoSlug(m.codacta, m.local, m.visitante)}`}>
-      <div className="rmatch">
-        <div className="rside"><EscudoBox escudo={m.escudoLocal} nombre={m.local} size={22} radius={5} /><span className={`rnm${jugado && gL > gV ? ' w' : ''}`}>{m.local}</span></div>
-        <div className="rsc">{jugado ? <><span style={{ color: gL > gV ? 'var(--e3)' : gL < gV ? 'var(--e0)' : 'var(--ink-2)' }}>{gL}</span><span className="rsc-sep">-</span><span style={{ color: gV > gL ? 'var(--e3)' : gV < gL ? 'var(--e0)' : 'var(--ink-2)' }}>{gV}</span></> : 'vs'}</div>
-        <div className="rside v"><EscudoBox escudo={m.escudoVisitante} nombre={m.visitante} size={22} radius={5} /><span className={`rnm${jugado && gV > gL ? ' w' : ''}`}>{m.visitante}</span></div>
-      </div>
-      {m.fecha && <div className="rmeta">{m.fecha}</div>}
-    </Link>
   )
 }
 
@@ -282,13 +266,17 @@ function PronoCard({ p }: { p: PartidoFicha }) {
   const ctxV = ctxPuesto(p.posPreVisitante, p.posPostVisitante)
   if (!hayPre && !hayPost && !ctxL && !ctxV) return null
   const favLado = fav && fav.lado !== 'igual' ? (fav.lado === 'local' ? p.local : p.visitante) : null
-  const teamPost = (post: number | null, mov: number | null, ctx: string | null, lado: PartidoLado) => (
-    <div className="pp-team">
-      <EscudoBox escudo={lado.escudo} nombre={lado.nombre} size={18} radius={4} />
-      {post != null && <span className="pp-elo"><span className="pp-elo-lbl">ELO</span> {fmtElo(post)}{mov != null && <b style={{ color: mov >= 0 ? 'var(--e3)' : 'var(--e0)' }}> {fmtDelta(mov)}</b>}</span>}
-      {ctx && <span className="pp-ctx">{ctx}</span>}
-    </div>
-  )
+  const teamPost = (post: number | null, mov: number | null, ctx: string | null, lado: PartidoLado, side: 'l' | 'v') => {
+    const esc = <EscudoBox escudo={lado.escudo} nombre={lado.nombre} size={18} radius={4} />
+    const info = (
+      <div className="pp-info">
+        {post != null && <span className="pp-elo"><span className="pp-elo-lbl">ELO</span> {fmtElo(post)}{mov != null && <b style={{ color: mov >= 0 ? 'var(--e3)' : 'var(--e0)' }}> {fmtDelta(mov)}</b>}</span>}
+        {ctx && <span className="pp-ctx">{ctx}</span>}
+      </div>
+    )
+    // Visitante: escudo a la DERECHA de sus datos (alineado con la estructura enfrentada del pronóstico de arriba).
+    return <div className={`pp-team pp-${side}`}>{side === 'v' ? <>{info}{esc}</> : <>{esc}{info}</>}</div>
+  }
   return (
     <section className="prono gc-prono">
       <div className="prono-k">Pronóstico · probabilidad por ELO</div>
@@ -319,8 +307,8 @@ function PronoCard({ p }: { p: PartidoFicha }) {
       {(hayPost || ctxL || ctxV) && <>
         <div className="prono-div"><span>tras el partido</span></div>
         <div className="prono-post">
-          {teamPost(p.eloPostLocal, p.movEloLocal, ctxL, p.local)}
-          {teamPost(p.eloPostVisitante, p.movEloVisitante, ctxV, p.visitante)}
+          {teamPost(p.eloPostLocal, p.movEloLocal, ctxL, p.local, 'l')}
+          {teamPost(p.eloPostVisitante, p.movEloVisitante, ctxV, p.visitante, 'v')}
         </div>
       </>}
     </section>
@@ -453,12 +441,13 @@ export default function FichaPartidoV2({ p }: { p: PartidoFicha }) {
               {p.hitos.length > 0 && (
                 <section>
                   <SectionHeader title="Efemérides del partido" />
+                  {/* Mismo tratamiento que un jugador en "Plantilla" (PlayerRow): pastilla de siglas + nombre y,
+                      en la línea de datos (donde van PJ/min/eventos), el texto de la efeméride. Sin PF (sin valor). */}
                   <div className="hitos">
                     {p.hitos.map((h, i) => (
-                      <div className={`hito hito-${h.lado}`} key={`${h.codjugador}-${h.tipo}-${i}`}>
-                        <span className="hito-nm">{h.href ? <Link href={h.href}>{nombreCompleto(h.nombre)}</Link> : nombreCompleto(h.nombre)}</span>
-                        <span className="hito-tx">{hitoTexto(h)}</span>
-                      </div>
+                      <PlayerRow key={`${h.codjugador}-${h.tipo}-${i}`}
+                        nombre={h.nombre} pos={h.pos} href={h.href}
+                        meta={<span className="hito-tx">{hitoTexto(h)}</span>} />
                     ))}
                   </div>
                 </section>
@@ -472,6 +461,12 @@ export default function FichaPartidoV2({ p }: { p: PartidoFicha }) {
                 <section className="gc-rachas">
                   <SectionHeader title="Rachas" sub="ahora vs récord" />
                   <div className="rachas">
+                    {/* Escudo de cada equipo sobre su lado (no el nombre: ocupa menos y ya se reconoce del hero/pronóstico). */}
+                    <div className="rrow ra-head">
+                      <div className="ra-side ra-l ra-esc"><EscudoBox escudo={p.local.escudo} nombre={p.local.nombre} size={26} radius={6} /></div>
+                      <div className="ra-mid" />
+                      <div className="ra-side ra-v ra-esc"><EscudoBox escudo={p.visitante.escudo} nombre={p.visitante.nombre} size={26} radius={6} /></div>
+                    </div>
                     {([
                       [RACHA_DEFS[0], p.rachasLocal.marcandoAct, p.rachasLocal.marcandoRec, p.rachasVisitante.marcandoAct, p.rachasVisitante.marcandoRec],
                       [RACHA_DEFS[1], p.rachasLocal.victoriasAct, p.rachasLocal.victoriasRec, p.rachasVisitante.victoriasAct, p.rachasVisitante.victoriasRec],
@@ -494,8 +489,8 @@ export default function FichaPartidoV2({ p }: { p: PartidoFicha }) {
                   {/* Escritorio: dos columnas (una por equipo). Móvil: una columna a ancho completo (ver ficha.css).
                       Fila híbrida (MatchRow): cara a cara + meta; el dato del bloque es el ΔELO del equipo (sin PF). */}
                   <div className="forma-2col">
-                    <div className="forma-col">{p.formaLocal.length > 0 && <><div className="al-sub forma-h">{nombreEquipo(p.local.nombre)}</div>{p.formaLocal.map((m) => <MiniForma key={m.codacta} m={m} teamCod={p.local.codequipo} />)}</>}</div>
-                    <div className="forma-col">{p.formaVisitante.length > 0 && <><div className="al-sub forma-h">{nombreEquipo(p.visitante.nombre)}</div>{p.formaVisitante.map((m) => <MiniForma key={m.codacta} m={m} teamCod={p.visitante.codequipo} />)}</>}</div>
+                    <div className="forma-col">{p.formaLocal.length > 0 && <><div className="forma-h"><NombreEquipo codequipo={p.local.codequipo} nombre={p.local.nombre} /></div>{p.formaLocal.map((m) => <MiniForma key={m.codacta} m={m} teamCod={p.local.codequipo} />)}</>}</div>
+                    <div className="forma-col">{p.formaVisitante.length > 0 && <><div className="forma-h"><NombreEquipo codequipo={p.visitante.codequipo} nombre={p.visitante.nombre} /></div>{p.formaVisitante.map((m) => <MiniForma key={m.codacta} m={m} teamCod={p.visitante.codequipo} />)}</>}</div>
                   </div>
                 </section>
               )}
@@ -526,7 +521,22 @@ export default function FichaPartidoV2({ p }: { p: PartidoFicha }) {
           id: 'h2h', label: 'Cara a cara', show: p.h2h.length > 0, panel: (
             <section className="gc-h2h">
               <SectionHeader title="Cara a cara" />
-              {p.h2h.map((m) => <MiniPartido key={m.codacta} m={m} />)}
+              {/* Misma pieza que "Últimos partidos" (MatchRow) con menos contenido: sin icono casa/fuera (no hay
+                  sujeto propio), sin eventos y sin ΔELO (dato compartido por ambos). Solo resultado, fecha y comp. */}
+              {p.h2h.map((m) => {
+                const jugado = m.golesLocal != null && m.golesVisitante != null
+                const gL = m.golesLocal ?? 0, gV = m.golesVisitante ?? 0
+                return (
+                  <MatchRow key={m.codacta}
+                    marcador={jugado ? `${gL}-${gV}` : null} signo={null}
+                    propioNombre={m.local} propioEscudo={m.escudoLocal} propioCod={m.codLocal ?? null}
+                    rivalNombre={m.visitante} rivalEscudo={m.escudoVisitante} rivalCod={m.codVisitante ?? null}
+                    esLocal noLocalInd
+                    fecha={m.fecha} etiqueta={m.compNombre || undefined}
+                    href={`/madrid/partido/${partidoSlug(m.codacta, m.local, m.visitante)}`}
+                  />
+                )
+              })}
             </section>
           ),
         },

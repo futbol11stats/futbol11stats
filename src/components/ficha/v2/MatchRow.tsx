@@ -36,6 +36,7 @@ export type MatchRowProps = {
   eloDelta?: number | null           // ΔELO del partido — SOLO Últimos partidos
   href?: string | null
   compact?: boolean                  // partido (dos columnas): fila algo más estrecha
+  noLocalInd?: boolean               // oculta el indicador casa/fuera (Cara a cara: no hay sujeto propio)
 }
 
 const MESES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic']
@@ -92,7 +93,7 @@ function Cuerpo(p: MatchRowProps) {
       </div>
       <div className="mh-meta">
         <span className="mh-when">
-          {p.esLocal != null && <IndicadorLocal esLocal={p.esLocal} />}
+          {p.esLocal != null && !p.noLocalInd && <IndicadorLocal esLocal={p.esLocal} />}
           {(p.fecha || p.etiqueta) && <span>{[fechaCortaDMY(p.fecha), p.etiqueta].filter(Boolean).map((x, i) => <span key={i}>{i > 0 ? ' · ' : ''}{x}</span>)}</span>}
         </span>
         <span className="mh-stats">

@@ -653,17 +653,23 @@ export async function getGlobalTramosV2(codgrupos: string[], codtemporada: numbe
 // --- GLOBAL: Panorama (líderes + cifras) de toda la categoría, para el mismo componente Panorama. ---
 // Líderes: top-1 de cada ranking individual agregado + "más tarjetas" (aprox, web_alertas).
 export async function getGlobalLideresV2(codgrupos: string[], codtemporada: number, jornada: number) {
-  if (!codgrupos.length) return { goleador: null, portero: null, elo: null, tarjetas: null }
+  if (!codgrupos.length) return { goleador: null, portero: null, elo: null, tarjetas: null, pf: null, mediaPf: null }
   return cacheComp(async () => {
-    const [top, al] = await Promise.all([
+    const [top, al, media] = await Promise.all([
       getGlobalTopTemporadaV2(codgrupos, codtemporada, jornada),
       getAlertasV2(codgrupos, codtemporada),
+      // "Mejor Media PF" a nivel GLOBAL: media_fantasy_temp (foto final, jornada null) de todos los grupos; el mejor
+      // por media entre grupos. El dato existe por grupo (no hay codgrupo agregado), se fusiona aquí como el resto.
+      supabase.from('web_top_jugadores').select(COLS_TOP_JUGADORES)
+        .in('codgrupo', codgrupos).eq('codtemporada', codtemporada).eq('tipo', 'media_fantasy_temp').is('jornada', null),
     ])
     const tarjetas = (al as any[])
       .map((r) => ({ ...r, amarillas: (r.amarillas_ciclo || 0) + (r.amarillas_simples || 0) }))
       .sort((a, b) => b.amarillas - a.amarillas)[0] || null
-    return { goleador: top.goleadores[0] || null, portero: top.porteros[0] || null, elo: top.elo[0] || null, tarjetas }
-  }, ['getGlobalLideresV2', codgrupos.join(','), codtemporada, jornada], codgrupos, codtemporada)
+    const mediaPf = ((media.data || []) as any[])
+      .sort((a, b) => (Number(b.media_fantasy) || 0) - (Number(a.media_fantasy) || 0))[0] || null
+    return { goleador: top.goleadores[0] || null, portero: top.porteros[0] || null, elo: top.elo[0] || null, tarjetas, pf: top.fantasy[0] || null, mediaPf }
+  }, ['getGlobalLideresV2', 'v2-pf', codgrupos.join(','), codtemporada, jornada], codgrupos, codtemporada)
 }
 
 // Cifras completas de la categoría (agrega los grupos; cuenta partidos, NO suma puntos).

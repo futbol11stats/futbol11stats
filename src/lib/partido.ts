@@ -59,7 +59,7 @@ export type PartidoFicha = {
   posPreLocal: number | null; posPostLocal: number | null
   posPreVisitante: number | null; posPostVisitante: number | null
   // #5 Hitos/efemérides ligados a este partido (web_jugador_hitos por codacta).
-  hitos: { codjugador: string; nombre: string; lado: 'local' | 'visitante'; tipo: string; detalle: string | null; valor: number | null; ambito: string | null; contexto: string | null; href: string | null }[]
+  hitos: { codjugador: string; nombre: string; pos: string | null; lado: 'local' | 'visitante'; tipo: string; detalle: string | null; valor: number | null; ambito: string | null; contexto: string | null; href: string | null }[]
 }
 
 const POS_ORD: Record<string, number> = { POR: 0, DEF: 1, MED: 2, DEL: 3 }
@@ -235,7 +235,7 @@ export async function getPartido(codacta: string): Promise<PartidoFicha | null> 
             const cod = String(h.codjugador)
             const meta = metaDe(cod)
             return {
-              codjugador: cod, nombre: meta.nombre, lado: (eqDe.get(cod) === codeqL ? 'local' : 'visitante') as 'local' | 'visitante',
+              codjugador: cod, nombre: meta.nombre, pos: meta.pos, lado: (eqDe.get(cod) === codeqL ? 'local' : 'visitante') as 'local' | 'visitante',
               tipo: String(h.tipo_hito), detalle: h.detalle ?? null, valor: (h.valor as number) ?? null,
               ambito: h.ambito ?? null, contexto: h.contexto_nombre ?? null,
               href: conFicha.has(cod) && meta?.nombre ? jugadorHref(cod, meta.nombre) : null,

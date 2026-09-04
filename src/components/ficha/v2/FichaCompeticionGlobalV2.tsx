@@ -64,10 +64,17 @@ export default async function FichaCompeticionGlobalV2({ categoria, slugComp, te
     getGlobalLideresV2(codgrupos, codtemporada, jornadaNum),
     getGlobalCifrasFullV2(grupos, codtemporada, jornadaNum),
   ])
-  const fichasLid = await fichasInfo([lideresG.goleador, lideresG.portero, lideresG.elo, lideresG.tarjetas].filter(Boolean).map((j: any) => j.codjugador))
+  const fichasLid = await fichasInfo([lideresG.goleador, lideresG.portero, lideresG.elo, lideresG.tarjetas, lideresG.pf, lideresG.mediaPf].filter(Boolean).map((j: any) => j.codjugador))
 
   const nombre = nombreOficial(grupos[0].nombre_comp) ?? ensureMadrid(denominacion(grupos[0].nombre_comp))
-  const enJuego = await esTemporadaActiva(categoria, slugComp, codtemporada)
+  // TRES estados como en la vista por grupo (el fix no había llegado a la global): la competición está TERMINADA
+  // cuando TODOS los grupos han alcanzado su última jornada; sin empezar si ninguno tiene jornada disputada; en
+  // juego solo si es la temporada activa y queda calendario. El contador usa el avance real (máx de los grupos).
+  const hayJugadosG = grupos.some((g) => (g.jornada_actual || 0) > 0)
+  const todosTerminados = grupos.every((g) => !!g.total_jornadas && (g.jornada_actual || 0) >= g.total_jornadas)
+  const jAvance = Math.max(...grupos.map((g) => g.jornada_actual || 0), 0)
+  const sinEmpezarG = !hayJugadosG
+  const enJuegoG = hayJugadosG && !todosTerminados && await esTemporadaActiva(categoria, slugComp, codtemporada)
   const base = `/madrid/${categoria}/${slugComp}`
 
   const modo: 'jornada' | 'temporada' = G_TEMP.has(tab) ? 'temporada' : 'jornada'
@@ -157,7 +164,11 @@ export default async function FichaCompeticionGlobalV2({ categoria, slugComp, te
             <div className="over">RFFM · MADRID</div>
             <div className="h1">{nombre} · Global</div>
             <div className="ident-meta">
-              {enJuego ? <span className="pill live">EN JUEGO · J{jornadaNum} DE {totalJornadas}</span> : <span className="pill n">Finalizada</span>}
+              {sinEmpezarG
+                ? <span className="pill n">Por comenzar</span>
+                : enJuegoG
+                  ? <span className="pill live">EN JUEGO · J{jAvance} DE {totalJornadas}</span>
+                  : <span className="pill n">Finalizada · {totalJornadas} jornadas</span>}
               <span className="pill n">{grupos.length} grupos</span>
               <span className="pill n">{temporada}</span>
             </div>
