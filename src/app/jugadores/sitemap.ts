@@ -77,7 +77,15 @@ export async function generateSitemaps() {
 export default async function sitemap({ id }: { id: Promise<number> | number }): Promise<MetadataRoute.Sitemap> {
   // Next 16 pasa `id` como Promise; se resuelve antes de calcular la partición.
   const idNum = Number(await id) || 0
-  const filas = await todasLasFilas()   // keyset completo (o lanza); su longitud ES el recuento fiable.
+  // ERROR de BD (timeout/522 en build) -> NO abortar el deploy: se degrada RUIDOSO a partición vacía y se
+  // regenera por ISR con la BD sana. Solo ante EXCEPCIÓN; un vacío SIN error sigue lanzando (guard más abajo).
+  let filas: Fila[]
+  try {
+    filas = await todasLasFilas()   // keyset completo (o lanza); su longitud ES el recuento fiable.
+  } catch (e) {
+    console.error(`[sitemap jugadores] partición ${idNum}: BD no disponible, se sirve VACÍA y se regenerará por ISR. ${(e as Error).message}`)
+    return []
+  }
   const total = filas.length
   if (total === 0) throw new Error(`[sitemap jugadores] partición ${idNum}: web_jugador devolvió 0 filas`)
 
@@ -90,7 +98,14 @@ export default async function sitemap({ id }: { id: Promise<number> | number }):
     throw new Error(`[sitemap jugadores] partición ${idNum} vacía (de ${n}; total ${total})`)
   }
 
-  const { porTemporada } = await getSitemapDatos()
+  // El lastmod tampoco debe tumbar el build: si falla, URLs sin fecha (mejor que abortar).
+  let porTemporada: Awaited<ReturnType<typeof getSitemapDatos>>['porTemporada']
+  try {
+    ({ porTemporada } = await getSitemapDatos())
+  } catch (e) {
+    console.error(`[sitemap jugadores] lastmod no disponible, URLs sin fecha: ${(e as Error).message}`)
+    porTemporada = new Map()
+  }
   return trozo.map((j) => ({
     url: `${SITE_URL}/madrid/jugador/${jugadorSlug(j.codjugador, j.nombre)}`,
     lastModified: porTemporada.get(Number(j.codtemporada_ultima)),   // último partido de su última temporada
