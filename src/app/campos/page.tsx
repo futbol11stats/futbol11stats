@@ -1,4 +1,8 @@
-export const revalidate = 2592000   // ISR 30d: el catálogo de campos solo cambia al reexportar.
+// ON-DEMAND, no se prerenderiza en build. El prerender de esta página consultaba web_campo/web_campo_resumen y,
+// en builds concurrentes con la BD saturada, la tumbaba (522 -> abortaba el deploy). Ahora se genera en la primera
+// visita; los datos van cacheados en la capa de datos (getCamposIndex -> unstable_cache), así que el render es
+// rápido y apenas toca la BD. Se saca del build a propósito para aligerar nuestra operación más frecuente.
+export const dynamic = 'force-dynamic'
 
 import type { Metadata } from 'next'
 import Link from 'next/link'
