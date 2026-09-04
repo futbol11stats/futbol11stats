@@ -608,7 +608,7 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
                       {leyendaZ.map((z) => <span key={z.tipo}><i style={ZONA_BG[z.tipo]} />{z.label}</span>)}
                     </div>
                   )}
-                  <div className="leyenda" style={{ paddingTop: 10 }}><b>Mov</b> cambio de posición vs. jornada anterior · <b>PF</b> puntos fantasy · <b>PO</b> porterías a cero · <b>Forma</b> últimos 5: <b style={{ color: 'var(--e3)' }}>ganó</b> · <b style={{ color: 'var(--ink-3)' }}>empató</b> · <b style={{ color: 'var(--e0)' }}>perdió</b> · <b>Racha</b> racha actual del equipo.</div>
+                  <div className="leyenda" style={{ paddingTop: 10 }}><b>Mov</b> cambio de posición vs. jornada anterior · <b>PF</b> puntos fantasy · <b>PO</b> porterías a cero · <b>Forma</b> últimos 5: <b style={{ color: 'var(--e3)' }}>Ganó</b> · <b style={{ color: 'var(--ink-3)' }}>Empató</b> · <b style={{ color: 'var(--e0)' }}>Perdió</b> · <b>Racha</b> racha actual del equipo.</div>
                 </>
               ) : <p className="vacio">Sin clasificación en esta jornada.</p>}
             </section>

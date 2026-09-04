@@ -457,7 +457,7 @@
 .fjv2 .cc.pts{width:38px;font-size:var(--n-sm);font-weight:700;color:var(--ink)}
 .fjv2 .cc.dg{color:var(--ink-3)}
 .fjv2 .ctr.head .cc,.fjv2 .ctr.head .ceq{font-size:var(--t-cap);color:var(--ink-3);font-weight:600;letter-spacing:.05em;text-transform:uppercase;padding:8px 0}
-.fjv2 .cracha{width:78px;flex:none;display:flex;align-items:center;gap:2px;padding:0 6px}
+.fjv2 .cracha{width:78px;flex:none;display:flex;align-items:center;gap:2px;padding:0 6px;font-family:var(--font-display),'Barlow Condensed',sans-serif}
 .fjv2 .cracha i{width:11px;height:11px;border-radius:3px;flex:none}
 .fjv2 .ctr.head .cracha{font-size:var(--t-cap);color:var(--ink-3);font-weight:600;letter-spacing:.05em;text-transform:uppercase;justify-content:center}
 .fjv2 .leyenda-z{display:flex;flex-wrap:wrap;gap:6px 14px;padding:11px var(--pad) 0;font-size:var(--t-sm);color:var(--ink-2)}
