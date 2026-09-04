@@ -70,6 +70,7 @@ export default function JornadasEquipo({ comps, cortes, temporada }: { comps: Co
               rivalNombre={r.rivalNombre} rivalEscudo={r.rivalEscudo} rivalCod={r.rivalCod}
               esLocal={r.esLocal}
               fecha={r.fecha} etiqueta={r.ronda}
+              goles={r.goles} p0={r.p0} ta={r.ta} td={r.td} tr={r.tr}
               eloDelta={r.eloDelta}
               href={r.href}
             />
