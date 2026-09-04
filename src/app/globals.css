@@ -116,15 +116,17 @@ body {
 /* Breakpoint ÚNICO del sitio: 1000px. La tipografía sube un paso entera. */
 @media (min-width: 1000px) {
   :root {
+    /* Escritorio: los escalones de TEXTO subían solo +1px y se veían pequeños con espacio de sobra. Se amplía la
+       columna de escritorio (móvil intacto). --t-micro se mantiene como suelo de rótulos. */
     --t-micro: 12px;
-    --t-cap: 13px;
-    --t-sm: 14px;
-    --t-body: 15px;
-    --t-lead: 17px;
-    --n-sm: 21px;
-    --n-md: 28px;
-    --n-lg: 38px;
-    --h-sec: 23px;
-    --h-hero: 42px;
+    --t-cap: 14px;
+    --t-sm: 15px;
+    --t-body: 16px;
+    --t-lead: 18px;
+    --n-sm: 22px;
+    --n-md: 30px;
+    --n-lg: 40px;
+    --h-sec: 24px;
+    --h-hero: 44px;
   }
 }
