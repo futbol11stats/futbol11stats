@@ -38,7 +38,7 @@ import {
 } from '@/lib/equipo'
 import {
   getEquipoV2, getTemporadasEquipo, getCopaTemporadas, getSerieLiga, getResultadosGrupo, buildJornadasEquipo,
-  escudosPorNombre, getMiniClasif, colorMedia, colorElo, colorFan, CORTES_EQUIPO,
+  escudosPorNombre, getMiniClasif, colorMedia, colorElo, CORTES_EQUIPO,
   analisisResultados, getTramos, getFacetasGrupo, getPlantillaEquipoV2, getMovimientosEquipo,
   getHitosEquipo, getMediasPorTemporada, getCopasAmbito, formaEquipo, getEventosEquipo, type PlantillaEqRow,
 } from '@/lib/equipoV2'
@@ -448,8 +448,9 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
           {ultimos.length > 0 && (
             <section id="s-ultimos">
               <SectionHeader title="Últimos partidos" sub={echoTxt} />
-              {/* Encabezado de columnas en la cabecera del bloque (como las alineaciones de la ficha de partido): Pts · ELO. */}
-              <div className="m-cols"><span className="mc-pts">Pts</span><span className="mc-elo">ELO</span></div>
+              {/* Rótulo del dato del bloque: aquí NO hay protagonista (son 11 jugadores) -> sin PF, solo el ΔELO del
+                  equipo, que sí es suyo (subió/bajó tras el partido). Un "ELO" pequeño basta para interpretarlo. */}
+              <div className="m-cols"><span className="mc-elo">ELO</span></div>
               <div>
                 {ultimos.map((m, i) => {
                   const local = m.esLocal ? e.nombre : m.rivalNombre
@@ -462,12 +463,12 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
                   return (
                     <MatchRow key={i}
                       marcador={m.marcador} signo={m.signo}
+                      propioNombre={e.nombre} propioEscudo={e.escudo} propioCod={e.codequipo}
                       rivalEscudo={m.rivalEscudo} rivalNombre={m.rivalNombre} rivalCod={null} esLocal={m.esLocal}
                       fecha={m.fecha} etiqueta={`J${m.jornada}`}
                       goles={Number.isFinite(gf) ? gf : undefined}
                       p0={Number.isFinite(gc) && gc === 0}
                       ta={ev?.ta} td={ev?.td} tr={ev?.tr}
-                      pts={m.fan} ptsBg={m.fan != null ? colorFan(m.fan) : undefined}
                       eloDelta={m.eloDelta}
                       href={m.codacta ? `/madrid/partido/${partidoSlug(m.codacta, local, visitante)}` : null}
                     />

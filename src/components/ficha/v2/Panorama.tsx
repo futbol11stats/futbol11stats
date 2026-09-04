@@ -5,7 +5,7 @@ import { colorElo } from '@/lib/equipoV2'
 import {
   Balon, Guante, Escudo, Guion, TarjetaAmarilla, TarjetaDoble, TarjetaRoja,
 } from '@/components/iconos'
-import { Home, Plane } from 'lucide-react'
+import { Home, Plane, Star, Gauge } from 'lucide-react'
 import type { CifrasComp } from '@/lib/competicionV2'
 import Badge11 from '@/components/ui/Badge11'
 import { fmtNum } from '@/lib/formato'
@@ -13,7 +13,7 @@ import { fmtNum } from '@/lib/formato'
 const med1 = (v: number | null | undefined) => (v == null ? '—' : Number(v).toFixed(1).replace('.', ','))
 
 
-type Lideres = { goleador?: any; portero?: any; elo?: any; tarjetas?: any } | null
+type Lideres = { goleador?: any; portero?: any; elo?: any; tarjetas?: any; pf?: any; mediaPf?: any } | null
 
 function LidCard({ k, icon, color, val, unit, j, fichas }: {
   k: string; icon: React.ReactNode; color: string; val: React.ReactNode; unit: string; j: any; fichas: { has(x: string): boolean } | null
@@ -42,15 +42,20 @@ export default function Panorama({ lideres, cifras, kpis, fichas, subLideres, su
   subLideres: string
   subCifras: string
 }) {
-  const hayLideres = lideres && (lideres.goleador || lideres.portero || lideres.elo || lideres.tarjetas)
+  const hayLideres = lideres && (lideres.goleador || lideres.portero || lideres.elo || lideres.tarjetas || lideres.pf || lideres.mediaPf)
   return (
     <div className="panorama">
       {hayLideres && (
         <>
           <div className="pan-h"><div className="pan-t">Líderes</div><div className="pan-s">{subLideres}</div></div>
+          {/* Orden (escritorio, 2 col): Goleador·Portero · Mejor PF·Mejor media PF · Mejor ELO·Más tarjetas.
+              "Mejor media PF" sale null hasta que el pipeline publique media_fantasy_temp (LidCard se oculta si j
+              es null): el hueco del sexto queda preparado y aparece solo cuando llegue el dato. */}
           <div className="lid-grid">
             <LidCard k="Goleador" icon={<Balon size={13} />} color="var(--e4)" val={lideres!.goleador?.goles} unit="GOLES" j={lideres!.goleador} fichas={fichas} />
             <LidCard k="Portero" icon={<Guante size={13} />} color="var(--amber)" val={lideres!.portero?.goles} unit="P. A CERO" j={lideres!.portero} fichas={fichas} />
+            <LidCard k="Mejor PF" icon={<Star size={13} />} color="var(--e3)" val={lideres!.pf?.pts_fantasy != null ? fmtNum(Math.round(lideres!.pf.pts_fantasy)) : null} unit="PUNTOS" j={lideres!.pf} fichas={fichas} />
+            <LidCard k="Mejor media PF" icon={<Gauge size={13} />} color="var(--e3)" val={lideres!.mediaPf?.media_fantasy != null ? med1(lideres!.mediaPf.media_fantasy) : null} unit="MEDIA" j={lideres!.mediaPf} fichas={fichas} />
             <LidCard k="Mejor ELO" icon={<Badge11 bg="var(--e3)" ink="#0a1628" size={15} />} color="var(--e3)" val={lideres!.elo?.elo != null ? fmtNum(lideres!.elo.elo) : null} unit="ELO" j={lideres!.elo} fichas={fichas} />
             <LidCard k="Más tarjetas" icon={<TarjetaAmarilla size={12} />} color="var(--card-y)" val={lideres!.tarjetas?.amarillas} unit="AMARILLAS" j={lideres!.tarjetas} fichas={fichas} />
           </div>

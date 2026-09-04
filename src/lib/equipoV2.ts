@@ -5,6 +5,7 @@
 import { supabase } from '@/lib/supabase'
 import { getResultadosGrupo, filaEsLocal, codgrupoFamilia, type ResultadoRow, type EquipoFicha, COLS_EQUIPO } from '@/lib/equipo'
 import { cacheEquipo } from '@/lib/cacheComp'
+import { partidoSlug } from '@/lib/partidoSlug'
 
 // Paleta de la escala (hex, como en Jornadas de jugador — el runtime de Vercel no purga literales).
 const PAL = ['#f87171', '#94a3b8', '#22a050', '#2ee56b', '#8cf0a2']
@@ -311,6 +312,7 @@ export async function getMediasPorTemporada(codequipo: string): Promise<Record<s
 export type RondaDatum = {
   marcador: string; signo: 'G' | 'E' | 'P'; rivalNombre: string | null; rivalEscudo: string | null
   esLocal: boolean; fecha: string | null; ronda: string
+  href: string | null   // -> ficha del partido (como cualquier otra fila de partido); null si falta codacta
 }
 export type CopaComp = { label: string; titulo: string; competicion: string; rondas: RondaDatum[]; fechaInicio: string | null }
 // Etiqueta corta del chip a partir de campos SEPARADOS (regla general, no recorte de string): tipo de
@@ -351,6 +353,7 @@ export async function getCopasAmbito(codequipo: string, tempSel: string | null, 
           marcador: `${r.goles_local}-${r.goles_visitante}`, signo: gf > gc ? 'G' : gf < gc ? 'P' : 'E',
           rivalNombre: (local ? r.nombre_visitante : r.nombre_local) as string, rivalEscudo: null,
           esLocal: local, fecha: r.fecha, ronda: c.ronda_label || 'Ronda',
+          href: r.codacta ? `/madrid/partido/${partidoSlug(r.codacta, r.nombre_local, r.nombre_visitante)}` : null,
         }
       })
       if (rondas.length) out.push({ label: etiquetaCopa(c.competicion, c.ronda_label), titulo: c.competicion, competicion: c.competicion, rondas, fechaInicio: (c.fecha_inicio as string | null) || null })

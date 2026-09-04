@@ -219,6 +219,39 @@
 .fjv2 .m-cols{display:flex;justify-content:flex-end;gap:10px;padding:2px var(--pad) 3px;font-size:var(--t-micro);text-transform:uppercase;letter-spacing:.05em;color:var(--ink-3);font-weight:700}
 .fjv2 .m-cols .mc-pts{width:40px;text-align:center}
 .fjv2 .m-cols .mc-elo{width:34px;text-align:right}
+/* ── MatchRow HÍBRIDO (cara a cara + meta): equipo "Últimos partidos", jugador "Mejores actuaciones", partido
+   "forma". Línea 1: dos equipos (escudo+nombre) + marcador centrado coloreado por el resultado del sujeto,
+   ganador en negrita. Línea 2: fecha·competición a la izquierda; a la derecha, datos del bloque (eventos · PF ·
+   ΔELO) según el sujeto. Las clases .match/.m-* de arriba se conservan para la tira de rondas de copa. ── */
+.fjv2 .match-hb{display:block;padding:10px var(--pad) 9px;border-top:1px solid var(--line-2);text-decoration:none;color:inherit}
+.fjv2 .match-hb:first-child{border-top:0}
+.fjv2 a.match-hb-link{transition:background .12s}
+.fjv2 a.match-hb-link:hover{background:rgba(255,255,255,.05)}
+.fjv2 a.match-hb-link:hover .mh-nm{color:var(--ink)}
+.fjv2 .mh-top{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:10px}
+.fjv2 .mh-side{display:flex;align-items:center;gap:7px;min-width:0}
+.fjv2 .mh-side.v{flex-direction:row-reverse}
+.fjv2 .mh-nm{font-family:var(--font-display),'Barlow Condensed',sans-serif;font-weight:600;font-size:var(--t-lead);color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.fjv2 .mh-nm.w{color:var(--ink);font-weight:700}
+.fjv2 .mh-sc{font-family:var(--font-display),'Barlow Condensed',sans-serif;font-weight:700;font-size:var(--n-sm);font-variant-numeric:tabular-nums;white-space:nowrap;flex:none}
+.fjv2 .mh-sep{color:var(--ink-4);margin:0 3px}
+.fjv2 .mh-meta{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:6px}
+.fjv2 .mh-when{display:flex;align-items:center;gap:5px;font-size:var(--t-cap);color:var(--ink-3);min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.fjv2 .mh-stats{display:flex;align-items:center;gap:8px;flex:none}
+.fjv2 .mh-evs{display:flex;align-items:center;gap:6px}
+.fjv2 .mh-ev{display:inline-flex;align-items:center;gap:2px;font-size:var(--t-cap);font-family:var(--font-display),'Barlow Condensed',sans-serif;font-weight:600}
+.fjv2 .mh-pf{display:inline-flex;align-items:baseline;gap:3px;background:var(--e2);border-radius:5px;padding:2px 8px;color:#08111f}
+.fjv2 .mh-pf b{font-family:var(--font-display),'Barlow Condensed',sans-serif;font-weight:700;font-size:var(--t-lead);line-height:1}
+.fjv2 .mh-pf small{font-size:var(--t-micro);font-weight:700;letter-spacing:.03em;opacity:.85}
+.fjv2 .mh-elo{font-family:var(--font-display),'Barlow Condensed',sans-serif;font-weight:700;font-size:var(--t-body);font-variant-numeric:tabular-nums;min-width:24px;text-align:right}
+/* MVP del partido: protagonista. Trofeo ÁMBAR como acento en el rótulo (sin fondo dorado — el ámbar sigue
+   reservado a playoff/copa/disciplina, solo como acento puntual) + jerarquía mayor: avatar, nombre y puntos
+   más grandes que una fila normal. */
+.fpv2 .mvp-t{display:inline-flex;align-items:center;gap:6px}
+.fpv2 .mvp-hero{padding-top:13px;padding-bottom:13px}
+.fpv2 .mvp-hero .pl-av{width:46px;height:46px;font-size:var(--t-lead);border-radius:10px}
+.fpv2 .mvp-hero .pl-nm{font-size:var(--n-sm);font-weight:700}
+.fpv2 .mvp-hero .pl-val{font-size:var(--n-md);padding:7px 13px;border-radius:7px}
 
 .fjv2 .hito{display:flex;gap:11px;padding:10px var(--pad)}
 .fjv2 .h-dot{width:9px;height:9px;border-radius:50%;background:var(--e3);margin-top:5px;flex:none;position:relative}
@@ -426,7 +459,7 @@
 .fjv2 .ctr.head .cc,.fjv2 .ctr.head .ceq{font-size:var(--t-cap);color:var(--ink-3);font-weight:600;letter-spacing:.05em;text-transform:uppercase;padding:8px 0}
 .fjv2 .cracha{width:78px;flex:none;display:flex;align-items:center;gap:2px;padding:0 6px}
 .fjv2 .cracha i{width:11px;height:11px;border-radius:3px;flex:none}
-.fjv2 .ctr.head .cracha{font-size:var(--t-cap);color:var(--ink-3);font-weight:600;letter-spacing:.05em;text-transform:uppercase}
+.fjv2 .ctr.head .cracha{font-size:var(--t-cap);color:var(--ink-3);font-weight:600;letter-spacing:.05em;text-transform:uppercase;justify-content:center}
 .fjv2 .leyenda-z{display:flex;flex-wrap:wrap;gap:6px 14px;padding:11px var(--pad) 0;font-size:var(--t-sm);color:var(--ink-2)}
 .fjv2 .leyenda-z span{display:inline-flex;align-items:center;gap:6px}
 .fjv2 .leyenda-z i{width:11px;height:11px;border-radius:2px}
@@ -523,7 +556,7 @@
 
 /* Comentario de racha (texto explicativo por equipo) en la clasificación. */
 .fjv2 .ccom{width:96px;flex:none;display:flex;align-items:center;padding:0 8px;font-family:var(--font-display),'Barlow Condensed',sans-serif;font-size:var(--t-cap);font-weight:600;color:var(--ink-3);white-space:nowrap}
-.fjv2 .ctr.head .ccom{color:var(--ink-3);letter-spacing:.05em;text-transform:uppercase}
+.fjv2 .ctr.head .ccom{color:var(--ink-3);letter-spacing:.05em;text-transform:uppercase;justify-content:center}
 
 /* Líderes (aside): tarjeta de dos plantas por líder. */
 .fjv2 .rail.lideres{gap:7px}
@@ -823,21 +856,13 @@
 .fpv2 .forma-2col .forma-col{min-width:0}   /* imprescindible: si no, la track se expande al nombre y desborda */
 .fpv2 .forma-2col .forma-col+.forma-col{border-left:1px solid var(--line-2)}
 .fpv2 .forma-h{border-top:0;margin-top:0;padding-top:9px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-/* La forma usa MatchRow en su variante .match-compact: la MISMA fila del sitio, estrechada para caber a dos
-   columnas (escudo 22, marcador y pastillas más pequeños, meta con competición + fecha que puede envolver). */
-.fpv2 .match-compact{gap:7px;padding:8px 10px}
-.fpv2 .match-compact .m-score{width:auto;min-width:30px;font-size:var(--t-lead)}
-.fpv2 .match-compact .m-riv{font-size:var(--t-cap)}
-/* Meta compacta (forma del partido, 2 columnas): tope de DOS líneas. line-height uniforme (18px) para que la
-   3ª línea empiece EXACTAMENTE en 36px y overflow:hidden la oculte ENTERA, sin sliver ni corte a mitad de chip
-   (flex-wrap envuelve chips completos). Con el orden de prioridad de los chips, lo que rara vez se recorta es
-   lo deducible del marcador (goles, P0). Solo afecta a .match-compact; la meta a ancho completo (Últimos
-   partidos del equipo) NO lleva tope y sigue en una línea. */
-.fpv2 .match-compact .m-meta{gap:5px;margin-top:1px;font-size:var(--t-micro);line-height:18px;max-height:36px;overflow:hidden;align-content:flex-start}
-.fpv2 .match-compact .m-meta > *{line-height:18px}
-.fpv2 .match-compact .m-meta svg{display:block}
-.fpv2 .match-compact .m-pts{font-size:var(--t-cap);padding:3px 7px;border-radius:5px}
-.fpv2 .match-compact .m-elo{width:auto;min-width:24px;font-size:var(--t-cap)}
+/* La forma del partido usa MatchRow HÍBRIDO (.match-hb). En ESCRITORIO va a dos columnas (una por equipo): nombres
+   y marcador algo menores para caber; en móvil pasa a una columna (más abajo) a tamaño normal. */
+.fpv2 .forma-2col .match-hb{padding:9px 12px}
+.fpv2 .forma-2col .mh-top{gap:8px}
+.fpv2 .forma-2col .mh-nm{font-size:var(--t-cap)}
+.fpv2 .forma-2col .mh-sc{font-size:var(--t-lead)}
+.fpv2 .forma-2col .mh-meta{margin-top:5px}
 
 /* Pestañas de la ficha de PARTIDO (Resumen / Alineaciones / Cara a cara): MISMO tratamiento que las de
    competición (.verrail a.on con borde inferior verde), pero con <button> (toggle en la misma página) y una
@@ -884,10 +909,9 @@
      fila usa tamaños normales y la meta cabe sin tope (no clipping). Se prioriza que se ENTIENDA aunque ocupe más. */
   .fpv2 .forma-2col{grid-template-columns:1fr}
   .fpv2 .forma-2col .forma-col+.forma-col{border-left:0;border-top:1px solid var(--line-2);margin-top:2px;padding-top:2px}
-  .fpv2 .forma-2col .match-compact{padding:9px var(--pad);gap:9px}
-  .fpv2 .forma-2col .match-compact .m-score{min-width:34px;font-size:var(--t-lead)}
-  .fpv2 .forma-2col .match-compact .m-riv{font-size:var(--t-body)}
-  .fpv2 .forma-2col .match-compact .m-meta{max-height:none;overflow:visible}
+  .fpv2 .forma-2col .match-hb{padding:10px var(--pad)}
+  .fpv2 .forma-2col .mh-nm{font-size:var(--t-lead)}   /* a ancho completo, tamaño normal */
+  .fpv2 .forma-2col .mh-sc{font-size:var(--n-sm)}
   .fpv2 .forma-2col .forma-h{padding-left:var(--pad);padding-right:var(--pad)}
 }
 /* #2 Movimiento de ELO por equipo, al pie de cada columna de alineación. */

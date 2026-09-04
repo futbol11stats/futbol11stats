@@ -650,6 +650,7 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
                 return (
                   <MatchRow key={i}
                     marcador={marcador} signo={(signo || null) as 'G' | 'E' | 'P' | null}
+                    propioNombre={a.equipo_nombre} propioEscudo={a.escudo} propioCod={a.codequipo}
                     rivalEscudo={a.rival_escudo} rivalNombre={a.rival_nombre} rivalCod={a.rival_cod} esLocal={a.es_local}
                     fecha={a.fecha}
                     etiqueta={jlbl || undefined}

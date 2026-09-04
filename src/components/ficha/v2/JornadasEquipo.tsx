@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import Link from 'next/link'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import IndicadorLocal from '@/components/IndicadorLocal'
 import EscudoBox from '@/components/ficha/v2/EscudoBox'
@@ -64,17 +65,23 @@ export default function JornadasEquipo({ comps, cortes, temporada }: { comps: Co
       <>
         {head}
         <div>
-          {comp.rondas.map((r, i) => (
-            <div className="match" key={i}>
-              <div className="m-score" style={{ color: colRes(r.signo) }}>{r.marcador}</div>
-              <EscudoBox escudo={r.rivalEscudo} nombre={r.rivalNombre ?? undefined} size={26} radius={4} />
-              <div className="m-mid">
-                <div className="m-riv"><span className="m-vs">vs</span> {nombreEquipo(r.rivalNombre)}</div>
-                <div className="m-meta">{r.esLocal != null && <IndicadorLocal esLocal={r.esLocal} />}<span>{r.fecha ? fechaCorta(r.fecha) : ''}</span></div>
-              </div>
-              <div className="copa-ronda">{r.ronda}</div>
-            </div>
-          ))}
+          {comp.rondas.map((r, i) => {
+            const cuerpo = (
+              <>
+                <div className="m-score" style={{ color: colRes(r.signo) }}>{r.marcador}</div>
+                <EscudoBox escudo={r.rivalEscudo} nombre={r.rivalNombre ?? undefined} size={26} radius={4} />
+                <div className="m-mid">
+                  <div className="m-riv"><span className="m-vs">vs</span> {nombreEquipo(r.rivalNombre)}</div>
+                  <div className="m-meta">{r.esLocal != null && <IndicadorLocal esLocal={r.esLocal} />}<span>{r.fecha ? fechaCorta(r.fecha) : ''}</span></div>
+                </div>
+                <div className="copa-ronda">{r.ronda}</div>
+              </>
+            )
+            // Como cualquier fila de partido del sitio: toda la fila enlaza a la ficha (copa incluida).
+            return r.href
+              ? <Link className="match match-link" href={r.href} key={i}>{cuerpo}</Link>
+              : <div className="match" key={i}>{cuerpo}</div>
+          })}
           {comp.rondas.length === 0 && <p style={{ padding: '0 var(--pad)', color: 'var(--ink-3)', fontSize: 'var(--t-sm)' }}>Sin partidos de copa registrados.</p>}
         </div>
       </>

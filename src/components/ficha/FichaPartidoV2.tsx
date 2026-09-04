@@ -19,7 +19,6 @@ import SectionHeader from '@/components/ui/SectionHeader'
 import PartidoTabs from '@/components/ficha/PartidoTabs'
 import PlayerAvatar from '@/components/ui/PlayerAvatar'
 import FormaStrip from '@/components/ui/FormaStrip'
-import { colorFan } from '@/lib/equipoV2'
 import type { PartidoFicha, PartidoJugador, PartidoMini, PartidoLado } from '@/lib/partido'
 // Fondo de la pastilla de PUNTOS fantasy (baza propia; verde para lo bueno, el ámbar está reservado).
 const ptsStyle = (p: number | null) => p == null ? { background: 'rgba(255,255,255,.05)', color: 'var(--ink-4)' }
@@ -187,6 +186,9 @@ function MiniForma({ m, teamCod }: { m: PartidoMini; teamCod: string }) {
       compact
       marcador={jugado ? `${gL}-${gV}` : null}
       signo={signo}
+      propioNombre={esLocal ? m.local : m.visitante}
+      propioEscudo={esLocal ? m.escudoLocal : m.escudoVisitante}
+      propioCod={teamCod}
       rivalEscudo={rivalEsc}
       rivalNombre={rival}
       rivalCod={rivalCod ?? null}
@@ -196,8 +198,6 @@ function MiniForma({ m, teamCod }: { m: PartidoMini; teamCod: string }) {
       goles={jugado && gf > 0 ? gf : undefined}
       p0={jugado && gc === 0}
       ta={m.ta} td={m.td} tr={m.tr}
-      pts={m.fantasy}
-      ptsBg={m.fantasy != null ? colorFan(m.fantasy) : undefined}
       eloDelta={m.eloDelta}
       href={`/madrid/partido/${partidoSlug(m.codacta, m.local, m.visitante)}`}
     />
@@ -429,8 +429,11 @@ export default function FichaPartidoV2({ p }: { p: PartidoFicha }) {
               {/* MVP fantasy — mismo tratamiento que "Top de la plantilla" (fila .pl + rótulo bien visible) */}
               {p.jugado && p.mvp && (
                 <section>
-                  <SectionHeader title="MVP del partido" sub="por puntos fantasy" />
-                  <div className="pl">
+                  {/* MVP: es el protagonista. Trofeo ÁMBAR como acento en el rótulo (el ámbar está reservado a
+                      playoff/copa/disciplina, pero como acento puntual en el icono no rompe el código) + jerarquía
+                      mayor (avatar, nombre y puntos más grandes que una fila normal). SIN fondo dorado. */}
+                  <SectionHeader title={<span className="mvp-t"><Trophy size={16} strokeWidth={2.5} style={{ color: 'var(--amber)' }} /> MVP del partido</span>} sub="por puntos fantasy" />
+                  <div className="pl mvp-hero">
                     <PlayerAvatar className="pl-av" nombre={p.mvp.nombre} pos={p.mvp.pos} />
                     <div className="pl-mid">
                       <div className="pl-nm">{p.mvp.href ? <Link href={p.mvp.href}>{nombreCompleto(p.mvp.nombre)}</Link> : nombreCompleto(p.mvp.nombre)}</div>
@@ -482,8 +485,9 @@ export default function FichaPartidoV2({ p }: { p: PartidoFicha }) {
               {/* ÚLTIMOS PARTIDOS de cada equipo */}
               {(p.formaLocal.length > 0 || p.formaVisitante.length > 0) && (
                 <section className="gc-ultimos">
-                  <SectionHeader title="Últimos partidos" />
-                  {/* Dos columnas TAMBIÉN en móvil: cada equipo su forma con la fila compacta (rival + marcador + Δ ELO). */}
+                  <SectionHeader title="Últimos partidos" sub="Δ ELO tras cada partido" />
+                  {/* Escritorio: dos columnas (una por equipo). Móvil: una columna a ancho completo (ver ficha.css).
+                      Fila híbrida (MatchRow): cara a cara + meta; el dato del bloque es el ΔELO del equipo (sin PF). */}
                   <div className="forma-2col">
                     <div className="forma-col">{p.formaLocal.length > 0 && <><div className="al-sub forma-h">{nombreEquipo(p.local.nombre)}</div>{p.formaLocal.map((m) => <MiniForma key={m.codacta} m={m} teamCod={p.local.codequipo} />)}</>}</div>
                     <div className="forma-col">{p.formaVisitante.length > 0 && <><div className="al-sub forma-h">{nombreEquipo(p.visitante.nombre)}</div>{p.formaVisitante.map((m) => <MiniForma key={m.codacta} m={m} teamCod={p.visitante.codequipo} />)}</>}</div>

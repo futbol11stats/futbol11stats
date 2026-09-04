@@ -396,9 +396,11 @@ export async function getLideresV2(codgrupo: string, codtemporada: number) {
   return cacheComp(async () => {
     const [top, al] = await Promise.all([
       supabase.from('web_top_jugadores')
-        .select('tipo, jornada, codjugador, nombre, posicion, codequipo, nombre_equipo, escudo, goles, elo')
+        .select('tipo, jornada, codjugador, nombre, posicion, codequipo, nombre_equipo, escudo, goles, elo, pts_fantasy, media_fantasy')
         .eq('codgrupo', codgrupo).eq('codtemporada', codtemporada)
-        .in('tipo', ['goleadores_temp', 'porteros_temp', 'elo_temp']).eq('rank', 1),
+        // fantasy_temp = Mejor PF (rank 1 por puntos fantasy). "Mejor Media PF" NO existe como ranking en el
+        // pipeline (solo elo/fantasy/goleadores/porteros_temp) -> pendiente de que publiquen media_fantasy_temp.
+        .in('tipo', ['goleadores_temp', 'porteros_temp', 'elo_temp', 'fantasy_temp', 'media_fantasy_temp']).eq('rank', 1),
       // "Más tarjetas": no hay ranking de tarjetas por jugador de temporada; se usa la mejor fuente
       // disponible, web_alertas_tarjetas (amarillas de ciclo + simples). Cubre solo a los que tienen
       // registro disciplinario, así que es aproximado (ver DECISIONES C-lideres).
@@ -411,8 +413,12 @@ export async function getLideresV2(codgrupo: string, codtemporada: number) {
     const tarj = ((al.data || []) as any[])
       .map((r) => ({ ...r, amarillas: (r.amarillas_ciclo || 0) + (r.amarillas_simples || 0) }))
       .sort((a, b) => b.amarillas - a.amarillas)[0] || null
-    return { goleador: pick('goleadores_temp'), portero: pick('porteros_temp'), elo: pick('elo_temp'), tarjetas: tarj }
-  }, ['getLideresV2', codgrupo, codtemporada], [codgrupo], codtemporada)
+    return {
+      goleador: pick('goleadores_temp'), portero: pick('porteros_temp'), elo: pick('elo_temp'),
+      pf: pick('fantasy_temp'), mediaPf: pick('media_fantasy_temp'),   // mediaPf null hasta que el pipeline lo publique
+      tarjetas: tarj,
+    }
+  }, ['getLideresV2', 'v2-pf', codgrupo, codtemporada], [codgrupo], codtemporada)
 }
 
 export type CifrasComp = {
