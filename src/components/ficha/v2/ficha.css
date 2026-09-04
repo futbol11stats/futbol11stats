@@ -809,6 +809,7 @@
 .fpv2 .pp-team:last-child{justify-content:flex-end;text-align:right}
 .fpv2 .pp-elo{font-family:var(--font-display),sans-serif;font-weight:700;font-size:var(--t-lead);font-variant-numeric:tabular-nums;color:var(--ink-2)}
 .fpv2 .pp-elo b{font-size:var(--t-cap)}
+.fpv2 .pp-elo-lbl{font-family:var(--font-sans),sans-serif;font-weight:600;font-size:var(--t-cap);letter-spacing:.03em;color:var(--ink-3)}
 .fpv2 .pp-ctx{flex-basis:100%;color:var(--ink-3)}
 /* Barra de probabilidad por ELO: local azul (--zona-po), empate gris (--e1), visitante naranja (identificador del sitio,
    como los avatares POR). No-moralizante. Sin cifras: la proporción la da la barra. */

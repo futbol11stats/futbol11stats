@@ -217,9 +217,11 @@ function favoritoFrase(a: number | null, b: number | null): { texto: string; lad
 // #3 Contexto de puesto (solo dentro de esta competición; requiere jornada anterior -> no en J1).
 function ctxPuesto(pre: number | null, post: number | null): string | null {
   if (pre == null || post == null) return null
-  if (post < pre) return `sube del ${pre}º al ${post}º`
-  if (post > pre) return `baja del ${pre}º al ${post}º`
-  return `se mantiene ${post}º`
+  // Lidera con el puesto y lo ancla a "la clasificación" (no al ELO de justo encima). Movimiento compacto para móvil.
+  const base = `${post}.º en la clasificación`
+  if (post < pre) return `${base} · sube ${pre - post}`
+  if (post > pre) return `${base} · baja ${post - pre}`
+  return `${base} · se mantiene`
 }
 // #5 Texto del hito (se excluyen los "*_registrado" en la capa de datos).
 const HITO_TX: Record<string, (v: number | null) => string> = {
@@ -283,7 +285,7 @@ function PronoCard({ p }: { p: PartidoFicha }) {
   const teamPost = (post: number | null, mov: number | null, ctx: string | null, lado: PartidoLado) => (
     <div className="pp-team">
       <EscudoBox escudo={lado.escudo} nombre={lado.nombre} size={18} radius={4} />
-      {post != null && <span className="pp-elo">{fmtElo(post)}{mov != null && <b style={{ color: mov >= 0 ? 'var(--e3)' : 'var(--e0)' }}> {fmtDelta(mov)}</b>}</span>}
+      {post != null && <span className="pp-elo"><span className="pp-elo-lbl">ELO</span> {fmtElo(post)}{mov != null && <b style={{ color: mov >= 0 ? 'var(--e3)' : 'var(--e0)' }}> {fmtDelta(mov)}</b>}</span>}
       {ctx && <span className="pp-ctx">{ctx}</span>}
     </div>
   )
