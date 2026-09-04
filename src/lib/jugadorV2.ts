@@ -129,7 +129,9 @@ export function alertaHumana(a: AlertaRow | null): string | null {
 // ¿El jugador tiene algún partido con goles_encajados no nulo? (para decidir si mostrar "P. a 0").
 export async function tienePorteriaDato(cod: string): Promise<boolean> {
   return cacheJugador(async () => {
-    const { data } = await supabase.from('web_jugador_partidos').select('id')
+    // Solo chequeo de EXISTENCIA (limit 1): no se usa el valor. Se selecciona `codacta` (no `id`) para no depender
+    // de la columna id de web_jugador_partidos —el pipeline la va a quitar al promover (codjugador,codacta) a PK—.
+    const { data } = await supabase.from('web_jugador_partidos').select('codacta')
       .eq('codjugador', cod).not('goles_encajados', 'is', null).limit(1)
     return !!(data && data.length)
   }, ['tienePorteriaDato', cod], cod)
