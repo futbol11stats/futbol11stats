@@ -418,7 +418,7 @@ export async function getLideresV2(codgrupo: string, codtemporada: number) {
       pf: pick('fantasy_temp'), mediaPf: pick('media_fantasy_temp'),   // mediaPf null hasta que el pipeline lo publique
       tarjetas: tarj,
     }
-  }, ['getLideresV2', 'v2-pf', codgrupo, codtemporada], [codgrupo], codtemporada)
+  }, ['getLideresV2', 'v3-pf', codgrupo, codtemporada], [codgrupo], codtemporada)   // v3-pf: media_fantasy_temp ya poblada (v2 cacheó null antes del re-export)
 }
 
 export type CifrasComp = {

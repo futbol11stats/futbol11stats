@@ -543,7 +543,7 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
                 )
               })}
             </div>
-            <div style={{ padding: '12px var(--pad) 2px', display: 'flex', gap: 5, alignItems: 'center' }}>
+            <div style={{ padding: '12px var(--pad) 2px', display: 'flex', gap: 5, alignItems: 'center', justifyContent: 'center' }}>
               <span style={{ fontSize: 'var(--t-cap)', color: 'var(--ink-3)', marginRight: 5 }}>Racha</span>
               <FormaStrip
                 items={racha.map((r) => r.signo)}

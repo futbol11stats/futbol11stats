@@ -448,9 +448,6 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
           {ultimos.length > 0 && (
             <section id="s-ultimos">
               <SectionHeader title="Últimos partidos" sub={echoTxt} />
-              {/* Rótulo del dato del bloque: aquí NO hay protagonista (son 11 jugadores) -> sin PF, solo el ΔELO del
-                  equipo, que sí es suyo (subió/bajó tras el partido). Un "ELO" pequeño basta para interpretarlo. */}
-              <div className="m-cols"><span className="mc-elo">ELO</span></div>
               <div>
                 {ultimos.map((m, i) => {
                   const local = m.esLocal ? e.nombre : m.rivalNombre
@@ -505,7 +502,7 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
                   )
                 })}
               </div>
-              <div style={{ padding: '12px var(--pad) 2px', display: 'flex', gap: 5, alignItems: 'center' }}>
+              <div style={{ padding: '12px var(--pad) 2px', display: 'flex', gap: 5, alignItems: 'center', justifyContent: 'center' }}>
                 <span style={{ fontSize: 'var(--t-cap)', color: 'var(--ink-3)', marginRight: 5 }}>Racha</span>
                 {forma.racha.map((r, i) => (
                   <span key={i} className="num" style={{ width: 22, height: 22, borderRadius: 6, display: 'grid', placeItems: 'center', fontSize: 'var(--t-sm)', color: '#0a1628', background: RC[r.signo] }}>{r.signo}</span>

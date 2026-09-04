@@ -99,8 +99,8 @@ function Cuerpo(p: MatchRowProps) {
           {hayEv && <span className="mh-evs">{ev}</span>}
           {/* PF: EL dato de "Mejores actuaciones" -> destacado y rotulado. */}
           {p.pts != null && <span className="mh-pf" style={p.ptsBg ? { background: p.ptsBg } : undefined}><b>{p.pts}</b><small>PF</small></span>}
-          {/* ΔELO del equipo (Últimos partidos): rotulado en la cabecera del bloque, aquí solo la cifra coloreada. */}
-          {p.eloDelta != null && <span className="mh-elo" style={{ color: p.eloDelta >= 0 ? 'var(--e3)' : 'var(--e0)' }} title="Δ ELO del partido">{p.eloDelta >= 0 ? '+' : '−'}{Math.abs(Math.round(p.eloDelta))}</span>}
+          {/* ΔELO del equipo tras el partido: rótulo "Δ ELO" + la cifra coloreada, para que el número no vaya suelto. */}
+          {p.eloDelta != null && <span className="mh-elo" title="Δ ELO del equipo tras el partido"><span className="mh-elo-lbl">Δ ELO</span> <b style={{ color: p.eloDelta >= 0 ? 'var(--e3)' : 'var(--e0)' }}>{p.eloDelta >= 0 ? '+' : '−'}{Math.abs(Math.round(p.eloDelta))}</b></span>}
         </span>
       </div>
     </>

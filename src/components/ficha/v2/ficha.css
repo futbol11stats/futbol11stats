@@ -243,7 +243,9 @@
 .fjv2 .mh-pf{display:inline-flex;align-items:baseline;gap:3px;background:var(--e2);border-radius:5px;padding:2px 8px;color:#08111f}
 .fjv2 .mh-pf b{font-family:var(--font-display),'Barlow Condensed',sans-serif;font-weight:700;font-size:var(--t-lead);line-height:1}
 .fjv2 .mh-pf small{font-size:var(--t-micro);font-weight:700;letter-spacing:.03em;opacity:.85}
-.fjv2 .mh-elo{font-family:var(--font-display),'Barlow Condensed',sans-serif;font-weight:700;font-size:var(--t-body);font-variant-numeric:tabular-nums;min-width:24px;text-align:right}
+.fjv2 .mh-elo{display:inline-flex;align-items:baseline;gap:3px;white-space:nowrap;flex:none}
+.fjv2 .mh-elo-lbl{font-size:var(--t-micro);color:var(--ink-4);font-weight:600;letter-spacing:.02em}
+.fjv2 .mh-elo b{font-family:var(--font-display),'Barlow Condensed',sans-serif;font-weight:700;font-size:var(--t-body);font-variant-numeric:tabular-nums}
 /* MVP del partido: protagonista. Trofeo ÁMBAR como acento en el rótulo (sin fondo dorado — el ámbar sigue
    reservado a playoff/copa/disciplina, solo como acento puntual) + jerarquía mayor: avatar, nombre y puntos
    más grandes que una fila normal. */
@@ -457,7 +459,7 @@
 .fjv2 .cc.pts{width:38px;font-size:var(--n-sm);font-weight:700;color:var(--ink)}
 .fjv2 .cc.dg{color:var(--ink-3)}
 .fjv2 .ctr.head .cc,.fjv2 .ctr.head .ceq{font-size:var(--t-cap);color:var(--ink-3);font-weight:600;letter-spacing:.05em;text-transform:uppercase;padding:8px 0}
-.fjv2 .cracha{width:78px;flex:none;display:flex;align-items:center;gap:2px;padding:0 6px;font-family:var(--font-display),'Barlow Condensed',sans-serif}
+.fjv2 .cracha{width:78px;flex:none;display:flex;align-items:center;justify-content:center;gap:2px;padding:0 6px;font-family:var(--font-display),'Barlow Condensed',sans-serif}
 .fjv2 .cracha i{width:11px;height:11px;border-radius:3px;flex:none}
 .fjv2 .ctr.head .cracha{font-size:var(--t-cap);color:var(--ink-3);font-weight:600;letter-spacing:.05em;text-transform:uppercase;justify-content:center}
 .fjv2 .leyenda-z{display:flex;flex-wrap:wrap;gap:6px 14px;padding:11px var(--pad) 0;font-size:var(--t-sm);color:var(--ink-2)}
@@ -555,7 +557,7 @@
 .fjv2 .chip-eq.on i{opacity:1}
 
 /* Comentario de racha (texto explicativo por equipo) en la clasificación. */
-.fjv2 .ccom{width:96px;flex:none;display:flex;align-items:center;padding:0 8px;font-family:var(--font-display),'Barlow Condensed',sans-serif;font-size:var(--t-cap);font-weight:600;color:var(--ink-3);white-space:nowrap}
+.fjv2 .ccom{width:96px;flex:none;display:flex;align-items:center;justify-content:center;padding:0 8px;font-family:var(--font-display),'Barlow Condensed',sans-serif;font-size:var(--t-cap);font-weight:600;color:var(--ink-3);white-space:nowrap}
 .fjv2 .ctr.head .ccom{color:var(--ink-3);letter-spacing:.05em;text-transform:uppercase;justify-content:center}
 
 /* Líderes (aside): tarjeta de dos plantas por líder. */
@@ -617,6 +619,9 @@
 .fcv2 .lid .mid{flex:1;min-width:0}
 .fcv2 .lid .k{font-size:var(--t-micro);letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);font-weight:600;display:flex;align-items:center;gap:5px}
 .fcv2 .lid .nm{font-family:var(--font-display),sans-serif;font-size:var(--t-lead);font-weight:600;margin-top:4px;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* Afordancia de enlace en reposo: el nombre con ficha publicada (=<a>) lleva subrayado sutil; el que no
+   enlaza (menores, sin ficha) queda en texto plano -> se distingue sin pasar el ratón. */
+.fcv2 .lid .nm a{color:inherit;text-decoration:underline;text-decoration-color:rgba(140,239,165,.45);text-decoration-thickness:1px;text-underline-offset:2px}
 /* Nombre del equipo del líder: nunca se trunca; si es largo, envuelve a 2 líneas (bug del scroll horizontal). */
 .fcv2 .lid .eq{font-size:var(--t-micro);color:var(--ink-3);margin-top:2px;line-height:1.2;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .fcv2 .lid .lval{flex:none;text-align:right}
@@ -834,16 +839,19 @@
 .fpv2 .ra-mid{display:flex;flex-direction:column;align-items:center;gap:2px;min-width:74px}
 .fpv2 .ra-ic{display:inline-flex;color:var(--ink-2)}
 .fpv2 .ra-k{font-family:var(--font-display),sans-serif;font-size:var(--t-cap);text-transform:uppercase;letter-spacing:.04em;color:var(--ink-2);font-weight:700;text-align:center;line-height:1.05}
-.fpv2 .ra-side{display:flex;align-items:center;gap:10px;min-width:0}
-.fpv2 .ra-l{flex-direction:row}           /* número (fuera) | track (récord hacia el centro) */
-.fpv2 .ra-v{flex-direction:row-reverse}   /* track (récord hacia el centro) | número (fuera) */
-.fpv2 .ra-n{font-family:var(--font-display),sans-serif;font-weight:700;font-size:var(--n-md);line-height:.9;font-variant-numeric:tabular-nums;flex:none}
+.fpv2 .ra-side{display:flex;min-width:0}
+.fpv2 .ra-track{flex:1;min-width:0;display:flex;flex-direction:column;gap:5px}
+/* Número + batería en la MISMA fila, centrados entre sí (el número a la altura del percentil); récord/pastilla
+   debajo, sin solaparse. */
+.fpv2 .ra-topline{display:flex;align-items:center;gap:10px;min-width:0}
+.fpv2 .ra-l .ra-topline{flex-direction:row}           /* número (fuera) | batería */
+.fpv2 .ra-v .ra-topline{flex-direction:row-reverse}   /* batería | número (fuera) */
+.fpv2 .ra-n{font-family:var(--font-display),sans-serif;font-weight:700;font-size:var(--n-md);line-height:1;font-variant-numeric:tabular-nums;flex:none}
 .fpv2 .ra-n.loc{color:var(--zona-po)}
 .fpv2 .ra-n.vis{color:rgb(249,115,22)}
 .fpv2 .ra-n.rota{color:var(--ink-4)}
 .fpv2 .ra-n.hit{color:var(--amber)}
-.fpv2 .ra-track{flex:1;min-width:0;display:flex;flex-direction:column;gap:5px}
-.fpv2 .ra-batt{display:flex;gap:2px}
+.fpv2 .ra-batt{display:flex;gap:2px;flex:1;min-width:0}
 .fpv2 .ra-batt i{height:9px;flex:1;border-radius:2px;background:rgba(255,255,255,.1)}
 .fpv2 .ra-v .ra-batt{flex-direction:row-reverse}   /* visitante: rellena desde su número (derecha) hacia el centro */
 .fpv2 .ra-rec{font-size:var(--t-micro);color:var(--ink-3);white-space:nowrap;text-align:right}   /* local: récord al borde interior */

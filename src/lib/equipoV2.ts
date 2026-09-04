@@ -310,8 +310,11 @@ export async function getMediasPorTemporada(codequipo: string): Promise<Record<s
 // barras: solo el/los partido(s) de la ronda, con el patrón de "Últimos partidos". web_equipo.copas
 // registra la ronda alcanzada por competición; se sacan sus partidos de web_resultados por su codgrupo. ---
 export type RondaDatum = {
-  marcador: string; signo: 'G' | 'E' | 'P'; rivalNombre: string | null; rivalEscudo: string | null
+  marcador: string; signo: 'G' | 'E' | 'P'
+  propioNombre: string | null; propioEscudo: string | null; propioCod: string | null   // equipo de la ficha (look híbrido)
+  rivalNombre: string | null; rivalEscudo: string | null; rivalCod: string | null
   esLocal: boolean; fecha: string | null; ronda: string
+  eloDelta: number | null   // ΔELO del equipo tras el partido (post − pre; null si no hay dato)
   href: string | null   // -> ficha del partido (como cualquier otra fila de partido); null si falta codacta
 }
 export type CopaComp = { label: string; titulo: string; competicion: string; rondas: RondaDatum[]; fechaInicio: string | null }
@@ -349,10 +352,17 @@ export async function getCopasAmbito(codequipo: string, tempSel: string | null, 
         const local = filaEsLocal(r, nombre, codequipo)
         const gf = (local ? r.goles_local : r.goles_visitante) as number
         const gc = (local ? r.goles_visitante : r.goles_local) as number
+        const pre = local ? r.elo_pre_local : r.elo_pre_visitante
+        const post = local ? r.elo_post_local : r.elo_post_visitante
         return {
           marcador: `${r.goles_local}-${r.goles_visitante}`, signo: gf > gc ? 'G' : gf < gc ? 'P' : 'E',
-          rivalNombre: (local ? r.nombre_visitante : r.nombre_local) as string, rivalEscudo: null,
+          propioNombre: nombre, propioEscudo: (local ? r.escudo_local : r.escudo_visitante) ?? null,
+          propioCod: codequipo != null ? String(codequipo) : null,
+          rivalNombre: (local ? r.nombre_visitante : r.nombre_local) as string,
+          rivalEscudo: (local ? r.escudo_visitante : r.escudo_local) ?? null,
+          rivalCod: (local ? r.codequipo_visitante : r.codequipo_local) ?? null,
           esLocal: local, fecha: r.fecha, ronda: c.ronda_label || 'Ronda',
+          eloDelta: (pre != null && post != null) ? Math.round(post - pre) : null,
           href: r.codacta ? `/madrid/partido/${partidoSlug(r.codacta, r.nombre_local, r.nombre_visitante)}` : null,
         }
       })
@@ -360,7 +370,7 @@ export async function getCopasAmbito(codequipo: string, tempSel: string | null, 
     }
     return out
     // v3-finicio: bump por el playoff (v2) y ahora `fechaInicio` (fecha_inicio del JSONB) en la salida.
-  }, ['getCopasAmbito', 'v5-orden', codequipo, String(tempSel)], codequipo, { codtemporada: tempSel })
+  }, ['getCopasAmbito', 'v6-hibrido', codequipo, String(tempSel)], codequipo, { codtemporada: tempSel })
 }
 
 // Eventos de EQUIPO por partido (Últimos partidos): tarjetas agregadas sumando las de sus jugadores en

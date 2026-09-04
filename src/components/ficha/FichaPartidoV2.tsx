@@ -337,9 +337,12 @@ function RachaLado({ act, rec, side }: { act: number; rec: number; side: 'l' | '
   const nCls = act === 0 ? 'ra-n rota' : hit ? 'ra-n hit' : `ra-n ${side === 'l' ? 'loc' : 'vis'}`
   return (
     <div className={`ra-side ra-${side}`}>
-      <span className={nCls}>{act}</span>
       <div className="ra-track">
-        <div className="batt ra-batt">{Array.from({ length: 10 }).map((_, i) => <i key={i} style={i < cells ? { background: fill } : undefined} />)}</div>
+        {/* Número + batería en la MISMA línea (centrados verticalmente entre sí); récord/pastilla debajo, sin pisarse. */}
+        <div className="ra-topline">
+          <span className={nCls}>{act}</span>
+          <div className="batt ra-batt">{Array.from({ length: 10 }).map((_, i) => <i key={i} style={i < cells ? { background: fill } : undefined} />)}</div>
+        </div>
         {hit ? <span className="ra-hit">▲ iguala su récord</span> : <span className="ra-rec">Récord <b>{rec}</b></span>}
       </div>
     </div>
@@ -485,7 +488,7 @@ export default function FichaPartidoV2({ p }: { p: PartidoFicha }) {
               {/* ÚLTIMOS PARTIDOS de cada equipo */}
               {(p.formaLocal.length > 0 || p.formaVisitante.length > 0) && (
                 <section className="gc-ultimos">
-                  <SectionHeader title="Últimos partidos" sub="Δ ELO tras cada partido" />
+                  <SectionHeader title="Últimos partidos" />
                   {/* Escritorio: dos columnas (una por equipo). Móvil: una columna a ancho completo (ver ficha.css).
                       Fila híbrida (MatchRow): cara a cara + meta; el dato del bloque es el ΔELO del equipo (sin PF). */}
                   <div className="forma-2col">

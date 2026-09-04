@@ -1,14 +1,12 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import Link from 'next/link'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import IndicadorLocal from '@/components/IndicadorLocal'
 import EscudoBox from '@/components/ficha/v2/EscudoBox'
 import SectionHeader from '@/components/ui/SectionHeader'
+import MatchRow from '@/components/ficha/v2/MatchRow'
 import { Marcador, Tabla, Escudo, TrianguloArriba, TrianguloAbajo, Guion } from '@/components/iconos'
-import { fechaCorta } from '@/lib/jugador'
-import { nombreEquipo } from '@/lib/nombre'
 import { useComp } from './compStore'
 import type { JornadaEquipoDatum, RondaDatum } from '@/lib/equipoV2'
 
@@ -19,7 +17,6 @@ function escFan(v: number, c: readonly [number, number, number, number]) {
   return 1
 }
 const cFan = (v: number, c: readonly [number, number, number, number]) => PAL[escFan(v, c)]
-const colRes = (s: string | null) => (s === 'G' ? 'var(--e3)' : s === 'E' ? 'var(--ink-2)' : 'var(--e0)')
 
 // Una competición del ámbito: liga (barras de fantasy por jornada) o copa (tira de rondas, sin barras
 // porque en copa no hay pts_fantasy por jornada — ver DECISIONES E-copa).
@@ -59,29 +56,24 @@ export default function JornadasEquipo({ comps, cortes, temporada }: { comps: Co
     />
   )
 
-  // ── COPA: tira de rondas (patrón de "Últimos partidos"), sin barras de fantasy ──
+  // ── COPA / PLAYOFF: MISMA fila híbrida (MatchRow) que "Últimos partidos" de liga — cara a cara + ΔELO del
+  //    equipo, la ronda como etiqueta. Sin barras (en copa no hay pts_fantasy por jornada). ──
   if (comp.tipo === 'copa') {
     return (
       <>
         {head}
         <div>
-          {comp.rondas.map((r, i) => {
-            const cuerpo = (
-              <>
-                <div className="m-score" style={{ color: colRes(r.signo) }}>{r.marcador}</div>
-                <EscudoBox escudo={r.rivalEscudo} nombre={r.rivalNombre ?? undefined} size={26} radius={4} />
-                <div className="m-mid">
-                  <div className="m-riv"><span className="m-vs">vs</span> {nombreEquipo(r.rivalNombre)}</div>
-                  <div className="m-meta">{r.esLocal != null && <IndicadorLocal esLocal={r.esLocal} />}<span>{r.fecha ? fechaCorta(r.fecha) : ''}</span></div>
-                </div>
-                <div className="copa-ronda">{r.ronda}</div>
-              </>
-            )
-            // Como cualquier fila de partido del sitio: toda la fila enlaza a la ficha (copa incluida).
-            return r.href
-              ? <Link className="match match-link" href={r.href} key={i}>{cuerpo}</Link>
-              : <div className="match" key={i}>{cuerpo}</div>
-          })}
+          {comp.rondas.map((r, i) => (
+            <MatchRow key={i}
+              marcador={r.marcador} signo={r.signo}
+              propioNombre={r.propioNombre} propioEscudo={r.propioEscudo} propioCod={r.propioCod}
+              rivalNombre={r.rivalNombre} rivalEscudo={r.rivalEscudo} rivalCod={r.rivalCod}
+              esLocal={r.esLocal}
+              fecha={r.fecha} etiqueta={r.ronda}
+              eloDelta={r.eloDelta}
+              href={r.href}
+            />
+          ))}
           {comp.rondas.length === 0 && <p style={{ padding: '0 var(--pad)', color: 'var(--ink-3)', fontSize: 'var(--t-sm)' }}>Sin partidos de copa registrados.</p>}
         </div>
       </>
