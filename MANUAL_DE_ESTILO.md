@@ -103,6 +103,15 @@ y el CSS de las fichas consumen estas variables; **resuelven en todo el sitio**.
 - **No repetir la temporada** junto a una fecha que ya lleva el año (era redundante). La temporada solo
   aparece como rótulo de sección/grupo, no pegada a la fecha en la misma referencia.
 
+### Nomenclatura: Forma / Racha / Rendimiento (única en todo el sitio)
+Tres conceptos, tres nombres — nunca intercambiados:
+- **Forma** = los **últimos 5 resultados** (G/E/P). La tira `FormaStrip`. Clasificación (col. "Forma"),
+  hero de partido, y el bloque de últimos-5 en las fichas de equipo/jugador.
+- **Racha** = un **hito de continuidad** (x victorias seguidas, x partidos marcando, invicto; la "3V" de la
+  clasificación). Clasificación (col. "Racha"), bloque "Rachas" de la ficha de partido.
+- **Rendimiento** = la **media de puntos fantasy** por partido (ventanas). Sección "Rendimiento" de las
+  fichas de equipo/jugador (antes se llamaba "Forma", y su tira de 5 se rotulaba "Racha" — ambos mal).
+
 ### Color — significados (no reutilizar fuera de su rol)
 | Token | Valor | Significado |
 |---|---|---|

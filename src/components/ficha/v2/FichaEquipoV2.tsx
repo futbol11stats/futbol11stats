@@ -281,7 +281,7 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
     esSoloCopa ? null : { id: 's-clasif', label: 'Clasificación', aside: true },
     ultimos.length ? { id: 's-ultimos', label: 'Últimos partidos' } : null,
     jornadas.length ? { id: 's-jornadas', label: 'Jornadas' } : null,
-    forma.racha.length ? { id: 's-forma', label: 'Forma' } : null,
+    forma.racha.length ? { id: 's-forma', label: 'Rendimiento' } : null,
     ana.pj ? { id: 's-analisis', label: 'Análisis' } : null,
     cods.length ? { id: 's-temporadas', label: 'Temporadas' } : null,
     plantilla.length ? { id: 's-plantilla', label: 'Plantilla' } : null,
@@ -485,10 +485,11 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
               </>}
           </section>
 
-          {/* FORMA — media de puntos de liga por partido (ventanas) + racha de 5, como en jugador. */}
+          {/* RENDIMIENTO — media de puntos de liga por partido (ventanas) + FORMA (últimos 5), como en jugador.
+              Nomenclatura única del sitio: "Forma" = últimos 5 (G/E/P); "Racha" = hito de continuidad. */}
           {forma.racha.length > 0 && (
             <section id="s-forma">
-              <SectionHeader title="Forma" sub="media de puntos por partido" />
+              <SectionHeader title="Rendimiento" sub="media de puntos por partido" />
               <div className="windows">
                 {forma.ventanas.map((v) => {
                   const d = v.delta
@@ -503,7 +504,7 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
                 })}
               </div>
               <div style={{ padding: '12px var(--pad) 2px', display: 'flex', gap: 5, alignItems: 'center', justifyContent: 'center' }}>
-                <span style={{ fontSize: 'var(--t-cap)', color: 'var(--ink-3)', marginRight: 5 }}>Racha</span>
+                <span style={{ fontSize: 'var(--t-cap)', color: 'var(--ink-3)', marginRight: 5 }}>Forma</span>
                 {forma.racha.map((r, i) => (
                   <span key={i} className="num" style={{ width: 22, height: 22, borderRadius: 6, display: 'grid', placeItems: 'center', fontSize: 'var(--t-sm)', color: '#0a1628', background: RC[r.signo] }}>{r.signo}</span>
                 ))}

@@ -253,7 +253,7 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
     esSoloCopa ? null : { id: 's-totales', label: 'Totales', aside: true },   // vida (liga) -> se oculta en solo-copa
     companeros.length ? { id: 's-mates', label: 'Compañeros', aside: true } : null,
     comps.length ? { id: 's-jornadas', label: 'Jornadas' } : null,
-    partidosTemp.length ? { id: 's-forma', label: 'Forma' } : null,
+    partidosTemp.length ? { id: 's-forma', label: 'Rendimiento' } : null,
     partidosTemp.length ? { id: 's-analisis', label: 'Análisis' } : null,
     carrera.length ? { id: 's-temporadas', label: 'Temporadas' } : null,
     carrera.length ? { id: 's-trayectoria', label: 'Trayectoria' } : null,
@@ -527,9 +527,10 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
               : <p style={{ padding: '0 var(--pad)', color: 'var(--ink-3)', fontSize: 'var(--t-sm)' }}>Sin partidos en esta temporada.</p>}
           </section>
 
-          {/* FORMA */}
+          {/* RENDIMIENTO — media de puntos por partido (ventanas) + FORMA (últimos 5). Nomenclatura única:
+              "Forma" = últimos 5 (G/E/P); "Racha" = hito de continuidad. */}
           <section id="s-forma">
-            <SectionHeader title="Forma" sub="media de puntos por partido" />
+            <SectionHeader title="Rendimiento" sub="media de puntos por partido" />
             <div className="windows">
               {ventanas.map((v) => {
                 const d = v.delta
@@ -544,7 +545,7 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
               })}
             </div>
             <div style={{ padding: '12px var(--pad) 2px', display: 'flex', gap: 5, alignItems: 'center', justifyContent: 'center' }}>
-              <span style={{ fontSize: 'var(--t-cap)', color: 'var(--ink-3)', marginRight: 5 }}>Racha</span>
+              <span style={{ fontSize: 'var(--t-cap)', color: 'var(--ink-3)', marginRight: 5 }}>Forma</span>
               <FormaStrip
                 items={racha.map((r) => r.signo)}
                 titles={racha.map((r) => `${r.jornada != null ? `J${r.jornada} · ` : ''}${r.marcador ?? ''}${r.rival ? ` vs ${r.rival}` : ''}`.trim() || undefined)}
