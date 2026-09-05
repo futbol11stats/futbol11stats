@@ -24,11 +24,16 @@ Este es un **proyecto independiente**, sin vinculación con ninguna federación,
 
 ## Qué encontrarás
 
-- **Clasificaciones y resultados** de todas las competiciones de aficionados y juveniles, con la posibilidad de ver cómo iba la tabla en cualquier jornada de cualquier temporada.
-- **Fichas de jugador** con su trayectoria completa: equipos, partidos, minutos, goles, tarjetas y sus mejores actuaciones, partido a partido. Solo se publican fichas de jugadores mayores de edad.
-- **Fichas de equipo** con plantilla, movimientos de temporada, historial y palmarés.
-- **Copas y play-offs**, con su recorrido por rondas.
-- **Rankings** de goleadores, porteros, juego limpio y rendimiento.
+- **Clasificaciones y resultados** de todas las competiciones de aficionados y juveniles, con una «máquina del tiempo» para ver cómo iba la tabla en cualquier jornada de cualquier temporada — por grupo o en una vista global que reúne todos los grupos de una misma categoría.
+- **Fichas de jugador**, solo de mayores de edad, con su trayectoria en las competiciones de la RFFM —equipos, partidos, minutos, goles y tarjetas, temporada a temporada—, sus mejores actuaciones partido a partido, su ELO y su percentil dentro de la categoría, y los hitos y récords que va dejando (debuts, primeras veces, cifras redondas).
+- **Fichas de equipo** con la plantilla, los movimientos de cada temporada, el historial y el palmarés, el recorrido por rondas en copas y play-offs, y sus propios hitos y récords.
+- **Fichas de partido** que reconstruyen el acta arbitral: las alineaciones de los dos equipos —titulares, suplentes y entrenador—, los goles y las tarjetas con su minuto, las sustituciones, el MVP del encuentro por Puntos Fantasy, el movimiento de ELO de cada equipo tras el resultado, el pronóstico previo derivado del ELO, las rachas de ambos y las efemérides que dejó el partido.
+- **Rankings** de goleadores, porteros, mejores por Puntos Fantasy y por media, mejor ELO, juego limpio y el once ideal de cada jornada y de cada temporada.
+- **Directorio de clubes**: cada club de Madrid con todos sus equipos, de la primera plantilla a las categorías de base.
+- **Directorio de campos**: las instalaciones donde se juega, con su ubicación, los equipos que las usan como sede y cómo llegar hasta ellas.
+- **Calendario suscribible**: puedes seguir a un equipo desde el calendario de tu móvil u ordenador; sus partidos aparecen solos y los horarios se actualizan cuando la federación los confirma o los cambia.
+
+El alcance es el de las competiciones de la **Real Federación de Fútbol de Madrid (RFFM)**. Los torneos que gestionan otras federaciones —la División de Honor Juvenil, o la Segunda y la Primera RFEF, que dependen de la RFEF— quedan fuera por ahora. Por eso la trayectoria de un jugador puede presentar **huecos entre temporadas** si en alguna compitió en ellos: no es que falten datos, es que esa competición no forma parte de nuestra fuente.
 
 ---
 
