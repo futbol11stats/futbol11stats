@@ -13,13 +13,19 @@
 // ellos el badge lo publicará el pipeline en la fila de plantilla (mismo corte); ver PETICION_PIPELINE_*.
 export type BadgeEdad = 'juvenil' | 'sub23' | null
 
-export function badgeEdad(anioNacimiento: number | null | undefined, anioInicioTemporada: number | null | undefined): BadgeEdad {
-  if (anioNacimiento == null || anioInicioTemporada == null) return null
-  const edad = anioInicioTemporada - anioNacimiento
-  if (edad < 0) return null            // dato absurdo (año futuro): silencio, no badge
+// El corte, aplicado a una EDAD ya calculada. Úsalo con la edad de HOY (identidad actual del jugador) o con la
+// edad de una temporada concreta (registro histórico) — ver badgeEdad() para lo segundo.
+export function badgeEdadDeEdad(edad: number | null | undefined): BadgeEdad {
+  if (edad == null || edad < 0) return null   // sin dato o año futuro: silencio, no badge
   if (edad <= 18) return 'juvenil'
   if (edad <= 22) return 'sub23'
   return null
+}
+
+// Badge POR TEMPORADA: edad = añoInicioTemporada − añoNacimiento. Para el registro histórico (fila de plantilla).
+export function badgeEdad(anioNacimiento: number | null | undefined, anioInicioTemporada: number | null | undefined): BadgeEdad {
+  if (anioNacimiento == null || anioInicioTemporada == null) return null
+  return badgeEdadDeEdad(anioInicioTemporada - anioNacimiento)
 }
 
 export const badgeEdadLabel = (b: BadgeEdad): string => (b === 'juvenil' ? 'Juvenil' : b === 'sub23' ? 'Sub-23' : '')
