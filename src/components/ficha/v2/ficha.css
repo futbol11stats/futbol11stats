@@ -990,6 +990,8 @@
 .fjv2 .rf-v{font-family:var(--font-display),sans-serif;font-weight:700;font-size:var(--n-md);line-height:1;font-variant-numeric:tabular-nums}
 .fjv2 .rf-100{font-size:var(--t-cap);color:var(--ink-3);font-weight:600;margin-left:1px}
 .fjv2 .rf-beta{font-size:var(--t-micro);font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-3);border:1px solid var(--line);border-radius:4px;padding:0 4px;margin-left:5px}
+/* Nota al pie de la edad: la cifra se calcula desde el AÑO de nacimiento (solo guardamos el año), así que ±1. */
+.fjv2 .nota-edad{margin:0;padding:12px var(--pad) 0;font-size:var(--t-micro);color:var(--ink-4);line-height:1.5}
 
 /* ============ Datos portados de la ficha actual (barrido comparativo jugador v2) ============ */
 /* #2 ELO máximo histórico + su temporada, bajo el valor del ELO en Nivel. Caption tenue. */

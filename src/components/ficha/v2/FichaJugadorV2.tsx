@@ -337,7 +337,7 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
         }
         pills={<>
           <Pastilla pos={j.posicion_pastilla} estimada={!!j.posicion_es_estimada} />
-          {j.edad != null && <span className="pill n">{j.edad} años</span>}
+          {j.edad != null && <span className="pill n">{j.anio_nacimiento != null ? `${j.anio_nacimiento} · ${j.edad} años` : `${j.edad} años`}</span>}
           {j.equipo_actual_nombre && (
             <span className="pill n">
               <EscudoBox escudo={j.escudo_actual} nombre={j.equipo_actual_nombre ?? undefined} size={26} radius={4} />
@@ -690,6 +690,9 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
               <CompartirBtn titulo={`${nombre} · Fútbol11Stats`} variant="btn" />
               <a className="btn" href={`mailto:futbol11stats@gmail.com?subject=${encodeURIComponent(`Corrección en la ficha de ${nombre}`)}&body=${encodeURIComponent(`Jugador: ${nombre} (código ${j.codjugador})\nFicha: ${SITE_URL}/madrid/jugador/${slug}\n\nQué está mal:\n`)}`}>Corregir datos</a>
             </div>
+            {/* Solo guardamos el AÑO de nacimiento (no la fecha completa, por protección de menores): la edad
+                es año actual − año de nacimiento, así que puede ir 1 arriba para quien aún no ha cumplido este año. */}
+            {j.anio_nacimiento != null && <p className="nota-edad">Edad calculada desde el año de nacimiento; puede variar ±1 según el mes.</p>}
           </section>
         </PageLayout.Main>
       </PageLayout>
