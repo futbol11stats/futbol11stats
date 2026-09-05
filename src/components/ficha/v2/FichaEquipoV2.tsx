@@ -145,6 +145,9 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
   // Menores (juveniles, sin ficha): se listan con nombre y datos pero SIN enlace. fichasExistentes da los
   // codjugador que sí tienen ficha (adultos) -> solo esos enlazan.
   const plantillaFichas = plantilla.length ? await fichasExistentes(plantilla.map((p) => p.codjugador)) : new Set<string>()
+  // Contador de sub-23 de la cabecera: solo equipos ADULTOS, solo sub-23 (los juveniles llevan su badge en la
+  // fila pero no cuentan). Usa el badge ya resuelto en la plantilla (web-side por año + enganche pipeline).
+  const nSub23 = e.rama !== 'juvenil' ? plantilla.filter((p) => p.badgeEdad === 'sub23').length : 0
   const topPlantilla = [...plantilla].filter((p) => p.pts != null).sort((a, b) => (b.pts ?? 0) - (a.pts ?? 0)).slice(0, 5)
   const porLinea = LINEAS.map((L) => ({ ...L, jug: plantilla.filter((p) => p.linea === L.k).sort((a, b) => b.minutos - a.minutos) })).filter((L) => L.jug.length)
 
@@ -354,6 +357,9 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
               (getEquipoActualInfo) aunque se estuviera viendo otra -> incoherente. */}
           <CopasLinea copas={copasSel} />
           {e.temporada_elo_max && <span className="pill n">{badge11Sello}<span>ELO máx {fmtNum(e.elo_max)} · {tempLabel(e.temporada_elo_max)}</span></span>}
+          {/* Contador de sub-23 en la plantilla de la temporada seleccionada — SOLO equipos adultos (en juvenil
+              no aporta). Cuenta sub-23; los juveniles se marcan en el listado pero no entran aquí. */}
+          {nSub23 > 0 && <span className="pill n">{nSub23} sub-23 en plantilla</span>}
         </>}
       />
 
@@ -683,6 +689,7 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
                   <div>
                     {topPlantilla.map((p, i) => (
                       <PlayerRow key={p.codjugador} rank={i + 1} cod={p.codjugador} nombre={p.nombre} pos={p.pos}
+                        badgeEdad={p.badgeEdad}
                         meta={filaDatos(p)} valor={fmtNum(p.pts)} fichas={plantillaFichas} />
                     ))}
                   </div>
@@ -697,6 +704,7 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
                     <div className="line-h"><span className="line-lp" style={{ color: L.c, background: `${L.c}26` }}>{L.k}</span><span className="line-ln">{L.nm}</span><span className="num" style={{ fontSize: 'var(--t-body)', color: 'var(--ink-3)' }}>{L.jug.length}</span></div>
                     {L.jug.map((p) => (
                       <PlayerRow key={p.codjugador} cod={p.codjugador} nombre={p.nombre} pos={p.pos} pastilla={false}
+                        badgeEdad={p.badgeEdad}
                         meta={filaDatos(p)} valor={fmtNum(p.pts)} fichas={plantillaFichas} hidden={!starterIds.has(p.codjugador)} />
                     ))}
                   </Fragment>

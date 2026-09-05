@@ -6,6 +6,8 @@ import { supabase } from '@/lib/supabase'
 import { getResultadosGrupo, filaEsLocal, codgrupoFamilia, type ResultadoRow, type EquipoFicha, COLS_EQUIPO } from '@/lib/equipo'
 import { cacheEquipo } from '@/lib/cacheComp'
 import { partidoSlug } from '@/lib/partidoSlug'
+import { badgeEdad, type BadgeEdad } from '@/lib/badgeEdad'
+import { anioInicioTemporada } from '@/lib/temporadaSlug'
 
 // Paleta de la escala (hex, como en Jornadas de jugador — el runtime de Vercel no purga literales).
 const PAL = ['#f87171', '#94a3b8', '#22a050', '#2ee56b', '#8cf0a2']
@@ -241,6 +243,7 @@ export type PlantillaEqRow = {
   codjugador: string; nombre: string; pos: string | null; linea: 'POR' | 'DEF' | 'MED' | 'DEL' | 'OTR'
   portero: boolean; pj: number; goles: number; minutos: number; porteriasCero: number
   ta: number; td: number; tr: number; pts: number | null; elo: number | null
+  badgeEdad: BadgeEdad   // categoría de edad POR TEMPORADA (juvenil/sub23/null); solo equipos adultos
 }
 const LINEA_DE: Record<string, 'POR' | 'DEF' | 'MED' | 'DEL'> = { POR: 'POR', DEF: 'DEF', MED: 'MED', DEL: 'DEL' }
 export async function getPlantillaEquipoV2(codequipo: string, codtemp: string | null, rama?: string | null): Promise<PlantillaEqRow[]> {
@@ -251,19 +254,50 @@ export async function getPlantillaEquipoV2(codequipo: string, codtemp: string | 
     // replican el mismo esquema —pts_fantasy, goles_encajados, porterías a cero—; ninguna trae ELO.
     // Los menores no tienen ficha -> el render los lista con nombre y datos pero sin enlace (fichasExistentes).
     const tabla = rama === 'juvenil' ? 'web_equipo_plantilla_juvenil' : 'web_equipo_plantilla_aficionado'
-    const { data } = await supabase.from(tabla)
-      .select('codjugador, nombre, posicion_pastilla, pj, goles, minutos, ta, td, tr, pts_fantasy, porterias_cero')
-      .eq('codequipo', String(codequipo)).eq('codtemporada', String(codtemp))
-    return ((data || []) as any[]).map((r) => {
+    const baseCols = 'codjugador, nombre, posicion_pastilla, pj, goles, minutos, ta, td, tr, pts_fantasy, porterias_cero'
+    // ENGANCHE PIPELINE: si la fila trae `badge_edad` (badge derivado ya calculado por el pipeline —cubre a los
+    // MENORES sin exponer su fecha—), se usa. Mientras la columna no exista, esta query falla con 42703
+    // (undefined_column) y se reintenta sin ella. Así, el día que el pipeline la publique, el badge de los
+    // menores aparece solo, sin tocar nada aquí. Nunca guardamos el año de un menor, solo el badge.
+    const filtro = (q: any) => q.eq('codequipo', String(codequipo)).eq('codtemporada', String(codtemp))
+    let rows: any[]
+    const q1 = await filtro(supabase.from(tabla).select(`${baseCols}, badge_edad`))
+    if (q1.error && q1.error.code === '42703') {
+      const q2 = await filtro(supabase.from(tabla).select(baseCols))
+      if (q2.error) throw q2.error
+      rows = (q2.data as any[]) || []
+    } else if (q1.error) {
+      throw q1.error
+    } else {
+      rows = (q1.data as any[]) || []
+    }
+    // Badge de edad por AÑO DE NACIMIENTO relativo a la temporada — SOLO equipos ADULTOS (en juvenil todos lo
+    // son -> el badge no distingue nada y solo añade ruido). Para los adultos con ficha, el año sale de
+    // web_jugador; los que no estén (menores sin ficha, o adultos sin año en la fuente) se quedan sin badge
+    // web-side hasta que llegue `badge_edad` del pipeline. Ausencia de ficha NO se interpreta como "menor".
+    const esAdulto = rama !== 'juvenil'
+    const anioIni = anioInicioTemporada(codtemp)
+    const anioMap = new Map<string, number>()
+    if (esAdulto && anioIni != null && rows.length) {
+      const { data: wj } = await supabase.from('web_jugador').select('codjugador, anio_nacimiento')
+        .in('codjugador', rows.map((r) => String(r.codjugador)))
+      for (const j of (wj || []) as any[]) if (j.anio_nacimiento != null) anioMap.set(String(j.codjugador), Number(j.anio_nacimiento))
+    }
+    return rows.map((r) => {
       const pos = r.posicion_pastilla ?? null
+      // Preferimos el badge del pipeline (autoritativo, cubre menores); si la fila no lo trae (undefined) o es
+      // null, caemos al cálculo web-side por año de nacimiento. Mismo corte -> los adultos no cambian al llegar.
+      const badge: BadgeEdad = !esAdulto ? null
+        : ((r.badge_edad as BadgeEdad | undefined) ?? badgeEdad(anioMap.get(String(r.codjugador)) ?? null, anioIni))
       return {
         codjugador: String(r.codjugador), nombre: r.nombre ?? '', pos,
         linea: (pos && LINEA_DE[pos]) || 'OTR', portero: pos === 'POR',
         pj: r.pj ?? 0, goles: r.goles ?? 0, minutos: r.minutos ?? 0, porteriasCero: r.porterias_cero ?? 0,
         ta: r.ta ?? 0, td: r.td ?? 0, tr: r.tr ?? 0, pts: r.pts_fantasy ?? null, elo: null,
+        badgeEdad: badge,
       } as PlantillaEqRow
     })
-  }, ['getPlantillaEquipoV2', codequipo, String(codtemp), rama ?? 'afic'], codequipo, { codtemporada: codtemp })
+  }, ['getPlantillaEquipoV2', 'v2-badge', codequipo, String(codtemp), rama ?? 'afic'], codequipo, { codtemporada: codtemp })
 }
 
 // --- Movimientos (altas/bajas/promociones) e hitos del club ---

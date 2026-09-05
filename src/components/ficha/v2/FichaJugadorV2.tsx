@@ -7,6 +7,9 @@ import { escudoUrl } from '@/lib/supabase'
 import NombreEquipo from '@/components/NombreEquipo'
 import Sello from '@/components/Sello'
 import Pastilla from '@/components/Pastilla'
+import EdadBadge from '@/components/ui/EdadBadge'
+import { badgeEdad } from '@/lib/badgeEdad'
+import { anioInicioTemporada } from '@/lib/temporadaSlug'
 import LigaPastilla from '@/components/LigaPastilla'
 import CopasLinea from '@/components/CopasLinea'
 import IndicadorLocal from '@/components/IndicadorLocal'
@@ -337,6 +340,9 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
         }
         pills={<>
           <Pastilla pos={j.posicion_pastilla} estimada={!!j.posicion_es_estimada} />
+          {/* Badge de categoría de edad POR TEMPORADA SELECCIONADA (juvenil/sub-23), entre posición y edad. La
+              edad de al lado es la VIVA (hoy); el badge refleja lo que era en la temporada mirada. */}
+          <EdadBadge badge={badgeEdad(j.anio_nacimiento, anioInicioTemporada(tempSel))} />
           {j.edad != null && <span className="pill n">{j.anio_nacimiento != null ? `${j.anio_nacimiento} · ${j.edad} años` : `${j.edad} años`}</span>}
           {j.equipo_actual_nombre && (
             <span className="pill n">

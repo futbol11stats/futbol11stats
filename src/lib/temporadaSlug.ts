@@ -10,6 +10,13 @@ export const TEMP_COD_BASE = 17     // cod de la temporada ancla
 export const TEMP_YEAR_BASE = 2021  // año de inicio de esa temporada (2021-22)
 export const TEMP_COD_MIN = TEMP_COD_BASE // suelo del universo mostrado en selectores (inicio de datos del sitio)
 
+// cod -> AÑO DE INICIO de la temporada (cod 17 = 2021-22 -> 2021). Es la referencia para las categorías por
+// año de nacimiento (juvenil / sub-23): la federación las define por el año natural en que empieza la temporada.
+export function anioInicioTemporada(cod: number | string | null | undefined): number | null {
+  const n = Number(cod)
+  return Number.isFinite(n) ? TEMP_YEAR_BASE + (n - TEMP_COD_BASE) : null
+}
+
 // cod -> "2026-27". Derivado; válido para cualquier temporada futura.
 export function codToSlug(cod: number): string {
   const y = TEMP_YEAR_BASE + (cod - TEMP_COD_BASE)

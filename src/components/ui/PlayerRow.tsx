@@ -5,6 +5,8 @@ import NombreJugador from '@/components/NombreJugador'
 import Pastilla from '@/components/Pastilla'
 import PlayerAvatar from '@/components/ui/PlayerAvatar'
 import EloDelta from '@/components/ui/EloDelta'
+import EdadBadge from '@/components/ui/EdadBadge'
+import type { BadgeEdad } from '@/lib/badgeEdad'
 import { escudoUrl, formatNombre } from '@/lib/supabase'
 import { abreviaNombre, nombreEquipo as fmtEquipo, nombreCompleto } from '@/lib/nombre'
 
@@ -35,11 +37,12 @@ export type PlayerRowProps = {
   hidden?: boolean                   // .pl-hid (oculto por defecto en el desplegable de plantilla)
   tec?: boolean                      // cuerpo técnico (.pl-tec)
   pastilla?: boolean                 // mostrar la Pastilla de posición (por defecto sí; la plantilla por líneas no)
+  badgeEdad?: BadgeEdad              // categoría de edad por temporada (Juvenil/Sub-23); junto a la posición
 }
 
 export default function PlayerRow({
   rank, rankColor, cod, nombre, pos, posEstimada, escudo, dorsal, equipo, meta,
-  valor, valorStyle, elo, fichas, href, nombreCompletoUI, muted, hidden, tec, pastilla,
+  valor, valorStyle, elo, fichas, href, nombreCompletoUI, muted, hidden, tec, pastilla, badgeEdad,
 }: PlayerRowProps) {
   const personaEq = equipo ? `${formatNombre(nombre)} en ${equipo}` : formatNombre(nombre)
   const cls = `pl${tec ? ' pl-tec' : ''}${muted ? ' pl-nojugo' : ''}${hidden ? ' pl-hid' : ''}`
@@ -57,9 +60,10 @@ export default function PlayerRow({
         : <PlayerAvatar className="pl-av" nombre={nombre} pos={pos} label={dorsal ?? undefined} />}
       <div className="pl-mid">
         <div className="pl-nm">{nombreNode}</div>
-        {(pos || equipo || meta) && (
+        {(pos || equipo || meta || badgeEdad) && (
           <div className="pl-me">
             {pos && pastilla !== false && <Pastilla pos={pos} size="mini" estimada={posEstimada} />}
+            {badgeEdad && <EdadBadge badge={badgeEdad} size="mini" />}
             {equipo && <span className="pl-eq">{fmtEquipo(equipo)}</span>}
             {meta}
           </div>
