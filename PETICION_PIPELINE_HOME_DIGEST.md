@@ -1,5 +1,12 @@
 # Petición al pipeline — DIGEST de la home
 
+> **BUG DETECTADO EN EL DIGEST (bloque='categoria') — corregir en el pipeline:**
+> el líder por PF de una categoría NO está cogiendo el máximo, sino el **segundo**. Caso comprobado en
+> 3ª RFEF (grupo 7, temporada 21): el digest publicó `cat:aficionados:1` = **BARRIOS SABORIDO (147 PF)**,
+> que es el **rank 2**; el máximo real es **PACHECO PEREZ, ESTEBAN (153 PF), con ficha, rank 1**. No es el
+> filtro de ficha (ambos la tienen). Revisar la selección del mejor PF por categoría (parece off-by-one o
+> que descarta indebidamente al rank 1). La web pinta el digest tal cual, así que se corrige en origen.
+
 > **IMPLEMENTADO (2026-09) — el pipeline lo publicó así, y la web consume ESTO:**
 > No hay `web_home_lideres_categoria`. **Todo está en `web_home_lideres`**, con una columna `bloque`:
 > - `bloque='metrica'` → 6 filas, `tipo` ∈ goleador/portero/pf/media_pf/elo/tarjetas.
