@@ -33,6 +33,13 @@ async function todasLasFilas(): Promise<Fila[]> {
   return filas
 }
 
+// MEMO a nivel de módulo (ver jugadores/sitemap.ts): una sola lectura de web_equipo por build, compartida por el
+// recuento y todas las particiones, en vez de re-escanear la tabla en cada una y sumar carga a la BD del build.
+let _filasCache: Promise<Fila[]> | null = null
+function filasMemo(): Promise<Fila[]> {
+  return (_filasCache ??= todasLasFilas())
+}
+
 // Igual que jugadores: un recuento fallido NO debe abortar el deploy -> degradar RUIDOSO con fallback holgado.
 // Techo = FALLBACK_PARTICIONES_EQ × EQUIPOS_SITEMAP_CHUNK = 3 × 10.000 = 30.000 equipos (hoy ~1.9k -> 1 partición).
 const FALLBACK_PARTICIONES_EQ = 3
@@ -40,7 +47,7 @@ export async function generateSitemaps() {
   // Recuento SOLO de aficionados (mismo filtro que las URLs) para que n particiones cuadre.
   let n: number
   try {
-    const total = (await todasLasFilas()).length
+    const total = (await filasMemo()).length
     if (total === 0) throw new Error('web_equipo (aficionados) devolvió 0 filas')
     n = Math.max(1, Math.ceil(total / EQUIPOS_SITEMAP_CHUNK))
   } catch (e) {
@@ -59,7 +66,7 @@ export default async function sitemap({ id }: { id: Promise<number> | number }):
   // caída); un resultado vacío SIN error sigue lanzando (guard anti-sitemap-fantasma más abajo).
   let filas: Fila[]
   try {
-    filas = await todasLasFilas()
+    filas = await filasMemo()
   } catch (e) {
     console.error(`[sitemap equipos] partición ${idNum}: BD no disponible, se sirve VACÍA y se regenerará por ISR. ${(e as Error).message}`)
     return []

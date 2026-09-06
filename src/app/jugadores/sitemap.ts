@@ -54,6 +54,17 @@ async function todasLasFilas(): Promise<Fila[]> {
   return filas
 }
 
+// MEMO a nivel de módulo: `next build` invoca generateSitemaps() + sitemap({id}) una vez por partición
+// dentro del MISMO worker. Sin caché, cada llamada re-escanea las ~42k filas de web_jugador (≈11 escaneos
+// completos por build) y satura la instancia t4g.nano -> statement timeout -> el build ABORTA. Con la promesa
+// cacheada, el build hace UNA sola lectura compartida por el recuento y todas las particiones. Se cachea la
+// promesa (no el valor) para que llamadas concurrentes compartan el vuelo; un rechazo también se comparte, así
+// que un fallo de BD degrada TODAS las particiones igual (a vacío, sin abortar) en vez de a medias.
+let _filasCache: Promise<Fila[]> | null = null
+function filasMemo(): Promise<Fila[]> {
+  return (_filasCache ??= todasLasFilas())
+}
+
 // Un recuento fallido (p.ej. timeout de BD) NO debe abortar el deploy: degradar RUIDOSO con un fallback holgado.
 // Techo = FALLBACK_PARTICIONES × JUGADORES_SITEMAP_CHUNK = 10 × 10.000 = 100.000 jugadores (hoy ~42k -> 5 particiones).
 // Sobre-anunciar particiones es inocuo (las de más caen en idNum>=n dentro de sitemap() y sirven vacías, sin lanzar);
@@ -62,7 +73,7 @@ const FALLBACK_PARTICIONES = 10
 export async function generateSitemaps() {
   let n: number
   try {
-    const total = await contarKeyset('web_jugador', 'codjugador')
+    const total = (await filasMemo()).length   // mismo fetch (cacheado) que usan las particiones -> 1 escaneo, no 2
     if (total === 0) throw new Error('web_jugador devolvió 0 filas')
     n = Math.max(1, Math.ceil(total / JUGADORES_SITEMAP_CHUNK))
   } catch (e) {
@@ -81,7 +92,7 @@ export default async function sitemap({ id }: { id: Promise<number> | number }):
   // regenera por ISR con la BD sana. Solo ante EXCEPCIÓN; un vacío SIN error sigue lanzando (guard más abajo).
   let filas: Fila[]
   try {
-    filas = await todasLasFilas()   // keyset completo (o lanza); su longitud ES el recuento fiable.
+    filas = await filasMemo()   // keyset completo cacheado (o lanza); su longitud ES el recuento fiable.
   } catch (e) {
     console.error(`[sitemap jugadores] partición ${idNum}: BD no disponible, se sirve VACÍA y se regenerará por ISR. ${(e as Error).message}`)
     return []

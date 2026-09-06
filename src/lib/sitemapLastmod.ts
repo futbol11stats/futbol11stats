@@ -22,7 +22,15 @@ export const RANKING_MIN = 10
 export const JUGADOS_MIN = 1
 const TABS_BASICAS = new Set(['clasificacion', 'resultados'])
 
-export async function getSitemapDatos(): Promise<SitemapDatos> {
+// MEMO a nivel de módulo: cada partición de los sitemaps de jugadores y equipos pide el lastmod, y sin caché
+// se repetiría el RPC web_sitemap_grupos una vez por partición durante el build (carga extra a la BD que ya va
+// justa). Se cachea la promesa para que el build haga UNA sola llamada compartida.
+let _datosCache: Promise<SitemapDatos> | null = null
+export function getSitemapDatos(): Promise<SitemapDatos> {
+  return (_datosCache ??= cargarSitemapDatos())
+}
+
+async function cargarSitemapDatos(): Promise<SitemapDatos> {
   const grupo = new Map<string, GrupoStat>()
   const porTemporada = new Map<number, string>()
   let maxIso: string | undefined
