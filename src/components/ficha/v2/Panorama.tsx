@@ -25,18 +25,21 @@ function LidCard({ k, icon, color, val, unit, j, fichas }: {
     <div className="lid">
       <span className="esc"><EscudoBox escudo={j.escudo} nombre={j.nombre_equipo} size={40} radius={9} /></span>
       <div className="mid">
-        <div className="k"><span style={{ color, display: 'flex' }}>{icon}</span>{k}</div>
+        {/* Título de la métrica y, a su DERECHA, la competición del líder (sello + nombre + grupo) enlazada —
+            mismo estilo que la cabecera de las tarjetas de PF. SOLO si el líder la trae (home multi-competición);
+            en las fichas de competición los líderes no la traen -> no se pinta. */}
+        <div className="k">
+          <span style={{ color, display: 'flex' }}>{icon}</span>{k}
+          {j.nombre_comp && (
+            <span className="k-comp"><span className="k-sep">·</span>
+              {j.href
+                ? <Link href={j.href}><Sello nombreComp={j.nombre_comp} size={13} />{j.nombre_comp}{j.grupo_nombre ? ` · ${j.grupo_nombre}` : ''}</Link>
+                : <><Sello nombreComp={j.nombre_comp} size={13} />{j.nombre_comp}{j.grupo_nombre ? ` · ${j.grupo_nombre}` : ''}</>}
+            </span>
+          )}
+        </div>
         <div className="nm"><NombreJugador codjugador={j.codjugador} nombre={j.nombre} fichas={fichas} /></div>
         <div className="eq">{nombreEquipo(j.nombre_equipo)}</div>
-        {/* Competición del líder (sello + nombre + grupo), enlazada — SOLO si el líder la trae (home multi-
-            competición). En las fichas de competición los líderes no la traen -> no se pinta. */}
-        {j.nombre_comp && (
-          <div className="cmp">
-            {j.href
-              ? <Link href={j.href}><Sello nombreComp={j.nombre_comp} size={14} />{j.nombre_comp}{j.grupo_nombre ? ` · ${j.grupo_nombre}` : ''}</Link>
-              : <><Sello nombreComp={j.nombre_comp} size={14} />{j.nombre_comp}{j.grupo_nombre ? ` · ${j.grupo_nombre}` : ''}</>}
-          </div>
-        )}
       </div>
       <div className="lval"><b style={{ color }}>{val}</b><span>{unit}</span></div>
     </div>
