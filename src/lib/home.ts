@@ -52,8 +52,12 @@ export async function getHomeDigest(): Promise<{
   const hrefDe = (codgrupo: string | null) => (codgrupo ? hrefByGrupo.get(String(codgrupo)) ?? null : null)
 
   // Bloque de categorías: una por nivel, ordenada por `orden` (rama-relativo: afic 1-5, juvenil 101-105).
+  // Solo se PINTA la categoría que ya tiene líder: una competición de la temporada activa que aún no ha
+  // arrancado (0 jornadas) no aporta "Mejor PF" -> no se pinta, y su tarjeta aparece sola cuando el pipeline
+  // publique su líder (con la primera jornada). No dejamos placeholder. Los 6 líderes por métrica (bloque B)
+  // sí se completan con lo que haya. (Contrato documentado en PETICION_PIPELINE_HOME_DIGEST.md.)
   const categorias = rows
-    .filter((r) => r.bloque === 'categoria')
+    .filter((r) => r.bloque === 'categoria' && r.codjugador)
     .sort((a, b) => (a.orden ?? 0) - (b.orden ?? 0))
     .map((r) => ({ ...r, href: hrefDe(r.codgrupo) })) as HomeCatLider[]
 

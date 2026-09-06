@@ -84,6 +84,16 @@ de competición, agregados a nivel federación.)
    último ciclo** de re-export. Una competición que aún no ha empezado su nueva temporada no aporta (o aporta
    su última en juego) — a criterio del pipeline, pero que quede documentado y sea consistente.
 
+5. **Arranque de T22 — comportamiento acordado (importante).** Al activar la temporada nueva, las categorías
+   conviven en distintos estados de arranque:
+   - **Bloque A (Mejor PF por categoría):** una competición de T22 que **aún no ha jugado ninguna jornada NO
+     debe emitir fila de categoría** (o emitirla con `codjugador` vacío). La web **no la pinta** —sin
+     placeholder— y su tarjeta aparece sola cuando el pipeline publique su líder al entrar la 1ª jornada. No
+     mezclar con el líder de T21: en cuanto empieza T22 esa categoría, o hay líder T22 o no se pinta.
+   - **Bloque B (6 líderes por métrica):** se completa **con los datos que haya de T22**. Si hoy arranca solo
+     3ª RFEF, los 6 líderes salen de esos partidos, y se van ampliando según entren más competiciones. No se
+     espera a tener toda la temporada.
+
 ## Cómo lo consume la web (orden en la home)
 1. **Bloque A** primero (el hallazgo, lo que nadie más ofrece): una tarjeta por categoría (sello + nombre de
    cabecera; jugador, equipo, grupo y su PF), ordenadas por `categoria_nivel`. Cabecera que explica la
