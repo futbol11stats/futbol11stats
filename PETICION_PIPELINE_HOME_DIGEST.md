@@ -1,26 +1,31 @@
 # Petición al pipeline — DIGEST de la home
 
 ## Por qué
-La home es la página más visitada. Queremos mostrar, reutilizando los bloques que el usuario ya conoce de
-las fichas de competición, **los líderes de TODA la RFFM** y **las cifras totales**. Calcular eso en la web
-en cada regeneración sería barrer ~100 grupos y agregar todo `web_resultados`/`web_clasificacion` — caro y
+La home es la página más visitada. Queremos mostrar **el mejor jugador de cada categoría por PUNTOS
+FANTASY** y las **cifras totales** de la RFFM, reutilizando el aspecto de las fichas. Calcular eso en la web
+en cada regeneración sería barrer ~100 grupos, filtrar por ficha y agregar todo `web_resultados` — caro y
 justo lo que nos tumbó la BD. Solución: el pipeline publica un **digest minúsculo** (precalculado en el
-ciclo) y la web solo lo lee y lo pinta con el componente `Panorama` que ya existe.
+ciclo) y la web solo lo lee y lo pinta.
 
 ## Qué se necesita
 
-### Tabla `web_home_lideres` — 6 filas (una por métrica)
-Los seis líderes GLOBALES de la temporada activa (acumulado a la fecha), **agregando todas las
-competiciones de Madrid** (aficionado + juvenil).
+### Tabla `web_home_lideres` — UNA fila por NIVEL DE CATEGORÍA
+No son 6 métricas: es **el mejor jugador por PUNTOS FANTASY de CADA categoría** (3ª RFEF, 1ª Aficionada,
+2ª Aficionada, Nacional Juvenil, …), en la temporada activa (acumulado a la fecha). La web las ordena de la
+categoría más alta a la más baja y pinta una tarjeta por cada una.
 
 | Columna | Descripción |
 |---|---|
-| `tipo` | `'goleador'` · `'portero'` · `'pf'` · `'media_pf'` · `'elo'` · `'tarjetas'` |
-| `codjugador`, `nombre` | el líder |
+| `categoria_nivel` | nivel de categoría (la web ordena por él, de más alta a más baja) |
+| `nombre_comp` | nombre de la categoría/competición (cabecera de la tarjeta + sello) |
+| `codjugador`, `nombre` | el mejor PF de esa categoría **con ficha** |
 | `codequipo`, `equipo_nombre`, `escudo` | su equipo |
-| `codgrupo`, `nombre_comp`, `grupo_nombre` | su competición y grupo (para pintar **sello + nombre + grupo** bajo el líder y poder enlazar) |
-| `categoria_nivel` | nivel de categoría (para el desempate; ver abajo) |
-| `valor` | la cifra que se muestra (goles, p. a cero, PF, media, ELO, tarjetas) |
+| `codgrupo`, `grupo_nombre` | su grupo (contexto bajo el líder + enlace) |
+| `valor` | sus **puntos fantasy** totales de la temporada |
+
+> Solo **PUNTOS FANTASY**. Se descartan goleador, portero, media, ELO y tarjetas para la home: PF es el dato
+> propio y el más justo (recoge goles, minutos, porterías a cero y tarjetas, así que puede encabezarlo un
+> central o un portero). El ELO queda fuera a propósito (mide nivel, no rendimiento de esta temporada).
 
 ### Tabla `web_home_cifras` — 1 fila
 Totales de **todas** las competiciones de la RFFM en la temporada activa: partidos disputados, goles,
@@ -30,20 +35,20 @@ ficha de competición, pero agregados a nivel federación.)
 ## Reglas (imprescindibles)
 
 1. **SOLO jugadores con ficha publicada.** Un líder que no se puede enlazar es una tarjeta muerta —y en
-   juvenil la mayoría son menores sin ficha—. Para cada métrica, elegir el **top-1 de entre los jugadores
-   con ficha** (saltar a los que no la tienen). Es decir: no es "el máximo goleador de Madrid" sino "el
-   máximo goleador **enlazable**".
-2. **Desempate por CATEGORÍA SUPERIOR.** Al empatar el `valor`, gana el de categoría más alta (20 goles en
-   3ª RFEF valen más que 20 en 2ª Aficionado). Ordenar por `categoria_nivel` (según vuestra convención de
-   niveles). Esto solo aplica aquí (la home mezcla categorías); en las fichas de competición no, porque son
-   de una sola categoría.
-3. **Temporada activa con jornadas dispares.** No hay una jornada global. Cada competición aporta su líder
+   juvenil la mayoría son menores sin ficha—. En cada categoría, elegir el mejor PF **de entre los que
+   tienen ficha** (saltar a los que no la tienen).
+2. **Métrica: puntos fantasy TOTALES de la temporada** (mismo criterio que el ranking general). Un líder por
+   categoría; como cada tarjeta es de UNA categoría, ya no hace falta desempate entre categorías. Empates
+   dentro de una categoría, a criterio del pipeline (p. ej. menos partidos = mejor por partido).
+3. **Temporada activa con jornadas dispares.** No hay una jornada global. Cada categoría aporta su líder
    **acumulado a su jornada actual** de la temporada que tiene en juego; el digest es una **foto del último
    ciclo** de re-export. Una competición que aún no ha empezado su nueva temporada no aporta (o aporta su
    última en juego) — a criterio del pipeline, pero que quede documentado y sea consistente.
 
 ## Cómo lo consume la web
-`Panorama` (el bloque de líderes + cifras de las fichas de competición) se reutiliza tal cual, alimentado
-por estas dos tablas. Bajo cada líder se pinta el **sello de competición + nombre + grupo** (mismo trío que
-en las fichas). La home hace **dos lecturas diminutas**; caché ISR larga + invalidación on-demand (tag
-`home`) tras el re-export. Cero regeneración por visita.
+Una tarjeta por fila de `web_home_lideres` (sello de competición + nombre como cabecera; jugador, equipo,
+grupo y su cifra PF), ordenadas por `categoria_nivel`. La cabecera del bloque explica la métrica sin
+tecnicismo: **"Mejor jugador de cada categoría · por puntos fantasy"**. Debajo, las cifras totales
+(`web_home_cifras`). La home hace **dos lecturas diminutas**; caché ISR larga + invalidación on-demand (tag
+`home`) tras el re-export. Cero regeneración por visita. Piezas de catálogo (`Sello` + fila tipo
+`PlayerRow`), sin inventar nada nuevo.
