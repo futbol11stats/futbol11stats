@@ -36,6 +36,20 @@
 >   autocura.
 > La causa de fondo (build × export coincidiendo) se ataca aparte con el lock/orquestación; esto es la red
 > de seguridad para que, cuando coincidan, el resultado sea visible o inocuo, nunca un vacío silencioso.
+>
+> **RITMO DE DESPLIEGUE — regla de trabajo (no sugerencia). Cada deploy CUESTA.** Un `push` a `main` =
+> build + **invalidación de TODA la caché ISR** → cada página visitada después se regenera desde cero. Con
+> ~59 % del compute en la ficha de jugador (16+ consultas cada una) y ~25 % en competición, el nº de deploys
+> es el **multiplicador** de casi todo el gasto. Evidencia (auditoría 2026-09-06, ver
+> [`AUDITORIA_CONSUMO_VERCEL.md`](./AUDITORIA_CONSUMO_VERCEL.md)): **15 deploys en un día** → **~7.400
+> regeneraciones de ficha** + parte de los **97 timeouts 504** de la BD. El gasto no fue tráfico ni tamaño de
+> la BD: fue nuestro ritmo. Reglas:
+> - **Agrupar cambios y desplegar 1-2 veces al día**, no por cada ajuste. Commitear en local se puede siempre;
+>   `push` (=deploy) se agrupa.
+> - **Nada de bumps globales de clave de caché** (`unstable_cache` keyParts) salvo que no haya alternativa:
+>   regenerar las 39 k fichas de golpe es carísimo. Con `revalidateTag('jugador:<cod>')` acotado se llega casi
+>   siempre; el pipeline ya emite esos tags por acta.
+> - Un cambio **solo de docs/.md no justifica un deploy propio**: va en la siguiente tanda de código.
 
 Este documento es la fuente de verdad del diseño del sitio. Se escribe **a medida** que se construye
 el catálogo (en tandas), no al final. Vive junto a [`PROTOCOLO.md`](./PROTOCOLO.md).
