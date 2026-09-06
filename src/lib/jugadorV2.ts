@@ -69,7 +69,7 @@ export async function getCarreraV2(cod: string): Promise<CarreraRow[]> {
       String(b.codtemporada).localeCompare(String(a.codtemporada)) || (a.orden_temporada ?? 0) - (b.orden_temporada ?? 0)) as CarreraRow[]
     // keyParts: v3-copa (copa/playoff como filas de carrera) -> v4-finicio (fecha_inicio al select). Bump para
     // forzar cache-miss GLOBAL (el Data Cache persiste entre deploys). Ver también E-cache.
-  }, ['getCarreraV2', 'v5-elo-comp', cod], cod)   // v5: elo_final pasó a ser por competición (cierre por fecha)
+  }, ['getCarreraV2', 'v6-edad-rank', cod], cod)   // v6: rank_sub23/juvenil_season al select -> cache-miss global (el Data Cache persiste entre deploys y guardaba las filas sin esas columnas)
 }
 
 export async function getActuacionesV2(cod: string): Promise<any[]> {
