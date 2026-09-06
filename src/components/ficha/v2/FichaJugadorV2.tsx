@@ -446,14 +446,17 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
                 {/* General: agregado sobre el total fantasy de la temporada (rank_general_season, fila
                     rank_principal). NO sigue la pastilla. Categoría/posición: SÍ la siguen (cliente). */}
                 <RankFila insignia={badge11} label="Fútbol11Stats · Madrid" rank={filaPrincipal?.rank_general_season ?? null} total={filaPrincipal?.rank_general_season_total ?? null} />
-                {/* Rankings por FRANJA DE EDAD de la temporada (mismo dato F11S, universo acotado): el jugador
-                    cae en SUB-23 (19-22) o en JUVENIL (<=18), nunca en ambos; RankFila se oculta solo si el
-                    rank es null (fuera de franja o dato no publicado). Mismo badge 11: es la misma métrica. */}
-                <RankFila insignia={badge11} label="Sub-23 · Madrid" rank={filaPrincipal?.rank_sub23_season ?? null} total={filaPrincipal?.rank_sub23_season_total ?? null} />
-                <RankFila insignia={badge11} label="Juvenil · Madrid" rank={filaPrincipal?.rank_juvenil_season ?? null} total={filaPrincipal?.rank_juvenil_season_total ?? null} />
+                {/* Categoría + posición (cliente, siguen la pastilla). Categoría sale casi siempre; posición ya
+                    puede faltar. Van antes que las de edad. */}
                 <NivelRankings comps={compsRank}
                   posInsignia={<Pastilla pos={j.posicion_pastilla} estimada={!!j.posicion_es_estimada} size="mini" />}
                   posLabel={j.posicion_pastilla ? (POS_LABEL[j.posicion_pastilla] || j.posicion_pastilla) : 'Posición'} />
+                {/* Rankings por FRANJA DE EDAD al FINAL: son OPCIONALES (el jugador cae en SUB-23 (19-22) o en
+                    JUVENIL (<=18), nunca en ambos; RankFila se oculta si el rank es null). Las opcionales van a la
+                    cola para que el bloque tenga forma CONSTANTE entre fichas: arriba lo que sale siempre
+                    (general + categoría), luego posición, y por último la de edad. Mismo badge 11: misma métrica. */}
+                <RankFila insignia={badge11} label="Sub-23 · Madrid" rank={filaPrincipal?.rank_sub23_season ?? null} total={filaPrincipal?.rank_sub23_season_total ?? null} />
+                <RankFila insignia={badge11} label="Juvenil · Madrid" rank={filaPrincipal?.rank_juvenil_season ?? null} total={filaPrincipal?.rank_juvenil_season_total ?? null} />
               </div>
               {/* Aclara el criterio: rankings por PUNTOS FANTASY de la temporada seleccionada (rank_*_temp de la
                   fila principal), no de toda la carrera. Distinto del percentil de arriba, que mide ELO. */}
