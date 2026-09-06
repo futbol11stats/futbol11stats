@@ -7,6 +7,18 @@ import { graphLd, websiteLd, organizationLd } from '@/lib/jsonld'
 import { ORDEN_AFICIONADOS, ORDEN_JUVENILES } from '@/lib/competiciones'
 import CompeticionCard from '@/components/ui/CompeticionCard'
 import { getGruposIndice } from '@/lib/temporadas'
+import '@/components/ficha/v2/ficha.css'
+import Panorama from '@/components/ficha/v2/Panorama'
+import EscudoBox from '@/components/ficha/v2/EscudoBox'
+import NombreJugador from '@/components/NombreJugador'
+import Sello from '@/components/Sello'
+import { getHomeDigest } from '@/lib/home'
+import { fichasExistentes } from '@/lib/jugador'
+import { nombreEquipo } from '@/lib/nombre'
+import { fmtNum } from '@/lib/formato'
+import { codToSlug } from '@/lib/temporadaSlug'
+import { Balon, Guion, TarjetaAmarilla, TarjetaDoble, TarjetaRoja } from '@/components/iconos'
+import { Home as IconHome, Plane } from 'lucide-react'
 
 // Marca neutral con Madrid como ámbito ACTUAL (preparada para ampliar a otras federaciones).
 export const metadata: Metadata = {
@@ -28,7 +40,18 @@ const COMPETICION_ORDER = [...ORDEN_AFICIONADOS, ...ORDEN_JUVENILES]
 
 export default async function Home() {
   // Cada categoría en la temporada activa de cada competición (fuente única data-driven).
-  const [aficionados, juvenil] = await Promise.all([getGruposIndice('AFICIONADO'), getGruposIndice('JUVENIL')])
+  // + Digest de home (líderes + cifras) precalculado por el pipeline: DOS lecturas diminutas, cache-safe.
+  const [aficionados, juvenil, digest] = await Promise.all([
+    getGruposIndice('AFICIONADO'), getGruposIndice('JUVENIL'), getHomeDigest(),
+  ])
+  const { categorias, metricas, cifras, codtemporada } = digest
+  const tempLabel = codtemporada != null ? codToSlug(codtemporada) : ''
+  const codsLid = [
+    ...categorias.map((c) => c.codjugador),
+    ...Object.values(metricas).filter(Boolean).map((j: any) => j.codjugador),
+  ]
+  const fichasLid = codsLid.length ? await fichasExistentes(codsLid) : new Set<string>()
+  const hayMetricas = !!(metricas.goleador || metricas.portero || metricas.pf || metricas.mediaPf || metricas.elo || metricas.tarjetas)
 
   // Ordenar por número de grupo en cliente (evita orden alfabético tipo "Grupo 10" < "Grupo 2")
   const sortG = (arr: typeof aficionados) => arr.sort((a, b) => {
@@ -62,7 +85,7 @@ export default async function Home() {
             backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 40px, #1a7a3c 40px, #1a7a3c 41px), repeating-linear-gradient(90deg, transparent, transparent 40px, #1a7a3c 40px, #1a7a3c 41px)'
           }} />
         </div>
-        <div className="relative max-w-7xl mx-auto px-4 py-16 md:py-24">
+        <div className="relative max-w-7xl mx-auto px-4 py-10 md:py-14">
           <div className="max-w-2xl">
             <p className="text-grass-400 text-sm font-semibold uppercase tracking-widest mb-3">
               Real Federación de Fútbol de Madrid
@@ -93,6 +116,73 @@ export default async function Home() {
           </div>
         </div>
       </section>
+
+      {/* LO QUE PASA EN LA RFFM — dos bloques de líderes + cifras, del digest del pipeline. Se reutilizan las
+          piezas de la ficha de competición (Panorama, .lid, .cifras), por eso el contenedor es .fjv2 fcv2. */}
+      {(categorias.length > 0 || hayMetricas || cifras) && (
+        <div className="fjv2 fcv2">
+          <div className="max-w-7xl mx-auto">
+            {/* A · Mejor jugador de cada categoría (por PF) — el hallazgo, arriba. Ordenado por `orden`. */}
+            {categorias.length > 0 && (
+              <div className="panorama">
+                <div className="pan-h">
+                  <div className="pan-t">Mejor jugador de cada categoría</div>
+                  <div className="pan-s">por puntos fantasy{tempLabel ? ` · ${tempLabel}` : ''}</div>
+                </div>
+                <div className="lid-grid">
+                  {categorias.map((r) => (
+                    <div className="lid" key={r.tipo}>
+                      <span className="esc"><EscudoBox escudo={r.escudo} nombre={r.equipo_nombre ?? undefined} size={40} radius={9} /></span>
+                      <div className="mid">
+                        <div className="k"><Sello nombreComp={r.nombre_comp} size={15} />{r.nombre_comp}{r.grupo_nombre ? ` · ${r.grupo_nombre}` : ''}</div>
+                        <div className="nm"><NombreJugador codjugador={r.codjugador} nombre={r.nombre} fichas={fichasLid} /></div>
+                        <div className="eq">{nombreEquipo(r.equipo_nombre)}</div>
+                      </div>
+                      <div className="lval"><b style={{ color: 'var(--e3)' }}>{fmtNum(Math.round(r.valor ?? 0))}</b><span>PF</span></div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* B · Los 6 líderes por métrica de toda la RFFM (Panorama, sin cifras: las pintamos aparte). */}
+            {hayMetricas && (
+              <Panorama
+                lideres={metricas} cifras={null}
+                kpis={{ equipos: 0, partidos: 0, goles: 0, golesPj: null, eloMedio: null }}
+                fichas={fichasLid}
+                subLideres={`toda la RFFM${tempLabel ? ` · ${tempLabel}` : ''}`} subCifras=""
+              />
+            )}
+
+            {/* C · La RFFM en cifras (totales del digest; sin equipos/ELO/porterías, que el digest no trae). */}
+            {cifras && (
+              <div className="panorama">
+                <div className="pan-h"><div className="pan-t">La RFFM en cifras</div><div className="pan-s">{tempLabel ? `${tempLabel} · ` : ''}toda la competición</div></div>
+                <div className="cifras">
+                  <div className="cgrupo"><h4>Partidos</h4>
+                    <div className="cfila"><span className="ci"><span style={{ fontFamily: 'var(--font-display), sans-serif', fontWeight: 700, fontSize: 'var(--t-cap)', color: 'var(--ink-3)', lineHeight: 1 }}>PJ</span></span><span className="ck">Jugados</span><span className="cv">{fmtNum(cifras.partidos_disputados)} <small>de {fmtNum(cifras.partidos_totales)}</small></span></div>
+                  </div>
+                  <div className="cgrupo"><h4>Goles</h4>
+                    <div className="cfila"><span className="ci" style={{ color: 'var(--e4)' }}><Balon size={13} /></span><span className="ck">Marcados</span><span className="cv">{fmtNum(cifras.goles)}</span></div>
+                    <div className="cfila"><span className="ci" style={{ color: 'var(--e4)' }}><Balon size={13} /></span><span className="ck">Media por partido</span><span className="cv">{(cifras.media_goles ?? 0).toFixed(1).replace('.', ',')}</span></div>
+                  </div>
+                  <div className="cgrupo"><h4>Resultados</h4>
+                    <div className="cfila"><span className="ci" style={{ color: 'var(--e3)' }}><IconHome size={13} /></span><span className="ck">Victoria local</span><span className="cv">{Math.round(cifras.pct_local)} %</span></div>
+                    <div className="cfila"><span className="ci"><Guion size={13} /></span><span className="ck">Empates</span><span className="cv">{Math.round(cifras.pct_empate)} %</span></div>
+                    <div className="cfila"><span className="ci" style={{ color: 'var(--e3)' }}><Plane size={13} /></span><span className="ck">Victoria visitante</span><span className="cv">{Math.round(cifras.pct_visitante)} %</span></div>
+                  </div>
+                  <div className="cgrupo"><h4>Disciplina</h4>
+                    <div className="cfila"><span className="ci" style={{ color: 'var(--card-y)' }}><TarjetaAmarilla size={12} /></span><span className="ck">Amarillas</span><span className="cv">{fmtNum(cifras.amarillas)}</span></div>
+                    <div className="cfila"><span className="ci" style={{ color: 'var(--card-y)' }}><TarjetaDoble size={13} /></span><span className="ck">Dobles</span><span className="cv">{fmtNum(cifras.dobles)}</span></div>
+                    <div className="cfila"><span className="ci" style={{ color: 'var(--card-r)' }}><TarjetaRoja size={12} /></span><span className="ck">Rojas</span><span className="cv">{fmtNum(cifras.rojas)}</span></div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Competiciones */}
       <div className="max-w-7xl mx-auto px-4 py-12">

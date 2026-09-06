@@ -1,5 +1,18 @@
 # Petición al pipeline — DIGEST de la home
 
+> **IMPLEMENTADO (2026-09) — el pipeline lo publicó así, y la web consume ESTO:**
+> No hay `web_home_lideres_categoria`. **Todo está en `web_home_lideres`**, con una columna `bloque`:
+> - `bloque='metrica'` → 6 filas, `tipo` ∈ goleador/portero/pf/media_pf/elo/tarjetas.
+> - `bloque='categoria'` → 10 filas (una por categoría), mejor PF; `tipo='cat:<rama>:<nivel>'`.
+> Columnas: `tipo, codjugador, nombre, codequipo, equipo_nombre, escudo, codgrupo, nombre_comp,
+> grupo_nombre, categoria_nivel, codtemporada, valor, bloque, categoria_rama, orden`.
+> **El nivel es RAMA-RELATIVO** (aficionados y juvenil comparten 1-5), así que el bloque de categorías se
+> ordena por **`orden`** (aficionados 1-5, juvenil 101-105), no por `categoria_nivel`. Cifras aparte en
+> `web_home_cifras`. La web hace **dos lecturas** (una por tabla). Lo de abajo es la petición original.
+
+---
+
+
 ## Por qué
 La home es la página más visitada. Queremos mostrar, reutilizando el aspecto de las fichas de competición,
 **dos bloques de líderes** + las **cifras totales** de la RFFM. Calcular eso en la web en cada regeneración
