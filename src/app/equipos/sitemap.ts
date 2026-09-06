@@ -42,7 +42,7 @@ function filasMemo(): Promise<Fila[]> {
 
 // Igual que jugadores: un recuento fallido NO debe abortar el deploy -> degradar RUIDOSO con fallback holgado.
 // Techo = FALLBACK_PARTICIONES_EQ × EQUIPOS_SITEMAP_CHUNK = 3 × 10.000 = 30.000 equipos (hoy ~1.9k -> 1 partición).
-const FALLBACK_PARTICIONES_EQ = 3
+export const FALLBACK_PARTICIONES_EQ = 3
 export async function generateSitemaps() {
   // Recuento SOLO de aficionados (mismo filtro que las URLs) para que n particiones cuadre.
   let n: number

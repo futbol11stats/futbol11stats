@@ -69,7 +69,7 @@ function filasMemo(): Promise<Fila[]> {
 // Techo = FALLBACK_PARTICIONES × JUGADORES_SITEMAP_CHUNK = 10 × 10.000 = 100.000 jugadores (hoy ~42k -> 5 particiones).
 // Sobre-anunciar particiones es inocuo (las de más caen en idNum>=n dentro de sitemap() y sirven vacías, sin lanzar);
 // sub-anunciar SÍ perdería URLs -> por eso el fallback va holgado, no ajustado.
-const FALLBACK_PARTICIONES = 10
+export const FALLBACK_PARTICIONES = 10
 export async function generateSitemaps() {
   let n: number
   try {
