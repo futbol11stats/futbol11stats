@@ -21,6 +21,21 @@
 > **Después, una sola pregunta: «¿qué pieza hay ya para esto?»**
 > Si existe, se reutiliza. Si no encaja del todo, se **amplía** la pieza existente (una prop nueva),
 > **nunca** se crea una variante paralela. Así no volvemos a acumular 5 pastillas para lo mismo.
+>
+> **El BUILD no debe depender del ESTADO de la base de datos.** Lo que creíamos un problema de sitemaps
+> resultó ser de CUALQUIER página que consulte la BD en tiempo de build: si la consulta expira (p. ej. un
+> re-export pesado corriendo a la vez), la página se hornea con datos parciales o vacíos. Reglas, según la
+> criticidad de la página:
+> - **Índices de navegación de usuarios** (home, `/madrid/aficionados`, `/madrid/juveniles`, `/clubes`,
+>   `/campos`): si la consulta falla **o vuelve vacía cuando no debería**, **LANZAR** — nunca publicar un
+>   índice vacío. Mejor un error visible (el build cae y el último deploy bueno sigue vivo / ISR mantiene la
+>   versión buena) que una página que parece correcta y no lo es. Y el `throw` **no se cachea**
+>   (`unstable_cache` no guarda rechazos), así que no envenena la caché con un `[]`.
+> - **Artefactos para bots** (sitemaps, robots): **DEGRADAR**, no abortar — servir vacío + ISR/revalidación
+>   los repuebla; Google re-lee. Un fallo de build aquí bloquearía despliegues ajenos por algo que se
+>   autocura.
+> La causa de fondo (build × export coincidiendo) se ataca aparte con el lock/orquestación; esto es la red
+> de seguridad para que, cuando coincidan, el resultado sea visible o inocuo, nunca un vacío silencioso.
 
 Este documento es la fuente de verdad del diseño del sitio. Se escribe **a medida** que se construye
 el catálogo (en tandas), no al final. Vive junto a [`PROTOCOLO.md`](./PROTOCOLO.md).

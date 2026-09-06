@@ -36,7 +36,17 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // Temporada activa por competición (data-driven, dentro de la ventana). Sustituye a `codtemporada === LIVE_SEASON`:
   // el grupo que está en la temporada activa de su competición recibe todas las pestañas; el resto (histórico), la
   // vista final. Con todo en T21 hoy, la activa es 21 para todas -> idéntico al comportamiento anterior.
-  const activas = mapaActivas(await getTemporadasActivas())
+  // getTemporadasActivas ahora LANZA si la BD no responde (para que los índices de navegación no publiquen
+  // vacío). Aquí, en cambio, el sitemap debe DEGRADAR, no abortar el deploy: si falla, mapa vacío (todas las
+  // competiciones se tratan como no-activas -> menos URLs) y el deploy continúa. Es un artefacto para bots
+  // (Google re-lee; ISR lo repuebla), no la navegación de usuarios.
+  let activas: Map<string, number>
+  try {
+    activas = mapaActivas(await getTemporadasActivas())
+  } catch (e) {
+    console.error(`[sitemap] temporadas activas no disponibles, se degrada (menos URLs): ${(e as Error).message}`)
+    activas = new Map()
+  }
 
   // Datos por grupo (RPC web_sitemap_grupos): lastmod real + contadores para el GATE anti-thin.
   // gateOn=false si el RPC falló/vino vacío -> NO se filtra nada (comportamiento anterior): el gate NUNCA

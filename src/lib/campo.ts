@@ -35,6 +35,9 @@ export async function getCamposIndex(): Promise<CampoIndexRow[]> {
       })
     }
     out.sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'))
+    // Invariante: el directorio de campos nunca es legítimamente vacío -> si sale [], es un timeout que
+    // devolvió 0 filas sin error; lanzar en vez de servir/cachear un listado fantasma (misma regla que índices).
+    if (out.length === 0) throw new Error('[indices] getCamposIndex quedó vacío (¿BD saturada?)')
     return out
   }, ['getCamposIndex', 'v2-resumen'])
 }

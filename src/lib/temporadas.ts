@@ -26,8 +26,15 @@ const CAT_BD: Record<string, string> = { aficionados: 'AFICIONADO', juveniles: '
 // Vista `web_temporada_activa` -> array. Cacheado (tag 'indices'; el pipeline lo revalida al cargar datos).
 export async function getTemporadasActivas(): Promise<TempActiva[]> {
   return cacheIndices(async () => {
-    const { data } = await supabase.from('web_temporada_activa').select('categoria, slug_comp, temporada_activa')
-    return (data || []) as TempActiva[]
+    const { data, error } = await supabase.from('web_temporada_activa').select('categoria, slug_comp, temporada_activa')
+    // REGLA: el build NO debe depender del estado de la BD. Si la consulta falla o viene vacía (BD saturada,
+    // p.ej. un export corriendo a la vez), LANZAMOS en vez de devolver []. Un [] aquí vaciaría los índices de
+    // navegación y —peor— se cachearía (unstable_cache) -> índice fantasma servido a usuarios. Lanzar NO se
+    // cachea (unstable_cache no guarda rechazos) y hace el fallo VISIBLE (el build cae / ISR mantiene la última
+    // versión buena) en vez de publicar una página que parece correcta y no lo es.
+    if (error) throw new Error(`[indices] web_temporada_activa: ${error.message || 'error sin mensaje'}`)
+    if (!data || data.length === 0) throw new Error('[indices] web_temporada_activa devolvió 0 filas (¿BD saturada?)')
+    return data as TempActiva[]
   }, ['web_temporada_activa'])
 }
 
@@ -72,16 +79,23 @@ export async function getSueloVivo(): Promise<number> {
 // juveniles compartan la misma lógica (fuente única). Devuelve un array (serializable) -> cacheable.
 export async function getGruposIndice(categoriaBD: 'AFICIONADO' | 'JUVENIL') {
   return cacheIndices(async () => {
-    const activas = await getTemporadasActivas()
+    const activas = await getTemporadasActivas()   // lanza si la BD no responde (y no cachea vacío)
     const seasons = temporadasVentana(activas)
-    if (!seasons.length) return [] as any[]
-    const { data } = await supabase.from('web_grupos')
+    if (!seasons.length) throw new Error('[indices] getGruposIndice: sin temporadas en ventana (web_temporada_activa vacío)')
+    const { data, error } = await supabase.from('web_grupos')
       .select('codtemporada, nombre_comp, nombre_grupo, codgrupo, categoria, jornada_actual, slug_comp, slug_grupo, tipo, rondas')
       .eq('categoria', categoriaBD).in('codtemporada', seasons).order('nombre_comp')
+    // Mismo principio que getTemporadasActivas: nunca publicar un índice de competiciones vacío por un timeout.
+    // Es la navegación principal del sitio; mejor un fallo visible (build cae / ISR sirve la versión buena) que
+    // una home/categoría sin enlaces que parece correcta. El throw no se cachea (no envenena la caché 'indices').
+    if (error) throw new Error(`[indices] web_grupos (${categoriaBD}): ${error.message || 'error sin mensaje'}`)
+    if (!data || data.length === 0) throw new Error(`[indices] web_grupos (${categoriaBD}) devolvió 0 filas (¿BD saturada?)`)
     const m = mapaActivas(activas)
-    return (data || [])
+    const res = data
       .filter((g: any) => m.get(`${categoriaBD}|${g.slug_comp}`) === g.codtemporada)
       .filter((g: any) => !esViejaCopa(g.slug_comp))
+    if (res.length === 0) throw new Error(`[indices] web_grupos (${categoriaBD}) quedó vacío tras filtrar por temporada activa (dato inconsistente)`)
+    return res
   }, ['getGruposIndice', categoriaBD])
 }
 

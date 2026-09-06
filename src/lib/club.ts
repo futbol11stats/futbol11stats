@@ -135,6 +135,10 @@ export async function getClubesIndex(): Promise<ClubIndexRow[]> {
       })
     }
     out.sort((x, y) => x.nombre.localeCompare(y.nombre, 'es'))
+    // Invariante: el directorio de clubes nunca es legítimamente vacío. Si lo es (timeout que devolvió 0
+    // filas SIN error, p.ej. BD saturada), LANZAMOS en vez de cachear/servir un listado fantasma. Misma regla
+    // que los índices de competición: el build/render no debe publicar un vacío que parezca correcto.
+    if (out.length === 0) throw new Error('[indices] getClubesIndex quedó vacío (¿BD saturada?)')
     return out
   }, ['getClubesIndex', 'v4-codgrupos'])
 }
