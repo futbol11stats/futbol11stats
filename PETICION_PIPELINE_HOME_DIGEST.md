@@ -16,6 +16,10 @@
 > **El nivel es RAMA-RELATIVO** (aficionados y juvenil comparten 1-5), así que el bloque de categorías se
 > ordena por **`orden`** (aficionados 1-5, juvenil 101-105), no por `categoria_nivel`. Cifras aparte en
 > `web_home_cifras`. La web hace **dos lecturas** (una por tabla). Lo de abajo es la petición original.
+>
+> **FALTAN en `web_home_cifras`** (la web ya las pinta en cuanto existan; hoy salen ocultas): **`equipos`**
+> (nº de equipos), **`elo_medio`** (ELO medio por equipo) y **`porterias_cero`** (total). Completan los
+> bloques "Competición" (Equipos + ELO medio) y "Goles" (Porterías a cero), como en la ficha de competición.
 
 ---
 

@@ -1,4 +1,6 @@
+import Link from 'next/link'
 import EscudoBox from '@/components/ficha/v2/EscudoBox'
+import Sello from '@/components/Sello'
 import NombreJugador from '@/components/NombreJugador'
 import { nombreEquipo } from '@/lib/nombre'
 import { colorElo } from '@/lib/equipoV2'
@@ -26,6 +28,15 @@ function LidCard({ k, icon, color, val, unit, j, fichas }: {
         <div className="k"><span style={{ color, display: 'flex' }}>{icon}</span>{k}</div>
         <div className="nm"><NombreJugador codjugador={j.codjugador} nombre={j.nombre} fichas={fichas} /></div>
         <div className="eq">{nombreEquipo(j.nombre_equipo)}</div>
+        {/* Competición del líder (sello + nombre + grupo), enlazada — SOLO si el líder la trae (home multi-
+            competición). En las fichas de competición los líderes no la traen -> no se pinta. */}
+        {j.nombre_comp && (
+          <div className="cmp">
+            {j.href
+              ? <Link href={j.href}><Sello nombreComp={j.nombre_comp} size={14} />{j.nombre_comp}{j.grupo_nombre ? ` · ${j.grupo_nombre}` : ''}</Link>
+              : <><Sello nombreComp={j.nombre_comp} size={14} />{j.nombre_comp}{j.grupo_nombre ? ` · ${j.grupo_nombre}` : ''}</>}
+          </div>
+        )}
       </div>
       <div className="lval"><b style={{ color }}>{val}</b><span>{unit}</span></div>
     </div>

@@ -17,8 +17,10 @@ import { fichasExistentes } from '@/lib/jugador'
 import { nombreEquipo } from '@/lib/nombre'
 import { fmtNum } from '@/lib/formato'
 import { codToSlug } from '@/lib/temporadaSlug'
-import { Balon, Guion, TarjetaAmarilla, TarjetaDoble, TarjetaRoja } from '@/components/iconos'
+import { Balon, Guante, Escudo, Guion, TarjetaAmarilla, TarjetaDoble, TarjetaRoja } from '@/components/iconos'
 import { Home as IconHome, Plane } from 'lucide-react'
+import Badge11 from '@/components/ui/Badge11'
+import { colorElo } from '@/lib/equipoV2'
 
 // Marca neutral con Madrid como ámbito ACTUAL (preparada para ampliar a otras federaciones).
 export const metadata: Metadata = {
@@ -122,25 +124,39 @@ export default async function Home() {
       {(categorias.length > 0 || hayMetricas || cifras) && (
         <div className="fjv2 fcv2">
           <div className="max-w-7xl mx-auto">
-            {/* A · Mejor jugador de cada categoría (por PF) — el hallazgo, arriba. Ordenado por `orden`. */}
+            {/* A · Mejor jugador de cada categoría (por PF) — el hallazgo, arriba. DOS columnas: aficionados a la
+                izquierda, juvenil a la derecha (cada columna ordenada por `orden`). Competición enlazada. */}
             {categorias.length > 0 && (
               <div className="panorama">
                 <div className="pan-h">
                   <div className="pan-t">Mejor jugador de cada categoría</div>
                   <div className="pan-s">por puntos fantasy{tempLabel ? ` · ${tempLabel}` : ''}</div>
                 </div>
-                <div className="lid-grid">
-                  {categorias.map((r) => (
-                    <div className="lid" key={r.tipo}>
-                      <span className="esc"><EscudoBox escudo={r.escudo} nombre={r.equipo_nombre ?? undefined} size={40} radius={9} /></span>
-                      <div className="mid">
-                        <div className="k"><Sello nombreComp={r.nombre_comp} size={15} />{r.nombre_comp}{r.grupo_nombre ? ` · ${r.grupo_nombre}` : ''}</div>
-                        <div className="nm"><NombreJugador codjugador={r.codjugador} nombre={r.nombre} fichas={fichasLid} /></div>
-                        <div className="eq">{nombreEquipo(r.equipo_nombre)}</div>
+                <div className="lid-cols2">
+                  {(['aficionados', 'juvenil'] as const).map((rama) => {
+                    const cds = categorias.filter((c) => c.categoria_rama === rama)
+                    if (!cds.length) return null
+                    return (
+                      <div className="lid-col" key={rama}>
+                        <div className="lid-col-h">{rama === 'juvenil' ? 'Juvenil' : 'Aficionados'}</div>
+                        {cds.map((r) => (
+                          <div className="lid" key={r.tipo}>
+                            <span className="esc"><EscudoBox escudo={r.escudo} nombre={r.equipo_nombre ?? undefined} size={40} radius={9} /></span>
+                            <div className="mid">
+                              <div className="k">
+                                {r.href
+                                  ? <Link href={r.href}><Sello nombreComp={r.nombre_comp} size={15} />{r.nombre_comp}{r.grupo_nombre ? ` · ${r.grupo_nombre}` : ''}</Link>
+                                  : <><Sello nombreComp={r.nombre_comp} size={15} />{r.nombre_comp}{r.grupo_nombre ? ` · ${r.grupo_nombre}` : ''}</>}
+                              </div>
+                              <div className="nm"><NombreJugador codjugador={r.codjugador} nombre={r.nombre} fichas={fichasLid} /></div>
+                              <div className="eq">{nombreEquipo(r.equipo_nombre)}</div>
+                            </div>
+                            <div className="lval"><b style={{ color: 'var(--e3)' }}>{fmtNum(Math.round(r.valor ?? 0))}</b><span>PF</span></div>
+                          </div>
+                        ))}
                       </div>
-                      <div className="lval"><b style={{ color: 'var(--e3)' }}>{fmtNum(Math.round(r.valor ?? 0))}</b><span>PF</span></div>
-                    </div>
-                  ))}
+                    )
+                  })}
                 </div>
               </div>
             )}
@@ -160,12 +176,15 @@ export default async function Home() {
               <div className="panorama">
                 <div className="pan-h"><div className="pan-t">La RFFM en cifras</div><div className="pan-s">{tempLabel ? `${tempLabel} · ` : ''}toda la competición</div></div>
                 <div className="cifras">
-                  <div className="cgrupo"><h4>Partidos</h4>
-                    <div className="cfila"><span className="ci"><span style={{ fontFamily: 'var(--font-display), sans-serif', fontWeight: 700, fontSize: 'var(--t-cap)', color: 'var(--ink-3)', lineHeight: 1 }}>PJ</span></span><span className="ck">Jugados</span><span className="cv">{fmtNum(cifras.partidos_disputados)} <small>de {fmtNum(cifras.partidos_totales)}</small></span></div>
+                  <div className="cgrupo"><h4>Competición</h4>
+                    {cifras.equipos != null && <div className="cfila"><span className="ci"><Escudo size={13} /></span><span className="ck">Equipos</span><span className="cv">{fmtNum(cifras.equipos)}</span></div>}
+                    <div className="cfila"><span className="ci"><span style={{ fontFamily: 'var(--font-display), sans-serif', fontWeight: 700, fontSize: 'var(--t-cap)', color: 'var(--ink-3)', lineHeight: 1 }}>PJ</span></span><span className="ck">Partidos jugados</span><span className="cv">{fmtNum(cifras.partidos_disputados)} <small>de {fmtNum(cifras.partidos_totales)}</small></span></div>
+                    {cifras.elo_medio != null && <div className="cfila"><span className="ci"><Badge11 bg="var(--e3)" ink="#0a1628" size={15} /></span><span className="ck">ELO medio por equipo</span><span className="cv" style={{ color: colorElo(cifras.elo_medio) || undefined }}>{fmtNum(cifras.elo_medio)}</span></div>}
                   </div>
                   <div className="cgrupo"><h4>Goles</h4>
                     <div className="cfila"><span className="ci" style={{ color: 'var(--e4)' }}><Balon size={13} /></span><span className="ck">Marcados</span><span className="cv">{fmtNum(cifras.goles)}</span></div>
                     <div className="cfila"><span className="ci" style={{ color: 'var(--e4)' }}><Balon size={13} /></span><span className="ck">Media por partido</span><span className="cv">{(cifras.media_goles ?? 0).toFixed(1).replace('.', ',')}</span></div>
+                    {cifras.porterias_cero != null && <div className="cfila"><span className="ci" style={{ color: 'var(--amber)' }}><Guante size={13} /></span><span className="ck">Porterías a cero</span><span className="cv">{fmtNum(cifras.porterias_cero)}</span></div>}
                   </div>
                   <div className="cgrupo"><h4>Resultados</h4>
                     <div className="cfila"><span className="ci" style={{ color: 'var(--e3)' }}><IconHome size={13} /></span><span className="ck">Victoria local</span><span className="cv">{Math.round(cifras.pct_local)} %</span></div>
