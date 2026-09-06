@@ -630,6 +630,16 @@
 .fcv2 .lid .lval{flex:none;text-align:right}
 .fcv2 .lid .lval b{font-family:var(--font-display),sans-serif;font-size:var(--n-md);font-weight:700;line-height:1;display:block}
 .fcv2 .lid .lval span{font-size:var(--t-micro);color:var(--ink-3);letter-spacing:.07em}
+/* Home: bloque de categorías en DOS columnas por rama (aficionados izq / juvenil der), cada una apilada. */
+.fcv2 .lid-cols2{display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:start}
+.fcv2 .lid-col{display:flex;flex-direction:column;gap:10px;min-width:0}
+.fcv2 .lid-col-h{font-family:var(--font-display),sans-serif;font-size:var(--t-cap);letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);font-weight:700;padding:2px 2px 0}
+@media(max-width:640px){ .fcv2 .lid-cols2{grid-template-columns:1fr} }
+/* Competición del líder (sello + nombre + grupo), enlazada — en el bloque de métricas (.cmp) y como
+   cabecera-enlace del bloque de categorías (.k a). */
+.fcv2 .lid .cmp{font-size:var(--t-micro);color:var(--ink-3);margin-top:3px;min-width:0}
+.fcv2 .lid .cmp a,.fcv2 .lid .k a{color:inherit;text-decoration:none;display:inline-flex;align-items:center;gap:5px;min-width:0}
+.fcv2 .lid .cmp a:hover,.fcv2 .lid .k a:hover{color:var(--ink-2)}
 .fcv2 .cifras{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:12px}
 .fcv2 .cgrupo{border:1px solid var(--line);border-radius:11px;background:rgba(255,255,255,.03);overflow:hidden}
 .fcv2 .cgrupo h4{margin:0;padding:8px 12px;font-family:var(--font-display),sans-serif;font-size:var(--t-sm);letter-spacing:.09em;text-transform:uppercase;color:var(--ink-3);font-weight:600;background:rgba(255,255,255,.03);border-bottom:1px solid var(--line-2)}
