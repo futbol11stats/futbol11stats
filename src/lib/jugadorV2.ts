@@ -48,6 +48,11 @@ export type CarreraRow = {
   // Ranking GENERAL definitivo por temporada (unidad codjugador+codtemporada, sobre el total fantasy de la
   // temporada, contra jugadores distintos). Poblado solo en la fila rank_principal.
   rank_general_season: number | null; rank_general_season_total: number | null
+  // Rankings por FRANJA DE EDAD de la temporada (mismo total fantasy, universo acotado por edad): SUB-23
+  // (19-22 años en la temporada) y JUVENIL (<=18). Poblados solo en la fila rank_principal y solo si el
+  // jugador cae en esa franja esa temporada (si no, null -> la fila no se pinta). El corte lo hace el pipeline.
+  rank_sub23_season: number | null; rank_sub23_season_total: number | null
+  rank_juvenil_season: number | null; rank_juvenil_season_total: number | null
   // Percentil de ELO por temporada (del elo_final de ESA etapa). El bloque Nivel lee el de la última etapa
   // cronológica (etapaUltima), la misma de la que sale el ELO.
   elo_percentil_temp: number | null

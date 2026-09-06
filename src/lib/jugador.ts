@@ -88,6 +88,7 @@ export const COLS_CARRERA =
   'tarjetas_amarillas, tarjetas_dobles, tarjetas_rojas, goles_encajados, porterias_cero, ' +
   'rank_general_temp, rank_general_temp_total, rank_categoria_temp, rank_categoria_temp_total, ' +
   'rank_posicion_temp, rank_posicion_temp_total, rank_principal, rank_general_season, rank_general_season_total, ' +
+  'rank_sub23_season, rank_sub23_season_total, rank_juvenil_season, rank_juvenil_season_total, ' +
   'elo_percentil_temp, fecha_inicio'
 
 export const COLS_HITOS =
