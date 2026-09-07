@@ -1,81 +1,102 @@
-# Auditoría de consumo en Vercel — 2026-09-06
+# Auditoría de consumo en Vercel — 2026-09-06 (rev. 2026-09-07 con el € real del panel)
 
-> **Hallazgo principal, sin rodeos: EL GASTO LO GENERAMOS NOSOTROS.** No es el tráfico ni el tamaño de la
-> base de datos: es nuestro ritmo de trabajo. En un solo día hicimos **15 despliegues**, y **cada despliegue
-> invalida TODA la caché ISR** → cada página visitada después se regenera desde cero. Encima, un **bump global
-> de caché** (`getCarreraV2 v5→v6`) forzó regenerar las **39.000 fichas** a la vez. Eso explica las ~7.400
-> regeneraciones de ficha del día y buena parte de los errores 504 de la BD.
+> **DIAGNÓSTICO CORREGIDO con el desglose en €. El 81% del gasto es MEMORIA PROVISIONADA mientras las
+> funciones corren — NO las regeneraciones ni el nº de deploys ni las ISR-writes (esas son calderilla).**
+> La causa de fondo: las funciones se quedan **esperando a la BD** y facturan memoria todo ese rato. Una BD
+> lenta/saturada hace CARA la web.
 
-Fuente: Vercel MCP (runtime logs 24 h + despliegues del día). El desglose en € (ISR-writes, GB-hrs, ancho de
-banda) vive en **Vercel → Usage**, que el MCP no expone; aquí se prioriza por **invocaciones de función
-reales**, que son el proxy directo del compute.
+## El € real (panel Usage, ciclo actual) — total infraestructura $19,55
 
-## Datos medidos (24 h)
+| Partida | Consumo | € | % |
+|---|---|---:|---:|
+| **Fluid Provisioned Memory** | 1.140 GB-Hrs | **$15,86** | **81 %** |
+| Fluid Active CPU | 8 h | $1,48 | 8 % |
+| Observability Events | 765 K | $0,92 | 5 % |
+| Build CPU | 2 h | $0,60 | 3 % |
+| ISR Writes | 121 K | $0,58 | 3 % |
+| Resto | — | céntimos | — |
 
-**Invocaciones por fuente:** `function` 14.750 · `cache` 11.893 · `rewrite` 4.661. El compute lo mandan las
-funciones (~14.750/día).
+## 1 · Qué se cobra en "Provisioned Memory" y por qué es el 81%
+Fluid Compute separa dos cosas:
+- **Active CPU** ($/hora de CPU *realmente usada*): solo cuando la función COMPUTA.
+- **Provisioned Memory** ($/GB-hora): la memoria asignada a la función **× el tiempo de RELOJ que la función
+  está viva**, incluido el rato que pasa **esperando I/O** (la BD). Es la gracia —y la trampa— de Fluid: casi
+  no pagas CPU mientras esperas, pero **sí pagas la memoria todo el tiempo de reloj**.
 
-**Compute por ruta (solo `serverless`, ~14.600 total):**
+**La prueba está en el propio ratio: memoria $15,86 vs CPU $1,48 (≈11:1).** En unidades: 1.140 GB-Hrs de
+memoria frente a **8 horas** de CPU activa. Aun suponiendo 2 GB por función, eso son ~570 horas de función
+*viva* contra 8 de *cálculo* → **~1,4% de uso de CPU; el ~98,6% del tiempo facturado es la función viva pero
+SIN computar = esperando.** Y lo único que espera es la BD (cada ficha hace 16+ consultas encadenadas).
 
-| Ruta | Invoc./día | % | Tipo |
+→ **Cada segundo que una función espera a la BD cuesta dinero** (memoria × ese segundo). Confirmado.
+
+## 2 · La BD saturada encarece la web — CONFIRMADO por los datos
+- El ratio memoria/CPU (98,6% de tiempo esperando) solo se explica por I/O: las funciones no calculan, aguardan
+  a Postgres.
+- Latencia medida de la BD **bajo carga: 609 ms para UNA página keyset** (EXPLAIN ANALYZE, esta tarde). Sana
+  serían ~5-50 ms. La ficha encadena **16+** de esas → el tiempo de reloj (y por tanto la memoria facturada)
+  se multiplica ×10-100 cuando la BD va lenta.
+- **97 errores 504 + 281 errores 500 en 24 h** (timeouts de BD). Un 504 = la función esperó hasta agotar el
+  timeout (decenas de segundos) sujetando su memoria sin hacer nada: es el caso más caro posible, memoria pura
+  tirada. Hoy la BD llegó a **caerse** (connection timeout, hizo falta reiniciarla).
+- Conclusión: los episodios de BD lenta/caída y el pico de memoria son la MISMA cosa. La factura de Vercel es,
+  en su mayor parte, **tiempo de espera a una BD infradimensionada** (t4g.nano 0,5 GB con 2,5 GB de datos;
+  `web_jugador_partidos` = 1,2 GB ella sola).
+
+**Corolario importante:** subir el tier de la BD no es solo "que no se caiga" — **abarata la web**: menos espera
+= menos GB-Hrs de memoria. El upgrade de BD se paga en parte solo con el ahorro de Vercel.
+
+## 3 · Reducir la memoria por función — AHORRO DIRECTO Y LINEAL
+Provisioned Memory = (GB por función) × (tiempo de reloj). Bajar los GB **recorta el 81% de forma lineal**.
+Nuestras funciones son **I/O-bound** (esperan, no calculan: Active CPU es solo el 8%), así que **no necesitan
+músculo de CPU/memoria** — están sobredimensionadas para lo que hacen.
+- **A verificar (Fernando):** Vercel → Proyecto → **Settings → Functions** → tamaño de CPU/memoria de Fluid.
+- Si están, p. ej., en 2 GB y con 1 GB sobra (una ficha no necesita más), bajar a la mitad ≈ **–$8/ciclo**
+  (la mitad de $15,86), sin tocar código. Es el recorte de mayor ratio inmediato.
+- Ojo: bajar memoria no alarga los tiempos aquí, porque el cuello es la espera a la BD, no la CPU.
+
+## 4 · Observability Events (765 K → $0,92) — calderilla
+Los genera Vercel automáticamente: un evento por request + cada línea `console.*` + trazas. 765 K ≈ el volumen
+de requests del ciclo. **A $0,92 no compensa optimizarlo.** Si se quisiera bajar: reducir el ruido de
+`console.*` (tenemos varios `console.error` en sitemaps/índices) o el nivel de Observability, pero el ahorro es
+marginal. No es prioridad.
+
+## Datos de compute medidos (runtime logs, 24 h) — siguen valiendo para localizar el tiempo
+`function` 14.750/día · `cache` 11.893 · `rewrite` 4.661. Reparto por ruta (serverless):
+
+| Ruta | Invoc./día | % | Coste de tiempo |
 |---|---:|---:|---|
-| /madrid/jugador/[slug] | 7.398 | 50,7 % | ISR on-demand · **16+ consultas** |
-| /madrid/…/[jornada]/[tab] (competición) | 3.330 | 22,8 % | ISR on-demand · superficie enorme |
-| /madrid/jugador/[slug]/[temporada] | 1.132 | 7,8 % | ISR |
-| /madrid/equipo/[slug] | 806 | 5,5 % | ISR |
-| /madrid/partido/[slug] | 763 | 5,2 % | ISR |
-| /madrid/equipo/[slug]/[temporada] | 528 | 3,6 % | ISR |
-| competición global/[tab] | 301 | 2,1 % | ISR |
-| campos/clubes/buscar/sitemaps… | ~350 | ~2,4 % | mixto |
+| /madrid/jugador/[slug] | 7.398 | 50,7 % | **16+ consultas encadenadas** — el mayor sumidero de espera |
+| competición …/[jornada]/[tab] | 3.330 | 22,8 % | varias consultas + superficie ×34 jornadas |
+| jugador/[slug]/[temporada] | 1.132 | 7,8 % | |
+| equipo/[slug] (+temporada) | 1.334 | 9,1 % | |
+| partido/[slug] | 763 | 5,2 % | |
+| resto | ~650 | ~4 % | |
 
-**Fichas de jugador ≈ 59 % + competición ≈ 25 % = 84 % del compute.**
+La ficha de jugador es el 59% de las invocaciones **y** la más pesada en consultas → es donde más TIEMPO de
+espera (=memoria) se acumula.
 
-**Estados HTTP:** 200 = 15.392 · **500 = 281** · **504 = 97** (timeouts de BD) · 304 = 153 · 404 = 25.
+## Recortes reordenados por € (el 81% es tiempo-de-memoria = espera a BD × nº consultas)
 
-**Despliegues del día:** **15 de producción, 5 fallidos** (los de la colisión build×export).
-
-**Configuración (código):**
-- Toda ruta ISR lleva `revalidate=30d` con el comentario *"cada deploy invalida TODA la caché"*.
-- Ficha de jugador: `generateStaticParams()=[]` + `dynamicParams=true` → **0 pre-renderizadas; todas on-demand**,
-  cacheadas 30 d en la 1ª visita.
-- Ficha de jugador: ~16 consultas y **fan-out por competición** (cada grupo dispara hasta 4 consultas más en
-  `resultadosGrupoRich`) → las 16 son un SUELO; un jugador multi-competición cuesta más.
-
-## Respuestas a las cinco preguntas
-1. **Qué consume:** compute (funciones), no ancho de banda. 84 % son fichas de jugador + competición.
-2. **Cuántas regeneran y por qué:** ~7.400 regeneraciones/día de la ficha de jugador, **en su mayoría NO por
-   tráfico**: los 15 deploys invalidan la ISR entera y el bump `v6` regeneró las 39 k fichas. Causa = nosotros.
-3. **Páginas caras que regeneran mucho:** sí — la ficha (16+ consultas) a 7.400/día es EL gasto.
-4. **Rutas dinámicas cacheables:** la de competición (22,8 %) es ISR pero se re-renderiza por cada URL, y el
-   time-machine de jornadas multiplica la superficie ×34. `/clubes` `/campos` son `force-dynamic` (pequeñas).
-   `/buscar` sí debe ser dinámica.
-5. **Despliegues:** 15, cada uno invalida toda la ISR → son el **multiplicador** de todo el compute.
-
-## Recortes por RATIO (impacto / esfuerzo)
-
-| # | Acción | Ahorro | Esfuerzo | Estado |
+| # | Acción | Ataca | Ahorro | Esfuerzo |
 |---|---|---|---|---|
-| **1** | **Agrupar despliegues 15/día → 1-2/día** + no hacer bumps globales de caché | El mayor: recorta el multiplicador sobre el 84 % del compute + menos 504 de BD + ~13 builds/día | **Cero código** (norma de trabajo) | **NORMA (ver manual)** |
-| 2 | Canonical/noindex de jornadas NO actuales en competición (que los crawlers no generen ×34) | Parte del 22,8 % | Medio | Pendiente (cuando se estabilice) |
-| 3 | `revalidateTag` acotado en vez de bump global de clave | Grande cuando aplica | Bajo (disciplina) | Incluido en la norma #1 |
-| 4 | Consolidar las 16+ consultas de la ficha en 1 | Abarata CADA regeneración del 59 % | Alto | Presupuestado (abajo) |
-| 5 | Eliminar builds fallidos (lock + no desplegar durante export) | ~5 builds/día | Bajo | En el plan de pipeline |
+| **1** | **Bajar el tamaño de memoria/CPU de Fluid** si está sobredimensionado | el 81% directo, lineal | ~–$8/ciclo si se puede halвar | **Cero código** (Settings) |
+| **2** | **Subir el tier de la BD** (nano→Small/Medium) | el tiempo de espera de TODAS las funciones | grande e indirecto (menos GB-Hrs) + deja de caerse | Decisión + € de BD |
+| **3** | **Consolidar la ficha 16+ consultas → 1** (4b: el pipeline precomputa una fila JSON; la web lee 1) | el tiempo de la ruta del 59% | grande y permanente | Alto (~2-4 d, sobre todo pipeline) |
+| 4 | **4a quick win**: dedup lecturas repetidas + colapsar el fan-out por grupo (4→1) | ~30-40% del tiempo de la ficha | medio | ~1 día |
+| 5 | Agrupar deploys / no bumps globales | menos invocaciones lentas durante tormentas de regeneración que coinciden con BD estresada | secundario (ya no es la causa) | cero código (norma) |
+| — | Observability / ISR-writes | — | calderilla, ignorar | — |
 
-## Presupuesto del #4 — consolidar la ficha de jugador
-Hoy la ficha hace ~16 idas y vueltas a la BD por render, con fan-out por competición. Cada regeneración paga
-todo eso. Opciones, de menor a mayor:
+**Reordenamiento clave respecto a la rev. anterior:** optimizar las 16 consultas de la ficha importa por el
+**TIEMPO** que ahorra (memoria facturada), no por el número de regeneraciones. Y el tier de BD pasa a ser
+palanca de COSTE, no solo de disponibilidad. Batching de deploys baja a secundario (las ISR-writes eran
+calderilla), aunque sigue siendo buena higiene.
 
-- **4a · Quick win (barato, bajo riesgo, ~1 día):** dedup de las lecturas repetidas de `web_jugador_partidos` y
-  colapsar el fan-out de `resultadosGrupoRich` (hoy hasta 4 consultas por grupo, en bucle) a **1 por grupo** o
-  un `IN()` sobre todos los grupos. Recorta ~30-40 % de las idas y vueltas de la ficha sin tocar el modelo.
-- **4b · Fix estructural (recomendado, ~2-4 días, más riesgo):** que **el pipeline precompute una fila "ficha
-  jugador" (JSON)** — mismo patrón que el digest de la home — y la web lea **1 fila**. La agregación pesada
-  (carrera + actuaciones + ámbito con ausencias + forma + tarjetas + copas) se hace **una vez por export**, no
-  en cada regeneración. Reparto: casi todo en el pipeline (C:\rffm-pipeline) + storage (~39 k filas) +
-  revalidación por `jugador:<cod>` (que ya existe); la web cambia 16 lecturas por 1. **Es el que más vale a
-  largo plazo** porque saca el coste del camino caliente por completo.
-- **Evitar:** un RPC de Postgres que replique toda la lógica de agregación en SQL — mismo beneficio que 4b pero
-  duplicando lógica compleja (la cruz de ausencias es delicada) y con más riesgo de regresión. Mejor 4b.
-
-**Orden sugerido:** 4a ya da alivio con poco riesgo; 4b cuando haya margen, y es el objetivo real. Ambos NO
-urgen hasta estabilizar el ritmo de deploys (#1), que es lo que de verdad está disparando el gasto hoy.
+## Presupuesto del #4 — consolidar la ficha (sin cambios respecto a la rev. anterior)
+- **4a (~1 día, bajo riesgo):** dedup de lecturas repetidas de `web_jugador_partidos` + colapsar
+  `resultadosGrupoRich` (hasta 4 consultas por grupo, en bucle) a 1 por grupo o un `IN()`. –30-40% de idas y
+  vueltas.
+- **4b (~2-4 días, recomendado):** el pipeline precomputa una fila "ficha jugador" (JSON) — patrón del digest
+  de la home — y la web lee 1 fila. Saca la agregación del camino caliente: cada render pasa de 16+ esperas a
+  1. Es el que más recorta el 81% a largo plazo.
+- Evitar el RPC que replique la lógica en SQL (duplica la cruz de ausencias, más riesgo). Mejor 4b.

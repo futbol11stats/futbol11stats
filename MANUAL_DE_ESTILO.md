@@ -37,13 +37,14 @@
 > La causa de fondo (build × export coincidiendo) se ataca aparte con el lock/orquestación; esto es la red
 > de seguridad para que, cuando coincidan, el resultado sea visible o inocuo, nunca un vacío silencioso.
 >
-> **RITMO DE DESPLIEGUE — regla de trabajo (no sugerencia). Cada deploy CUESTA.** Un `push` a `main` =
-> build + **invalidación de TODA la caché ISR** → cada página visitada después se regenera desde cero. Con
-> ~59 % del compute en la ficha de jugador (16+ consultas cada una) y ~25 % en competición, el nº de deploys
-> es el **multiplicador** de casi todo el gasto. Evidencia (auditoría 2026-09-06, ver
-> [`AUDITORIA_CONSUMO_VERCEL.md`](./AUDITORIA_CONSUMO_VERCEL.md)): **15 deploys en un día** → **~7.400
-> regeneraciones de ficha** + parte de los **97 timeouts 504** de la BD. El gasto no fue tráfico ni tamaño de
-> la BD: fue nuestro ritmo. Reglas:
+> **RITMO DE DESPLIEGUE — regla de trabajo (no sugerencia).** Un `push` a `main` = build + **invalidación de
+> TODA la caché ISR** → cada página visitada después se regenera desde cero, y cada regeneración de la ficha
+> hace 16+ consultas encadenadas. **El coste real (ver [`AUDITORIA_CONSUMO_VERCEL.md`](./AUDITORIA_CONSUMO_VERCEL.md),
+> € del panel) es la MEMORIA PROVISIONADA mientras esas funciones ESPERAN a la BD (81% de la factura), no las
+> ISR-writes (calderilla, 3%).** Por eso el batching sigue siendo la norma —cada deploy dispara una tormenta de
+> regeneraciones que, con la BD estresada, se quedan esperando y facturando memoria— pero la palanca de fondo
+> es abaratar esa espera (tier de BD + consolidar las consultas de la ficha). Evidencia del ritmo: **15 deploys
+> en un día → ~7.400 regeneraciones de ficha** y parte de los **97 timeouts 504**. Reglas:
 > - **Agrupar cambios y desplegar 1-2 veces al día**, no por cada ajuste. Commitear en local se puede siempre;
 >   `push` (=deploy) se agrupa.
 > - **Nada de bumps globales de clave de caché** (`unstable_cache` keyParts) salvo que no haya alternativa:
