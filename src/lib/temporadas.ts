@@ -31,7 +31,7 @@ const CAT_BD: Record<string, string> = { aficionados: 'AFICIONADO', juveniles: '
 // ALCANCE deliberadamente ACOTADO a getGruposIndice: NO toca getTemporadasActivas, así que el suelo
 // activo/inactivo (sueloVivo) y el badge "En juego" (esTemporadaActiva) NO cambian; y la pastilla sigue siendo
 // "Por comenzar" porque la decide tienePartidosJugados, no esto.
-const ABRIR_TEMPORADA_CON_CALENDARIO = false
+const ABRIR_TEMPORADA_CON_CALENDARIO = true
 
 // Vista `web_temporada_activa` -> array. Cacheado (tag 'indices'; el pipeline lo revalida al cargar datos).
 export async function getTemporadasActivas(): Promise<TempActiva[]> {
