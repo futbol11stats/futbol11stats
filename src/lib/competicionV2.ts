@@ -81,9 +81,14 @@ export type ClasifCompRow = {
 }
 export async function getClasifV2(codgrupo: string, codtemporada: number, jornada: number): Promise<ClasifCompRow[]> {
   return cacheComp(async () => {
-    const { data } = await supabase.from('web_clasificacion').select(COLS_CLASIFICACION)
-      .eq('codgrupo', codgrupo).eq('codtemporada', codtemporada).eq('jornada', jornada).order('pos')
-    return (data || []) as unknown as ClasifCompRow[]
+    // La clasificación es ACUMULADA ("tras la jornada N"): si la jornada elegida no tiene snapshot (una jornada
+    // futura/sin jugar), REBOBINA al último snapshot <= N en vez de salir vacía. Antes filtraba .eq('jornada')
+    // exacto -> al elegir una jornada sin jugar (o la por-defecto mal puesta en jornada_actual=34), la tabla Y
+    // las cifras (que derivan de aquí) se quedaban en blanco pese al rótulo "tras la jornada N". fetchSnapshot ya
+    // hace exacto -> más cercano; una jornada JUGADA sigue dando su snapshot exacto (sin cambio).
+    const rows = await fetchSnapshot((q: any) => q.from('web_clasificacion').select(COLS_CLASIFICACION)
+      .eq('codgrupo', codgrupo).eq('codtemporada', codtemporada).order('pos'), jornada)
+    return rows as unknown as ClasifCompRow[]
   }, ['getClasifV2', codgrupo, codtemporada, jornada], [codgrupo], codtemporada)
 }
 
