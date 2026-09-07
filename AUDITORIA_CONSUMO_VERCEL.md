@@ -46,14 +46,39 @@ SIN computar = esperando.** Y lo único que espera es la BD (cada ficha hace 16+
 **Corolario importante:** subir el tier de la BD no es solo "que no se caiga" — **abarata la web**: menos espera
 = menos GB-Hrs de memoria. El upgrade de BD se paga en parte solo con el ahorro de Vercel.
 
-## 3 · Reducir la memoria por función — AHORRO DIRECTO Y LINEAL
-Provisioned Memory = (GB por función) × (tiempo de reloj). Bajar los GB **recorta el 81% de forma lineal**.
-Nuestras funciones son **I/O-bound** (esperan, no calculan: Active CPU es solo el 8%), así que **no necesitan
-músculo de CPU/memoria** — están sobredimensionadas para lo que hacen.
-- **A verificar (Fernando):** Vercel → Proyecto → **Settings → Functions** → tamaño de CPU/memoria de Fluid.
-- Si están, p. ej., en 2 GB y con 1 GB sobra (una ficha no necesita más), bajar a la mitad ≈ **–$8/ciclo**
-  (la mitad de $15,86), sin tocar código. Es el recorte de mayor ratio inmediato.
-- Ojo: bajar memoria no alarga los tiempos aquí, porque el cuello es la espera a la BD, no la CPU.
+## 3 · Bajar la memoria por función — DESCARTADO (no existe el escalón)
+Idea inicial: si las funciones (I/O-bound, Active CPU solo 8%) estuvieran sobredimensionadas, bajar los GB
+recortaría el 81% linealmente. **Pero no se puede:** Fluid está en **Standard (1 vCPU / 2 GB), que es el
+tamaño MÁS PEQUEÑO**; el único escalón es hacia arriba (Performance 2 vCPU / 4 GB). No hay ahorro por aquí.
+
+## 3-bis · DECISIÓN: bajar el Default Max Duration 300 s → 60 s (+ overrides de 120 s en rutas largas)
+En la misma pantalla (Settings → Functions) el **Default Max Duration está en 300 s**. Con el modelo memoria ×
+tiempo-de-reloj, una función colgada esperando a la BD **sujeta sus 2 GB hasta 5 minutos** antes de rendirse.
+**Probado en logs:** los 504 son literalmente `Vercel Runtime Timeout Error: Task timed out after 300 seconds`
+(cúmulo hacia las 07:00, con la BD agonizando). Cada uno = 2 GB × 300 s tirados.
+
+- **Render sano:** ~1-3 s (ficha, 16 consultas indexadas); incluso lento-pero-válido con la BD tocada
+  (609 ms/consulta × 16) ≈ ~10 s. Nada legítimo de usuario se acerca a 300 s.
+- **Decisión: Default global = 60 s** (6× el peor caso legítimo → no rompe páginas de usuario) **+ overrides a
+  120 s por ruta en los procesos legítimamente largos** (escaneos de tabla y fetch de sitemaps), de baja
+  frecuencia, así que su cap alto no pesa: `jugadores/sitemap`, `equipos/sitemap`, `sitemap.ts`, `robots.ts`,
+  `/api/cron/sitemap-check` → `export const maxDuration = 120`.
+- **Ahorro:** los 97 timeouts/día de 300→60 s = 97 × 240 s = **6,47 h-función/día = ~12,9 GB-Hrs/día** a 2 GB
+  (~$0,18/día en un día malo como hoy; hasta ~34% de la factura de memoria en días con esa tasa de timeouts;
+  en días sanos, calderilla). Y capa además cualquier render legítimo que hoy corra 60-300 s bajo estrés. Es
+  **seguro barato que acota el peor caso**, cero código en lo global (Fernando lo cambia en el panel).
+- **ORDEN OBLIGATORIO:** primero desplegar los overrides de 120 s (próxima tanda) y **DESPUÉS** bajar el
+  default a 60 en el panel. Si se baja antes, sitemaps/robots/cron quedarían capados a 60 y podrían fallar.
+
+## 3-ter · El aviso de sitemap vacío es DECORATIVO hasta arreglar el WAF (config, no código)
+Al final de cada revalidación, el pipeline hace POST a `/api/sitemap-health` y recibe **429 "Vercel Security
+Checkpoint"** (probado: POST server-side → 429; el control POST `/api/revalidate` → 400, sí llega al handler).
+El firewall tiene allow-list para `/api/revalidate` pero **no** para `/api/sitemap-health`. Si la sonda nunca
+puede comprobar, el aviso de 3 capas es decorativo. **Arreglo = config del WAF** (allow-list), NO código:
+- `/api/sitemap-health` (para que el pipeline llegue),
+- `/api/cron/*` (para que la propia llamada del cron no la corte el WAF y dé un falso "cron failed"),
+- y los GET de sitemap/robots (`/robots.txt`, `/sitemap.xml`, `/{jugadores,equipos}/sitemap/*`) para que el
+  `fetch` interno del detector lea XML real y no el challenge.
 
 ## 4 · Observability Events (765 K → $0,92) — calderilla
 Los genera Vercel automáticamente: un evento por request + cada línea `console.*` + trazas. 765 K ≈ el volumen
@@ -80,7 +105,8 @@ espera (=memoria) se acumula.
 
 | # | Acción | Ataca | Ahorro | Esfuerzo |
 |---|---|---|---|---|
-| **1** | **Bajar el tamaño de memoria/CPU de Fluid** si está sobredimensionado | el 81% directo, lineal | ~–$8/ciclo si se puede halвar | **Cero código** (Settings) |
+| **1** | **Default Max Duration 300→60 s** + overrides 120 s en rutas largas (§3-bis) | el peor caso: funciones colgadas × 2 GB × 300 s | ~12,9 GB-Hrs/día en día malo; acota el peor caso siempre | **Cero código** (panel) + overrides ya en repo |
+| — | ~~Bajar memoria por función~~ | — | DESCARTADO: Standard 1v/2GB es el suelo | — |
 | **2** | **Subir el tier de la BD** (nano→Small/Medium) | el tiempo de espera de TODAS las funciones | grande e indirecto (menos GB-Hrs) + deja de caerse | Decisión + € de BD |
 | **3** | **Consolidar la ficha 16+ consultas → 1** (4b: el pipeline precomputa una fila JSON; la web lee 1) | el tiempo de la ruta del 59% | grande y permanente | Alto (~2-4 d, sobre todo pipeline) |
 | 4 | **4a quick win**: dedup lecturas repetidas + colapsar el fan-out por grupo (4→1) | ~30-40% del tiempo de la ficha | medio | ~1 día |
