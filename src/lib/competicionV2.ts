@@ -479,14 +479,19 @@ export function golesEquipoJornada(res: ResultadoCompRow[], equiposMap: Map<stri
   return Array.from(acc.values()).filter((g) => g.goles > 0).sort((a, b) => b.goles - a.goles)
 }
 
-// Suspendidos para la jornada SIGUIENTE a la seleccionada (web_suspendidos).
-export async function getSuspendidosV2(codgrupo: string, codtemporada: number, jornadaSiguiente: number) {
+// Sancionados EN la jornada seleccionada (web_suspendidos). El pipeline guarda la sanción en la jornada DONDE
+// SE PRODUJO, no en la que se pierde -> se filtra por la jornada vista; el jugador se pierde su PRÓXIMO partido.
+// No calculamos "jornada+1" a propósito: con descansos/aplazamientos/byes no es directo, y el dato ya está por
+// jornada-del-hecho, así que esto sirve para las 6 temporadas publicadas sin re-export.
+// LÍMITE conocido (item aparte): las sanciones de VARIOS partidos no se resuelven — el pipeline registra el
+// evento, no la duración, así que un jugador con 2-3 partidos aparece solo en la jornada donde lo expulsaron.
+export async function getSuspendidosV2(codgrupo: string, codtemporada: number, jornada: number) {
   return cacheComp(async () => {
     const { data } = await supabase.from('web_suspendidos')
       .select('codjugador, nombre, posicion, codequipo, nombre_equipo, escudo, motivo')
-      .eq('codgrupo', codgrupo).eq('codtemporada', codtemporada).eq('jornada', jornadaSiguiente).order('nombre_equipo')
+      .eq('codgrupo', codgrupo).eq('codtemporada', codtemporada).eq('jornada', jornada).order('nombre_equipo')
     return (data || []) as any[]
-  }, ['getSuspendidosV2', codgrupo, codtemporada, jornadaSiguiente], [codgrupo], codtemporada)
+  }, ['getSuspendidosV2', codgrupo, codtemporada, jornada], [codgrupo], codtemporada)
 }
 
 // Datos por partido de UNA jornada para unos jugadores (web_jugador_partidos): titular, minutos, goles,

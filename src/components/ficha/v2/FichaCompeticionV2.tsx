@@ -210,7 +210,7 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
   } else if (tabEf === 'tarjetas-jornada') {
     const [tj, susp] = await Promise.all([
       getDestacadosV2(grupo.codgrupo, codtemporada, jornadaNum, 'tarjetas_jornada'),
-      getSuspendidosV2(grupo.codgrupo, codtemporada, jornadaNum + 1),
+      getSuspendidosV2(grupo.codgrupo, codtemporada, jornadaNum),   // jornada DONDE se sancionó (el pipeline la guarda ahí), no +1
     ])
     tarjJ = tj; suspendidos = susp
   } else if (tabEf === 'top5-jugadores-jornada') {
@@ -706,7 +706,7 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
             </>
           )}
 
-          {/* TARJETAS (jornada) + Suspendidos (jornada siguiente). */}
+          {/* TARJETAS (jornada) + Sancionados EN esta jornada, que se pierden su próximo partido. */}
           {tabEf === 'tarjetas-jornada' && (
             <>
               <section>
@@ -720,10 +720,10 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
                 <div className="leyenda"><b>Amarilla</b> · <b>doble amarilla</b> (expulsión) · <b>roja directa</b>.</div>
               </section>
               <section>
-                <SectionHeader title="Se pierden la próxima jornada" sub={`jornada ${jornadaNum + 1}`} />
+                <SectionHeader title="Se pierden el próximo partido" sub={`sancionados en la jornada ${jornadaNum}`} />
                 {suspendidos.length > 0
                   ? <RankingComp fichas={fichas} items={suspendidos.map((s, i) => ({ rank: i + 1, codjugador: s.codjugador, nombre: s.nombre, pos: s.posicion, escudo: s.escudo, nombreEquipo: s.nombre_equipo, valor: motivoCard(s.motivo), valorColor: 'transparent', extra: <span>{s.motivo}</span> }))} />
-                  : <p className="vacio">Ningún jugador sancionado para la próxima jornada.</p>}
+                  : <p className="vacio">Ningún jugador sancionado en esta jornada.</p>}
                 <div className="leyenda">Sanciones por tarjetas (ciclo de {isCopa ? 3 : 5} amarillas, doble amarilla o roja directa); no incluye sanciones adicionales del Comité de Competición.</div>
               </section>
             </>
