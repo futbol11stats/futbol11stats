@@ -421,7 +421,10 @@ function lidTarjetas(rows: any[]) {
       return { ...r, amarillas: am, dobles: db, rojas: rj, tarjetas: am + db + rj, peso: am + 3 * db + 5 * rj }
     })
     .filter((r) => r.tarjetas > 0)   // sin tarjetas no es líder de tarjetas (evita el "0" absurdo de jornada inicial)
-    .sort((a, b) => b.peso - a.peso || b.tarjetas - a.tarjetas)[0] || null
+    // Desempate DETERMINISTA final por codjugador: sin él, dos empatados (p. ej. dos rojas: peso 5, recuento 1)
+    // heredaban el orden por id de PostgREST -> home y ficha podían mostrar líderes distintos si ese orden
+    // cambiaba (divergencia silenciosa). El pipeline aplica el idéntico en su _pick del digest.
+    .sort((a, b) => b.peso - a.peso || b.tarjetas - a.tarjetas || String(a.codjugador).localeCompare(String(b.codjugador)))[0] || null
 }
 
 // --- Aside: líderes (goleador/portero/mejor ELO) y cifras de la competición. ---
