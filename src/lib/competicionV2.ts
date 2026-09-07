@@ -86,10 +86,14 @@ export async function getClasifV2(codgrupo: string, codtemporada: number, jornad
     // exacto -> al elegir una jornada sin jugar (o la por-defecto mal puesta en jornada_actual=34), la tabla Y
     // las cifras (que derivan de aquí) se quedaban en blanco pese al rótulo "tras la jornada N". fetchSnapshot ya
     // hace exacto -> más cercano; una jornada JUGADA sigue dando su snapshot exacto (sin cambio).
-    const rows = await fetchSnapshot((q: any) => q.from('web_clasificacion').select(COLS_CLASIFICACION)
+    // OJO: COLS_CLASIFICACION NO trae `jornada`, y el 3er nivel de fetchSnapshot (rebobinar) la lee para elegir
+    // la más cercana. Sin ella, Number(undefined)=NaN -> devolvía [] en toda jornada sin snapshot exacto (J
+    // futura o la por-defecto=34), vaciando la tabla Y las cifras Competición/Goles que derivan de aquí (mientras
+    // Disciplina/Resultados, con otras fuentes, sí traían dato). Por eso se añade `jornada` al select.
+    const rows = await fetchSnapshot((q: any) => q.from('web_clasificacion').select(COLS_CLASIFICACION + ', jornada')
       .eq('codgrupo', codgrupo).eq('codtemporada', codtemporada).order('pos'), jornada)
     return rows as unknown as ClasifCompRow[]
-  }, ['getClasifV2', codgrupo, codtemporada, jornada], [codgrupo], codtemporada)
+  }, ['getClasifV2', 'v2-reb-jornada', codgrupo, codtemporada, jornada], [codgrupo], codtemporada)
 }
 
 // Clasificación de PRETEMPORADA (liga sin partidos jugados: web_clasificacion está vacía). Se compone con los
