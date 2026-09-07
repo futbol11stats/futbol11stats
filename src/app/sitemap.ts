@@ -18,6 +18,7 @@ import { parseCampo } from '@/lib/campoSlug'
 import { partidoSlug } from '@/lib/partidoSlug'
 
 export const revalidate = 2592000 // ISR 30d (Fluid CPU): se regenera con cada deploy/re-export; el sitemap solo cambia al añadir grupos/temporadas nuevas
+export const maxDuration = 120 // agrega grupos + clubes + campos + partidos T22; legítimamente largo -> por encima del default global (60s). Baja frecuencia.
 
 // Estrategia:
 //  - Temporada viva (T21): todas las combinaciones grupo×tab + globales×tab, SOLO en su jornada

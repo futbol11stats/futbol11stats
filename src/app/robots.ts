@@ -4,6 +4,7 @@ import { JUGADORES_SITEMAP_CHUNK, FALLBACK_PARTICIONES, contarKeyset } from '@/a
 import { EQUIPOS_SITEMAP_CHUNK, FALLBACK_PARTICIONES_EQ } from '@/app/equipos/sitemap'
 
 export const revalidate = 2592000 // ISR 30d: el nº de particiones solo cambia al reexportar los catálogos.
+export const maxDuration = 120 // cuenta filas de 2 tablas grandes; se sube sobre el default global (60s). Baja frecuencia.
 
 // nº de particiones de un sitemap, con el MISMO fallback que su generateSitemaps: un timeout de BD durante el
 // build (la instancia va justa y el propio build la satura) NO debe abortar el deploy -> se degrada RUIDOSO al

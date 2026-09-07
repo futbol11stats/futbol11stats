@@ -5,6 +5,7 @@ import { equipoSlug } from '@/lib/equipo'
 import { getSitemapDatos } from '@/lib/sitemapLastmod'
 
 export const revalidate = 2592000 // ISR 30d: solo cambia al reexportar el catálogo de equipos.
+export const maxDuration = 120 // escaneo de tabla legítimamente largo; se sube sobre el default global (60s). Baja frecuencia.
 
 // Sitemap propio de fichas de equipo (~1.9k URLs). generateSitemaps -> /equipos/sitemap/[id].xml;
 // robots.ts lo enumera junto al sitemap principal y al de jugadores. Misma robustez que el de

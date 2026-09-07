@@ -5,6 +5,10 @@ import { jugadorSlug } from '@/lib/jugador'
 import { getSitemapDatos } from '@/lib/sitemapLastmod'
 
 export const revalidate = 2592000 // ISR 30d: solo cambia al reexportar el catálogo de jugadores.
+// El default global de duración baja a 60s (barato: acota las funciones colgadas esperando a la BD). El
+// sitemap SÍ es legítimamente largo (escanea ~40k filas paginadas), así que se sube a nivel de ruta. Baja
+// frecuencia (17/día) -> el cap alto aquí no pesa en la factura; evita fallos de regeneración bajo carga.
+export const maxDuration = 120
 
 // Sitemap PROPIO de fichas de jugador (~38k URLs), particionado con generateSitemaps. Genera
 // /jugadores/sitemap/[id].xml; robots.ts enumera cada partición con la MISMA fórmula de nº de

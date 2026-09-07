@@ -11,6 +11,9 @@ import { comprobarSitemaps } from '@/lib/sitemapHealth'
 // devolvemos 200 -> el cron NO falla por causas ajenas. Un aviso que salta por lo que no toca se ignora.
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
+// El cron hace fetch de las particiones del sitemap (pueden regenerar y tardar). Se sube sobre el default
+// global (60s) para que un fetch lento NO devuelva 5xx y dispare un falso "cron failed". Corre 1 vez/día.
+export const maxDuration = 120
 
 export async function GET(req: Request) {
   // Si hay CRON_SECRET, Vercel lo envía como "Authorization: Bearer <secret>". Lo exigimos para que nadie
