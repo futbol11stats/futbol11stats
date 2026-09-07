@@ -23,6 +23,16 @@ export type TempActiva = { categoria: string; slug_comp: string; temporada_activ
 
 const CAT_BD: Record<string, string> = { aficionados: 'AFICIONADO', juveniles: 'JUVENIL' }
 
+// FLAG (OFF) — abrir cada competición del ÍNDICE en su temporada más reciente con CALENDARIO publicado
+// (web_grupos), aunque no haya jugado ninguna jornada. Hoy el índice abre en la última temporada con ≥1 partido
+// jugado (web_temporada_activa). NO ACTIVAR hasta subir el tier de la BD: defaultear ~100 competiciones a una
+// temporada en frío sobre la BD actual = tormenta de 500 en la primera visita (ver AUDITORIA_CONSUMO_VERCEL.md;
+// comprobado en vivo un 500 por statement timeout). Al activar, conviene pre-calentar (acotado, con la BD sana).
+// ALCANCE deliberadamente ACOTADO a getGruposIndice: NO toca getTemporadasActivas, así que el suelo
+// activo/inactivo (sueloVivo) y el badge "En juego" (esTemporadaActiva) NO cambian; y la pastilla sigue siendo
+// "Por comenzar" porque la decide tienePartidosJugados, no esto.
+const ABRIR_TEMPORADA_CON_CALENDARIO = false
+
 // Vista `web_temporada_activa` -> array. Cacheado (tag 'indices'; el pipeline lo revalida al cargar datos).
 export async function getTemporadasActivas(): Promise<TempActiva[]> {
   return cacheIndices(async () => {
@@ -79,6 +89,28 @@ export async function getSueloVivo(): Promise<number> {
 // juveniles compartan la misma lógica (fuente única). Devuelve un array (serializable) -> cacheable.
 export async function getGruposIndice(categoriaBD: 'AFICIONADO' | 'JUVENIL') {
   return cacheIndices(async () => {
+    // CAMINO NUEVO (flag ON, INERTE hoy): cada competición en su temporada más reciente con grupo publicado
+    // (calendario), aunque 0 jugado. No depende de web_temporada_activa ni de sueloVivo -> acotado al índice.
+    if (ABRIR_TEMPORADA_CON_CALENDARIO) {
+      const { data, error } = await supabase.from('web_grupos')
+        .select('codtemporada, nombre_comp, nombre_grupo, codgrupo, categoria, jornada_actual, slug_comp, slug_grupo, tipo, rondas')
+        .eq('categoria', categoriaBD).order('nombre_comp')
+      if (error) throw new Error(`[indices] web_grupos (${categoriaBD}): ${error.message || 'error sin mensaje'}`)
+      if (!data || data.length === 0) throw new Error(`[indices] web_grupos (${categoriaBD}) devolvió 0 filas (¿BD saturada?)`)
+      // max(codtemporada) por competición (slug_comp), ignorando las páginas viejas de copa.
+      const maxPorComp = new Map<string, number>()
+      for (const g of data as any[]) {
+        if (!g.slug_comp || esViejaCopa(g.slug_comp)) continue
+        const c = Number(g.codtemporada)
+        if (!maxPorComp.has(g.slug_comp) || c > (maxPorComp.get(g.slug_comp) as number)) maxPorComp.set(g.slug_comp, c)
+      }
+      const res = (data as any[]).filter((g) => g.slug_comp && !esViejaCopa(g.slug_comp)
+        && Number(g.codtemporada) === maxPorComp.get(g.slug_comp))
+      if (res.length === 0) throw new Error(`[indices] web_grupos (${categoriaBD}) quedó vacío tras seleccionar por calendario`)
+      return res
+    }
+
+    // CAMINO ACTUAL (flag OFF): la última temporada con ≥1 partido jugado (vista web_temporada_activa).
     const activas = await getTemporadasActivas()   // lanza si la BD no responde (y no cachea vacío)
     const seasons = temporadasVentana(activas)
     if (!seasons.length) throw new Error('[indices] getGruposIndice: sin temporadas en ventana (web_temporada_activa vacío)')
@@ -96,7 +128,7 @@ export async function getGruposIndice(categoriaBD: 'AFICIONADO' | 'JUVENIL') {
       .filter((g: any) => !esViejaCopa(g.slug_comp))
     if (res.length === 0) throw new Error(`[indices] web_grupos (${categoriaBD}) quedó vacío tras filtrar por temporada activa (dato inconsistente)`)
     return res
-  }, ['getGruposIndice', categoriaBD])
+  }, ['getGruposIndice', ABRIR_TEMPORADA_CON_CALENDARIO ? 'cal' : 'jugado', categoriaBD])
 }
 
 // ¿La temporada `codtemporada` es la ACTIVA de esta competición (dentro de la ventana)? Para el badge "EN
