@@ -77,9 +77,9 @@ export default function Panorama({ lideres, cifras, kpis, fichas, subLideres, su
               val={lideres!.tarjetas?.tarjetas != null ? fmtNum(lideres!.tarjetas.tarjetas) : null} unit="TARJETAS"
               j={lideres!.tarjetas} fichas={fichas}
               desglose={lideres!.tarjetas ? <>
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}><TarjetaAmarilla size={11} />{lideres!.tarjetas.amarillas ?? 0}</span>
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}><TarjetaDoble size={12} />{lideres!.tarjetas.dobles ?? 0}</span>
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}><TarjetaRoja size={11} />{lideres!.tarjetas.rojas ?? 0}</span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, color: 'var(--card-y)' }}><TarjetaAmarilla size={11} />{lideres!.tarjetas.amarillas ?? 0}</span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, color: 'var(--card-y)' }}><TarjetaDoble size={12} />{lideres!.tarjetas.dobles ?? 0}</span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, color: 'var(--card-r)' }}><TarjetaRoja size={11} />{lideres!.tarjetas.rojas ?? 0}</span>
               </> : null} />
           </div>
         </>
