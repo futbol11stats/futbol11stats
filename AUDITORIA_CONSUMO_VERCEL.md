@@ -40,8 +40,11 @@ SIN computar = esperando.** Y lo único que espera es la BD (cada ficha hace 16+
   timeout (decenas de segundos) sujetando su memoria sin hacer nada: es el caso más caro posible, memoria pura
   tirada. Hoy la BD llegó a **caerse** (connection timeout, hizo falta reiniciarla).
 - Conclusión: los episodios de BD lenta/caída y el pico de memoria son la MISMA cosa. La factura de Vercel es,
-  en su mayor parte, **tiempo de espera a una BD infradimensionada** (t4g.nano 0,5 GB con 2,5 GB de datos;
-  `web_jugador_partidos` = 1,2 GB ella sola).
+  en su mayor parte, **tiempo de espera a una BD infradimensionada** (2,5 GB de datos; `web_jugador_partidos`
+  = 1,2 GB ella sola).
+  > **Actualización 2026-09-07:** la instancia estaba mal configurada (Pro con máquina del plan gratuito,
+  > t4g.nano 0,5 GB) y se ha pasado a **Micro 1 GB** — el doble, sin coste extra. Sigue justa (2,5 GB de datos),
+  > pero es el doble de lo que caía. Todo lo de abajo sobre "0,5 GB" léase sobre 1 GB.
 
 **Corolario importante:** subir el tier de la BD no es solo "que no se caiga" — **abarata la web**: menos espera
 = menos GB-Hrs de memoria. El upgrade de BD se paga en parte solo con el ahorro de Vercel.
@@ -107,7 +110,7 @@ espera (=memoria) se acumula.
 |---|---|---|---|---|
 | **1** | **Default Max Duration 300→60 s** + overrides 120 s en rutas largas (§3-bis) | el peor caso: funciones colgadas × 2 GB × 300 s | ~12,9 GB-Hrs/día en día malo; acota el peor caso siempre | **Cero código** (panel) + overrides ya en repo |
 | — | ~~Bajar memoria por función~~ | — | DESCARTADO: Standard 1v/2GB es el suelo | — |
-| **2** | **Subir el tier de la BD** (nano→Small/Medium) | el tiempo de espera de TODAS las funciones | grande e indirecto (menos GB-Hrs) + deja de caerse | Decisión + € de BD |
+| **2** | **BD: ya en Micro 1 GB** (gratis, era config errónea) + optimizaciones del pipeline (delta web_jugador + acotar a temporada activa). **Small 2 GB = último recurso** solo si eso no basta | el tiempo de espera de TODAS las funciones | grande e indirecto (menos GB-Hrs) + deja de caerse | Micro: hecho · Small: condicionado |
 | **3** | **Consolidar la ficha 16+ consultas → 1** (4b: el pipeline precomputa una fila JSON; la web lee 1) | el tiempo de la ruta del 59% | grande y permanente | Alto (~2-4 d, sobre todo pipeline) |
 | 4 | **4a quick win**: dedup lecturas repetidas + colapsar el fan-out por grupo (4→1) | ~30-40% del tiempo de la ficha | medio | ~1 día |
 | 5 | Agrupar deploys / no bumps globales | menos invocaciones lentas durante tormentas de regeneración que coinciden con BD estresada | secundario (ya no es la causa) | cero código (norma) |
