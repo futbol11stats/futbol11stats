@@ -212,9 +212,11 @@ export async function getDestacadosV2(codgrupo: string, codtemporada: number, jo
 // Equipos en forma de UNA jornada (web_equipos_forma).
 export async function getEquiposFormaV2(codgrupo: string, codtemporada: number, jornada: number) {
   return cacheComp(async () => {
-    const { data } = await supabase.from('web_equipos_forma').select(COLS_EQUIPOS_FORMA)
-      .eq('codgrupo', codgrupo).eq('codtemporada', codtemporada).eq('jornada', jornada).order('rank')
-    return (data || []) as any[]
+    // Forma = ventana móvil "a fecha de la jornada N" (acumulado): rebobina al snapshot <= N (fetchSnapshot),
+    // no exacto (si no, se vacía en una jornada sin jugar). COLS_EQUIPOS_FORMA no trae jornada -> se añade.
+    const rows = await fetchSnapshot((q: any) => q.from('web_equipos_forma').select(COLS_EQUIPOS_FORMA + ', jornada')
+      .eq('codgrupo', codgrupo).eq('codtemporada', codtemporada).order('rank'), jornada)
+    return rows as any[]
   }, ['getEquiposFormaV2', codgrupo, codtemporada, jornada], [codgrupo], codtemporada)
 }
 
@@ -343,10 +345,18 @@ export async function getGlobalGruposV2(categoria: string, slugComp: string, cod
 export async function getGlobalClasifV2(codgrupos: string[], codtemporada: number, jornada: number) {
   if (!codgrupos.length) return [] as any[]
   return cacheComp(async () => {
+    // REBOBINAR por equipo (acumulado): la fila de mayor jornada <= la pedida, no la exacta. Antes, al elegir
+    // una jornada sin snapshot (futura, o la por-defecto mal puesta en 34), la tabla y los KPIs globales se
+    // vaciaban. Mismo patrón que getJuegoLimpioV2. Ordena por pos en JS (ya no en la query).
     const { data } = await supabase.from('web_clasificacion')
-      .select('codgrupo, pos, codequipo, nombre_equipo, escudo, pj, gf, pts, elo, zona')
-      .in('codgrupo', codgrupos).eq('codtemporada', codtemporada).eq('jornada', jornada).order('pos')
-    return (data || []) as any[]
+      .select('codgrupo, pos, codequipo, nombre_equipo, escudo, pj, gf, pts, elo, zona, jornada')
+      .in('codgrupo', codgrupos).eq('codtemporada', codtemporada).lte('jornada', jornada)
+    const latest = new Map<string, any>()
+    for (const r of (data || []) as any[]) {
+      const k = `${r.codgrupo}|${r.codequipo}`; const cur = latest.get(k)
+      if (!cur || (Number(r.jornada) || 0) > (Number(cur.jornada) || 0)) latest.set(k, r)
+    }
+    return Array.from(latest.values()).sort((a, b) => (Number(a.pos) || 0) - (Number(b.pos) || 0))
   }, ['getGlobalClasifV2', codgrupos.join(','), codtemporada, jornada], codgrupos, codtemporada)
 }
 
@@ -546,11 +556,20 @@ export async function getGlobalTopTemporadaV2(codgrupos: string[], codtemporada:
     const [snap, elo] = await Promise.all([
       supabase.from('web_top_jugadores').select(COLS_TOP_JUGADORES)
         .in('codgrupo', codgrupos).eq('codtemporada', codtemporada)
-        .in('tipo', ['goleadores_temp', 'porteros_temp', 'fantasy_temp']).eq('jornada', jornada),
+        // REBOBINAR (acumulado "hasta la jornada N"): <= en vez de = exacto. El por-grupo (getTopTemporadaV2)
+        // ya rebobina con fetchSnapshot; el global no, y divergían -> al elegir una jornada sin jugar el global
+        // se vaciaba. Mismo patrón que getJuegoLimpioV2 (robusto ante grupos de distinta longitud).
+        .in('tipo', ['goleadores_temp', 'porteros_temp', 'fantasy_temp']).lte('jornada', jornada),
       supabase.from('web_top_jugadores').select(COLS_TOP_JUGADORES)
         .in('codgrupo', codgrupos).eq('codtemporada', codtemporada).eq('tipo', 'elo_temp').is('jornada', null),
     ])
-    const all = [...((snap.data || []) as any[]), ...((elo.data || []) as any[])]
+    // Cada jugador: su snapshot de mayor jornada <= la pedida (por tipo).
+    const latest = new Map<string, any>()
+    for (const r of (snap.data || []) as any[]) {
+      const k = `${r.tipo}|${r.codjugador}`; const cur = latest.get(k)
+      if (!cur || (Number(r.jornada) || 0) > (Number(cur.jornada) || 0)) latest.set(k, r)
+    }
+    const all = [...Array.from(latest.values()), ...((elo.data || []) as any[])]
     const top = (tipo: string, key: string) => all.filter((j) => j.tipo === tipo)
       .sort((a, b) => (Number(b[key]) || 0) - (Number(a[key]) || 0)).slice(0, 10)
       .map((j, i) => ({ ...j, rank: i + 1 }))
@@ -570,9 +589,16 @@ export async function getGlobalMvpV2(codgrupos: string[], codtemporada: number, 
 export async function getGlobalEquiposFormaV2(codgrupos: string[], codtemporada: number, jornada: number) {
   if (!codgrupos.length) return [] as any[]
   return cacheComp(async () => {
-    const { data } = await supabase.from('web_equipos_forma').select(COLS_EQUIPOS_FORMA)
-      .in('codgrupo', codgrupos).eq('codtemporada', codtemporada).eq('jornada', jornada)
-    return ((data || []) as any[]).sort((a, b) => (Number(b.pts_fantasy) || 0) - (Number(a.pts_fantasy) || 0)).slice(0, 5).map((e, i) => ({ ...e, rank: i + 1 }))
+    // Forma = ventana móvil "a fecha de la jornada N" (acumulado) -> rebobinar al último snapshot <= N por
+    // equipo, no exacto (si no, se vacía en una jornada sin jugar). COLS_EQUIPOS_FORMA no trae jornada -> se añade.
+    const { data } = await supabase.from('web_equipos_forma').select(COLS_EQUIPOS_FORMA + ', jornada')
+      .in('codgrupo', codgrupos).eq('codtemporada', codtemporada).lte('jornada', jornada)
+    const latest = new Map<string, any>()
+    for (const r of (data || []) as any[]) {
+      const k = `${r.codgrupo}|${r.codequipo}`; const cur = latest.get(k)
+      if (!cur || (Number(r.jornada) || 0) > (Number(cur.jornada) || 0)) latest.set(k, r)
+    }
+    return Array.from(latest.values()).sort((a, b) => (Number(b.pts_fantasy) || 0) - (Number(a.pts_fantasy) || 0)).slice(0, 5).map((e, i) => ({ ...e, rank: i + 1 }))
   }, ['getGlobalEquiposFormaV2', codgrupos.join(','), codtemporada, jornada], codgrupos, codtemporada)
 }
 
@@ -641,10 +667,17 @@ export async function getGlobalCifrasV2(codgrupos: string[], codtemporada: numbe
 export async function getGlobalTeamGoalsV2(codgrupos: string[], codtemporada: number, jornada: number) {
   if (!codgrupos.length) return [] as any[]
   return cacheComp(async () => {
+    // Rebobinar por equipo (gf/gc acumulados): último snapshot <= jornada, no el exacto (mismo motivo que
+    // getGlobalClasifV2: al elegir una jornada sin jugar se vaciaba).
     const { data } = await supabase.from('web_clasificacion')
-      .select('codgrupo, codequipo, nombre_equipo, escudo, gf, gc')
-      .in('codgrupo', codgrupos).eq('codtemporada', codtemporada).eq('jornada', jornada)
-    return ((data || []) as any[]).sort((a, b) => (b.gf || 0) - (a.gf || 0))
+      .select('codgrupo, codequipo, nombre_equipo, escudo, gf, gc, jornada')
+      .in('codgrupo', codgrupos).eq('codtemporada', codtemporada).lte('jornada', jornada)
+    const latest = new Map<string, any>()
+    for (const r of (data || []) as any[]) {
+      const k = `${r.codgrupo}|${r.codequipo}`; const cur = latest.get(k)
+      if (!cur || (Number(r.jornada) || 0) > (Number(cur.jornada) || 0)) latest.set(k, r)
+    }
+    return Array.from(latest.values()).sort((a, b) => (b.gf || 0) - (a.gf || 0))
   }, ['getGlobalTeamGoalsV2', codgrupos.join(','), codtemporada, jornada], codgrupos, codtemporada)
 }
 
