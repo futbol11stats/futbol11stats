@@ -30,8 +30,9 @@ export async function getHomeDigest(): Promise<{
   categorias: HomeCatLider[]; metricas: HomeMetricas; cifras: HomeCifras; codtemporada: number | null
 }> {
   const [lid, cif] = await Promise.all([
-    supabase.from('web_home_lideres')
-      .select('bloque, tipo, orden, categoria_rama, nombre_comp, grupo_nombre, codgrupo, codjugador, nombre, equipo_nombre, escudo, valor, codtemporada'),
+    // select('*') (tabla diminuta): resiliente a las columnas de DESGLOSE de tarjetas (amarillas/dobles/rojas)
+    // que el pipeline publicará en el digest para la tarjeta "Más tarjetas" -> aparecen solas sin tocar esto.
+    supabase.from('web_home_lideres').select('*'),
     supabase.from('web_home_cifras').select('*').limit(1).maybeSingle(),
   ])
   const rows = (lid.data || []) as any[]
@@ -70,13 +71,22 @@ export async function getHomeDigest(): Promise<{
       nombre_comp: r.nombre_comp ?? null, grupo_nombre: r.grupo_nombre ?? null, href: hrefDe(r.codgrupo),
       [key]: r.valor,
     } : null
+  // "Más tarjetas": el número es el RECUENTO (valor) y va con desglose (amarillas/dobles/rojas). El digest los
+  // publicará (mismo criterio ponderado que la web/ficha, ver competicionV2.lidTarjetas); hasta entonces, null
+  // en el desglose (la LidCard muestra el recuento sin desglose). El líder lo elige el pipeline por peso.
+  const asJtar = (r: any): LidJ =>
+    r ? {
+      codjugador: String(r.codjugador), nombre: r.nombre, nombre_equipo: r.equipo_nombre, escudo: r.escudo,
+      nombre_comp: r.nombre_comp ?? null, grupo_nombre: r.grupo_nombre ?? null, href: hrefDe(r.codgrupo),
+      tarjetas: r.valor, amarillas: r.amarillas ?? null, dobles: r.dobles ?? null, rojas: r.rojas ?? null,
+    } : null
   const metricas: HomeMetricas = {
     goleador: asJ(m.get('goleador'), 'goles'),
     portero: asJ(m.get('portero'), 'goles'),
     pf: asJ(m.get('pf'), 'pts_fantasy'),
     mediaPf: asJ(m.get('media_pf'), 'media_fantasy'),
     elo: asJ(m.get('elo'), 'elo'),
-    tarjetas: asJ(m.get('tarjetas'), 'amarillas'),
+    tarjetas: asJtar(m.get('tarjetas')),
   }
   return { categorias, metricas, cifras: (cif.data ?? null) as HomeCifras, codtemporada }
 }

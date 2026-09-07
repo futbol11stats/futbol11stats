@@ -17,8 +17,8 @@ const med1 = (v: number | null | undefined) => (v == null ? '—' : Number(v).to
 
 type Lideres = { goleador?: any; portero?: any; elo?: any; tarjetas?: any; pf?: any; mediaPf?: any } | null
 
-function LidCard({ k, icon, color, val, unit, j, fichas }: {
-  k: string; icon: React.ReactNode; color: string; val: React.ReactNode; unit: string; j: any; fichas: { has(x: string): boolean } | null
+function LidCard({ k, icon, color, val, unit, j, fichas, desglose }: {
+  k: string; icon: React.ReactNode; color: string; val: React.ReactNode; unit: string; j: any; fichas: { has(x: string): boolean } | null; desglose?: React.ReactNode
 }) {
   if (!j || val == null) return null
   return (
@@ -40,6 +40,8 @@ function LidCard({ k, icon, color, val, unit, j, fichas }: {
         </div>
         <div className="nm"><NombreJugador codjugador={j.codjugador} nombre={j.nombre} fichas={fichas} /></div>
         <div className="eq">{nombreEquipo(j.nombre_equipo)}</div>
+        {/* Desglose opcional (solo "Más tarjetas"): el número grande es el recuento; aquí, de qué se compone. */}
+        {desglose && <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', fontSize: 'var(--t-micro)', color: 'var(--ink-3)', marginTop: 3 }}>{desglose}</div>}
       </div>
       <div className="lval"><b style={{ color }}>{val}</b><span>{unit}</span></div>
     </div>
@@ -71,7 +73,14 @@ export default function Panorama({ lideres, cifras, kpis, fichas, subLideres, su
             <LidCard k="Mejor PF" icon={<Star size={13} />} color="var(--e3)" val={lideres!.pf?.pts_fantasy != null ? fmtNum(Math.round(lideres!.pf.pts_fantasy)) : null} unit="PUNTOS" j={lideres!.pf} fichas={fichas} />
             <LidCard k="Mejor media PF" icon={<Gauge size={13} />} color="var(--e3)" val={lideres!.mediaPf?.media_fantasy != null ? med1(lideres!.mediaPf.media_fantasy) : null} unit="MEDIA" j={lideres!.mediaPf} fichas={fichas} />
             <LidCard k="Mejor ELO" icon={<Badge11 bg="var(--e3)" ink="#0a1628" size={15} />} color="var(--e3)" val={lideres!.elo?.elo != null ? fmtNum(lideres!.elo.elo) : null} unit="ELO" j={lideres!.elo} fichas={fichas} />
-            <LidCard k="Más tarjetas" icon={<TarjetaAmarilla size={12} />} color="var(--card-y)" val={lideres!.tarjetas?.amarillas} unit="AMARILLAS" j={lideres!.tarjetas} fichas={fichas} />
+            <LidCard k="Más tarjetas" icon={<TarjetaAmarilla size={12} />} color="var(--card-y)"
+              val={lideres!.tarjetas?.tarjetas != null ? fmtNum(lideres!.tarjetas.tarjetas) : null} unit="TARJETAS"
+              j={lideres!.tarjetas} fichas={fichas}
+              desglose={lideres!.tarjetas ? <>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}><TarjetaAmarilla size={11} />{lideres!.tarjetas.amarillas ?? 0}</span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}><TarjetaDoble size={12} />{lideres!.tarjetas.dobles ?? 0}</span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}><TarjetaRoja size={11} />{lideres!.tarjetas.rojas ?? 0}</span>
+              </> : null} />
           </div>
         </>
       )}

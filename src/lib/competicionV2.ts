@@ -406,6 +406,24 @@ export async function getCarreraV2(codgrupo: string, codtemporada: number): Prom
   }, ['getCarreraV2', codgrupo, codtemporada], [codgrupo], codtemporada)
 }
 
+// Líder "más tarjetas" desde web_alertas_tarjetas. Fuente ÚNICA para ficha y global (y el pipeline replica la
+// MISMA fórmula en el digest de la home, para no divergir). Columnas DISJUNTAS:
+//  - amarillas_ciclo es SUBCONJUNTO de amarillas_simples (las que van cerrando ciclo de 5) -> NUNCA sumarla
+//    (el bug viejo hacía simples+ciclo e inflaba: 7 simples daban 9).
+//  - un doble amarilla va SOLO en dobles_amarillas (1 evento); sus dos amarillas NO están en amarillas_simples,
+//    ni su roja en rojas_directas. rojas_directas = solo rojas directas.
+// NÚMERO mostrado = recuento LITERAL de tarjetas; ORDEN = peso por gravedad (amarilla 1, doble 3, roja 5): un
+// doble/roja es una EXPULSIÓN, categóricamente peor que amonestaciones, y la roja directa manda.
+function lidTarjetas(rows: any[]) {
+  return rows
+    .map((r) => {
+      const am = r.amarillas_simples || 0, db = r.dobles_amarillas || 0, rj = r.rojas_directas || 0
+      return { ...r, amarillas: am, dobles: db, rojas: rj, tarjetas: am + db + rj, peso: am + 3 * db + 5 * rj }
+    })
+    .filter((r) => r.tarjetas > 0)   // sin tarjetas no es líder de tarjetas (evita el "0" absurdo de jornada inicial)
+    .sort((a, b) => b.peso - a.peso || b.tarjetas - a.tarjetas)[0] || null
+}
+
 // --- Aside: líderes (goleador/portero/mejor ELO) y cifras de la competición. ---
 export async function getLideresV2(codgrupo: string, codtemporada: number) {
   return cacheComp(async () => {
@@ -420,14 +438,12 @@ export async function getLideresV2(codgrupo: string, codtemporada: number) {
       // disponible, web_alertas_tarjetas (amarillas de ciclo + simples). Cubre solo a los que tienen
       // registro disciplinario, así que es aproximado (ver DECISIONES C-lideres).
       supabase.from('web_alertas_tarjetas')
-        .select('codjugador, nombre, posicion, codequipo, nombre_equipo, escudo, amarillas_ciclo, amarillas_simples')
+        .select('codjugador, nombre, posicion, codequipo, nombre_equipo, escudo, amarillas_simples, dobles_amarillas, rojas_directas')
         .eq('codgrupo', codgrupo).eq('codtemporada', codtemporada),
     ])
     const rows = (top.data || []) as any[]
     const pick = (t: string) => rows.filter((r) => r.tipo === t).sort((a, b) => (Number(b.jornada) || 0) - (Number(a.jornada) || 0))[0] || null
-    const tarj = ((al.data || []) as any[])
-      .map((r) => ({ ...r, amarillas: (r.amarillas_ciclo || 0) + (r.amarillas_simples || 0) }))
-      .sort((a, b) => b.amarillas - a.amarillas)[0] || null
+    const tarj = lidTarjetas((al.data || []) as any[])
     return {
       goleador: pick('goleadores_temp'), portero: pick('porteros_temp'), elo: pick('elo_temp'),
       pf: pick('fantasy_temp'), mediaPf: pick('media_fantasy_temp'),   // mediaPf null hasta que el pipeline lo publique
@@ -706,9 +722,7 @@ export async function getGlobalLideresV2(codgrupos: string[], codtemporada: numb
       supabase.from('web_top_jugadores').select(COLS_TOP_JUGADORES)
         .in('codgrupo', codgrupos).eq('codtemporada', codtemporada).eq('tipo', 'media_fantasy_temp').is('jornada', null),
     ])
-    const tarjetas = (al as any[])
-      .map((r) => ({ ...r, amarillas: (r.amarillas_ciclo || 0) + (r.amarillas_simples || 0) }))
-      .sort((a, b) => b.amarillas - a.amarillas)[0] || null
+    const tarjetas = lidTarjetas(al as any[])
     const mediaPf = ((media.data || []) as any[])
       .sort((a, b) => (Number(b.media_fantasy) || 0) - (Number(a.media_fantasy) || 0))[0] || null
     return { goleador: top.goleadores[0] || null, portero: top.porteros[0] || null, elo: top.elo[0] || null, tarjetas, pf: top.fantasy[0] || null, mediaPf }
