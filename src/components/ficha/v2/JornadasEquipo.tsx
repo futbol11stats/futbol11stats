@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import IndicadorLocal from '@/components/IndicadorLocal'
 import EscudoBox from '@/components/ficha/v2/EscudoBox'
+import EloChip from '@/components/ficha/v2/EloChip'
 import SectionHeader from '@/components/ui/SectionHeader'
 import MatchRow from '@/components/ficha/v2/MatchRow'
 import { Marcador, Tabla, Escudo, TrianguloArriba, TrianguloAbajo, Guion } from '@/components/iconos'
@@ -51,7 +52,7 @@ export default function JornadasEquipo({ comps, cortes, temporada }: { comps: Co
 
   const head = (
     <SectionHeader
-      title={comp.tipo !== 'copa' ? 'Puntos por jornada' : /play\s*off/i.test(comp.competicion || comp.label) ? 'Recorrido en el play off' : 'Recorrido en copa'}
+      title={comp.tipo !== 'copa' ? 'Puntos y ELO por jornada' : /play\s*off/i.test(comp.competicion || comp.label) ? 'Recorrido en el play off' : 'Recorrido en copa'}
       sub={[temporada, comp.label].filter(Boolean).join(' · ')}
     />
   )
@@ -109,6 +110,7 @@ export default function JornadasEquipo({ comps, cortes, temporada }: { comps: Co
       <div className="chart-wrap">
         <div className="gutter">
           <div className="g-plot" />
+          <div className="g-lane g-lane-elo">ELO</div>
           <div className="g-lane"><Marcador size={13} /></div>
           <div className="g-lane"><Tabla size={13} /></div>
           <div className="g-lane"><Escudo size={13} /></div>
@@ -122,6 +124,7 @@ export default function JornadasEquipo({ comps, cortes, temporada }: { comps: Co
               return (
                 <div key={d.jornada} className={`col${last ? ' now' : ''}`}>
                   <div className="plot">{barra(d)}<div className="zero" /></div>
+                  <div className="lane lane-elo"><EloChip eloDelta={d.eloDelta} /></div>
                   <div className="lane">{d.marcador ? <span className={`eq-marc res-t-${res}`}>{d.marcador}</span> : <span style={{ color: 'var(--ink-4)' }}>·</span>}</div>
                   <div className="lane">{posMov(d)}</div>
                   <div className="lane eq-rival-lane">
@@ -163,6 +166,9 @@ export default function JornadasEquipo({ comps, cortes, temporada }: { comps: Co
           <span className="lg-item"><span className="gl"><IndicadorLocal esLocal={true} /></span>Casa</span>
           <span className="lg-item"><span className="gl"><IndicadorLocal esLocal={false} /></span>Fuera</span>
           <span className="lg-item">Línea bajo el escudo: <b style={{ color: 'var(--e3)' }}>ganó</b> · <b style={{ color: 'var(--ink-3)' }}>empató</b> · <b style={{ color: 'var(--e0)' }}>perdió</b></span>
+        </div>
+        <div className="lg-row" style={{ marginTop: 6 }}>
+          <span className="lg-item">Carril <b>ELO</b>: Δ ELO del partido — <b style={{ color: 'var(--e3)' }}>+ subió</b> · <b style={{ color: 'var(--e0)' }}>− bajó</b></span>
         </div>
       </div>
     </>

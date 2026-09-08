@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import IndicadorLocal from '@/components/IndicadorLocal'
 import EscudoBox from '@/components/ficha/v2/EscudoBox'
+import EloChip from '@/components/ficha/v2/EloChip'
 import {
   Balon, Guante, TarjetaAmarilla, TarjetaDoble, TarjetaRoja, Camiseta, CamisetaHueca,
   FlechaEntra, FlechaSale, Guion, Escudo,
@@ -89,12 +90,10 @@ export default function Jornadas({ comps, cortes }: { comps: CompAmbito[]; corte
 
   // #7 Carril de ELO por jornada: pastilla con el Δ ELO (verde sube, rojo baja), SIN barra. Va en la misma columna
   // que el punto -> queda alineado exacto bajo su barra; el gráfico ya scrollea, así que el número cabe como el chip.
+  // Pastilla compartida con la ficha de equipo (EloChip); aquí solo se acota a jornadas jugadas.
   function eloLane(d: JornadaDatum) {
-    if (d.estado.tipo !== 'valor' || d.eloDelta == null) return null
-    const up = d.eloDelta >= 0
-    // Reutiliza el .chip de puntos TAL CUAL (mismo tamaño/proporción). Sin "+" en positivos (el verde ya lo dice);
-    // el "−" se mantiene en negativos.
-    return <span className="chip" style={{ background: up ? 'var(--e3)' : 'var(--e0)' }}>{up ? '' : '−'}{Math.abs(Math.round(d.eloDelta))}</span>
+    if (d.estado.tipo !== 'valor') return null
+    return <EloChip eloDelta={d.eloDelta} />
   }
 
   // Carril de eventos: gol (×N), portería a cero, amarilla / doble amarilla / roja (cada una con su glifo).
