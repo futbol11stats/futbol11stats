@@ -194,7 +194,7 @@ export async function getCopasPorTemporada(codequipo: string | number | null | u
 // (web_equipos_forma no trae filas de copa) -> no se incluye. Devuelve, por temporada, la lista de copas con sus
 // métricas (mismo orden y forma que getCopasPorTemporada + pj/gf/gc). Requiere el NOMBRE del equipo (web_resultados
 // no trae codequipo -> se filtra por nombre dentro del grupo, que es unívoco).
-export type CopaConMetricas = CopaEquipo & { pj: number; gf: number; gc: number; media: number | null; fechaInicio: string | null }
+export type CopaConMetricas = CopaEquipo & { pj: number; gf: number; gc: number; media: number | null; elo: number | null; fechaInicio: string | null }
 export async function getCopasConMetricas(codequipo: string | number | null | undefined, nombre: string | null): Promise<Record<string, CopaConMetricas[]>> {
   if (!COPAS_HABILITADO || codequipo == null || !nombre) return {}
   return cacheEquipo(async () => {
@@ -214,6 +214,7 @@ export async function getCopasConMetricas(codequipo: string | number | null | un
       const media = mediaRaw == null || mediaRaw === '' ? null : Number(mediaRaw)
       const fechaInicio = ((rows[i] as { fecha_inicio?: unknown }).fecha_inicio as string | null) || null
       let pj = 0, gf = 0, gc = 0
+      let elo: number | null = null
       if (cg) {
         const res = await getResultadosGrupo(codequipo, nombre, String(cg))
         for (const r of res) {
@@ -221,12 +222,24 @@ export async function getCopasConMetricas(codequipo: string | number | null | un
           const local = filaEsLocal(r, nombre, codequipo)
           pj++; gf += (local ? r.goles_local : r.goles_visitante) as number; gc += (local ? r.goles_visitante : r.goles_local) as number
         }
+        // ELO de CIERRE de la copa (distinto del de liga: cada uno es el que tenía tras su último partido). Se lee
+        // de web_clasificacion (misma tabla que el cierre de liga -> valores consistentes) acotado a ESTA copa por
+        // codgrupo_familia|codgrupo, y se coge la MAYOR jornada. Dentro de una sola copa la jornada SÍ es
+        // cronológica (matchdays del grupo), así que max jornada = último partido; el error de "jornada entre
+        // liga y copa" no aplica aquí porque no se mezclan competiciones (ver familia jornada≠fecha). En
+        // web_resultados la copa trae la fecha en DD/MM/AAAA (no ordenable como string) y jornada uniforme -> no
+        // sirve para esto; por eso se usa web_clasificacion.
+        const { data: cl } = await supabase.from('web_clasificacion').select('elo, jornada')
+          .eq('codequipo', String(codequipo)).eq('codtemporada', Number(c.codtemporada))
+          .or(`codgrupo_familia.eq.${cg},codgrupo.eq.${cg}`)
+          .order('jornada', { ascending: false }).limit(1)
+        elo = cl && cl[0] && cl[0].elo != null ? Number(cl[0].elo) : null
       }
-      ;(out[c.codtemporada] ??= []).push({ nombre_comp: c.nombre_comp, slug_familia: c.slug_familia, estado: c.estado, href: c.href, pj, gf, gc, media: media != null && Number.isFinite(media) ? media : null, fechaInicio })
+      ;(out[c.codtemporada] ??= []).push({ nombre_comp: c.nombre_comp, slug_familia: c.slug_familia, estado: c.estado, href: c.href, pj, gf, gc, media: media != null && Number.isFinite(media) ? media : null, elo, fechaInicio })
     }
     return out
-    // v3-finicio: bump al añadir `media` (v2) y ahora `fechaInicio` (fecha_inicio del JSONB) a la salida.
-  }, ['getCopasConMetricas', 'v4-finicio', String(codequipo), nombre], codequipo)
+    // v5-elocierre: bump al añadir `elo` (ELO de cierre de la copa, por competición) a la salida.
+  }, ['getCopasConMetricas', 'v5-elocierre', String(codequipo), nombre], codequipo)
 }
 
 // Copas + posición en liga del equipo (una sola query a web_equipo). Para el hero de la ficha de

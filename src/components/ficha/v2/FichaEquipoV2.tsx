@@ -268,9 +268,6 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
 
   // Serie de ELO para el sparkline (cierre por temporada) — mismo formato {t,elo} que la ficha actual.
   const eloSerie = (e.elo_serie || []).filter((p): p is { t: string; elo: number } => !!p && typeof p.elo === 'number')
-  // ELO de cierre por temporada (clave = codtemporada). Fuente para el ELO de tarjetas SOLO-COPA, donde
-  // mediasTemp (web_clasificacion, liga) no tiene fila. En liga se sigue usando mediasTemp.
-  const eloByTemp = new Map(eloSerie.map((p) => [p.t, p.elo]))
 
   // Deportividad: td_total puede venir NULL hasta que el pipeline lo pueble -> 0, sin fallback.
   const disc: Array<[ReactNode, number, string]> = [
@@ -603,11 +600,12 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
                   const t = temporadas.find((r) => Number(r.codtemporada) === c) || null   // fila de liga (null si no jugó liga)
                   const mt = mediasTemp[cStr]
                   const media = mt?.media ?? null
-                  // ELO de la temporada: SIEMPRE el punto de elo_serie de ESA temporada (t=cod) -> refleja el
-                  // movimiento post-copa (p.ej. Las Rozas T22 = 1163.4, distinto del T21 = 1125.5). Fallback a la
-                  // clasif de liga (mt.elo) solo si elo_serie no trajera esa temporada. NUNCA elo_actual: es un
-                  // valor GLOBAL y ponía el mismo ELO en la tarjeta de la copa en curso que en la temporada previa.
-                  const elo = eloByTemp.get(cStr) ?? mt?.elo ?? null
+                  // ELO POR COMPETICIÓN (no por temporada): cada tarjeta muestra el ELO tras el ÚLTIMO partido de
+                  // ESA competición. Liga = cierre de liga (mediasTemp, de web_clasificacion, ya excluye copa).
+                  // Copa = cierre de esa copa (cp.elo, ver getCopasConMetricas). Antes ambas leían elo_serie[t],
+                  // que es UN valor por TEMPORADA -> salía el mismo número en liga y en copa (bug). NUNCA
+                  // elo_actual: es global.
+                  const ligaElo = mt?.elo ?? null
                   // Orden cronológico INVERSO dentro de la temporada (lo más reciente primero: playoff → liga →
                   // copa) por fecha_inicio con fallback a la fase. Comparador común ordenPorFechaOFase; sort estable.
                   const cards: { fase: number; fechaInicio: string | null; node: ReactNode }[] = []
@@ -628,7 +626,7 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
                         </div>
                         <div className="s-duo">
                           <div><div className="d-v" style={{ color: colorMedia(media) }}>{med1(media)}</div><div className="d-k">MEDIA PF</div></div>
-                          <div><div className="d-v" style={{ color: colorElo(elo) }}>{fmtNum(elo)}</div><div className="d-k">ELO</div></div>
+                          <div><div className="d-v" style={{ color: colorElo(ligaElo) }}>{fmtNum(ligaElo)}</div><div className="d-k">ELO</div></div>
                         </div>
                         <div className="s-stats"><div><b>{fmtNum(t.pts)}</b>PTS</div><div><b>{fmtNum(t.gf)}</b>GF</div><div><b>{fmtNum(t.gc)}</b>GC</div></div>
                         <div className="s-final"><span className={`badge ${badgeCls || 'neu'}`}>{badgeCls ? (BADGE[t.badge]?.label ?? t.badge) : (t.posicion_final != null ? `${t.posicion_final}º` : '—')}</span></div>
@@ -644,12 +642,12 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
                     const estCls = /campe[oó]n/i.test(est) && !/subcampe/i.test(est) ? 'camp'
                       : /subcampe/i.test(est) ? 'po' : /en juego/i.test(est) ? 'asc' : 'neu'
                     const hayStats = cp.pj > 0
-                    const topMedia = cp.media != null, topElo = elo != null
+                    const topMedia = cp.media != null, topElo = cp.elo != null
                     const nTop = (topMedia ? 1 : 0) + (topElo ? 1 : 0)
                     // Fase por tipo (copa pretemporada 0 / playoff post-liga 2); mismo helper que la liga y el jugador.
                     cards.push({ fase: faseCompeticion(cp.nombre_comp, null), fechaInicio: cp.fechaInicio, node: (
                       <div className="season" key={`${cStr}-copa-${ci}`}>
-                        <div className="accent" style={{ background: (topMedia ? colorMedia(cp.media) : colorElo(elo)) || 'var(--line)' }} />
+                        <div className="accent" style={{ background: (topMedia ? colorMedia(cp.media) : colorElo(cp.elo)) || 'var(--line)' }} />
                         <div className="s-top"><div className="s-yr">{tempLabel(c)}</div></div>
                         <div className="s-cat">
                           <span className="pill n" style={{ maxWidth: '100%', overflow: 'hidden' }}>
@@ -660,7 +658,7 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
                         {nTop > 0 && (
                           <div className="s-duo" style={{ gridTemplateColumns: nTop === 2 ? '1fr 1fr' : '1fr' }}>
                             {topMedia && <div><div className="d-v" style={{ color: colorMedia(cp.media) }}>{med1(cp.media)}</div><div className="d-k">MEDIA PF</div></div>}
-                            {topElo && <div><div className="d-v" style={{ color: colorElo(elo) }}>{fmtNum(elo)}</div><div className="d-k">ELO</div></div>}
+                            {topElo && <div><div className="d-v" style={{ color: colorElo(cp.elo) }}>{fmtNum(cp.elo)}</div><div className="d-k">ELO</div></div>}
                           </div>
                         )}
                         {hayStats && (
