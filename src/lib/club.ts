@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/supabase'
-import { cacheIndices, cacheEquipo } from '@/lib/cacheComp'
+import { cacheIndices, cacheEquipo, cacheClub } from '@/lib/cacheComp'
 import { parseCampo, campoLabel } from '@/lib/campoSlug'   // para campoMapsUrl; se re-exportan más abajo
 
 // Índice de clubes y páginas de club. La entidad "club" agrupa filiales y juveniles por `codclub` (id troncal
@@ -158,7 +158,7 @@ export type ClubFicha = {
 }
 
 export async function getClub(codclub: string): Promise<ClubFicha | null> {
-  return cacheIndices(async () => {
+  return cacheClub(async () => {
     // web_club: metadatos publicables (SIN domicilio/CIF/CP). Puede faltar la fila o el nombre.
     const { data: cRaw, error } = await supabase.from('web_club')
       .select('codclub, nombre_club, localidad, provincia, delegacion, portal_web, portal_web_ok')
@@ -197,5 +197,5 @@ export async function getClub(codclub: string): Promise<ClubFicha | null> {
       portal_web: (cRaw as any)?.portal_web_ok === true ? portalWebValido((cRaw as any)?.portal_web) : null,
       equipos, maxTemp,
     }
-  }, ['getClub', 'v6-campo-webequipo', codclub])
+  }, ['getClub', 'v7-club-tag', codclub], codclub)   // v7: bump para reescribir con el tag club:<codclub> (antes 'indices')
 }

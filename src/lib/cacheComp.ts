@@ -57,6 +57,14 @@ export function cacheJugador<T>(
   return cacheTagged(fn, keyParts, tags)
 }
 
+// Lectura de la ficha de CLUB. Etiqueta `club:<codclub>` (formato club:4382), que el pipeline emite en el
+// RE-EXPORT (no en el publish ligero) — p.ej. tras un rebrand de nombre, para que la ficha recalcule el nombre
+// y su slug canónico. Mismo patrón de entidad que cacheEquipo/cacheJugador; NO se cuelga de 'indices' (es una
+// ficha, no un índice: no debe barrerse en cada revalidación de la home/categorías).
+export function cacheClub<T>(fn: () => Promise<T>, keyParts: Array<string | number>, codclub: string | number): Promise<T> {
+  return cacheTagged(fn, keyParts, [`club:${codclub}`])
+}
+
 // Lectura de los ÍNDICES (home + categorías): dependen de agregados de web_grupos, no de una entidad.
 export function cacheIndices<T>(fn: () => Promise<T>, keyParts: Array<string | number>): Promise<T> {
   return cacheTagged(fn, keyParts, ['indices'])
