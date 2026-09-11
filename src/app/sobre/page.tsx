@@ -2,21 +2,26 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import LegalDoc from '@/components/LegalDoc'
 import { fmtNum } from '@/lib/formato'
-import { ALCANCE } from '@/lib/alcance'
+import { getAlcance, floorAprox } from '@/lib/alcance'
 
-// Página INDEXABLE (al contrario que las legales): explica autoría y propósito del proyecto -> va en
-// el sitemap y sin robots noindex. Las cifras de volumen salen de la fuente única ALCANCE (ver [[alcance.ts]]).
-export const metadata: Metadata = {
-  title: 'Sobre Fútbol11Stats — qué es y cómo medimos | Fútbol11Stats',
-  description: `Fútbol11Stats es un proyecto independiente que documenta el fútbol aficionado y juvenil de Madrid: ${fmtNum(ALCANCE.jugadores)} jugadores y ${fmtNum(ALCANCE.equipos)} equipos desde 2021-22, con ELO, Puntos Fantasy y Ranking F11S.`,
-  alternates: { canonical: '/sobre' },
+export const revalidate = 2592000   // ISR 30d; las cifras se refrescan con el tag `alcance` (re-export/--home).
+
+// Página INDEXABLE (al contrario que las legales): explica autoría y propósito del proyecto -> va en el sitemap
+// y sin robots noindex. Las cifras de volumen se LEEN de la BD (web_alcance) vía getAlcance (ver [[alcance.ts]]).
+export async function generateMetadata(): Promise<Metadata> {
+  const alc = await getAlcance()
+  return {
+    title: 'Sobre Fútbol11Stats — qué es y cómo medimos | Fútbol11Stats',
+    description: `Fútbol11Stats es un proyecto independiente que documenta el fútbol aficionado y juvenil de Madrid: ${fmtNum(floorAprox(alc.jugadores))} jugadores y ${fmtNum(floorAprox(alc.equipos))} equipos desde 2021-22, con ELO, Puntos Fantasy y Ranking F11S.`,
+    alternates: { canonical: '/sobre' },
+  }
 }
 
-const CONTENIDO = `# Sobre Fútbol11Stats
+const contenido = (jugadores: string, equipos: string) => `# Sobre Fútbol11Stats
 
 ## Qué es esto
 
-**Fútbol11Stats** documenta el fútbol aficionado —hoy, el de la Comunidad de Madrid—: clasificaciones, resultados, estadísticas y trayectorias de más de ${fmtNum(ALCANCE.jugadores)} jugadores y ${fmtNum(ALCANCE.equipos)} equipos, desde la temporada 2021-22 hasta hoy.
+**Fútbol11Stats** documenta el fútbol aficionado —hoy, el de la Comunidad de Madrid—: clasificaciones, resultados, estadísticas y trayectorias de más de ${jugadores} jugadores y ${equipos} equipos, desde la temporada 2021-22 hasta hoy.
 
 Nació de una constatación sencilla: el fútbol modesto genera cada fin de semana una cantidad enorme de datos —goles, minutos, alineaciones, tarjetas— que quedan dispersos en actas y desaparecen al acabar la temporada. Nadie los guarda, nadie los ordena y nadie los devuelve a quienes los protagonizan. Aquí sí.
 
@@ -85,7 +90,9 @@ Y si tus datos aparecen aquí y **prefieres que no lo hagan**, basta con pedirlo
 
 Publicamos datos destacados de cada jornada en [Instagram](https://www.instagram.com/futbol11stats) y [TikTok](https://www.tiktok.com/@futbol11stats).`
 
-export default function SobrePage() {
+export default async function SobrePage() {
+  const alc = await getAlcance()
+  const content = contenido(fmtNum(floorAprox(alc.jugadores)), fmtNum(floorAprox(alc.equipos)))
   return (
     <div className="max-w-3xl mx-auto px-4 py-8 text-chalk-200">
       <nav className="text-sm text-chalk-600 mb-6 flex items-center gap-2">
@@ -93,7 +100,7 @@ export default function SobrePage() {
         <span>·</span>
         <span className="text-white">Sobre el proyecto</span>
       </nav>
-      <LegalDoc content={CONTENIDO} />
+      <LegalDoc content={content} />
     </div>
   )
 }
