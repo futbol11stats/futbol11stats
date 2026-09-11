@@ -552,6 +552,28 @@ El pipeline recalculó web_percentiles.elo_jugador (de elo_actual a elo_final po
 elo_percentil_temp a web_jugador_carrera. La ficha (bloque Nivel) ya lee elo_percentil_temp de la última
 etapa cronológica (etapaUltima), la misma de la que sale el ELO. Añadidas la columna a COLS_CARRERA/CarreraRow.
 
+## E-alcance-rfef · GATILLO: si se amplía a competiciones RFEF, revisar TODOS los textos de alcance
+**Anotado 2026-09-12 (decisión de Fernando). Entra en el alcance del trabajo del proyecto RFEF; no descubrir después.**
+
+Hoy el sitio cubre solo la RFFM (federación de Madrid) y los textos lo dicen explícitamente. Si se hace el
+proyecto RFEF —**División de Honor Juvenil, 1ª y 2ª Federación**, que dependen de la RFEF, no de la RFFM—, esos
+textos quedarían **inexactos** (dirían menos de lo que hay, justo lo que evitamos): hay que revisarlos como parte
+de ese trabajo.
+
+Sitios a revisar (los de "alcance" hoy conocidos):
+- **Home, hero** (`src/app/page.tsx`): "…de **todas las competiciones RFFM**." → dejaría de ser solo RFFM.
+- **Home, metadata** (`generateMetadata` en `page.tsx`): "Todas las competiciones de la **RFFM (Madrid)**: …".
+- **/sobre, metadata + cuerpo** (`src/app/sobre/page.tsx`): "…fútbol aficionado y juvenil **de Madrid**… **de la
+  Comunidad de Madrid**… competiciones de la **Real Federación de Fútbol de Madrid (RFFM)**… los torneos que
+  gestionan otras federaciones —la División de Honor Juvenil, o la 2ª y 1ª RFEF— **quedan fuera por ahora**". Este
+  último párrafo se INVIERTE de sentido (pasarían a estar DENTRO); reescribir, no solo el número.
+- Cualquier mención futura de "Madrid"/"RFFM" como delimitador del ámbito (buscar antes de publicar).
+
+Ojo también: el badge de edad y el "huecos entre temporadas" de /sobre se explican HOY por quedar esas
+competiciones fuera; si entran, esa explicación cambia. Y las cifras de volumen ([[cifras-alcance-fuente-unica]] /
+`src/lib/alcance.ts`, y la futura tabla `web_alcance`) subirían de golpe: revisar que los redondeos "+" sigan
+siendo ciertos tras la primera carga RFEF. El nº de temporadas ya es derivado (no requiere tocarse).
+
 ## E-cache · Cache-miss GLOBAL tras cambios de esquema/dato (patrón)
 Contexto: las lecturas van por unstable_cache (cacheJugador/cacheComp/cacheTagged). En Vercel el Data Cache
 PERSISTE entre deploys: un redeploy vacía el full-route cache (regenera el HTML) pero al regenerar sigue
