@@ -16,25 +16,32 @@ import { getHomeDigest } from '@/lib/home'
 import { fichasExistentes } from '@/lib/jugador'
 import { nombreEquipo } from '@/lib/nombre'
 import { fmtNum } from '@/lib/formato'
+import { getNumTemporadas, ALCANCE } from '@/lib/alcance'
 import { codToSlug } from '@/lib/temporadaSlug'
 import { Balon, Guante, Escudo, Guion, TarjetaAmarilla, TarjetaDoble, TarjetaRoja } from '@/components/iconos'
 import { Home as IconHome, Plane } from 'lucide-react'
 import Badge11 from '@/components/ui/Badge11'
 import { colorElo } from '@/lib/equipoV2'
 
-// Marca neutral con Madrid como ámbito ACTUAL (preparada para ampliar a otras federaciones).
-export const metadata: Metadata = {
-  title: 'Fútbol11Stats — Estadísticas del fútbol aficionado · Madrid',
-  description: 'Clasificaciones, goleadores, fantasy y ELO del fútbol aficionado y juvenil. Todas las competiciones de la RFFM (Madrid): 5 temporadas, más de 110.000 partidos y 38.000 jugadores.',
-  alternates: { canonical: '/' },
-  openGraph: {
-    title: 'Fútbol11Stats — Estadísticas del fútbol aficionado · Madrid',
-    description: 'Clasificaciones, goleadores, fantasy y ELO del fútbol aficionado y juvenil de Madrid.',
-    url: '/',
-    siteName: 'Fútbol11Stats',
-    locale: 'es_ES',
-    type: 'website',
-  },
+// Marca neutral con Madrid como ámbito ACTUAL (preparada para ampliar a otras federaciones). generateMetadata
+// (no metadata estático) para DERIVAR el nº de temporadas del dato (no escrito a mano); las cifras de volumen
+// salen de la fuente única ALCANCE. Ver [[alcance.ts]].
+export async function generateMetadata(): Promise<Metadata> {
+  const nTemp = await getNumTemporadas()
+  const title = 'Fútbol11Stats — Estadísticas del fútbol aficionado · Madrid'
+  return {
+    title,
+    description: `Clasificaciones, goleadores, fantasy y ELO del fútbol aficionado y juvenil. Todas las competiciones de la RFFM (Madrid): ${nTemp} temporadas, más de ${fmtNum(ALCANCE.partidos)} partidos y ${fmtNum(ALCANCE.jugadores)} jugadores.`,
+    alternates: { canonical: '/' },
+    openGraph: {
+      title,
+      description: 'Clasificaciones, goleadores, fantasy y ELO del fútbol aficionado y juvenil de Madrid.',
+      url: '/',
+      siteName: 'Fútbol11Stats',
+      locale: 'es_ES',
+      type: 'website',
+    },
+  }
 }
 
 // Orden desde la fuente única (aficionados + juveniles); cada rama filtra el que le toca.
@@ -43,8 +50,8 @@ const COMPETICION_ORDER = [...ORDEN_AFICIONADOS, ...ORDEN_JUVENILES]
 export default async function Home() {
   // Cada categoría en la temporada activa de cada competición (fuente única data-driven).
   // + Digest de home (líderes + cifras) precalculado por el pipeline: DOS lecturas diminutas, cache-safe.
-  const [aficionados, juvenil, digest] = await Promise.all([
-    getGruposIndice('AFICIONADO'), getGruposIndice('JUVENIL'), getHomeDigest(),
+  const [aficionados, juvenil, digest, numTemporadas] = await Promise.all([
+    getGruposIndice('AFICIONADO'), getGruposIndice('JUVENIL'), getHomeDigest(), getNumTemporadas(),
   ])
   const { categorias, metricas, cifras, codtemporada } = digest
   const tempLabel = codtemporada != null ? codToSlug(codtemporada) : ''
@@ -98,7 +105,7 @@ export default async function Home() {
             </h1>
             <p className="text-chalk-600 text-lg mb-8">
               Clasificaciones, goleadores, fantasy y ELO de las 10 competiciones RFFM.
-              5 temporadas · 110.000+ partidos · 38.000+ jugadores.
+              {' '}{numTemporadas} temporadas · {fmtNum(ALCANCE.partidos)}+ partidos · {fmtNum(ALCANCE.jugadores)}+ jugadores.
             </p>
             <div className="flex flex-wrap gap-3">
               <Link href="/madrid/aficionados" className="bg-grass-500 hover:bg-grass-400 text-white font-semibold px-5 py-2.5 rounded-lg transition-colors text-sm">
