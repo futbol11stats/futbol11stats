@@ -104,7 +104,7 @@ export default async function Home() {
               <span className="text-grass-400">EN DATOS</span>
             </h1>
             <p className="text-chalk-600 text-lg mb-8">
-              Clasificaciones, goleadores, fantasy y ELO de las 10 competiciones RFFM.
+              Clasificaciones, goleadores, fantasy y ELO de todas las competiciones RFFM.
               {' '}{numTemporadas} temporadas · {fmtNum(ALCANCE.partidos)}+ partidos · {fmtNum(ALCANCE.jugadores)}+ jugadores.
             </p>
             <div className="flex flex-wrap gap-3">
