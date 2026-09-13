@@ -1,46 +1,59 @@
 import { NextResponse, type NextRequest } from 'next/server'
 
-// DERECHO AL OLVIDO — 410 Gone para fichas de jugador SUPRIMIDAS.
+// Middleware ACOTADO A PROPÓSITO a /madrid/jugador/* (ver `config.matcher`): no queremos una capa corriendo en
+// todas las peticiones del sitio. Dos ramas, ambas leen una tabla diminuta del pipeline cacheada por isolate con
+// TTL corto (NUNCA una consulta por request) y ambas FAIL-OPEN (ante error se sigue el flujo normal, nunca se
+// inventa un corte). Precedencia: SUPRIMIDOS (410) primero, luego ALIAS (301) — un código no debería estar en
+// ambos, pero si lo estuviera, la baja permanente (410) manda.
 //
-// Google trata 410 (Gone) como baja PERMANENTE y desindexa antes que un 404. La ficha ya da 404 cuando el
-// jugador no existe (notFound() en page.tsx), pero un 404 no distingue "suprimido" de "nunca existió / slug
-// mal escrito". Por eso la lápida vive en TABLA (web_suprimidos, owner = pipeline, poblada desde
-// personas_excluidas('ficha') e 'todas'; NO las de rankings-only, que conservan ficha): la web sabe QUÉ código
-// fue suprimido y devuelve 410 solo para esos. El middleware corta ANTES de renderizar, así que el 410 funciona
-// aunque la fila de web_jugador aún no se haya borrado (el export la limpia después; aplicar_exclusion actualiza
-// web_suprimidos en el acto).
-//
-// ACOTADO A PROPÓSITO a /madrid/jugador/* (ver `config.matcher`): no queremos una capa corriendo en todas las
-// peticiones del sitio. Y NUNCA una consulta por request: la lista (diminuta, casos de derecho al olvido) se
-// cachea en memoria del isolate con un TTL corto.
+// 1) DERECHO AL OLVIDO — 410 Gone (web_suprimidos). Google trata 410 como baja permanente y desindexa antes que
+//    un 404. Corta ANTES de renderizar, así que el 410 va aunque web_jugador aún tenga la fila.
+// 2) FUSIÓN DE DUPLICADOS — 301 (web_jugador_alias). Al fusionar, el canon es el código que la RFFM usa AHORA;
+//    el código viejo (con ficha indexada) se vuelve ghost y desaparece de web_jugador en el re-export → su URL
+//    moriría en 404. En su lugar, 301 permanente al canónico vigente (que preserva el posicionamiento).
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL
 const SUPABASE_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
-const TTL_MS = 60_000   // refresco por isolate; una supresión nueva tarda <=60s en dar 410 (el 404 cubre el hueco)
-let cache: { set: Set<string>; ts: number } | null = null
+const TTL_MS = 60_000   // refresco por isolate; un cambio nuevo tarda <=60s en aplicarse (el 404 cubre el hueco)
 
-// Set de codjugadores suprimidos, cacheado por isolate. FAIL-OPEN: ante error de red/BD se reusa el último set
-// conocido (o vacío) y NUNCA se inventa un 410 -> mejor servir una ficha válida que retirar por error una que no
-// lo está. Un suprimido que se colara por un fallo transitorio acabará en 404 igual (el export borra su fila).
-async function getSuprimidos(): Promise<Set<string>> {
-  const now = Date.now()
-  if (cache && now - cache.ts < TTL_MS) return cache.set
-  if (!SUPABASE_URL || !SUPABASE_KEY) return cache?.set ?? new Set()
-  try {
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/web_suprimidos?select=codjugador`, {
-      headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` },
-      cache: 'no-store',
-    })
-    if (!res.ok) throw new Error(`web_suprimidos HTTP ${res.status}`)
-    const rows = (await res.json()) as Array<{ codjugador: string }>
-    const set = new Set(rows.map((r) => String(r.codjugador)))
-    cache = { set, ts: now }
-    return set
-  } catch {
-    return cache?.set ?? new Set()
+// Lector genérico cacheado por isolate. FAIL-OPEN: ante error de red/BD reusa el último valor conocido (o el
+// vacío inicial) y nunca inventa un corte — mejor servir la ficha que retirarla/redirigirla por error.
+function lectorCacheado<T>(url: string, parse: (rows: any[]) => T, vacio: () => T) {
+  let cache: { val: T; ts: number } | null = null
+  return async (): Promise<T> => {
+    const now = Date.now()
+    if (cache && now - cache.ts < TTL_MS) return cache.val
+    if (!SUPABASE_URL || !SUPABASE_KEY) return cache?.val ?? vacio()
+    try {
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/${url}`, {
+        headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` },
+        cache: 'no-store',
+      })
+      if (!res.ok) throw new Error(`${url} HTTP ${res.status}`)
+      const val = parse((await res.json()) as any[])
+      cache = { val, ts: now }
+      return val
+    } catch {
+      return cache?.val ?? vacio()
+    }
   }
 }
+
+// Set de codjugadores SUPRIMIDOS (derecho al olvido).
+const getSuprimidos = lectorCacheado<Set<string>>(
+  'web_suprimidos?select=codjugador',
+  (rows) => new Set(rows.map((r) => String(r.codjugador))),
+  () => new Set(),
+)
+
+// Mapa alias→canónico de fusiones. La tabla trae las cadenas ya resueltas al terminal (el canónico NUNCA es a su
+// vez un alias), así que un solo lookup basta — no hay que seguir saltos.
+const getAlias = lectorCacheado<Map<string, string>>(
+  'web_jugador_alias?select=codjugador_alias,codjugador_canonico',
+  (rows) => new Map(rows.map((r) => [String(r.codjugador_alias), String(r.codjugador_canonico)])),
+  () => new Map(),
+)
 
 const PAGINA_410 = `<!doctype html><html lang="es"><head><meta charset="utf-8">`
   + `<meta name="robots" content="noindex"><meta name="viewport" content="width=device-width,initial-scale=1">`
@@ -55,10 +68,25 @@ export async function middleware(req: NextRequest) {
   const cod = decodeURIComponent(m[1]).split('-')[0]
   if (!cod) return NextResponse.next()
 
+  // 1) SUPRIMIDO → 410 Gone (precedencia sobre el alias).
   const suprimidos = await getSuprimidos()
   if (suprimidos.has(cod)) {
     return new NextResponse(PAGINA_410, { status: 410, headers: { 'content-type': 'text/html; charset=utf-8' } })
   }
+
+  // 2) ALIAS (ghost de fusión) → 301 al canónico. Redirige al CÓDIGO canónico pelado (`/madrid/jugador/<canon>`)
+  //    conservando cualquier subruta/consulta; la página resuelve por código y hace su 308 al slug canónico con
+  //    nombre. No metemos el nombre aquí (la tabla no lo trae) -> encadena un 2º salto permanente, inocuo para SEO.
+  const alias = await getAlias()
+  const canonico = alias.get(cod)
+  if (canonico) {
+    const url = req.nextUrl.clone()
+    const parts = url.pathname.split('/')   // ['', 'madrid', 'jugador', '<slug>', ...resto]
+    parts[3] = canonico
+    url.pathname = parts.join('/')
+    return NextResponse.redirect(url, 301)
+  }
+
   return NextResponse.next()
 }
 
