@@ -39,6 +39,10 @@ export type PartidoMini = { codacta: string; fecha: string | null; local: string
 export type PartidoFicha = {
   id: string; codacta: string; jugado: boolean; esJuvenil: boolean; codtemporada: number
   categoria: string; slugComp: string; slugGrupo: string; temporada: string; nombreComp: string; jornada: number; compHref: string
+  // Resultado ADMINISTRATIVO (web_resultados.incidencia): NULL = partido disputado normal; 'local'/'visitante'/
+  // 'ambos' = el lado que no compareció o fue retirado -> nunca habrá detalle de acta (no se jugó). El histórico
+  // (~2.459 walkovers viejos) NO se backfillea: queda NULL y cae al mensaje neutral de "sin detalle".
+  incidencia: 'local' | 'visitante' | 'ambos' | null
   local: PartidoLado; visitante: PartidoLado
   golesLocal: number | null; golesVisitante: number | null; fecha: string | null; hora: string | null
   campoNombre: string | null; campoSuperficie: string | null; campoHref: string | null; campoLat: number | null; campoLng: number | null
@@ -119,14 +123,14 @@ async function enfrentamientos(a: string, b: string, n: number): Promise<Partido
 export async function getPartido(codacta: string): Promise<PartidoFicha | null> {
   if (!/^\d+$/.test(codacta)) return null
   const { data: rRaw } = await supabase.from('web_resultados')
-    .select('id, codacta, codtemporada, codgrupo, jornada, nombre_local, escudo_local, goles_local, goles_visitante, nombre_visitante, escudo_visitante, fecha, hora, campo, codigo_campo, campo_lat, campo_lng, codequipo_local, codequipo_visitante, ronda_slug, elo_pre_local, elo_post_local, elo_pre_visitante, elo_post_visitante')
+    .select('id, codacta, codtemporada, codgrupo, jornada, nombre_local, escudo_local, goles_local, goles_visitante, nombre_visitante, escudo_visitante, fecha, hora, campo, codigo_campo, campo_lat, campo_lng, codequipo_local, codequipo_visitante, ronda_slug, incidencia, elo_pre_local, elo_post_local, elo_pre_visitante, elo_post_visitante')
     .eq('codacta', codacta).maybeSingle()
   const r = rRaw as {
     id: number; codacta: string | null; codtemporada: number; codgrupo: string; jornada: number
     nombre_local: string; escudo_local: string | null; goles_local: number | null; goles_visitante: number | null
     nombre_visitante: string; escudo_visitante: string | null; fecha: string | null; hora: string | null
     campo: string | null; codigo_campo: string | null; campo_lat: number | null; campo_lng: number | null
-    codequipo_local: string | null; codequipo_visitante: string | null; ronda_slug: string | null
+    codequipo_local: string | null; codequipo_visitante: string | null; ronda_slug: string | null; incidencia: string | null
     elo_pre_local: number | null; elo_post_local: number | null; elo_pre_visitante: number | null; elo_post_visitante: number | null
   } | null
   if (!r) return null
@@ -361,6 +365,7 @@ export async function getPartido(codacta: string): Promise<PartidoFicha | null> 
     return {
       id: String(r.id), codacta: String(r.codacta ?? ''), jugado, esJuvenil, codtemporada: r.codtemporada,
       categoria, slugComp: g?.slug_comp || '', slugGrupo: g?.slug_grupo || '', temporada, nombreComp: g?.nombre_comp || 'RFFM · Madrid', jornada: r.jornada, compHref,
+      incidencia: (r.incidencia === 'local' || r.incidencia === 'visitante' || r.incidencia === 'ambos') ? r.incidencia : null,
       local, visitante, golesLocal: r.goles_local, golesVisitante: r.goles_visitante, fecha: r.fecha, hora: r.hora,
       campoNombre: campoNombre || null, campoSuperficie, campoHref, campoLat: r.campo_lat, campoLng: r.campo_lng,
       mvp,

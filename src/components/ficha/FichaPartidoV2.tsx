@@ -360,6 +360,10 @@ export default function FichaPartidoV2({ p }: { p: PartidoFicha }) {
   // acta cerrada pero el detalle aún sin procesar -> sin filas. Distinguir "aún no lo tenemos" de "no hay nada".
   const hayAlineacion = p.local.titulares.length > 0 || p.visitante.titulares.length > 0
     || p.local.suplentes.length > 0 || p.visitante.suplentes.length > 0
+  // Resultado administrativo (incidencia != NULL): el lado que no compareció/fue retirado. NUNCA habrá detalle.
+  const incompTexto = p.incidencia === 'ambos' ? 'No comparecieron ambos equipos'
+    : p.incidencia === 'local' ? `No compareció ${nombreEquipo(p.local.nombre)}`
+    : p.incidencia === 'visitante' ? `No compareció ${nombreEquipo(p.visitante.nombre)}` : ''
   const colL = p.jugado ? (gL > gV ? 'var(--e3)' : gL < gV ? 'var(--e0)' : 'var(--ink)') : 'var(--ink)'
   const colV = p.jugado ? (gV > gL ? 'var(--e3)' : gV < gL ? 'var(--e0)' : 'var(--ink)') : 'var(--ink)'
   const mvpLado = p.mvp?.lado === 'local' ? p.local : p.visitante
@@ -514,15 +518,24 @@ export default function FichaPartidoV2({ p }: { p: PartidoFicha }) {
           show: p.jugado,
           panel: !hayAlineacion ? (
             <section className="gc-alineaciones">
-              <SectionHeader title="Alineaciones" sub="sin detalle del acta" />
-              {/* Mensaje NEUTRAL y siempre cierto: el conjunto "jugado sin detalle" mezcla incomparecencias
-                  (3-0 administrativo, sin partido) y actas viejas sin procesar — no hay señal en el dato para
-                  distinguirlas, así que no se promete "llega pronto". Solo explica el silencio (que si no
-                  parecería un fallo) y lo separa de un partido futuro/sin datos (que muestra "Próximo partido"). */}
-              <p style={{ padding: '4px var(--pad) 0', color: 'var(--ink-3)', fontSize: 'var(--t-sm)', lineHeight: 1.5 }}>
-                Este partido tiene resultado, pero no consta el detalle del acta —alineaciones, goles y tarjetas
-                por jugador—. Puede tratarse de un resultado por incomparecencia o de un acta aún sin procesar.
-              </p>
+              {/* Se ramifica por web_resultados.incidencia (NO por el marcador 3-0, que también puede ser un
+                  partido real sin scrapear -> afirmaríamos una incomparecencia que no ocurrió):
+                  - incidencia != NULL -> resultado administrativo: no se disputó, NUNCA habrá detalle.
+                  - incidencia NULL + sin detalle -> mensaje neutral (incomparecencia vieja sin flag, o acta sin
+                    procesar; no se promete "llega pronto"). Ambos separan "jugado sin detalle" de futuro/sin datos. */}
+              {p.incidencia ? (<>
+                <SectionHeader title="Alineaciones" sub="no se disputó" />
+                <p style={{ padding: '4px var(--pad) 0', color: 'var(--ink-3)', fontSize: 'var(--t-sm)', lineHeight: 1.5 }}>
+                  Resultado por incomparecencia o retirada. <b>{incompTexto}</b>, así que no se disputó y no hay
+                  acta que detallar.
+                </p>
+              </>) : (<>
+                <SectionHeader title="Alineaciones" sub="sin detalle del acta" />
+                <p style={{ padding: '4px var(--pad) 0', color: 'var(--ink-3)', fontSize: 'var(--t-sm)', lineHeight: 1.5 }}>
+                  Este partido tiene resultado, pero no consta el detalle del acta —alineaciones, goles y tarjetas
+                  por jugador—. Puede tratarse de un resultado por incomparecencia o de un acta aún sin procesar.
+                </p>
+              </>)}
             </section>
           ) : (
             <section className="gc-alineaciones">
