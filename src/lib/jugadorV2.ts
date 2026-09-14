@@ -205,7 +205,7 @@ export async function getPartidosTemporada(cod: string, codtemp: string): Promis
     // el censo nocturno emite jugador:<cod>). Quitarle temporada: evita que el temporada:<activa> del ELO nocturno
     // enfríe la ficha cada noche en balde. Rebaremo (reescribe pts_fantasy): cubierto por el censo jugador: que
     // ya emite `_revalidar.py --temporada <c>` — ver CHECKLIST. La clave conserva codtemp (caché por temporada).
-  }, ['getPartidosTemporada', 'copa-fc', cod, String(codtemp)], cod)   // copa-fc: resultado ya favor-contra (copa/playoff normalizados)
+  }, ['getPartidosTemporada', 'copa-fc-jugado', cod, String(codtemp)], cod)   // copa-fc: resultado favor-contra normalizado. -jugado: bump al añadir `jugado` a COLS_PART -> las filas cacheadas antes NO lo traían y el filtro (jugado!==false) dejaba pasar el banquillo (undefined). Sin bump, A y B no surtían efecto.
 }
 
 // --- Ámbito: por competición de la temporada, la secuencia de jornadas con estado (incluidas ausencias) ---
