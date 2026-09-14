@@ -77,6 +77,9 @@ export default function Jornadas({ comps, cortes }: { comps: CompAmbito[]; corte
 
   function barra(d: JornadaDatum) {
     if (d.estado.tipo === 'no_jugo') return (<><div className="pos"><div className="bar aus" /></div><div className="neg" /></>)
+    // Banquillo (convocado sin entrar): punto gris en la base, sin cifra ni barra. Distinto de "no convocado"
+    // (línea discontinua .bar aus) y de "jugó" (barra con valor); fuera de la media (no es estado 'valor').
+    if (d.estado.tipo === 'banquillo') return (<><div className="pos"><span className="banq" /></div><div className="neg" /></>)
     if (d.estado.tipo !== 'valor') return (<><div className="pos" /><div className="neg" /></>)
     const v = d.estado.v
     if (v === 0) return (<><div className="pos"><div className="chip" style={{ background: 'var(--e1)', color: '#0a1628' }}>0</div><div className="bar cero" /></div><div className="neg" /></>)
@@ -200,6 +203,7 @@ export default function Jornadas({ comps, cortes }: { comps: CompAmbito[]; corte
           <span className="lg-item"><span className="gl" style={{ color: 'var(--ink)' }}><Camiseta size={13} /></span>Titular</span>
           <span className="lg-item"><span className="gl"><CamisetaHueca size={13} /></span>Suplente</span>
           <span className="lg-item"><span className="gl" style={{ color: 'var(--ink-4)' }}><Guion size={11} /></span>No jugó</span>
+          <span className="lg-item"><span className="gl"><span className="banq" /></span>En el banquillo</span>
         </div>
         <div className="lg-row" style={{ marginTop: 6 }}>
           <span className="lg-item"><span className="gl" style={{ color: 'var(--e0)' }}><FlechaSale size={9} /></span>Salió</span>

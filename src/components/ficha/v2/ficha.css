@@ -124,6 +124,9 @@
 .fjv2 .bar.down{border-radius:0 0 3px 3px}
 .fjv2 .bar.cero{height:4px;background:var(--e1);opacity:.7;border-radius:2px}
 .fjv2 .bar.aus{height:4px;border-radius:2px;opacity:.55;background:repeating-linear-gradient(90deg,var(--ink-3) 0 3px,transparent 3px 6px)}
+/* Banquillo (convocado sin entrar): punto gris de bajo peso en la base de la columna, forma distinta de la línea
+   discontinua de "no convocado" (.bar.aus). En .plot .pos (flex-end, centrado) queda pegado abajo y al centro. */
+.fjv2 .banq{width:6px;height:6px;border-radius:50%;background:var(--ink-3);opacity:.55}
 /* Línea de media: overlay FIJO sobre chart-wrap (no scrollea). left:32px = tras el canalón -> cubre el
    área de barras de extremo a extremo. La etiqueta se ancla dentro del canalón izquierdo (left:0..32px). */
 .fjv2 .avg-line{position:absolute;left:32px;right:0;height:0;border-top:1px dashed rgba(255,255,255,.4);z-index:1;pointer-events:none}

@@ -213,7 +213,7 @@ export type JornadaDatum = {
   jornada: number
   codacta?: string   // clave ÚNICA por partido (en copa la jornada colisiona entre rondas) -> React key del gráfico
   ronda?: string | null   // COPA: texto de la ronda ("Fase de grupos", "Final"...) -> el front lo muestra en vez de "J N"
-  estado: { tipo: 'valor'; v: number } | { tipo: 'no_jugo' } | { tipo: 'sin_dato' }
+  estado: { tipo: 'valor'; v: number } | { tipo: 'no_jugo' } | { tipo: 'banquillo' } | { tipo: 'sin_dato' }
   goles?: number; amarillas?: number; dobles?: number; rojas?: number; gc?: number | null
   eloDelta?: number | null   // #7 Δ ELO del partido, para el carril de ELO por jornada
   titular?: boolean; minutos?: number; rol?: RolPartido
@@ -299,7 +299,9 @@ export async function getAmbitoTemporada(cod: string, codtemp: string): Promise<
         const rol = derivarRol(!!p.titular, p.minutos ?? 0, p.rojas ?? 0, p.dobles_amarilla ?? 0)
         return {
           codacta: acta, jornada: p.jornada, ronda: p.ronda_label ?? null,
-          estado: { tipo: 'valor', v: p.puntos ?? 0 },
+          // jugado=false = convocado sin entrar (banquillo): estado propio -> NO barra de valor (no puntúa 0 ni
+          // entra en la media/recuento) y distinto de "no convocado" (ausencia). Ver [[partidos-jugados-vs-convocatoria]].
+          estado: p.jugado === false ? { tipo: 'banquillo' } : { tipo: 'valor', v: p.puntos ?? 0 },
           goles: p.goles ?? 0, amarillas: p.amarillas ?? 0, dobles: p.dobles_amarilla ?? 0,
           rojas: p.rojas ?? 0, gc: p.goles_encajados ?? null, eloDelta: p.elo_delta ?? null, titular: !!p.titular, minutos: p.minutos ?? 0, rol,
           rivalNombre: p.rival_nombre ?? null, rivalEscudo: p.rival_escudo ?? null,
