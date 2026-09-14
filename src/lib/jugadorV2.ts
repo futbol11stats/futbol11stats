@@ -192,7 +192,7 @@ export async function getCortesElo(categoria: string | null, codtempInt: number 
 
 // --- Partidos jugados de UNA temporada (todas las competiciones), orden jornada ASC ---
 const COLS_PART = 'codacta, codtemporada, codgrupo, jornada, ronda_label, fecha, equipo_nombre, escudo, codequipo, ' +
-  'rival_cod, rival_nombre, rival_escudo, resultado, titular, minutos, goles, amarillas, dobles_amarilla, ' +
+  'rival_cod, rival_nombre, rival_escudo, resultado, titular, minutos, jugado, goles, amarillas, dobles_amarilla, ' +
   'rojas, puntos, elo_delta, goles_encajados, competicion'
 export async function getPartidosTemporada(cod: string, codtemp: string): Promise<any[]> {
   return cacheJugador(async () => {
@@ -337,9 +337,11 @@ export function ventanasForma(partidos: any[]): Ventana[] {
 }
 
 // --- Racha de 5 chips V/E/D de la temporada (más reciente a la derecha) ---
+// Solo partidos JUGADOS: un convocado sin entrar (jugado=false) tiene `resultado` (el del equipo), pero no lo
+// jugó -> no entra en SU racha. Ver web_jugador_partidos.jugado (spec §57/§91.1) y [[partidos-jugados-vs-convocatoria]].
 export function racha5DePartidos(partidos: any[]): ChipRacha[] {
   return partidos
-    .filter((p) => p.resultado != null)
+    .filter((p) => p.resultado != null && p.jugado !== false)
     .sort((a, b) => a.jornada - b.jornada)
     .slice(-5)
     .map((p): ChipRacha => {
@@ -350,16 +352,19 @@ export function racha5DePartidos(partidos: any[]): ChipRacha[] {
 }
 
 // --- Casa / Fuera de la temporada: PJ, goles, media de puntos ---
+// SOLO partidos jugados: un suplente no utilizado (jugado=false) no jugó ni en casa ni fuera, y su 0/null no
+// debe entrar en el recuento. Criterio "partidos jugados" de la spec §57; ver [[partidos-jugados-vs-convocatoria]].
 export type SplitLocal = { pj: number; goles: number; media: number | null }
 export function splitCasaFuera(partidos: any[]): { casa: SplitLocal; fuera: SplitLocal; hayLocal: boolean } {
   const agg = (rows: any[]): SplitLocal => {
     const pts = rows.map((r) => r.puntos).filter((x) => x != null) as number[]
     return { pj: rows.length, goles: rows.reduce((s, r) => s + (r.goles ?? 0), 0), media: pts.length ? pts.reduce((s, x) => s + x, 0) / pts.length : null }
   }
-  const conLocal = partidos.filter((p) => p.es_local != null)
+  const jugados = partidos.filter((p) => p.jugado !== false)
+  const conLocal = jugados.filter((p) => p.es_local != null)
   return {
-    casa: agg(partidos.filter((p) => p.es_local === true)),
-    fuera: agg(partidos.filter((p) => p.es_local === false)),
+    casa: agg(jugados.filter((p) => p.es_local === true)),
+    fuera: agg(jugados.filter((p) => p.es_local === false)),
     hayLocal: conLocal.length > 0,
   }
 }
@@ -377,7 +382,9 @@ export async function balanceEquipo(partidos: any[]): Promise<{ con: Balance; si
     const g = String(p.codgrupo ?? '')
     if (!grupos.has(g)) grupos.set(g, { nombre: p.equipo_nombre ?? null, codequipo: p.codequipo ?? null })
     if (!jugadasPorGrupo.has(g)) jugadasPorGrupo.set(g, new Set())
-    jugadasPorGrupo.get(g)!.add(p.jornada)
+    // SOLO si jugó: un partido de banquillo (jugado=false) es un partido del equipo SIN él en el campo -> "sin",
+    // no "con". Ver [[partidos-jugados-vs-convocatoria]].
+    if (p.jugado !== false) jugadasPorGrupo.get(g)!.add(p.jornada)
   }
   for (const [g, { nombre, codequipo }] of Array.from(grupos.entries())) {
     if (!nombre && codequipo == null) continue
