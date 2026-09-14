@@ -29,7 +29,7 @@ export async function getJugadorV2(cod: string): Promise<JugadorFicha | null> {
     const { data, error } = await supabase.from('web_jugador').select(COLS_JUGADOR).eq('codjugador', cod).limit(1).maybeSingle()
     if (error) throw error   // no cachear null por un error transitorio -> 404 falso persistente (ver checklist)
     return (data as unknown as JugadorFicha) || null
-  }, ['getJugadorV2', 'copa2', cod], cod)   // copa2: + throw en error; bump para limpiar null envenenados del DELETE
+  }, ['getJugadorV2', 'rating-serie', cod], cod)   // bump: + rating_serie a COLS_JUGADOR (sin bump se servirían filas cacheadas sin ese campo; patrón getCarreraV2/jugado)
 }
 
 export type CarreraRow = {

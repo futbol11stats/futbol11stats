@@ -76,7 +76,7 @@ export async function fichasInfo(codjugadores: (string | number | null | undefin
 export const COLS_JUGADOR =
   'codjugador, nombre, anio_nacimiento, edad, posicion_federativa, posicion_pastilla, posicion_es_estimada, ' +
   'codequipo_actual, equipo_actual_nombre, escudo_actual, codtemporada_ultima, elo_actual, elo_percentil, ' +
-  'elo_max, temporada_elo_max, elo_serie, categoria_rama, categoria_nivel, rating_f11s, rating_f11s_fuente, ' +
+  'elo_max, temporada_elo_max, elo_serie, categoria_rama, categoria_nivel, rating_f11s, rating_f11s_fuente, rating_serie, ' +
   'trayectoria_completa, pj_total, goles_total, minutos_total, temporadas, titular_total, suplente_total, ' +
   'dorsal_ultimo, dorsal_comun, dorsales_otros, rank_general, rank_general_total, rank_categoria, ' +
   'rank_categoria_total, rank_posicion, rank_posicion_total, es_portero, goles_encajados_total, ' +
@@ -121,6 +121,9 @@ export type JugadorFicha = {
   categoria_nivel: number | null
   rating_f11s: number | null
   rating_f11s_fuente: string | null
+  // Trayectoria del Rating F11S por temporada en 3ª RFEF (JSONB). Cada r es el PERCENTIL de ESA temporada
+  // (0-100), NO una escala absoluta como el ELO. Puede faltar temporadas (no interpolar) y un solo punto vale.
+  rating_serie: { t: string; r: number }[] | null
   trayectoria_completa: boolean | null
   pj_total: number | null
   goles_total: number | null

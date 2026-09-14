@@ -14,6 +14,7 @@ import CopasLinea from '@/components/CopasLinea'
 import IndicadorLocal from '@/components/IndicadorLocal'
 import Trayectoria from '@/components/ficha/Trayectoria'
 import EloSparkline from '@/components/ficha/EloSparkline'
+import RatingSerie from '@/components/ficha/v2/RatingSerie'
 import JsonLd from '@/components/JsonLd'
 import CompartirBtn from '@/components/ficha/v2/CompartirBtn'
 import NavSpy from '@/components/ficha/v2/NavSpy'
@@ -438,6 +439,9 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
                     </div>
                     <div className="batt">{Array.from({ length: 10 }).map((_, i) => <i key={i} style={i < Math.round(r / 10) ? { background: cR } : undefined} />)}</div>
                     <div className="batt-lbl">Índice compuesto de rendimiento sobre 100.</div>
+                    {/* Trayectoria del rating por temporada (percentil de cada año en 3ª RFEF). Bloque nuevo,
+                        opcional: se auto-oculta si rating_serie es null/vacío. El escalar de arriba no se toca. */}
+                    <RatingSerie serie={j.rating_serie} />
                   </div>
                 )
               })()}
