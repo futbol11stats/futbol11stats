@@ -127,17 +127,23 @@
 /* Banquillo (convocado sin entrar): punto gris de bajo peso en la base de la columna, forma distinta de la línea
    discontinua de "no convocado" (.bar.aus). En .plot .pos (flex-end, centrado) queda pegado abajo y al centro. */
 .fjv2 .banq{width:6px;height:6px;border-radius:50%;background:var(--ink-3);opacity:.55}
-/* Rating F11S por temporada: barras en escala fija 0-100 (percentil de cada año), a la baja distintas del
-   sparkline de ELO (línea) para que no se lea como evolución absoluta. Solo temporadas presentes. */
-.fjv2 .rating-serie{display:flex;align-items:flex-end;gap:5px;margin-top:7px}
-.fjv2 .rs-col{display:flex;flex-direction:column;align-items:center;gap:3px;width:16px}
-.fjv2 .rs-bar-t{height:32px;width:100%;display:flex;align-items:flex-end;justify-content:center}
-.fjv2 .rs-fill{width:100%;border-radius:2px 2px 0 0;min-height:2px}
-/* Hueco = temporada sin 3ª RFEF: punto gris en la base (como el banquillo del gráfico), distinto de una barra
-   corta de color (rating bajo). */
-.fjv2 .rs-gap{width:6px;height:6px;border-radius:50%;background:var(--ink-3);opacity:.5}
-.fjv2 .rs-lbl{font-size:var(--t-micro);color:var(--ink-4);font-variant-numeric:tabular-nums;line-height:1}
-.fjv2 .rs-lbl-gap{opacity:.55}
+/* Rating por temporada: mini-gráfico de barras, escala fija 0-100 (percentil). Estructura de la maqueta aprobada
+   con TOKENS del sitio. Y-axis 0/50/100; la MEDIANA (50) reutiliza el punteado de .avg-line (referencia ya
+   existente en el gráfico), no un tratamiento nuevo; hueco = línea punteada + "no jugó" (distinto de rating bajo). */
+.fjv2 .rs-chart{display:grid;grid-template-columns:22px 1fr;gap:7px;margin-top:6px}
+.fjv2 .rs-yaxis{position:relative;height:104px}
+.fjv2 .rs-yaxis span{position:absolute;right:0;transform:translateY(-50%);font-size:var(--t-micro);color:var(--ink-3);font-variant-numeric:tabular-nums;line-height:1}
+.fjv2 .rs-plot{position:relative;height:104px;border-bottom:1px solid var(--line)}
+.fjv2 .rs-med{position:absolute;left:0;right:0;top:50%;border-top:1px dashed rgba(255,255,255,.4);pointer-events:none}
+.fjv2 .rs-med-lbl{position:absolute;right:1px;top:calc(50% - 12px);font-size:var(--t-micro);color:var(--ink-3);opacity:.85;line-height:1}
+.fjv2 .rs-bars{position:absolute;inset:0;display:flex;align-items:flex-end;gap:8px;padding:0 2px}
+.fjv2 .rs-col{flex:1;height:100%;position:relative;display:flex;align-items:flex-end;justify-content:center}
+.fjv2 .rs-bar{width:70%;max-width:32px;border-radius:3px 3px 0 0;min-height:3px;position:relative}
+.fjv2 .rs-val{position:absolute;top:-15px;left:-5px;right:-5px;text-align:center;font-family:var(--font-display),'Barlow Condensed',sans-serif;font-weight:700;font-size:var(--t-cap);color:var(--ink);font-variant-numeric:tabular-nums;line-height:1}
+.fjv2 .rs-gap{width:0;height:100%;border-left:1px dashed var(--ink-3);opacity:.5}
+.fjv2 .rs-gaplbl{position:absolute;bottom:4px;left:0;right:0;text-align:center;font-size:var(--t-micro);color:var(--ink-4);line-height:1}
+.fjv2 .rs-xaxis{display:flex;gap:8px;padding:6px 2px 0;margin-left:29px}
+.fjv2 .rs-xaxis span{flex:1;min-width:0;text-align:center;font-size:var(--t-micro);color:var(--ink-3);font-variant-numeric:tabular-nums;letter-spacing:-.02em}
 /* Línea de media: overlay FIJO sobre chart-wrap (no scrollea). left:32px = tras el canalón -> cubre el
    área de barras de extremo a extremo. La etiqueta se ancla dentro del canalón izquierdo (left:0..32px). */
 .fjv2 .avg-line{position:absolute;left:32px;right:0;height:0;border-top:1px dashed rgba(255,255,255,.4);z-index:1;pointer-events:none}
