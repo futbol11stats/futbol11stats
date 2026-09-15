@@ -1,13 +1,14 @@
 import { tempLabel } from '@/lib/jugador'
 
-// Trayectoria SECUNDARIA del Rating F11S por temporada (3ª RFEF). Estructura de la maqueta aprobada, con TOKENS
-// del sitio (no los de la maqueta). Cada valor es el PERCENTIL de ESA temporada (0-100): "mejor que ese % de la
-// categoría ese año", NO una escala absoluta como el ELO. Barras en escala fija 0-100 + escala 0/50/100 + LÍNEA
-// DE MEDIANA (percentil 50) punteada = reutiliza el tratamiento de .avg-line (referencia del gráfico de
-// jornadas), que da el significado: por encima = mejor que media de su categoría. Eje CRONOLÓGICO acotado al
-// tramo CON DATO (primera→última con rating); una temporada sin 3ª RFEF EN MEDIO = hueco (línea punteada +
-// "no jugó"), distinto de un rating bajo (barra corta). NO se extiende a la temporada activa (evita el hueco
-// falso de la temporada aún inmadura). Un punto vale; null/vacío -> no se pinta.
+// Trayectoria SECUNDARIA del Rating F11S por temporada. Estructura de la maqueta aprobada, con TOKENS
+// del sitio (no los de la maqueta). Cada valor es el PERCENTIL de ESA temporada (0-100): "mejor que ese % del
+// fútbol aficionado madrileño ese año" (escala única de TODA la rama de aficionados, NO por categoría ni "3ª
+// RFEF"), NO una escala absoluta como el ELO. Barras en escala fija 0-100 + escala 0/50/100 + LÍNEA DE MEDIANA
+// (percentil 50) punteada = reutiliza el tratamiento de .avg-line (referencia del gráfico de jornadas), que da
+// el significado: por encima = mejor que la media de los aficionados. Eje CRONOLÓGICO acotado al tramo CON DATO
+// (primera→última con rating); una temporada sin rating EN MEDIO = hueco (línea punteada + "no jugó"), distinto
+// de un rating bajo (barra corta). NO se extiende a la temporada activa (evita el hueco falso de la temporada
+// aún inmadura). Un punto vale; null/vacío -> no se pinta.
 type PuntoR = { t: string; r: number }
 const colR = (r: number) => (r >= 66 ? 'var(--e3)' : r >= 40 ? 'var(--e2)' : 'var(--e1)')
 
@@ -27,22 +28,22 @@ export default function RatingSerie({ serie }: { serie: { t: string; r: number }
 
   return (
     <>
-      <div className="cap" style={{ marginTop: 14 }}>Rating por temporada · percentil</div>
+      <div className="cap" style={{ marginTop: 14 }} title="Compara jugadores del fútbol aficionado madrileño. 100 es el mejor.">Rating por temporada</div>
       <div className="rs-chart">
         <div className="rs-yaxis"><span style={{ top: 0 }}>100</span><span style={{ top: '50%' }}>50</span><span style={{ top: '100%' }}>0</span></div>
         <div className="rs-plot">
-          {/* Mediana (percentil 50): mismo punteado que .avg-line. Por encima = mejor que la mitad de la categoría. */}
+          {/* Mediana (percentil 50): mismo punteado que .avg-line. Por encima = mejor que la mitad de los aficionados. */}
           <div className="rs-med" aria-hidden="true" /><span className="rs-med-lbl">mediana</span>
           <div className="rs-bars">
             {cods.map((c) => {
               const r = byCod.get(c)
               if (r == null) return (
-                <div key={c} className="rs-col" title={`${tempLabel(String(c))}: no jugó en 3ª RFEF`}>
+                <div key={c} className="rs-col" title={`${tempLabel(String(c))}: sin rating esa temporada`}>
                   <span className="rs-gap" aria-hidden="true" /><span className="rs-gaplbl">no jugó</span>
                 </div>
               )
               return (
-                <div key={c} className="rs-col" title={`${tempLabel(String(c))}: ${r}/100 — percentil de la temporada`}>
+                <div key={c} className="rs-col" title={`${tempLabel(String(c))}: ${r} / 100`}>
                   <div className="rs-bar" style={{ height: `${Math.max(2, Math.min(100, r))}%`, background: colR(r) }}><span className="rs-val">{r}</span></div>
                 </div>
               )
@@ -54,7 +55,6 @@ export default function RatingSerie({ serie }: { serie: { t: string; r: number }
         const full = tempLabel(String(c))
         return <span key={c} title={compacta ? full : undefined}>{compacta ? full.slice(2, 4) : full}</span>
       })}</div>
-      <div className="batt-lbl">Percentil en su categoría: mejor que ese % de 3ª RFEF esa temporada.</div>
     </>
   )
 }

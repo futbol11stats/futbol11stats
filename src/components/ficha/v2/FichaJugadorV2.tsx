@@ -228,7 +228,7 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
   const eloBig = eloCierre   // Nivel y KpiBar comparten el ELO de la última etapa (un solo ELO en pantalla).
   // Rating F11S de la TEMPORADA seleccionada (reactivo, como ELO/rankings): el punto de rating_serie cuya t es
   // tempSel (misma clave). NO el escalar j.rating_f11s (estático de la última temporada; 999/1201 lo tenían de
-  // años atrás). Si esa temporada no tiene rating (no jugó 3ª RFEF), es null -> el bloque no se pinta.
+  // años atrás). Si esa temporada no tiene rating de aficionados, es null -> el bloque no se pinta.
   const ratingSel = tempSel != null
     ? ((j.rating_serie || []).find((p) => p && String(p.t) === String(tempSel))?.r ?? null)
     : null
@@ -432,20 +432,21 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
                   : null} />
               {/* Evolución del ELO (cierre por temporada) — mismo sparkline que la ficha actual (Medidores). */}
               <EloSparkline serie={j.elo_serie || []} className="w-full h-9 mt-3" />
-              {/* Rating F11S de la TEMPORADA seleccionada (percentil en 3ª RFEF ese año), REACTIVO como el resto
-                  de la ficha: sale de rating_serie[tempSel], no del escalar estático rating_f11s. Se oculta si esa
-                  temporada no tiene rating (no jugó 3ª RFEF) -> mismo criterio que ELO/rankings sin dato. */}
+              {/* Rating F11S de la TEMPORADA seleccionada, REACTIVO como el resto de la ficha: sale de
+                  rating_serie[tempSel], no del escalar estático rating_f11s. Percentil contra TODA la rama de
+                  aficionados madrileña (escala única fijada por el pipeline a rama='aficionados', NO por categoría
+                  ni "3ª RFEF"; ver memoria rating-apertura-copy-preparado). Se oculta si esa temporada no tiene
+                  rating -> mismo criterio que ELO/rankings sin dato. Copy Opción C: nombre + tooltip, como el ELO. */}
               {ratingSel != null && (() => {
                 const r = ratingSel
                 const cR = r >= 66 ? 'var(--e3)' : r >= 40 ? 'var(--e2)' : 'var(--e1)'
                 return (
                   <div className="rating-f11s">
                     <div className="rf-top">
-                      <div className="cap">Rating F11S <span className="rf-beta">beta</span></div>
+                      <div className="cap" title="Compara jugadores del fútbol aficionado madrileño. 100 es el mejor.">Rating F11S <span className="rf-beta">beta</span></div>
                       <div className="rf-v" style={{ color: cR }}>{r}<span className="rf-100">/100</span></div>
                     </div>
                     <div className="batt">{Array.from({ length: 10 }).map((_, i) => <i key={i} style={i < Math.round(r / 10) ? { background: cR } : undefined} />)}</div>
-                    <div className="batt-lbl">Percentil en 3ª RFEF{tempTxt ? ` · ${tempTxt}` : ''} — dónde se situó, no una escala absoluta.</div>
                   </div>
                 )
               })()}
