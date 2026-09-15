@@ -20,6 +20,10 @@ export default function RatingSerie({ serie }: { serie: { t: string; r: number }
   const first = Number(pts[0].t), last = Number(pts[pts.length - 1].t)
   const cods: number[] = []
   for (let c = first; c <= last; c++) cods.push(c)
+  // A partir de 6 columnas la etiqueta completa "2020-21" no cabe en el aside de 360px (escritorio, --t-micro
+  // 12px) -> etiqueta COMPACTA de 2 dígitos ("21"); la completa va en el tooltip. Umbral 6 (no ~11) porque el
+  // primero en romperse es la etiqueta, no la barra. Fase futura (~12): alternas o scroll. Ver memoria del umbral.
+  const compacta = cods.length > 5
 
   return (
     <>
@@ -46,7 +50,10 @@ export default function RatingSerie({ serie }: { serie: { t: string; r: number }
           </div>
         </div>
       </div>
-      <div className="rs-xaxis">{cods.map((c) => <span key={c}>{tempLabel(String(c))}</span>)}</div>
+      <div className="rs-xaxis">{cods.map((c) => {
+        const full = tempLabel(String(c))
+        return <span key={c} title={compacta ? full : undefined}>{compacta ? full.slice(2, 4) : full}</span>
+      })}</div>
       <div className="batt-lbl">Percentil en su categoría: mejor que ese % de 3ª RFEF esa temporada.</div>
     </>
   )
