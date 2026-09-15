@@ -226,6 +226,12 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
   // que sale el ELO -> coherente con el valor y su coloreado. Antes era web_jugador.elo_percentil (de hoy, en
   // cualquier temporada). Floor y TOPE 99. Batería: min(10, round(pct/10)) -> se llena entera en el tope.
   const eloBig = eloCierre   // Nivel y KpiBar comparten el ELO de la última etapa (un solo ELO en pantalla).
+  // Rating F11S de la TEMPORADA seleccionada (reactivo, como ELO/rankings): el punto de rating_serie cuya t es
+  // tempSel (misma clave). NO el escalar j.rating_f11s (estático de la última temporada; 999/1201 lo tenían de
+  // años atrás). Si esa temporada no tiene rating (no jugó 3ª RFEF), es null -> el bloque no se pinta.
+  const ratingSel = tempSel != null
+    ? ((j.rating_serie || []).find((p) => p && String(p.t) === String(tempSel))?.r ?? null)
+    : null
 
   const dorsalesOtros = (j.dorsales_otros || []).filter((d) => d !== j.dorsal_ultimo && d !== j.dorsal_comun)
 
@@ -426,10 +432,11 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
                   : null} />
               {/* Evolución del ELO (cierre por temporada) — mismo sparkline que la ficha actual (Medidores). */}
               <EloSparkline serie={j.elo_serie || []} className="w-full h-9 mt-3" />
-              {/* Rating F11S (índice compuesto 0-100, beta) — de web_jugador.rating_f11s, métrica DISTINTA del
-                  ELO. Estaba en la ficha actual (Medidores/AnilloRating) y se perdió al portar. Estilo v2. */}
-              {j.rating_f11s != null && (() => {
-                const r = j.rating_f11s as number
+              {/* Rating F11S de la TEMPORADA seleccionada (percentil en 3ª RFEF ese año), REACTIVO como el resto
+                  de la ficha: sale de rating_serie[tempSel], no del escalar estático rating_f11s. Se oculta si esa
+                  temporada no tiene rating (no jugó 3ª RFEF) -> mismo criterio que ELO/rankings sin dato. */}
+              {ratingSel != null && (() => {
+                const r = ratingSel
                 const cR = r >= 66 ? 'var(--e3)' : r >= 40 ? 'var(--e2)' : 'var(--e1)'
                 return (
                   <div className="rating-f11s">
@@ -438,13 +445,13 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
                       <div className="rf-v" style={{ color: cR }}>{r}<span className="rf-100">/100</span></div>
                     </div>
                     <div className="batt">{Array.from({ length: 10 }).map((_, i) => <i key={i} style={i < Math.round(r / 10) ? { background: cR } : undefined} />)}</div>
-                    <div className="batt-lbl">Índice compuesto de rendimiento sobre 100.</div>
-                    {/* Trayectoria del rating por temporada (percentil de cada año en 3ª RFEF). Bloque nuevo,
-                        opcional: se auto-oculta si rating_serie es null/vacío. El escalar de arriba no se toca. */}
-                    <RatingSerie serie={j.rating_serie} />
+                    <div className="batt-lbl">Percentil en 3ª RFEF{tempTxt ? ` · ${tempTxt}` : ''} — dónde se situó, no una escala absoluta.</div>
                   </div>
                 )
               })()}
+              {/* Trayectoria SECUNDARIA del rating por temporada (bloque propio, bien rotulado). Se auto-oculta si
+                  rating_serie es null/vacío. Eje cronológico con huecos visibles (ver RatingSerie). */}
+              <RatingSerie serie={j.rating_serie} />
               <div style={{ marginTop: 13 }}>
                 {/* Cada ranking con su icono: badge (11) F11S, Sello de competición, Pastilla de posición. */}
                 {/* General: agregado sobre el total fantasy de la temporada (rank_general_season, fila
