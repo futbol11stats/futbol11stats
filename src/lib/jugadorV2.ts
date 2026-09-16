@@ -3,7 +3,7 @@
 // exportan) — se reimplementan aquí para no tocar archivos existentes. Ver DECISIONES-PENDIENTES.md (D1).
 
 import { supabase } from '@/lib/supabase'
-import { cacheJugador, cacheTagged } from '@/lib/cacheComp'
+import { cacheJugador, cacheTagged, hashCols } from '@/lib/cacheComp'
 import {
   COLS_JUGADOR, COLS_CARRERA, COLS_HITOS, COLS_ACTUACIONES,
   tempLabel, marcadorLocalVisitante,
@@ -71,9 +71,11 @@ export async function getCarreraV2(cod: string): Promise<CarreraRow[]> {
     if (error) throw error   // fecha_inicio es columna NUEVA -> no cachear [] si la query falla (ver checklist)
     return ((data || []) as any[]).sort((a, b) =>
       String(b.codtemporada).localeCompare(String(a.codtemporada)) || (a.orden_temporada ?? 0) - (b.orden_temporada ?? 0)) as CarreraRow[]
-    // keyParts: v3-copa (copa/playoff como filas de carrera) -> v4-finicio (fecha_inicio al select). Bump para
-    // forzar cache-miss GLOBAL (el Data Cache persiste entre deploys). Ver también E-cache.
-  }, ['getCarreraV2', 'v7-fecfin', cod], cod)   // v7: + fecha_fin al select (orden de etapas por fecha_fin) -> cache-miss global (el Data Cache persiste entre deploys y guardaba las filas sin esa columna; 3ª vez que este detalle muerde: getCarreraV2, flag jugado, ahora fecha_fin)
+    // keyParts = [fn, versión-de-LÓGICA, hashCols(select), args]. hashCols(COLS_CARRERA) deriva la versión del
+    // PROPIO select: añadir/quitar columna cambia el hash -> cache-miss automático, sin bump a mano (mata la
+    // familia que recayó 3 veces aquí: copa, flag jugado, fecha_fin). 'v1' es la versión de LÓGICA -> se bumpea a
+    // mano SOLO si cambia la transformación post-fetch (el sort/map), no las columnas. (Fase 1 de la opción 2.)
+  }, ['getCarreraV2', 'v1', hashCols(COLS_CARRERA), cod], cod)
 }
 
 export async function getActuacionesV2(cod: string): Promise<any[]> {
@@ -99,7 +101,7 @@ export async function getHitosV2(cod: string): Promise<HitoRow[]> {
   return cacheJugador(async () => {
     const { data } = await supabase.from('web_jugador_hitos').select(COLS_HITOS).eq('codjugador', cod)
     return (data || []) as unknown as HitoRow[]
-  }, ['getHitosV2', 'v2-rival', cod], cod)   // v2-rival: +rival_cod/nombre/escudo/resultado (bump: columnas nuevas)
+  }, ['getHitosV2', 'v1', hashCols(COLS_HITOS), cod], cod)   // clave derivada del select: hashCols(COLS_HITOS) auto-invalida al cambiar columnas (antes 'v2-rival' a mano); 'v1' = versión de lógica. (Fase 1 opción 2.)
 }
 
 // Alerta disciplinaria MÁS RECIENTE del jugador (web_alertas_tarjetas es por jornada). Null si no hay.
@@ -209,7 +211,7 @@ export async function getPartidosTemporada(cod: string, codtemp: string): Promis
     // el censo nocturno emite jugador:<cod>). Quitarle temporada: evita que el temporada:<activa> del ELO nocturno
     // enfríe la ficha cada noche en balde. Rebaremo (reescribe pts_fantasy): cubierto por el censo jugador: que
     // ya emite `_revalidar.py --temporada <c>` — ver CHECKLIST. La clave conserva codtemp (caché por temporada).
-  }, ['getPartidosTemporada', 'copa-fc-jugado', cod, String(codtemp)], cod)   // copa-fc: resultado favor-contra normalizado. -jugado: bump al añadir `jugado` a COLS_PART -> las filas cacheadas antes NO lo traían y el filtro (jugado!==false) dejaba pasar el banquillo (undefined). Sin bump, A y B no surtían efecto.
+  }, ['getPartidosTemporada', 'v1', hashCols(COLS_PART + ', es_local'), cod, String(codtemp)], cod)   // clave derivada del select (COLS_PART + es_local, el select real): añadir columna auto-invalida (antes el bug del flag `jugado` que no se cazó por no bumpear). 'v1' = versión de lógica. (Fase 1 opción 2.)
 }
 
 // --- Ámbito: por competición de la temporada, la secuencia de jornadas con estado (incluidas ausencias) ---

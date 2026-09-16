@@ -4,6 +4,17 @@ import { unstable_cache } from 'next/cache'
 // y el tiempo largo es solo el fallback por si alguna lectura quedara sin etiquetar.
 const TTL = 2592000
 
+// Hash corto y estable (djb2) de la CADENA DE COLUMNAS de un select, para meterlo en keyParts y DERIVAR la
+// versión de caché del propio select: cualquier alta/baja de columna cambia el hash -> cache-miss automático,
+// sin bump a mano. Mata la familia recurrente "añadí una columna y olvidé bumpear la clave" (getCarreraV2,
+// flag jugado, fecha_fin). Determinista y sin dependencias (funciona en cualquier runtime). NO cubre cambios
+// de lógica POST-fetch (esos van en un segmento de versión aparte, p.ej. 'v1', que se bumpea a mano).
+export function hashCols(cols: string): string {
+  let h = 5381
+  for (let i = 0; i < cols.length; i++) h = ((h << 5) + h + cols.charCodeAt(i)) | 0
+  return (h >>> 0).toString(36)
+}
+
 // Envuelve una lectura de competición en unstable_cache con etiquetas por grupo + temporada, para que el
 // endpoint /api/revalidate pueda invalidarla con revalidateTag('comp:<codgrupo>') / ('temporada:<cod>').
 //   - keyParts: identifica la entrada de forma única (nombre de la función + sus argumentos).
