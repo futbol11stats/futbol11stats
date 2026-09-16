@@ -590,12 +590,13 @@ select sin bumpear -> Data Cache sirve filas sin la columna. Solución: `keyPart
 `hashCols` (src/lib/cacheComp.ts) deriva la versión del PROPIO select -> alta/baja de columna = cache-miss
 automático, sin recordar. `'v1'` = versión de LÓGICA (bump manual solo si cambia la transformación post-fetch).
 - **Fase 1 HECHA** (commit f027033, 2026-09-16): getCarreraV2, getPartidosTemporada, getHitosV2 (los 3 que recayeron).
-- **PENDIENTE — propagar a partir del 2026-09-20** a los ~82 getters cacheados restantes (equipoV2, competicionV2,
-  club, campo, partido, alcance, temporadas). **No "en unos días": el 2026-09-20 se propaga.**
-- **Qué verificar de Fase 1:** NADA por espera. El cambio es determinista (hashCols puro) y el dato es IDÉNTICO
-  (solo cambió la clave, no el select) -> no hay rancio-vs-fresco que observar; el único riesgo era un error de
-  runtime del nuevo shape de clave -> **0 errores en 24h (verificado 2026-09-16)**. Por tanto esperar no aporta:
-  el 2026-09-20 se propaga aunque no haya nada más que mirar (dejarlo a medias = el patrón que atacamos).
+- **Fase 2 HECHA** (commit 218822a, 2026-09-16, un solo lote): propagado a los 36 getters cacheados con select de
+  columnas passthrough (jugadorV2 5, equipo 2, equipoV2 10, competicionV2 17, club 1, alcance 1). Se adelantó del
+  2026-09-20 porque no había NADA que verificar por espera (determinista, dato idéntico; 0 errores runtime en 24h) →
+  esperar era aplazar. Revisado el diff getter a getter (cada hashCols casa con su .select) + tsc exit 0 + un solo deploy.
+- **NO convertidos (skip correcto):** chequeos de existencia, lecturas de blob JSONB (`copas`), y composiciones/
+  agregados (líderes, cifras, índices, getPartido, temporadas.ts, campo.ts) donde un cambio de columna es cambio de
+  LÓGICA → su token manual `vN` sigue haciendo el bump. Ahí NO aplica hashCols (el output no es el select).
 - Variante `cachedSelect` (helper que construye query+clave juntas): anotada, más adelante.
 
 ### E-vacio-silencio · Helper sel() (lanza ante error) — POR FASES
