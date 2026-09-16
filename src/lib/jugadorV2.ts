@@ -56,9 +56,13 @@ export type CarreraRow = {
   // Percentil de ELO por temporada (del elo_final de ESA etapa). El bloque Nivel lee el de la última etapa
   // cronológica (etapaUltima), la misma de la que sale el ELO.
   elo_percentil_temp: number | null
-  // Fecha del primer partido de la competición (ISO YYYY-MM-DD), para ordenar por calendario. NULL hasta el
-  // próximo re-export de fichas -> hasta entonces el orden cae en faseCompeticion.
+  // Fechas del PRIMER y ÚLTIMO partido DEL JUGADOR en esa etapa (ISO YYYY-MM-DD). El ORDEN de las etapas usa
+  // fecha_fin (la etapa que terminó más tarde lleva el ELO vigente, que es cronológico); fecha_inicio se conserva
+  // para detectar solapes (la copa dentro de la liga del mismo club). NULL hasta el recálculo -> el orden cae en
+  // faseCompeticion. OJO: NO es el arranque de la competición/equipo (eso rompía el orden en fichajes a media
+  // temporada); es el partido real del jugador. La ficha de EQUIPO sí usa el arranque de competición (correcto allí).
   fecha_inicio: string | null
+  fecha_fin: string | null
 }
 // Carrera ordenada: temporada DESC, y dentro de la temporada orden_temporada ASC (lo decide el pipeline).
 export async function getCarreraV2(cod: string): Promise<CarreraRow[]> {
@@ -69,7 +73,7 @@ export async function getCarreraV2(cod: string): Promise<CarreraRow[]> {
       String(b.codtemporada).localeCompare(String(a.codtemporada)) || (a.orden_temporada ?? 0) - (b.orden_temporada ?? 0)) as CarreraRow[]
     // keyParts: v3-copa (copa/playoff como filas de carrera) -> v4-finicio (fecha_inicio al select). Bump para
     // forzar cache-miss GLOBAL (el Data Cache persiste entre deploys). Ver también E-cache.
-  }, ['getCarreraV2', 'v6-edad-rank', cod], cod)   // v6: rank_sub23/juvenil_season al select -> cache-miss global (el Data Cache persiste entre deploys y guardaba las filas sin esas columnas)
+  }, ['getCarreraV2', 'v7-fecfin', cod], cod)   // v7: + fecha_fin al select (orden de etapas por fecha_fin) -> cache-miss global (el Data Cache persiste entre deploys y guardaba las filas sin esa columna; 3ª vez que este detalle muerde: getCarreraV2, flag jugado, ahora fecha_fin)
 }
 
 export async function getActuacionesV2(cod: string): Promise<any[]> {

@@ -89,7 +89,7 @@ export const COLS_CARRERA =
   'rank_general_temp, rank_general_temp_total, rank_categoria_temp, rank_categoria_temp_total, ' +
   'rank_posicion_temp, rank_posicion_temp_total, rank_principal, rank_general_season, rank_general_season_total, ' +
   'rank_sub23_season, rank_sub23_season_total, rank_juvenil_season, rank_juvenil_season_total, ' +
-  'elo_percentil_temp, fecha_inicio'
+  'elo_percentil_temp, fecha_inicio, fecha_fin'
 
 export const COLS_HITOS =
   'tipo_hito, ambito, fecha, codacta, codtemporada, contexto_cod, contexto_nombre, escudo, ' +
