@@ -1,5 +1,5 @@
 import { getTemporadasActivas } from '@/lib/temporadas'
-import { cacheTagged } from '@/lib/cacheComp'
+import { cacheTagged, hashCols } from '@/lib/cacheComp'
 import { supabase } from '@/lib/supabase'
 
 // ALCANCE DEL PROYECTO — fuente ÚNICA de las cifras "de escaparate" (home, /sobre, metadatos SEO). Ningún
@@ -26,12 +26,13 @@ const ALCANCE_FALLBACK: Alcance = { jugadores: 39000, equipos: 1900, clubes: 500
 // re-export y la home + /sobre se refrescan. Si el tag no casara, las cifras se quedarían rancias — confirmado
 // que es exactamente 'alcance'.
 export async function getAlcance(): Promise<Alcance> {
+  const cols = 'jugadores, equipos, clubes, partidos, campos'
   return cacheTagged(async () => {
     const { data, error } = await supabase.from('web_alcance')
-      .select('jugadores, equipos, clubes, partidos, campos').eq('id', 1).limit(1).maybeSingle()
+      .select(cols).eq('id', 1).limit(1).maybeSingle()
     if (error) throw error   // no cachear un fallback por un error transitorio (el resto de la home ya falla-fuerte si la BD cae)
     return (data as Alcance | null) ?? ALCANCE_FALLBACK
-  }, ['getAlcance', 'v1'], ['alcance'])
+  }, ['getAlcance', 'v1', hashCols(cols)], ['alcance'])
 }
 
 // Redondeo A LA BAJA a una cifra "de escaparate": paso 1000 si ≥10k, 100 si ≥1k, 10 si menos. floor(n) ≤ n, así

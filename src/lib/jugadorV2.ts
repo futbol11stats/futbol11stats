@@ -29,7 +29,7 @@ export async function getJugadorV2(cod: string): Promise<JugadorFicha | null> {
     const { data, error } = await supabase.from('web_jugador').select(COLS_JUGADOR).eq('codjugador', cod).limit(1).maybeSingle()
     if (error) throw error   // no cachear null por un error transitorio -> 404 falso persistente (ver checklist)
     return (data as unknown as JugadorFicha) || null
-  }, ['getJugadorV2', 'rating-serie', cod], cod)   // bump: + rating_serie a COLS_JUGADOR (sin bump se servirían filas cacheadas sin ese campo; patrón getCarreraV2/jugado)
+  }, ['getJugadorV2', 'v1', hashCols(COLS_JUGADOR), cod], cod)   // clave derivada del select (hashCols(COLS_JUGADOR) auto-invalida al cambiar columnas; antes 'rating-serie' a mano); 'v1' = versión de lógica (bump manual solo si cambia la transformación post-fetch).
 }
 
 export type CarreraRow = {
@@ -94,7 +94,7 @@ export async function getActuacionesV2(cod: string): Promise<any[]> {
       for (const a of rows) { const e = m.get(String(a.codacta)); if (e) { a.jornada = e.jornada; a.minutos = e.minutos; a.ronda_label = e.ronda_label; a.fecha = e.fecha } }
     }
     return rows
-  }, ['getActuacionesV2', 'copa-fc-fecha', cod], cod)   // copa-fc: resultado favor-contra; -fecha: +fecha al cruce (bump caché)
+  }, ['getActuacionesV2', 'v1', hashCols(COLS_ACTUACIONES + ', es_local'), cod], cod)   // clave derivada del select real (COLS_ACTUACIONES + es_local, el primario); 'v1' = versión de lógica.
 }
 
 export async function getHitosV2(cod: string): Promise<HitoRow[]> {
@@ -114,13 +114,13 @@ export type AlertaRow = {
 // ESA temporada (si no, en una ficha de 2026-27 se colaba la foto-final de un ciclo de T21). Sin temp -> la
 // más reciente de cualquier temporada (comportamiento antiguo, por si algún llamador lo necesita).
 export async function getAlertaActual(cod: string, temp?: number | null): Promise<AlertaRow | null> {
+  const cols = 'estado, codtemporada, jornada, amarillas_ciclo, ciclo_umbral, dobles_amarillas, rojas_directas, nombre_equipo'
   return cacheJugador(async () => {
-    const cols = 'estado, codtemporada, jornada, amarillas_ciclo, ciclo_umbral, dobles_amarillas, rojas_directas, nombre_equipo'
     let q = supabase.from('web_alertas_tarjetas').select(cols).eq('codjugador', cod)
     if (temp != null) q = q.eq('codtemporada', temp)
     const { data } = await q.order('codtemporada', { ascending: false }).order('jornada', { ascending: false }).limit(1)
     return ((data && data[0]) as AlertaRow) || null
-  }, ['getAlertaActual', cod, String(temp ?? '')], cod)
+  }, ['getAlertaActual', 'v1', hashCols(cols), cod, String(temp ?? '')], cod)   // clave derivada del select (cols izado para estar en scope); 'v1' = versión de lógica.
 }
 
 // Texto humano de la alerta disciplinaria. NUNCA muestra el código crudo (CICLO_COMPLETADO…) ni dice
@@ -154,9 +154,10 @@ export async function tienePorteriaDato(cod: string): Promise<boolean> {
 // dobles, por eso NO se usa aquí. web_jugador_partidos tiene una fila por partido jugado y su recuento
 // coincide EXACTO con la suma de pj de carrera (verificado en los 38.173 jugadores).
 export async function getTarjetasTotales(cod: string): Promise<{ amarillas: number; dobles: number; rojas: number }> {
+  const cols = 'amarillas, dobles_amarilla, rojas'
   return cacheJugador(async () => {
     const { data } = await supabase.from('web_jugador_partidos')
-      .select('amarillas, dobles_amarilla, rojas').eq('codjugador', cod)
+      .select(cols).eq('codjugador', cod)
     let amarillas = 0, dobles = 0, rojas = 0
     for (const p of (data || []) as any[]) {
       amarillas += p.amarillas ?? 0
@@ -164,7 +165,7 @@ export async function getTarjetasTotales(cod: string): Promise<{ amarillas: numb
       rojas += p.rojas ?? 0
     }
     return { amarillas, dobles, rojas }
-  }, ['getTarjetasTotales', cod], cod)
+  }, ['getTarjetasTotales', 'v1', hashCols(cols), cod], cod)   // clave derivada del select (cols izado); 'v1' = versión de lógica.
 }
 
 // Cortes de percentil (métrica/categoría/temporada). Devuelve la 4-tupla o null si no hay fila.
@@ -173,9 +174,10 @@ export async function getPercentilCortes(
 ): Promise<[number, number, number, number] | null> {
   if (!categoria || codtempInt == null) return null
   // No es jugador-scoped (percentiles por categoría+temporada, compartidos): se etiqueta por temporada.
+  const cols = 'p20, p40, p60, p80'
   return cacheTagged(async () => {
     const { data } = await supabase.from('web_percentiles')
-      .select('p20, p40, p60, p80').eq('metrica', metrica).eq('categoria', categoria).eq('codtemporada', codtempInt).limit(1).maybeSingle()
+      .select(cols).eq('metrica', metrica).eq('categoria', categoria).eq('codtemporada', codtempInt).limit(1).maybeSingle()
     if (!data) return null
     const c = [data.p20, data.p40, data.p60, data.p80]
     if (c.some((x) => x == null)) return null
@@ -186,8 +188,9 @@ export async function getPercentilCortes(
     // un dato que apenas se mueve noche a noche (percentiles de una categoría entera). Con el tag propio, el ciclo
     // nocturno NO los toca; se refrescan cuando de verdad cambian: en un REBAREMO (el pipeline debe emitir
     // `cortes:elo_jugador:<t>`), y opcionalmente un barrido SEMANAL. Ver CHECKLIST (cobertura rebaremo). El key
-    // sigue con codtempInt (caché por temporada) y el bump 'v2' fuerza refresco global si cambia la fórmula.
-  }, ['getPercentilCortes', 'v2', metrica, String(categoria), codtempInt], [`cortes:${metrica}:${codtempInt}`])
+    // sigue con codtempInt (caché por temporada). La clave va por hashCols(cols) (auto-invalida si cambian las
+    // columnas) + 'v1' = versión de lógica (bump manual si cambia la fórmula/transformación, como el viejo 'v2').
+  }, ['getPercentilCortes', 'v1', hashCols(cols), metrica, String(categoria), codtempInt], [`cortes:${metrica}:${codtempInt}`])
 }
 
 // Cortes de ELO por categoría/temporada, validados; si son degenerados o no hay, cae a CORTES_FIJOS.elo.

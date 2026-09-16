@@ -4,7 +4,7 @@
 
 import { supabase, sel } from '@/lib/supabase'
 import { getResultadosGrupo, filaEsLocal, codgrupoFamilia, type ResultadoRow, type EquipoFicha, COLS_EQUIPO } from '@/lib/equipo'
-import { cacheEquipo } from '@/lib/cacheComp'
+import { cacheEquipo, hashCols } from '@/lib/cacheComp'
 import { partidoSlug } from '@/lib/partidoSlug'
 import { badgeEdad, type BadgeEdad } from '@/lib/badgeEdad'
 import { anioInicioTemporada } from '@/lib/temporadaSlug'
@@ -37,18 +37,18 @@ export async function getEquipoV2(cod: string): Promise<EquipoFicha | null> {
     return (data as unknown as EquipoFicha) || null
     // v2-eloserie: bump para recalcular con el elo_serie/elo_actual movidos por la copa (el Data Cache persiste
     // entre deploys; la revalidación por PATH regenera el HTML pero no esta caché de datos si la clave no cambia).
-  }, ['getEquipoV2', 'v2-eloserie', cod], cod)
+  }, ['getEquipoV2', 'v1', hashCols(COLS_EQUIPO), cod], cod)   // clave derivada del select (hashCols(COLS_EQUIPO); antes 'v2-eloserie'); 'v1' = versión de lógica (bump manual si cambia la transformación post-fetch).
 }
 
 export async function getTemporadasEquipo(cod: string) {
+  const cols = 'codtemporada, nombre_comp, categoria_nivel, rama, codgrupo, grupo_nombre, pj, pts, posicion_final, gf, gc, badge, fecha_inicio'
   return cacheEquipo(async () => {
-    const cols = 'codtemporada, nombre_comp, categoria_nivel, rama, codgrupo, grupo_nombre, pj, pts, posicion_final, gf, gc, badge, fecha_inicio'
     const { data, error } = await supabase.from('web_equipo_temporadas').select(cols).eq('codequipo', cod)
-    if (error) throw error   // fecha_inicio es columna NUEVA -> no cachear [] si la query falla (ver checklist)
+    if (error) throw error   // no cachear [] si la query falla (ver checklist: caché envenenada)
     return ((data || []) as any[]).sort((a, b) => String(b.codtemporada).localeCompare(String(a.codtemporada)))
-    // v3-finicio: bump al añadir fecha_inicio (v2) y re-bump porque las claves anteriores cachearon el NULL
-    // (mis bumps se hicieron ANTES de que el pipeline poblara fecha_inicio) -> recalcular con la fecha real.
-  }, ['getTemporadasEquipo', 'v3-finicio', cod], cod)
+    // clave derivada del select (hashCols(cols) auto-invalida al cambiar columnas; antes 'v3-finicio' a mano por
+    // añadir fecha_inicio); 'v1' = versión de lógica.
+  }, ['getTemporadasEquipo', 'v1', hashCols(cols), cod], cod)
 }
 
 // Temporadas (cod, número) en las que el equipo tiene ACTA de copa (JSONB web_equipo.copas). El acta
@@ -81,7 +81,7 @@ export async function getSerieLiga(codequipo: string, codgrupo: string | null): 
     const { data } = await supabase.from('web_clasificacion').select(COLS_CLASIF)
       .eq('codgrupo', String(codgrupo)).eq('codequipo', String(codequipo)).order('jornada', { ascending: true })
     return (data || []) as ClasifRow[]
-  }, ['getSerieLiga', codequipo, String(codgrupo)], codequipo, { codgrupo })
+  }, ['getSerieLiga', 'v1', hashCols(COLS_CLASIF), codequipo, String(codgrupo)], codequipo, { codgrupo })
 }
 
 // --- Datum de una jornada para el gráfico (barra=fantasy de esa jornada; carriles marcador·pos/mov·rival) ---
@@ -142,12 +142,13 @@ export async function escudosPorNombre(nombres: string[]): Promise<Map<string, s
 export type MiniRow = { pos: number; codequipo: string; nombre: string; escudo: string | null; pts: number; me: boolean }
 export async function getMiniClasif(codgrupo: string | null, codequipo: string): Promise<{ filas: MiniRow[]; jornada: number | null }> {
   if (!codgrupo) return { filas: [], jornada: null }
+  const cols = 'pos, codequipo, nombre_equipo, escudo, pts'   // select de datos que define la caché (la de 'jornada' es auxiliar)
   return cacheEquipo(async () => {
     const { data: jr } = await supabase.from('web_clasificacion').select('jornada')
       .eq('codgrupo', String(codgrupo)).order('jornada', { ascending: false }).limit(1)
     const jornada = (jr && jr[0]?.jornada) ?? null
     if (jornada == null) return { filas: [], jornada: null }
-    const { data } = await supabase.from('web_clasificacion').select('pos, codequipo, nombre_equipo, escudo, pts')
+    const { data } = await supabase.from('web_clasificacion').select(cols)
       .eq('codgrupo', String(codgrupo)).eq('jornada', jornada).order('pos', { ascending: true })
     const rows = (data || []) as any[]
     const idx = rows.findIndex((r) => String(r.codequipo) === String(codequipo))
@@ -158,7 +159,7 @@ export async function getMiniClasif(codgrupo: string | null, codequipo: string):
       pts: r.pts, me: String(r.codequipo) === String(codequipo),
     }))
     return { filas, jornada }
-  }, ['getMiniClasif', String(codgrupo), codequipo], codequipo, { codgrupo })
+  }, ['getMiniClasif', 'v1', hashCols(cols), String(codgrupo), codequipo], codequipo, { codgrupo })
 }
 
 // --- Análisis: balance V/E/D + casa/fuera + goles, todo desde los resultados del grupo ---
@@ -206,25 +207,27 @@ export type TramoRow = { tramo: string; gf: number; gc: number }
 const TRAMOS_ORDEN = ['0-15', '16-30', '31-45', '46-60', '61-75', '76-90', '90+']
 export async function getTramos(codequipo: string, codgrupo: string | null): Promise<TramoRow[]> {
   if (!codgrupo) return []
+  const cols = 'tramo, gf, gc'
   return cacheEquipo(async () => {
-    const { data } = await supabase.from('web_goles_tramos').select('tramo, gf, gc')
+    const { data } = await supabase.from('web_goles_tramos').select(cols)
       .eq('codequipo', String(codequipo)).eq('codgrupo', String(codgrupo))
     const rows = (data || []) as any[]
     if (!rows.length) return []
     return TRAMOS_ORDEN.map((t) => { const r = rows.find((x) => x.tramo === t); return { tramo: t, gf: r?.gf ?? 0, gc: r?.gc ?? 0 } })
-  }, ['getTramos', codequipo, String(codgrupo)], codequipo, { codgrupo })
+  }, ['getTramos', 'v1', hashCols(cols), codequipo, String(codgrupo)], codequipo, { codgrupo })
 }
 
 // --- Facetas: ranking del equipo DENTRO DE SU GRUPO en gf, gc (menos es mejor), pts_fantasy. ---
 export type Facetas = { gf: number | null; gc: number | null; ptsFan: number | null; n: number }
 export async function getFacetasGrupo(codgrupo: string | null, codequipo: string): Promise<Facetas> {
   if (!codgrupo) return { gf: null, gc: null, ptsFan: null, n: 0 }
+  const cols = 'codequipo, gf, gc, pts_fantasy'   // select de datos que define la caché (la de 'jornada' es auxiliar)
   return cacheEquipo(async () => {
     const { data: jr } = await supabase.from('web_clasificacion').select('jornada')
       .eq('codgrupo', String(codgrupo)).order('jornada', { ascending: false }).limit(1)
     const jornada = (jr && jr[0]?.jornada) ?? null
     if (jornada == null) return { gf: null, gc: null, ptsFan: null, n: 0 }
-    const { data } = await supabase.from('web_clasificacion').select('codequipo, gf, gc, pts_fantasy')
+    const { data } = await supabase.from('web_clasificacion').select(cols)
       .eq('codgrupo', String(codgrupo)).eq('jornada', jornada)
     const rows = (data || []) as any[]
     const n = rows.length
@@ -235,7 +238,7 @@ export async function getFacetasGrupo(codgrupo: string | null, codequipo: string
       return 1 + rows.filter((r) => r[key] != null && (desc ? r[key] > mv : r[key] < mv)).length
     }
     return { gf: rank('gf', true), gc: rank('gc', false), ptsFan: rank('pts_fantasy', true), n }
-  }, ['getFacetasGrupo', String(codgrupo), codequipo], codequipo, { codgrupo })
+  }, ['getFacetasGrupo', 'v1', hashCols(cols), String(codgrupo), codequipo], codequipo, { codgrupo })
 }
 
 // --- Plantilla de la temporada seleccionada (aficionados): por líneas + top por fantasy ---
@@ -248,13 +251,13 @@ export type PlantillaEqRow = {
 const LINEA_DE: Record<string, 'POR' | 'DEF' | 'MED' | 'DEL'> = { POR: 'POR', DEF: 'DEF', MED: 'MED', DEL: 'DEL' }
 export async function getPlantillaEquipoV2(codequipo: string, codtemp: string | null, rama?: string | null): Promise<PlantillaEqRow[]> {
   if (!codtemp) return []
+  const baseCols = 'codjugador, nombre, posicion_pastilla, pj, goles, minutos, ta, td, tr, pts_fantasy, porterias_cero'
   return cacheEquipo(async () => {
     // La plantilla REAL (adultos + menores) vive en las tablas de plantilla por rama, no en
     // web_jugador_carrera (que solo tiene adultos, por eso los menores no aparecían). Ambas tablas
     // replican el mismo esquema —pts_fantasy, goles_encajados, porterías a cero—; ninguna trae ELO.
     // Los menores no tienen ficha -> el render los lista con nombre y datos pero sin enlace (fichasExistentes).
     const tabla = rama === 'juvenil' ? 'web_equipo_plantilla_juvenil' : 'web_equipo_plantilla_aficionado'
-    const baseCols = 'codjugador, nombre, posicion_pastilla, pj, goles, minutos, ta, td, tr, pts_fantasy, porterias_cero'
     // ENGANCHE PIPELINE: si la fila trae `badge_edad` (badge derivado ya calculado por el pipeline —cubre a los
     // MENORES sin exponer su fecha—), se usa. Mientras la columna no exista, esta query falla con 42703
     // (undefined_column) y se reintenta sin ella. Así, el día que el pipeline la publique, el badge de los
@@ -297,27 +300,29 @@ export async function getPlantillaEquipoV2(codequipo: string, codtemp: string | 
         badgeEdad: badge,
       } as PlantillaEqRow
     })
-  }, ['getPlantillaEquipoV2', 'v2-badge', codequipo, String(codtemp), rama ?? 'afic'], codequipo, { codtemporada: codtemp })
+  }, ['getPlantillaEquipoV2', 'v1', hashCols(`${baseCols}, badge_edad`), codequipo, String(codtemp), rama ?? 'afic'], codequipo, { codtemporada: codtemp })   // clave derivada del select primario (baseCols + badge_edad); 'v1' = versión de lógica. rama diferencia las dos tablas.
 }
 
 // --- Movimientos (altas/bajas/promociones) e hitos del club ---
 export async function getMovimientosEquipo(cod: string) {
+  const cols = 'codtemporada, fecha, clase, direccion, codjugador, nombre, equipo_rel_nombre, equipo_rel_escudo'
   return cacheEquipo(async () => {
-    const cols = 'codtemporada, fecha, clase, direccion, codjugador, nombre, equipo_rel_nombre, equipo_rel_escudo'
     const { data } = await supabase.from('web_equipo_movimientos').select(cols).eq('codequipo', String(cod))
     return ((data || []) as any[]).sort((a, b) => String(b.fecha || b.codtemporada || '').localeCompare(String(a.fecha || a.codtemporada || '')))
-  }, ['getMovimientosEquipo', cod], cod)
+  }, ['getMovimientosEquipo', 'v1', hashCols(cols), cod], cod)
 }
 export async function getHitosEquipo(cod: string) {
+  const cols = 'tipo_hito, fecha, codtemporada, detalle, valor, rival_cod, rival_nombre, rival_escudo, resultado'
   return cacheEquipo(async () => {
-    const { data } = await supabase.from('web_equipo_hitos').select('tipo_hito, fecha, codtemporada, detalle, valor, rival_cod, rival_nombre, rival_escudo, resultado').eq('codequipo', String(cod))
+    const { data } = await supabase.from('web_equipo_hitos').select(cols).eq('codequipo', String(cod))
     return (data || []) as any[]
-  }, ['getHitosEquipo', 'v2-rival', cod], cod)   // v2-rival: +campos de rival (bump: columnas nuevas)
+  }, ['getHitosEquipo', 'v1', hashCols(cols), cod], cod)   // clave derivada del select (antes 'v2-rival' a mano); 'v1' = versión de lógica.
 }
 
 // Media de fantasy y ELO de cierre POR temporada (para las tarjetas de Temporadas). Una query: todas las
 // filas de clasificación del equipo; en JS se toma la de mayor jornada de cada temporada.
 export async function getMediasPorTemporada(codequipo: string): Promise<Record<string, { media: number | null; elo: number | null }>> {
+  const cols = 'codtemporada, jornada, pts_fantasy, pj, elo'
   return cacheEquipo(async () => {
     // SOLO LIGA: esta query no fija codgrupo (barre todas las temporadas del equipo), así que hay que excluir
     // las filas de clasificación de COPA (fase de grupos) que el pipeline añade a web_clasificacion -> se
@@ -326,7 +331,7 @@ export async function getMediasPorTemporada(codequipo: string): Promise<Record<s
     // sel() propaga el error en vez de congelar {} 30 días: fue la regresión que borró la MEDIA F. de las
     // tarjetas de liga (añadir el filtro is('codgrupo_familia', null) por una columna nueva hacía fallar la
     // query -> {} cacheado). Helper "vacío en silencio" (lanza ante error; el vacío legítimo sigue devolviendo []).
-    const data = await sel<any[]>(supabase.from('web_clasificacion').select('codtemporada, jornada, pts_fantasy, pj, elo')
+    const data = await sel<any[]>(supabase.from('web_clasificacion').select(cols)
       .eq('codequipo', String(codequipo)).is('codgrupo_familia', null).order('jornada', { ascending: true }))
     const last = new Map<string, any>()
     for (const r of ((data || []) as any[])) last.set(String(r.codtemporada), r)  // la última jornada gana
@@ -335,8 +340,8 @@ export async function getMediasPorTemporada(codequipo: string): Promise<Record<s
       out[t] = { media: r.pts_fantasy != null && r.pj ? r.pts_fantasy / r.pj : null, elo: r.elo ?? null }
     }
     return out
-    // v2-liga: bump de clave para invalidar la caché envenenada con {} (la clave no cambió al añadir el filtro).
-  }, ['getMediasPorTemporada', 'v2-liga', codequipo], codequipo)
+    // clave derivada del select (hashCols(cols)); 'v1' = versión de lógica (bump manual si cambia la fórmula).
+  }, ['getMediasPorTemporada', 'v1', hashCols(cols), codequipo], codequipo)
 }
 
 // --- Copa: tira de rondas (opción A). No hay pts_fantasy por jornada en copa, así que NO se pintan

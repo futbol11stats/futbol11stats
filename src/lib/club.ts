@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/supabase'
-import { cacheIndices, cacheEquipo, cacheClub } from '@/lib/cacheComp'
+import { cacheIndices, cacheEquipo, cacheClub, hashCols } from '@/lib/cacheComp'
 import { parseCampo, campoLabel } from '@/lib/campoSlug'   // para campoMapsUrl; se re-exportan más abajo
 
 // Índice de clubes y páginas de club. La entidad "club" agrupa filiales y juveniles por `codclub` (id troncal
@@ -24,13 +24,14 @@ export { clubSlug, codclubFromSlug } from '@/lib/clubSlug'
 // municipio). Cacheado con tag equipo:<cod>.
 export type CampoEquipo = { codigo: string | null; nombre: string | null; localidad: string | null; lat: number | null; lng: number | null }
 export async function getCampoEquipo(codequipo: string): Promise<CampoEquipo> {
+  const cols = 'campo_codigo, campo_nombre, campo_localidad, campo_lat, campo_lng'
   return cacheEquipo(async () => {
     const { data } = await supabase.from('web_equipo')
-      .select('campo_codigo, campo_nombre, campo_localidad, campo_lat, campo_lng')
+      .select(cols)
       .eq('codequipo', String(codequipo)).limit(1).maybeSingle()
     const c = data as { campo_codigo?: string | null; campo_nombre?: string | null; campo_localidad?: string | null; campo_lat?: number | null; campo_lng?: number | null } | null
     return { codigo: c?.campo_codigo ?? null, nombre: c?.campo_nombre ?? null, localidad: c?.campo_localidad ?? null, lat: c?.campo_lat ?? null, lng: c?.campo_lng ?? null }
-  }, ['getCampoEquipo', 'v2-webequipo', String(codequipo)], codequipo)
+  }, ['getCampoEquipo', 'v1', hashCols(cols), String(codequipo)], codequipo)
 }
 
 // parseCampo/campoLabel/superficie viven ahora en el módulo PURO campoSlug.ts (client-safe, los usa el buscador).

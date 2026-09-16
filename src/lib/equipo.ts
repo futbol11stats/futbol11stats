@@ -5,7 +5,7 @@
 import { supabase, sel } from '@/lib/supabase'
 import { slugify, codFromSlug, tempLabel } from '@/lib/jugador'
 import { getSueloVivo } from '@/lib/temporadas'
-import { cacheEquipo, cacheTagged } from '@/lib/cacheComp'
+import { cacheEquipo, cacheTagged, hashCols } from '@/lib/cacheComp'
 import { FAMILIA_SLUGS, OLD_A_FAMILIA } from '@/lib/competiciones'
 
 export { slugify, codFromSlug, tempLabel }
@@ -49,8 +49,8 @@ export function filaEsLocal(r: Pick<ResultadoRow, 'codequipo_local' | 'codequipo
 }
 export async function getResultadosGrupo(codequipo: string | number | null | undefined, nombre: string | null, codgrupo: string | null | undefined): Promise<ResultadoRow[]> {
   if (!codgrupo || (codequipo == null && !nombre)) return []
+  const cols = 'jornada, fecha, goles_local, goles_visitante, nombre_local, nombre_visitante, escudo_local, escudo_visitante, codequipo_local, codequipo_visitante, codacta, elo_pre_local, elo_post_local, elo_pre_visitante, elo_post_visitante'
   return cacheTagged(async () => {
-    const cols = 'jornada, fecha, goles_local, goles_visitante, nombre_local, nombre_visitante, escudo_local, escudo_visitante, codequipo_local, codequipo_visitante, codacta, elo_pre_local, elo_post_local, elo_pre_visitante, elo_post_visitante'
     const base = () => supabase.from('web_resultados').select(cols).eq('codgrupo', String(codgrupo))
     // UNIÓN codequipo ∪ nombre (deduplicada): codequipo casa liga (estable a renombrados); nombre casa copa (sin
     // codequipo) y filas con código REASIGNADO viejo (nombre estable). Dentro del codgrupo el nombre es unívoco,
@@ -66,7 +66,7 @@ export async function getResultadosGrupo(codequipo: string | number | null | und
       if (!seen.has(k)) { seen.add(k); out.push(row) }
     }
     return out
-  }, ['getResultadosGrupo', 'v6-escudos', String(codequipo ?? ''), String(nombre), String(codgrupo)], [`comp:${codgrupo}`])
+  }, ['getResultadosGrupo', 'v1', hashCols(cols), String(codequipo ?? ''), String(nombre), String(codgrupo)], [`comp:${codgrupo}`])
 }
 
 // Un chip de racha/forma: signo (para color), jornada, marcador (orden absoluto local-visitante) y
@@ -248,12 +248,13 @@ export async function getCopasConMetricas(codequipo: string | number | null | un
 // jugador: la pastilla de competición incluye la posición del equipo actual y la línea de copas.
 export async function getEquipoActualInfo(codequipo: string | number | null | undefined): Promise<{ copas: CopaEquipo[]; posicionActual: number | null }> {
   if (codequipo == null) return { copas: [], posicionActual: null }
+  const cols = 'copas, posicion_actual'
   return cacheEquipo(async () => {
-    const { data, error } = await supabase.from('web_equipo').select('copas, posicion_actual').eq('codequipo', String(codequipo)).limit(1).maybeSingle()
+    const { data, error } = await supabase.from('web_equipo').select(cols).eq('codequipo', String(codequipo)).limit(1).maybeSingle()
     if (error) throw error   // no cachear vacío por un error transitorio (ver checklist: caché envenenada)
     if (!data) return { copas: [], posicionActual: null }
     return { copas: await resolveCopas((data as { copas?: unknown }).copas), posicionActual: (data as { posicion_actual?: number | null }).posicion_actual ?? null }
-  }, ['getEquipoActualInfo', String(codequipo)], codequipo)
+  }, ['getEquipoActualInfo', 'v1', hashCols(cols), String(codequipo)], codequipo)
 }
 
 // Columnas explícitas de los fetchers (cotejadas con el DDL de _equipos_export.py).
