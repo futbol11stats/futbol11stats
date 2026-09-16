@@ -583,3 +583,36 @@ leyendo el Data Cache viejo. Para refrescar TODAS las fichas sin revalidar 38k t
   elo_percentil_temp (getCarreraV2) y al recalcular los cortes (getPercentilCortes).
 - La revalidación por tag (temporada:/jugador:) sigue sirviendo para cambios acotados (el pipeline la usa).
 - Un redeploy "a secas" NO invalida el Data Cache: no confiar en él para cambios de dato cacheado.
+
+### E-cache-2 · hashCols: derivar la clave del select (opción 2, POR FASES)
+El bump MANUAL de versión recayó 3 veces (getCarreraV2, flag `jugado`, fecha_fin): añadir columna al
+select sin bumpear -> Data Cache sirve filas sin la columna. Solución: `keyParts = [fn, 'v1', hashCols(select), args]`.
+`hashCols` (src/lib/cacheComp.ts) deriva la versión del PROPIO select -> alta/baja de columna = cache-miss
+automático, sin recordar. `'v1'` = versión de LÓGICA (bump manual solo si cambia la transformación post-fetch).
+- **Fase 1 HECHA** (commit f027033, 2026-09-16): getCarreraV2, getPartidosTemporada, getHitosV2 (los 3 que recayeron).
+- **PENDIENTE — propagar a partir del 2026-09-20** a los ~82 getters cacheados restantes (equipoV2, competicionV2,
+  club, campo, partido, alcance, temporadas). **No "en unos días": el 2026-09-20 se propaga.**
+- **Qué verificar de Fase 1:** NADA por espera. El cambio es determinista (hashCols puro) y el dato es IDÉNTICO
+  (solo cambió la clave, no el select) -> no hay rancio-vs-fresco que observar; el único riesgo era un error de
+  runtime del nuevo shape de clave -> **0 errores en 24h (verificado 2026-09-16)**. Por tanto esperar no aporta:
+  el 2026-09-20 se propaga aunque no haya nada más que mirar (dejarlo a medias = el patrón que atacamos).
+- Variante `cachedSelect` (helper que construye query+clave juntas): anotada, más adelante.
+
+### E-vacio-silencio · Helper sel() (lanza ante error) — POR FASES
+Familia "devuelve vacío sin error" (ver PROTOCOLO / memoria). `sel()` (src/lib/supabase.ts) lanza ante error
+en vez de tragar `data=null` como "0 filas".
+- **Tiempo 1 HECHO** (commit f629faf, 2026-09-16): modo por defecto (lanzar ante error). Adoptado en getGrupoInfo
+  (equipo.ts, único sitio quemado aún sin comprobar error) y getMediasPorTemporada (equipoV2.ts, patrón).
+- **PENDIENTE — a partir del 2026-09-20: opt-in `sel(q,{noVacio:true})`** para lecturas donde el vacío es IMPOSIBLE
+  (comp sin grupos, vista vacía). Exige criterio de dominio (equivocarse rompe una lectura legítima) -> por eso va
+  después. **Qué verificar del Tiempo 1:** SÍ tiene contenido real — una lectura que antes erraba en silencio y
+  devolvía vacío ahora LANZA -> observable como error de runtime en fichas de jugador/equipo. 0 en 24h (2026-09-16);
+  revisar de nuevo el 2026-09-20. Si 0 -> aplicar Tiempo 2. Si aparece error, es sel() haciendo su trabajo (fallo
+  real que antes se ocultaba), no una regresión que revertir.
+- **APARTE — RLS silencioso (a comprobar, sin fecha fija):** anon key en lectura de SERVIDOR -> un filtro de permisos
+  devuelve 0 filas SIN error -> ningún helper lo caza (sel() no; solo {noVacio} o usar la clave adecuada en servidor).
+  Fue el mecanismo del count del sitemap. Merece auditoría propia de las lecturas de servidor.
+
+### E-lint-muertos · Linter de exports muertos (knip/ts-prune) — a partir del 2026-09-20
+Contra "existir ≠ renderizarse" (construir sobre superficie muerta: equipo/, tablas.tsx). Añadir knip o ts-prune
+en CI para avisar de componentes/rutas sin importadores. Posterior a las dos fases de arriba.
