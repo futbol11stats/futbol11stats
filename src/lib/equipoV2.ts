@@ -2,7 +2,7 @@
 // copas, temporadas) y replica el sistema de la ficha de jugador v2. Ruta paralela: no toca la ficha
 // de equipo actual ni sus componentes.
 
-import { supabase } from '@/lib/supabase'
+import { supabase, sel } from '@/lib/supabase'
 import { getResultadosGrupo, filaEsLocal, codgrupoFamilia, type ResultadoRow, type EquipoFicha, COLS_EQUIPO } from '@/lib/equipo'
 import { cacheEquipo } from '@/lib/cacheComp'
 import { partidoSlug } from '@/lib/partidoSlug'
@@ -323,12 +323,11 @@ export async function getMediasPorTemporada(codequipo: string): Promise<Record<s
     // las filas de clasificación de COPA (fase de grupos) que el pipeline añade a web_clasificacion -> se
     // colarían por temporada y la "última jornada gana" podría coger una fila de copa. codgrupo_familia IS NULL
     // = liga (mismo patrón que en web_resultados). Las métricas de copa se calculan aparte (getCopasConMetricas).
-    const { data, error } = await supabase.from('web_clasificacion').select('codtemporada, jornada, pts_fantasy, pj, elo')
-      .eq('codequipo', String(codequipo)).is('codgrupo_familia', null).order('jornada', { ascending: true })
-    // No cachear un vacío causado por un error transitorio de la query (p.ej. la columna aún no existía durante
-    // una migración): se propaga y se reintenta, en vez de congelar {} 30 días -que fue la regresión que borró
-    // la MEDIA F. de las tarjetas de liga-.
-    if (error) throw error
+    // sel() propaga el error en vez de congelar {} 30 días: fue la regresión que borró la MEDIA F. de las
+    // tarjetas de liga (añadir el filtro is('codgrupo_familia', null) por una columna nueva hacía fallar la
+    // query -> {} cacheado). Helper "vacío en silencio" (lanza ante error; el vacío legítimo sigue devolviendo []).
+    const data = await sel<any[]>(supabase.from('web_clasificacion').select('codtemporada, jornada, pts_fantasy, pj, elo')
+      .eq('codequipo', String(codequipo)).is('codgrupo_familia', null).order('jornada', { ascending: true }))
     const last = new Map<string, any>()
     for (const r of ((data || []) as any[])) last.set(String(r.codtemporada), r)  // la última jornada gana
     const out: Record<string, { media: number | null; elo: number | null }> = {}

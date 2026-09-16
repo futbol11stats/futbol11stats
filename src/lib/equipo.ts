@@ -2,7 +2,7 @@
 // (slugify, codFromSlug, tempLabel, fechaISO) y la etiqueta de temporada. El escudo se lee directo
 // de las filas (nombre de fichero del bucket, como el resto del sitio) — igual que en la ficha de jugador.
 
-import { supabase } from '@/lib/supabase'
+import { supabase, sel } from '@/lib/supabase'
 import { slugify, codFromSlug, tempLabel } from '@/lib/jugador'
 import { getSueloVivo } from '@/lib/temporadas'
 import { cacheEquipo, cacheTagged } from '@/lib/cacheComp'
@@ -77,10 +77,12 @@ export type ChipRacha = { signo: 'G' | 'E' | 'P'; jornada: number | null; marcad
 // jugador (pastilla de competición del hero) y donde haga falta resolver un grupo desde su código.
 export async function getGrupoInfo(codgrupo: string | null | undefined) {
   if (!codgrupo) return null
-  const { data } = await supabase.from('web_grupos')
+  // sel() lanza si la query da error (columna mala, RLS, red) en vez de devolver null en silencio -> "competición
+  // sin grupos" era este mecanismo (a). El vacío LEGÍTIMO (0 filas) sigue devolviendo null. (Helper "vacío en silencio".)
+  const rows = await sel<Record<string, any>[]>(supabase.from('web_grupos')
     .select('slug_comp, slug_grupo, jornada_actual, categoria, tipo, codtemporada, rondas')
-    .eq('codgrupo', String(codgrupo)).limit(1)
-  return (data && data[0]) as Record<string, any> | null
+    .eq('codgrupo', String(codgrupo)).limit(1))
+  return rows?.[0] ?? null
 }
 
 // URL de la vista de un grupo a partir de su fila de web_grupos (liga -> clasificación; copa -> resultados).

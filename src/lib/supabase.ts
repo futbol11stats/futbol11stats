@@ -5,6 +5,19 @@ const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
 export const supabase = createClient(supabaseUrl, supabaseKey)
 
+// Ejecuta una lectura de Supabase y LANZA si la query dio error, en vez de devolver el vacío en silencio.
+// Mata el mecanismo más común de "resultado vacío sin rastro": `const { data } = await q` sin mirar `error`
+// -> si la query falla (columna inexistente, error de RLS, red) `data` viene null y se trataba como "0 filas"
+// (y dentro de unstable_cache ese vacío se congela 30 días). Con sel() el fallo se propaga en vez de mentir.
+// NO cambia el vacío LEGÍTIMO: 0 filas sin error devuelve [] / null tal cual. OJO: el caso RLS que filtra SIN
+// error (0 filas, status 200, p.ej. lectura de servidor con anon key) NO lo caza esto -> pendiente aparte
+// (clave adecuada en servidor) y el opt-in {noVacio} para lecturas donde el vacío es imposible (fase 2).
+export async function sel<T>(query: PromiseLike<{ data: T | null; error: unknown }>): Promise<T | null> {
+  const { data, error } = await query
+  if (error) throw error
+  return data
+}
+
 // Construye la URL pública de un escudo en Supabase Storage a partir del filename
 export function escudoUrl(filename: string | null): string | null {
   if (!filename) return null
