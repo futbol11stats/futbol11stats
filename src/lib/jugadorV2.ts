@@ -426,5 +426,3 @@ export function nivelDe(valor: number | null, cortes: readonly [number, number, 
   if (valor == null) return null
   return escalon(valor, cortes)
 }
-
-export { tempLabel }
