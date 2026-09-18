@@ -9,9 +9,11 @@ import { parseCampo, campoLabel } from '@/lib/campoSlug'   // para campoMapsUrl;
 // personas; no consultan web_jugador.
 //
 // Notas de datos (verificadas 2026-08):
-//  - ESCUDO del club: web_club.escudo trae la RUTA RFFM cruda (/pnfg/pimg/Clubes/...), no el hash rehospedado
-//    que usan los escudos de equipo -> con escudoUrl() daría 404. Se usa el escudo del PRIMER EQUIPO (crest
-//    limpio del club) en su lugar. Pendiente en el pipeline: rehospedar los escudos de club (ver PENDIENTES).
+//  - ESCUDO del club: web_club.escudo YA es un hash rehospedado válido (el pipeline lo rehospeda). ANTES era la
+//    ruta RFFM cruda (/pnfg/pimg/Clubes/...) y por eso el código lo ignoraba y usaba el del primer equipo -> ese
+//    comentario SOBREVIVIÓ A SU VERDAD y siguió desviando 110 fichas al crest CONGELADO del equipo (los escudos
+//    de equipo no se refrescan). Ahora se PREFIERE web_club.escudo (sí sigue el rebrand del club), con FALLBACK
+//    al escudo del primer equipo cuando falta (null) o es aún ruta cruda. Ver escudoClub().
 //  - NOMBRE del club: web_club.nombre_club viene NULL en 84 clubes; se cae a web_equipo.nombre_club (poblado).
 //  - CAMPO: no es del club (sus equipos juegan en instalaciones distintas). Va por EQUIPO, de su TEMPORADA MÁS
 //    RECIENTE con partidos (su último campo conocido); NINGUNO si no hay uno claro -> silencio.
@@ -67,6 +69,16 @@ function escudoPrimerEquipo(equipos: { rama: string | null; nivel: number | null
   return con[0].escudo
 }
 
+// Escudo del club: PREFIERE web_club.escudo (hash rehospedado que SÍ sigue el rebrand del club), con fallback al
+// del primer equipo cuando falta (null) o es aún ruta cruda ('/'). Ver la nota de cabecera (comentario caduco).
+function escudoClub(
+  clubEscudo: string | null | undefined,
+  equipos: { rama: string | null; nivel: number | null; temp: number; escudo: string | null }[],
+): string | null {
+  if (clubEscudo && !clubEscudo.includes('/')) return clubEscudo
+  return escudoPrimerEquipo(equipos)
+}
+
 // CAPA 1 de la validación de portal_web: SOLO formato. La RFFM guarda ahí a menudo emails, @handles, '.',
 // nombres con espacios o esquemas rotos ('www://'). Devuelve una URL absoluta bien formada, o null (y entonces
 // ni se enlaza ni va en sameAs). CAPA 2 (que RESPONDE y no está parqueado/en venta): el flag web_club.portal_web_ok
@@ -119,9 +131,9 @@ export async function getClubesIndex(): Promise<ClubIndexRow[]> {
       ultimo = String((data[data.length - 1] as { codequipo: string }).codequipo)
       if (data.length < 1000) break
     }
-    const { data: clubs, error } = await supabase.from('web_club').select('codclub, nombre_club, localidad, provincia')
+    const { data: clubs, error } = await supabase.from('web_club').select('codclub, nombre_club, escudo, localidad, provincia')
     if (error) throw error
-    const meta = new Map<string, { nombre_club: string | null; localidad: string | null; provincia: string | null }>(
+    const meta = new Map<string, { nombre_club: string | null; escudo: string | null; localidad: string | null; provincia: string | null }>(
       (clubs || []).map((c: any) => [String(c.codclub), c]))
     const out: ClubIndexRow[] = []
     for (const [cc, a] of Array.from(acc)) {
@@ -129,7 +141,7 @@ export async function getClubesIndex(): Promise<ClubIndexRow[]> {
       out.push({
         codclub: cc,
         nombre: (m?.nombre_club) || a.nombre || '',
-        escudo: escudoPrimerEquipo(a.equipos),
+        escudo: escudoClub(m?.escudo, a.equipos),
         localidad: m?.localidad ?? null, provincia: m?.provincia ?? null,
         nEquipos: a.n, maxTemp: a.maxTemp || null,
         codgrupos: Array.from(a.codgrupos),
@@ -141,7 +153,7 @@ export async function getClubesIndex(): Promise<ClubIndexRow[]> {
     // que los índices de competición: el build/render no debe publicar un vacío que parezca correcto.
     if (out.length === 0) throw new Error('[indices] getClubesIndex quedó vacío (¿BD saturada?)')
     return out
-  }, ['getClubesIndex', 'v4-codgrupos'])
+  }, ['getClubesIndex', 'v5-club-escudo'])   // v5: + web_club.escudo al select y escudoClub() (prefiere el escudo del club). BUMP MANUAL obligado: getter compuesto, fuera de hashCols -> sin bump serviría filas sin la columna.
 }
 
 export type ClubEquipoRow = {
@@ -162,7 +174,7 @@ export async function getClub(codclub: string): Promise<ClubFicha | null> {
   return cacheClub(async () => {
     // web_club: metadatos publicables (SIN domicilio/CIF/CP). Puede faltar la fila o el nombre.
     const { data: cRaw, error } = await supabase.from('web_club')
-      .select('codclub, nombre_club, localidad, provincia, delegacion, portal_web, portal_web_ok')
+      .select('codclub, nombre_club, escudo, localidad, provincia, delegacion, portal_web, portal_web_ok')
       .eq('codclub', codclub).limit(1).maybeSingle()
     if (error) throw error
     // Equipos del club (SOLO nombre de EQUIPO, nunca personas).
@@ -175,8 +187,8 @@ export async function getClub(codclub: string): Promise<ClubFicha | null> {
     if (todos.length === 0) return null   // sin equipos -> no hay página
 
     const nombre = (cRaw as any)?.nombre_club || todos.find((e) => e.nombre_club)?.nombre_club || 'Club'
-    // Escudo del club = escudo del PRIMER EQUIPO (web_club.escudo es la ruta RFFM cruda, inservible).
-    const escudo = escudoPrimerEquipo(todos.map((e) => ({ rama: e.rama, nivel: e.categoria_nivel, temp: Number(e.codtemporada) || 0, escudo: e.escudo })))
+    // Escudo del club: web_club.escudo (hash rehospedado, sigue el rebrand) con fallback al primer equipo. Ver escudoClub().
+    const escudo = escudoClub((cRaw as any)?.escudo, todos.map((e) => ({ rama: e.rama, nivel: e.categoria_nivel, temp: Number(e.codtemporada) || 0, escudo: e.escudo })))
 
     // SIN dedup por nombre: cada codequipo es un equipo (una ficha) distinto. Deduplicar por (nombre+rama+categoría)
     // BORRABA equipos reales cuando dos filiales comparten esa terna: p.ej. Nuevo Boadilla tiene dos equipos 'G'
@@ -198,5 +210,5 @@ export async function getClub(codclub: string): Promise<ClubFicha | null> {
       portal_web: (cRaw as any)?.portal_web_ok === true ? portalWebValido((cRaw as any)?.portal_web) : null,
       equipos, maxTemp,
     }
-  }, ['getClub', 'v7-club-tag', codclub], codclub)   // v7: bump para reescribir con el tag club:<codclub> (antes 'indices')
+  }, ['getClub', 'v8-club-escudo', codclub], codclub)   // v8: + web_club.escudo al select y escudoClub(). BUMP MANUAL obligado: getter compuesto, fuera de hashCols -> sin bump serviría filas sin la columna (el arreglo no se vería).
 }

@@ -88,6 +88,22 @@ por la etiqueta VIEJA, no solo por la nueva.
 
 ---
 
+## Comentarios que sobreviven a su verdad (una nota vieja que sigue desviando la lectura)
+
+Un comentario escribió una verdad que después dejó de serlo, y nadie lo revisó: el código siguió obedeciéndolo.
+No falla nada, nadie miente, y el dato bueno está ahí sin usarse — solo porque una nota vieja decía que no servía.
+
+- **Caso testigo (2026-09):** `club.ts` decía «`web_club.escudo` es la ruta RFFM cruda, inservible → usar el del
+  primer equipo». Era cierto cuando se escribió. El pipeline rehospedó los escudos de club (ya son hash válido),
+  pero el comentario sobrevivió y siguió desviando **110 fichas de club** al crest CONGELADO del equipo, mientras
+  el bueno estaba en `web_club.escudo` sin leerse. Lo mostraba el buscador (que sí lee ese campo), no la ficha.
+- **Regla de revisión (añadir al repaso antes de commit):** DESCONFÍA de los comentarios que justifican NO usar
+  algo («esto no sirve / está vacío / roto», «se usa X en su lugar porque Y»). Pueden ser verdad de cuando se
+  escribieron y no de hoy — sobre todo si «Y» era un pendiente de otro sistema (pipeline) que quizá ya se resolvió.
+  Compruébalo contra el dato ACTUAL antes de obedecer la nota; si cambió, corrige la nota en el mismo commit.
+
+---
+
 ## Objetos de BD compartidos — avisos del advisor ACEPTADOS (no revertir)
 
 Algunos avisos del *security advisor* de Supabase están **aceptados a propósito**. No los "arregléis" a ciegas
