@@ -1,13 +1,15 @@
 # PETICIÓN AL PIPELINE — El escudo es del CLUB: los equipos deben HEREDARLO (origen único)
 
-**Resumen:** hoy guardamos una copia del escudo por equipo (`web_equipo.escudo`) y la replicamos denormalizada en ~18 tablas. El del **club** (`web_club.escudo`) se refresca con el rebrand; las copias de equipo **no**, y se desincronizan. La web ya arregló las superficies de club (leen `web_club.escudo`, deploy `d516cf6`), pero **las de equipo siguen leyendo copias que envejecen**. Petición: **origen único = `web_club.escudo`, propagado a todas las columnas de escudo de equipo en el ciclo donde ya se refresca el club**; y **retirar `refrescar_escudos` para equipos**.
+**Resumen:** hoy guardamos una copia del escudo por equipo (`web_equipo.escudo`) y la replicamos denormalizada en ~18 tablas. El del **club** (`web_club.escudo`) se refresca en su ciclo; las copias de equipo solo con `refrescar_escudos` **a mano** (no hay ciclo), así que se desincronizan entre pasadas. La web ya arregló las superficies de club (leen `web_club.escudo`, deploy `d516cf6`), pero **las de equipo siguen leyendo copias que envejecen**. Petición: **origen único = `web_club.escudo`, propagado a todas las columnas de escudo de equipo en el ciclo donde ya se refresca el club**; y **retirar `refrescar_escudos` para equipos** (queda redundante).
 
-## Por qué (el hallazgo que lo cierra)
-`refrescar_escudos.py --equipos 3347325 --apply` → **0 cambios**. La propia RFFM sirve para el **equipo** 3347325 el escudo viejo (pre-rebrand); el nuevo **solo existe en el nivel CLUB** de la RFFM (→ `web_club.escudo`). Es decir: **`refrescar_escudos` es INÚTIL justo para los rebrands**, que son los casos que importan. No se re-scrapea el equipo: no hay de dónde sacar el nuevo por esa vía.
+## Por qué
+El escudo es un atributo del CLUB; el que mostramos por equipo es una **copia denormalizada** de la misma referencia, replicada en ~18 tablas. `web_club.escudo` se refresca en su ciclo; las copias de equipo solo con `refrescar_escudos` **a mano** → entre pasadas se desincronizan (110 fichas de club divergentes antes del fix; 184 clubes incoherentes entre sus propios equipos). El problema **no es la herramienta** —`refrescar_escudos` consulta `/fichaequipo`, que devuelve el `escudo_club` actualizado, y refresca bien— sino que **hay ~2.000 copias que mantener sincronizadas a mano**. Heredar del club elimina la sincronización entera: una sola referencia, poblada donde ya se refresca el club.
+
+> **Nota factual (corrige una versión anterior de este doc):** el `0 cambios` de `refrescar_escudos --equipos 3347325` fue un **re-run POSTERIOR** a haberlo aplicado ya (el dry-run detectó y aplicó `Logo_Atl_tico… → IMG_1134.png`). NO prueba que la herramienta no sirva — **sí sirve**. `refrescar_escudos` es *innecesaria* con la herencia desplegada, **no inútil**.
 
 ## El problema, en números
 - **110 clubes**: `web_club.escudo` (nuevo) ≠ escudo del primer equipo (lo que mostraba la ficha antes del fix).
-- **184 clubes (31,3% de 587 con escudo)**: sus propios equipos tienen escudos **distintos entre sí** (hasta 4 en un club) — desincronización pura, no variedad legítima (la RFFM expone un escudo por equipo que envejece por su cuenta).
+- **184 clubes (31,3% de 587 con escudo)**: sus propios equipos tienen escudos **distintos entre sí** (hasta 4 en un club) — desincronización, no variedad legítima: copias de equipo actualizadas en momentos distintos (solo con `refrescar_escudos` a mano, sin ciclo).
 - No hay casos legítimos de escudo distinto por equipo: lo único que diferenciaría sería temporal (crest de una época), y el sitio no usa escudos por época.
 
 ## La petición
@@ -32,7 +34,9 @@ De **1.933 equipos**: **1.768 (91,5%)** tienen club con escudo válido → hered
 **Criterio propuesto:** si el equipo no tiene club, o el club no tiene escudo válido → **conservar el escudo scrapeado del propio equipo** (lo de hoy) como fallback; si tampoco hay, `null`. Así nadie pierde imagen y el 91,5% pasa a fuente única.
 
 ### 4 · Retiro de `refrescar_escudos` para equipos
-No solo sobra: **no funciona para el caso que la justificaba**. Los escudos de equipo se pedían para captar cambios de crest, pero en un rebrand la RFFM deja el escudo del EQUIPO desfasado y solo actualiza el del CLUB (probado en 3347325: 0 cambios). Con herencia del club, el refresco por equipo no aporta nada. **La pasada de 1.567 no se lanza** — no habría arreglado nada.
+**Redundante** con la herencia: si cada copia de equipo se puebla desde `web_club.escudo`, ya no hay copia que sincronizar a mano. `refrescar_escudos` **funciona** (consulta `/fichaequipo` → `escudo_club` actualizado; en 3347325 detectó y aplicó `Logo_Atl_tico… → IMG_1134.png`), pero deja de tener sentido mantener una pasada manual sobre ~2.000 copias cuando el origen único las cubre solo.
+
+**Matiz operativo (importante mientras tanto):** hasta que la herencia esté desplegada, `refrescar_escudos` **SIGUE siendo una opción válida** para arreglar casos visibles — es *innecesaria a futuro, no inútil hoy*. Lo que NO se lanza es la **pasada masiva de 1.567**: no compensa mantener a mano un modelo que va a desaparecer (y un solo caso detectado no justifica barrer 1.567).
 
 ### 5 · Hallazgo sistémico (regla, no solo este caso)
 La denormalización **club → equipo** existe en varios atributos: **nombre**, **campo**, **escudo**. Nombre y campo están copiados **Y** mantenidos (funcionan); el escudo se copió y **nadie lo mantenía sincronizado** → se rompió. **Regla: cuando se copia un atributo de padre a hijo, la pregunta no es si copiarlo, sino QUIÉN LO MANTIENE.** Sugerencia: auditar el resto de atributos denormalizados padre→hijo y confirmar que cada copia tiene un dueño de sincronización; el escudo era el que no lo tenía.
