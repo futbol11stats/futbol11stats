@@ -73,13 +73,17 @@ export async function fichasInfo(codjugadores: (string | number | null | undefin
 }
 
 // Columnas explícitas de los 4 fetchers de la ficha (evita SELECT *; cotejadas con el DDL del pipeline).
+// NO se leen los rank_* de web_jugador (rank_general/_total, rank_categoria/_total, rank_posicion/_total):
+// el bloque Nivel pinta los de la TEMPORADA, que viven en web_jugador_carrera (rank_general_season,
+// rank_sub23_season, rank_juvenil_season, rank_categoria_temp, rank_posicion_temp, fila rank_principal)
+// y se rankean contra OTRO censo (los de la temporada, ~23,9k) distinto del histórico (~39,8k). No los
+// vuelvas a añadir aquí pensando que alimentan RankFila: no lo hacen.
 export const COLS_JUGADOR =
   'codjugador, nombre, anio_nacimiento, edad, posicion_federativa, posicion_pastilla, posicion_es_estimada, ' +
   'codequipo_actual, equipo_actual_nombre, escudo_actual, codtemporada_ultima, elo_actual, elo_percentil, ' +
   'elo_max, temporada_elo_max, elo_serie, categoria_rama, categoria_nivel, rating_f11s, rating_f11s_fuente, rating_serie, ' +
   'trayectoria_completa, pj_total, goles_total, minutos_total, temporadas, titular_total, suplente_total, ' +
-  'dorsal_ultimo, dorsal_comun, dorsales_otros, rank_general, rank_general_total, rank_categoria, ' +
-  'rank_categoria_total, rank_posicion, rank_posicion_total, es_portero, goles_encajados_total, ' +
+  'dorsal_ultimo, dorsal_comun, dorsales_otros, es_portero, goles_encajados_total, ' +
   'porterias_cero_total, gc_pj, companeros_top'
 
 export const COLS_CARRERA =
@@ -134,12 +138,6 @@ export type JugadorFicha = {
   dorsal_ultimo: number | null
   dorsal_comun: number | null
   dorsales_otros: number[] | null
-  rank_general: number | null
-  rank_general_total: number | null
-  rank_categoria: number | null
-  rank_categoria_total: number | null
-  rank_posicion: number | null
-  rank_posicion_total: number | null
   es_portero: boolean | null
   goles_encajados_total: number | null
   porterias_cero_total: number | null
