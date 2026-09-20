@@ -527,7 +527,9 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
           {companeros.length > 0 && (
             <section id="s-mates">
               {/* slice(0,6) preparado para dos filas de tres, pero web_jugador.companeros_top viene con
-                  exactamente 5 desde el pipeline: el subtítulo refleja el nº real y saldrá 6 solo. */}
+                  exactamente 5 desde el pipeline: el subtítulo refleja el nº real y saldrá 6 solo.
+                  El orden por ELO lo pone companerosActivos() (el payload llega en orden estable por
+                  codjugador y sin ELO, para que no se re-suba la ficha cada noche). */}
               <SectionHeader title="Ha jugado con" sub={`top ${companeros.length} por ELO`} />
               <div className="track"><div className="rail">
                 {companeros.map((c: CompaneroTop) => {

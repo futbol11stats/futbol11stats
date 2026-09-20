@@ -150,11 +150,15 @@ export type JugadorFicha = {
 export type CompaneroTop = {
   codjugador: string
   nombre: string
-  posicion_pastilla: string | null
-  posicion_es_estimada: boolean | null
+  posicion_pastilla?: string | null
+  posicion_es_estimada?: boolean | null
   escudo_actual: string | null
   equipo_actual: string | null
-  elo: number | null
+  // OPCIONAL A PROPÓSITO: el pipeline deja de exportar el ELO dentro del payload (era una copia
+  // denormalizada de web_jugador.elo_actual que cambiaba cada noche y re-subía la ficha entera).
+  // companerosActivos() lo lee de la fila del compañero y solo usa este como respaldo mientras
+  // convivan los dos formatos de export.
+  elo?: number | null
 }
 
 // "Ha jugado con": deja solo compañeros ACTIVOS en la temporada actual o la anterior (codtemporada_ultima
@@ -163,18 +167,44 @@ export type CompaneroTop = {
 // coincide con el numérico). NOTA: web_jugador.companeros_top viene capado (~5-6) por el pipeline, así que
 // tras filtrar puede quedar por debajo de 6 y NO hay pool para "coger el siguiente que cumpla"; para
 // rellenar hasta 6 el pipeline tendría que exportar una lista más larga (idealmente con codtemporada_ultima).
+//
+// ELO Y ORDEN: el payload guarda el CONJUNTO en orden estable por codjugador, SIN el ELO. Quien ordena
+// es esta función, con el elo_actual leído de la fila de cada compañero — en la consulta que esta función
+// YA hacía para filtrar por temporada, o sea sin consulta extra. Así companeros_top solo cambia cuando
+// cambia el CONJUNTO, no cada noche que un compañero juega (era el 72% de las re-subidas de fichas).
+// Mientras convivan los dos formatos de export se cae al elo del payload si la fila no lo trae.
 export async function companerosActivos(companeros: CompaneroTop[]): Promise<CompaneroTop[]> {
   if (!companeros.length) return []
   const ids = companeros.map((c) => c.codjugador)
   const [lastRes, maxRes] = await Promise.all([
-    supabase.from('web_jugador').select('codjugador, codtemporada_ultima').in('codjugador', ids),
+    supabase.from('web_jugador').select('codjugador, codtemporada_ultima, elo_actual').in('codjugador', ids),
     supabase.from('web_jugador').select('codtemporada_ultima').order('codtemporada_ultima', { ascending: false }).limit(1),
   ])
-  const ult = new Map<string, number>(((lastRes.data || []) as any[]).map((r) => [String(r.codjugador), parseInt(r.codtemporada_ultima, 10)]))
+  const filas = new Map<string, { ult: number; elo: number | null }>(
+    ((lastRes.data || []) as any[]).map((r) => [
+      String(r.codjugador),
+      { ult: parseInt(r.codtemporada_ultima, 10), elo: r.elo_actual != null ? Number(r.elo_actual) : null },
+    ]),
+  )
   const actual = maxRes.data?.[0] ? parseInt((maxRes.data[0] as any).codtemporada_ultima, 10) : 0
-  if (!actual) return companeros // sin referencia de temporada -> no filtrar (mejor mostrar que ocultar)
-  return companeros.filter((c) => {
-    const u = ult.get(String(c.codjugador))
+  // ELO vivo de la fila; el del payload solo como respaldo (export antiguo / fila sin ELO).
+  const conElo = companeros.map((c) => {
+    const f = filas.get(String(c.codjugador))
+    return { ...c, elo: f?.elo ?? c.elo ?? null }
+  })
+  // Sin ELO van al final; el desempate por codjugador mantiene el HTML estable entre regeneraciones ISR.
+  const ordenados = conElo.sort((a, b) => {
+    if (a.elo == null || b.elo == null) {
+      if (a.elo != null) return -1
+      if (b.elo != null) return 1
+    } else if (a.elo !== b.elo) {
+      return b.elo - a.elo
+    }
+    return a.codjugador.localeCompare(b.codjugador)
+  })
+  if (!actual) return ordenados // sin referencia de temporada -> no filtrar (mejor mostrar que ocultar)
+  return ordenados.filter((c) => {
+    const u = filas.get(String(c.codjugador))?.ult
     return u != null && u >= actual - 1
   })
 }
