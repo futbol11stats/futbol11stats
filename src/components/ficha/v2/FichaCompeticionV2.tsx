@@ -330,9 +330,12 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
         //  · SEMÁNTICA: `pj` de esta tabla son los partidos de ESTA temporada, pero la horquilla es de
         //    CARRERA. El gate de 5 partidos queda, por tanto, más duro aquí que en la ficha (que usa
         //    pj_total). Si el pipeline publica pj de carrera en esta tabla, cambiar aquí.
-        // La llama a px=3 mide 42px de alto y la fila .pl hoy mide ~36 (móvil) / ~34 (escritorio, donde
-        // el meta sube a la línea del nombre): la fila CRECE ~8px. Con px={2} (22×28) no crece.
-        pre: <PrimeValor pct={calcPrime(j.elo, j.elo_min, j.elo_max, j.pj)} px={3} />,
+        // px=2 (22×28) Y NO 3: a px=3 la llama mide 42px de alto y la fila .pl mide hoy ~36 (móvil) /
+        // ~34 (escritorio, donde el meta sube a la línea del nombre) -> la fila crecía ~8px, y el
+        // requisito es que NO crezca. px debe seguir siendo ENTERO: el viewBox es 11×14 y crispEdges
+        // solo mantiene el borde nítido con escala exacta, así que no hay 2,4 intermedio.
+        // En la ficha de jugador la llama va a px=9, donde no compite con ninguna fila.
+        pre: <PrimeValor pct={calcPrime(j.elo, j.elo_min, j.elo_max, j.pj)} px={2} />,
         valor: fmtNum(j.elo), valorColor: colorElo(j.elo) || 'var(--e1)',
         extra: datosEloTemp(j),
       })),
