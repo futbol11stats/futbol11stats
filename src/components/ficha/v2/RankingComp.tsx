@@ -16,6 +16,7 @@ export type RankItem = {
   valor: ReactNode
   valorColor?: string
   extra?: ReactNode                 // línea de contexto bajo el nombre (PJ · ratio · …)
+  pre?: ReactNode                   // a la izquierda del valor (Prime). Solo lo usa el top de ELO.
   barPct?: number | null            // barra de progreso (0-100) opcional
 }
 
@@ -30,7 +31,7 @@ export default function RankingComp({ items, fichas, barColor }: {
       <div>
         {items.map((r, i) => (
           <FilaJugador key={i} rank={r.rank} rankColor={r.rankColor} codjugador={r.codjugador} nombre={r.nombre}
-            pos={r.pos} escudo={r.escudo} nombreEquipo={r.nombreEquipo} datos={r.extra} valor={r.valor} valorColor={r.valorColor} fichas={fichas} />
+            pos={r.pos} escudo={r.escudo} nombreEquipo={r.nombreEquipo} datos={r.extra} pre={r.pre} valor={r.valor} valorColor={r.valorColor} fichas={fichas} />
         ))}
       </div>
     )

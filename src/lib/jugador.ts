@@ -119,6 +119,11 @@ export type JugadorFicha = {
   elo_actual: number | null
   elo_percentil: number | null
   elo_max: number | null
+  // PRIME (ver lib/prime.ts). OPCIONAL y AÚN NO EN COLS_JUGADOR a propósito: la columna elo_min no
+  // existe todavía en web_jugador y pedirla en el select daría 400 en PostgREST -> getJugadorV2 null
+  // -> fichas caídas. Cuando el pipeline la publique: añadirla a COLS_JUGADOR (hashCols invalida la
+  // caché sola) y esto pasa a pintarse. elo_max ya está arriba y es de CARRERA, que es lo que toca.
+  elo_min?: number | null
   temporada_elo_max: string | null
   elo_serie: { t: string; elo: number }[] | null
   categoria_rama: string | null

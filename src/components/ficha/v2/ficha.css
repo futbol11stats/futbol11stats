@@ -388,6 +388,12 @@
 .fjv2 .pl-minbar{height:4px;border-radius:2px;background:rgba(255,255,255,.09);margin-top:6px;overflow:hidden}
 .fjv2 .pl-minbar span{display:block;height:100%;border-radius:2px}
 .fjv2 .pl-minv{font-size:var(--t-body);font-weight:600;color:var(--ink-3);flex:none}
+/* Hueco a la izquierda de la pastilla de valor (hoy: llama del Prime + su %). flex:none para que no
+   lo comprima la fila; el alto lo fija la llama (px=3 -> 42px), ver nota en FichaCompeticionV2. */
+.fjv2 .pl-pre{flex:none;display:flex;align-items:center}
+/* Prime de la ficha de jugador: rótulo a la izquierda, llama en medio, % a la derecha en grande. */
+.fjv2 .prime-row{display:flex;align-items:center;gap:18px;margin-top:13px}
+.fjv2 .prime-row .prime-k{font-size:var(--t-body);font-weight:600;text-transform:uppercase;letter-spacing:.12em;color:var(--ink-3);flex:none}
 .fjv2 .pl-val{font-family:var(--font-display),'Barlow Condensed',sans-serif;font-weight:700;font-size:var(--n-sm);padding:4px 8px;border-radius:5px;color:#08111f;flex:none}
 /* Fila de datos bajo el nombre (PJ · Min · Goles/P.a cero · tarjetas), número + icono. */
 .fjv2 .pl-stats{display:flex;flex-wrap:wrap;align-items:center;gap:4px 9px;font-family:var(--font-display),'Barlow Condensed',sans-serif;font-size:var(--t-cap);font-weight:600;color:var(--ink-3);font-variant-numeric:tabular-nums}

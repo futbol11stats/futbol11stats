@@ -25,6 +25,8 @@ import KpiJugador, { type CompKpi } from '@/components/ficha/v2/KpiJugador'
 import NivelElo, { type CompPct } from '@/components/ficha/v2/NivelElo'
 import CompReset from '@/components/ficha/v2/CompReset'
 import RankFila from '@/components/ficha/v2/RankFila'
+import Prime from '@/components/ui/Prime'
+import { calcPrime } from '@/lib/prime'
 import Echo from '@/components/ficha/v2/Echo'
 import Jornadas from '@/components/ficha/v2/Jornadas'
 import {
@@ -435,6 +437,27 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
                   : null} />
               {/* Evolución del ELO (cierre por temporada) — mismo sparkline que la ficha actual (Medidores). */}
               <EloSparkline serie={j.elo_serie || []} className="w-full h-9 mt-3" />
+              {/* PRIME — dónde está dentro de SU horquilla histórica de ELO. Se deriva al pintar, nunca se
+                  guarda (lib/prime.ts). Null → no se pinta nada, igual que el Rating.
+                  USA eloBig (el ELO de la temporada SELECCIONADA), no elo_actual, para que el bloque entero
+                  siga contando lo mismo: con una temporada vieja elegida, elo_actual mezclaría el ELO de hoy
+                  con un gráfico de entonces — el bug que la ficha de EQUIPO ya documenta ("NUNCA elo_actual,
+                  que es GLOBAL"). En la temporada viva, eloBig ES el ELO actual. La horquilla (mín/máx) sí es
+                  de carrera siempre: es el recorrido completo contra el que se mide. */}
+              {(() => {
+                const pct = calcPrime(eloBig, j.elo_min, j.elo_max, j.pj_total)
+                if (pct == null) return null
+                return (
+                  <div className="prime-row">
+                    <span className="prime-k">Prime</span>
+                    <Prime pct={pct} px={9} decorativo />
+                    <span style={{
+                      marginLeft: 'auto', fontFamily: "var(--font-display), 'Barlow Condensed', sans-serif",
+                      fontSize: 46, fontWeight: 700, lineHeight: 1, fontVariantNumeric: 'tabular-nums',
+                    }}>{Math.round(pct)}%</span>
+                  </div>
+                )
+              })()}
               {/* Rating F11S de la TEMPORADA seleccionada, REACTIVO como el resto de la ficha: sale de
                   rating_serie[tempSel], no del escalar estático rating_f11s. Percentil contra TODA la rama de
                   aficionados madrileña (escala única fijada por el pipeline a rama='aficionados', NO por categoría

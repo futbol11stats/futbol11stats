@@ -27,6 +27,8 @@ import { colorElo } from '@/lib/equipoV2'
 import { fichasInfo } from '@/lib/jugador'
 import { ZONA_BG, ZONA_LEYENDA, ARRASTRE_TIPOS } from '@/components/zonasClasif'
 import { type Ronda } from '@/lib/competiciones'
+import { PrimeValor } from '@/components/ui/Prime'
+import { calcPrime } from '@/lib/prime'
 import RankingComp, { type RankItem } from '@/components/ficha/v2/RankingComp'
 import CarreraPosiciones from '@/components/ficha/v2/CarreraPosiciones'
 import { FilaEspejo, EspejoHead } from '@/components/ficha/v2/barrasGoles'
@@ -319,6 +321,18 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
       title: 'ELO jugadores', sub: `tras J${jornadaNum}`,
       items: topTemp.elo.map((j, i) => ({
         rank: j.rank ?? i + 1, codjugador: j.codjugador, nombre: j.nombre, pos: j.posicion, escudo: j.escudo, nombreEquipo: j.nombre_equipo,
+        // PRIME a la izquierda del ELO. Se deriva aquí (nunca se guarda) de elo_min/elo_max, que YA están
+        // en COLS_TOP_JUGADORES: mientras el pipeline no los pueble vienen null y no se pinta nada.
+        // OJO CON DOS COSAS al publicar el dato:
+        //  · la CAPÍA no salta sola. elo_min/elo_max ya están en el select, así que hashCols NO cambia
+        //    y las páginas cacheadas seguirán sirviendo el null hasta que el pipeline revalide su
+        //    comp:<codgrupo> (o hasta el próximo deploy). En la ficha de jugador sí salta sola.
+        //  · SEMÁNTICA: `pj` de esta tabla son los partidos de ESTA temporada, pero la horquilla es de
+        //    CARRERA. El gate de 5 partidos queda, por tanto, más duro aquí que en la ficha (que usa
+        //    pj_total). Si el pipeline publica pj de carrera en esta tabla, cambiar aquí.
+        // La llama a px=3 mide 42px de alto y la fila .pl hoy mide ~36 (móvil) / ~34 (escritorio, donde
+        // el meta sube a la línea del nombre): la fila CRECE ~8px. Con px={2} (22×28) no crece.
+        pre: <PrimeValor pct={calcPrime(j.elo, j.elo_min, j.elo_max, j.pj)} px={3} />,
         valor: fmtNum(j.elo), valorColor: colorElo(j.elo) || 'var(--e1)',
         extra: datosEloTemp(j),
       })),
