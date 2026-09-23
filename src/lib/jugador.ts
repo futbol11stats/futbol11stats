@@ -130,8 +130,12 @@ export type JugadorFicha = {
   categoria_nivel: number | null
   rating_f11s: number | null
   rating_f11s_fuente: string | null
-  // Trayectoria del Rating F11S por temporada en 3ª RFEF (JSONB). Cada r es el PERCENTIL de ESA temporada
-  // (0-100), NO una escala absoluta como el ELO. Puede faltar temporadas (no interpolar) y un solo punto vale.
+  // Trayectoria del Rating F11S por temporada (JSONB). Cada r es el PERCENTIL de ESA temporada (0-100), NO
+  // una escala absoluta como el ELO. Puede faltar temporadas (no interpolar) y un solo punto vale.
+  // ALCANCE (corregido 2026-09-23): el pool es TODA la rama aficionada — 3ª RFEF, Preferente, 1ª y 2ª
+  // Aficionados, 1ª Autonómica —, no solo 3ª RFEF como decía este comentario; 3ª RFEF es hoy la quinta
+  // categoría por volumen de ratings. Solo lo reciben jugadores con posición conocida, y el juvenil queda
+  // fuera. Ver /sobre, sección Rating F11S.
   rating_serie: { t: string; r: number }[] | null
   trayectoria_completa: boolean | null
   pj_total: number | null

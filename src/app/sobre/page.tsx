@@ -12,7 +12,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const alc = await getAlcance()
   return {
     title: 'Sobre Fútbol11Stats — qué es y cómo medimos | Fútbol11Stats',
-    description: `Fútbol11Stats es un proyecto independiente que documenta el fútbol aficionado y juvenil de Madrid: ${fmtNum(floorAprox(alc.jugadores))} jugadores y ${fmtNum(floorAprox(alc.equipos))} equipos desde 2021-22, con ELO, Puntos Fantasy y Ranking F11S.`,
+    description: `Fútbol11Stats es un proyecto independiente que documenta el fútbol aficionado y juvenil de Madrid: ${fmtNum(floorAprox(alc.jugadores))} jugadores y ${fmtNum(floorAprox(alc.equipos))} equipos desde 2021-22, con ELO, Prime, Puntos Fantasy y Rating F11S.`,
     alternates: { canonical: '/sobre' },
   }
 }
@@ -46,7 +46,7 @@ El alcance es el de las competiciones de la **Real Federación de Fútbol de Mad
 
 ## Cómo medimos
 
-Tres indicadores propios acompañan a los datos. Son herramientas de lectura, no veredictos: sirven para comparar y para hacerse una idea, nunca para decidir nada.
+Estos son los indicadores que calculamos nosotros. Son herramientas de lectura, no veredictos: sirven para comparar y para hacerse una idea, nunca para decidir nada.
 
 ### ELO
 
@@ -54,19 +54,49 @@ El **ELO de un equipo** se mueve con cada resultado y mide su rendimiento frente
 
 El **ELO de un jugador** mide otra cosa: la **regularidad con la que rinde por encima de la media de su propio equipo**, partido a partido. No compite contra el rival, sino contra sus compañeros de esa tarde; la exigencia del adversario sí influye en cuánto se mueve el valor. Es una trayectoria continua a lo largo de su carrera, que no se reinicia al cambiar de club.
 
-Dos consecuencias que conviene tener presentes al leerlo. Un ELO alto habla de **dominio dentro del propio contexto**, no de nivel absoluto en la pirámide: el mejor jugador de un equipo modesto puede superar en ELO a un buen jugador de un equipo lleno de buenos jugadores. Y por eso, en las fichas mostramos además el **percentil dentro de su categoría**, que responde a una pregunta distinta y a menudo más útil: dónde se sitúa entre quienes compiten en su mismo nivel.
+Dos consecuencias que conviene tener presentes al leerlo. Un ELO alto habla de **dominio dentro del propio contexto**, no de nivel absoluto en la pirámide: el mejor jugador de un equipo modesto puede superar en ELO a un buen jugador de un equipo lleno de buenos jugadores. Y como esa trayectoria sube y baja a lo largo de los años, cada jugador acaba teniendo **un techo y un suelo propios** — su ELO máximo y su ELO mínimo históricos —. El recorrido entre esos dos valores es justo lo que mide el indicador siguiente.
+
+### Prime
+
+El **Prime** responde a una pregunta que el ELO por sí solo no contesta: **dónde está hoy un jugador dentro de su propia horquilla histórica**. Al 100% está en su mejor momento, el mejor ELO que ha tenido nunca; al 0%, en el peor. A mitad de camino, la llama se llena hasta la mitad.
+
+Es **relativo a cada jugador, y por eso no sirve para comparar a dos**. Alguien con un recorrido corto puede estar al 90% de lo suyo y tener menos ELO que otro que está al 40% del suyo: no dice quién es mejor, dice quién está más cerca de su propio techo.
+
+Y **se autoajusta solo**: si un jugador supera su mejor marca, esa marca pasa a ser el nuevo 100% y el Prime vuelve a estar arriba del todo. Nadie se queda por encima de su propio techo.
+
+No aparece hasta que la carrera acumula **al menos cinco partidos con ELO registrado** — copa y playoff incluidos —, ni cuando el máximo y el mínimo coinciden. Con menos recorrido la horquilla sería demasiado estrecha para significar nada, y un porcentaje calculado sobre ella daría una precisión que el dato no tiene.
+
+### Percentiles por categoría
+
+El ELO y las medias de puntos dicen cuánto, pero no **entre quiénes**. El percentil sí: sitúa a cada jugador y a cada equipo frente a los que compiten **en su mismo nivel**, y responde a la pregunta más útil de todas — dónde se sitúa dentro de su categoría, no dentro del conjunto.
+
+Son además los que dan **color** a buena parte de la web: los verdes, ámbares y rojos de las cifras no son umbrales inventados, sino los tramos en los que cae ese valor dentro de su propia categoría y temporada.
+
+### Rating F11S
+
+Una **nota de 0 a 100** por temporada, todavía en fase de pruebas, que resume el rendimiento de un jugador y lo compara con **toda la pirámide aficionada madrileña a la vez** — de Tercera RFEF a Primera Autonómica — y no solo con los de su categoría. Un 80 significa que rindió mejor que el 80% de los jugadores de esa temporada en toda la rama.
+
+Dos límites que conviene conocer. Solo lo reciben los jugadores con **demarcación conocida**, porque el cálculo pondera según el puesto: si no sabemos dónde juega, no hay nota. Y el fútbol **juvenil queda fuera** de esta escala. Por eso muchas fichas no lo muestran.
 
 ### Puntos Fantasy
 
-Un sistema **objetivo** de puntuación por partido, calculado a partir de lo que recoge el acta arbitral: minutos disputados, goles, porterías a cero, tarjetas y demás sucesos del encuentro, ponderados según la demarcación del jugador —lo que vale un gol no es lo mismo para un delantero que para un defensa—.
+Una puntuación por partido calculada a partir de lo que recoge el acta arbitral: minutos disputados, goles, porterías a cero, tarjetas y demás sucesos del encuentro, ponderados según la demarcación del jugador — lo que vale un gol no es lo mismo para un delantero que para un defensa —.
 
-No hay valoración subjetiva ni opinión: los mismos hechos producen siempre los mismos puntos.
+El sistema es **determinista**: no interviene ninguna valoración subjetiva y los mismos hechos producen siempre los mismos puntos. El **baremo concreto no se publica**, por formar parte del sistema propio del proyecto, como recoge el [aviso legal](/aviso-legal). Preferimos decirlo así a presentarlo como objetivo sin darte con qué comprobarlo.
 
-### Ranking F11S
+### Puestos y rankings
 
-La posición de cada jugador respecto a los demás según su rendimiento en la última temporada disputada, en tres escalas: **general** (entre todos los jugadores del sistema), **por competición** (entre quienes juegan en su misma categoría) y **por demarcación** (entre quienes ocupan su puesto).
+A partir de los puntos fantasy acumulados en la temporada, cada jugador ocupa un **puesto** en tres escalas: **general** (entre los jugadores que compitieron esa temporada), **por competición** (entre quienes juegan en su misma categoría) y **por demarcación** (entre quienes ocupan su puesto). Hay además escalas por franja de edad para juveniles y sub-23.
 
-Un puesto alto en el ranking general y otro modesto en el de su competición cuentan cosas distintas, y esa es precisamente la gracia.
+Un puesto alto en el general y otro modesto en el de su competición cuentan cosas distintas, y esa es precisamente la gracia.
+
+### XI Óptimo
+
+El **once ideal** de una jornada o de una temporada: los once jugadores con mejor puntuación fantasy respetando una alineación posible, con un portero, defensas, centrocampistas y delanteros. Cuando el once abarca varias competiciones a la vez, las puntuaciones se **normalizan entre grupos** antes de compararlas, para que no lo copen siempre los de la categoría que más puntos reparte.
+
+### Juego limpio
+
+Un recuento disciplinario por equipo — amarillas, dobles y rojas directas — que incluye también las de su **banquillo técnico**, no solo las de los jugadores. Es el único de estos indicadores en el que **ir arriba es malo**.
 
 ---
 
