@@ -12,6 +12,8 @@ import { esTemporadaActiva } from '@/lib/temporadas'
 import { colorElo } from '@/lib/equipoV2'
 import { fmtNum } from '@/lib/formato'
 import { fichasInfo } from '@/lib/jugador'
+import { PrimeValor } from '@/components/ui/Prime'
+import { calcPrime } from '@/lib/prime'
 import RankingComp, { type RankItem } from '@/components/ficha/v2/RankingComp'
 import SectionHeader from '@/components/ui/SectionHeader'
 import { campoXI, POSC } from '@/components/ficha/v2/campoXI'
@@ -100,7 +102,10 @@ export default async function FichaCompeticionGlobalV2({ categoria, slugComp, te
     if (tabEf === 'top10-goleadores-temporada') { const max = Math.max(1, ...t.goleadores.map((j) => j.goles ?? 0)); gRank = { title: 'Goleadores', sub, barColor: 'var(--e4)', leyenda: leyGoleadorTemp, items: t.goleadores.map((j) => ({ ...base3(j), valor: j.goles, valorColor: 'var(--e4)', barPct: ((j.goles ?? 0) / max) * 100, extra: datosGoleadorTemp(j) })) } }
     else if (tabEf === 'top10-porteros-temporada') { const max = Math.max(1, ...t.porteros.map((j) => j.goles ?? 0)); gRank = { title: 'Porterías a cero', sub, barColor: 'var(--amber)', leyenda: leyPorteroTemp, items: t.porteros.map((j) => ({ ...base3(j), valor: j.goles ?? 0, valorColor: 'var(--amber)', barPct: ((j.goles ?? 0) / max) * 100, extra: datosPorteroTemp(j) })) } }
     else if (tabEf === 'top10-fantasy-temporada') { const max = Math.max(1, ...t.fantasy.map((j) => Math.round(j.pts_fantasy ?? 0))); gRank = { title: 'Ranking fantasy', sub, barColor: 'var(--e3)', leyenda: leyFantasyTemp, items: t.fantasy.map((j) => ({ ...base3(j), valor: fmtNum(j.pts_fantasy ?? 0), valorColor: 'var(--e3)', barPct: (Math.round(j.pts_fantasy ?? 0) / max) * 100, extra: datosFantasyTemp(j) })) } }
-    else { gRank = { title: 'ELO jugadores', sub: `tras J${jornadaNum} · ${subCat}`, leyenda: leyEloTemp, items: t.elo.map((j) => ({ ...base3(j), valor: j.elo != null ? fmtNum(j.elo) : '—', valorColor: colorElo(j.elo) || 'var(--e1)', extra: datosEloTemp(j) })) } }
+    // El Prime va también aquí: es el MISMO ranking de ELO que el de la vista por grupo, solo que
+    // agregando las competiciones de la categoría. Mismas columnas (COLS_TOP_JUGADORES) y mismo gate
+    // por elo_curva_n, para que un jugador no vea dos % distintos según por dónde llegue a la lista.
+    else { gRank = { title: 'ELO jugadores', sub: `tras J${jornadaNum} · ${subCat}`, leyenda: leyEloTemp, items: t.elo.map((j) => ({ ...base3(j), pre: <PrimeValor pct={calcPrime(j.elo, j.elo_min, j.elo_max, j.elo_curva_n)} px={2} />, valor: j.elo != null ? fmtNum(j.elo) : '—', valorColor: colorElo(j.elo) || 'var(--e1)', extra: datosEloTemp(j) })) } }
   }
 
   // XI Óptimo global (lo calcula el pipeline con normalización entre grupos: tipo temporada_global / jornada_global).
