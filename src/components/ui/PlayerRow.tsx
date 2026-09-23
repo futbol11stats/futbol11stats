@@ -27,6 +27,8 @@ export type PlayerRowProps = {
   dorsal?: ReactNode                 // alineación: número en el avatar en vez de iniciales
   equipo?: string | null             // nombre de equipo en la línea de datos
   meta?: ReactNode                   // eventos/stats libres (.pl-me)
+  pre?: ReactNode                    // contenido a la IZQUIERDA de la pastilla de valor (.pl-pre; hoy: la llama
+                                     // del Prime + su %). No lo usa la mayoría de filas: por defecto no ocupa nada.
   valor?: ReactNode                  // pastilla de puntos (.pl-val)
   valorStyle?: CSSProperties         // fondo/tinta del valor (por defecto verde --e2)
   elo?: number | null                // ΔELO del partido (alineación)
@@ -42,7 +44,7 @@ export type PlayerRowProps = {
 
 export default function PlayerRow({
   rank, rankColor, cod, nombre, pos, posEstimada, escudo, dorsal, equipo, meta,
-  valor, valorStyle, elo, fichas, href, nombreCompletoUI, muted, hidden, tec, pastilla, badgeEdad,
+  pre, valor, valorStyle, elo, fichas, href, nombreCompletoUI, muted, hidden, tec, pastilla, badgeEdad,
 }: PlayerRowProps) {
   const personaEq = equipo ? `${formatNombre(nombre)} en ${equipo}` : formatNombre(nombre)
   const cls = `pl${tec ? ' pl-tec' : ''}${muted ? ' pl-nojugo' : ''}${hidden ? ' pl-hid' : ''}`
@@ -69,6 +71,7 @@ export default function PlayerRow({
           </div>
         )}
       </div>
+      {pre != null && <div className="pl-pre">{pre}</div>}
       {valor != null && <div className="pl-val" style={valorStyle ?? { background: 'var(--e2)' }}>{valor}</div>}
       {elo != null && <div className="pl-elo"><EloDelta value={elo} /></div>}
     </div>

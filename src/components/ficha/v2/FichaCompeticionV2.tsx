@@ -27,6 +27,8 @@ import { colorElo } from '@/lib/equipoV2'
 import { fichasInfo } from '@/lib/jugador'
 import { ZONA_BG, ZONA_LEYENDA, ARRASTRE_TIPOS } from '@/components/zonasClasif'
 import { type Ronda } from '@/lib/competiciones'
+import { PrimeValor } from '@/components/ui/Prime'
+import { calcPrime } from '@/lib/prime'
 import RankingComp, { type RankItem } from '@/components/ficha/v2/RankingComp'
 import CarreraPosiciones from '@/components/ficha/v2/CarreraPosiciones'
 import { FilaEspejo, EspejoHead } from '@/components/ficha/v2/barrasGoles'
@@ -319,6 +321,17 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
       title: 'ELO jugadores', sub: `tras J${jornadaNum}`,
       items: topTemp.elo.map((j, i) => ({
         rank: j.rank ?? i + 1, codjugador: j.codjugador, nombre: j.nombre, pos: j.posicion, escudo: j.escudo, nombreEquipo: j.nombre_equipo,
+        // PRIME a la izquierda del ELO. Se deriva aquí (nunca se guarda) de la horquilla de CARRERA
+        // (elo_min/elo_max) que el pipeline publica en las filas jornada IS NULL, idéntica a la de la
+        // ficha: el mismo jugador da el mismo % en los dos sitios.
+        // El gate va con elo_curva_n — puntos de la curva de ELO, NO partidos — y NO con `pj`, que en
+        // esta tabla son los de ESTA temporada y harían un gate distinto al de la ficha.
+        // px=2 (22×28) Y NO 3: a px=3 la llama mide 42px de alto y la fila .pl mide hoy ~36 (móvil) /
+        // ~34 (escritorio, donde el meta sube a la línea del nombre) -> la fila crecía ~8px, y el
+        // requisito es que NO crezca. px debe seguir siendo ENTERO: el viewBox es 11×14 y crispEdges
+        // solo mantiene el borde nítido con escala exacta, así que no hay 2,4 intermedio.
+        // En la ficha de jugador la llama va a px=9, donde no compite con ninguna fila.
+        pre: <PrimeValor pct={calcPrime(j.elo, j.elo_min, j.elo_max, j.elo_curva_n)} px={2} />,
         valor: fmtNum(j.elo), valorColor: colorElo(j.elo) || 'var(--e1)',
         extra: datosEloTemp(j),
       })),

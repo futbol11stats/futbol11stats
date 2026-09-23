@@ -617,3 +617,22 @@ en vez de tragar `data=null` como "0 filas".
 ### E-lint-muertos · Linter de exports muertos (knip/ts-prune) — a partir del 2026-09-20
 Contra "existir ≠ renderizarse" (construir sobre superficie muerta: equipo/, tablas.tsx). Añadir knip o ts-prune
 en CI para avisar de componentes/rutas sin importadores. Posterior a las dos fases de arriba.
+
+### E-prime-extras · Prime en dos sitios más — cuando el de la ficha/listado esté rodado
+Aprobados por Fernando el 2026-09-22, a la espera de que el Prime lleve tiempo en producción:
+- **"Top de la plantilla" de la ficha de EQUIPO.** Misma `PlayerRow`, así que es el hueco `pre` otra vez
+  (px=2, mismo motivo de altura de fila). Responde una pregunta que hoy no tiene respuesta en la web:
+  **quién del equipo está en su mejor momento**, que no es quién es mejor.
+- **Tarjeta "Ha jugado con"** de la ficha de jugador, a px=2: ya pinta el ELO de cada compañero, así que
+  la llama entra al lado sin tocar la maqueta.
+- **El buscador NO** (decidido, no pendiente): obligaría a meter `elo_min` en `COLS_J` y engordar un
+  payload que se sirve en cada tecleo, para un dato que pide contexto para significar algo.
+
+### E-lint-roto · `npm run lint` no funciona desde el bump a Next 16
+Detectado el 2026-09-22. `next lint` se retiró en Next 16 (el script de package.json lo interpreta como
+un directorio: *"Invalid project directory provided, no such directory: .../lint"*) y **no hay configuración
+de ESLint en el repo**, así que `npx eslint` tampoco corre. O sea: el proyecto lleva sin linter desde el
+commit 1096cf4. Hoy la red son `tsc --noEmit` y los tests, que no cubren reglas de React/hooks.
+Arreglo: migrar a `eslint.config.mjs` con `eslint-config-next` (v16 trae el flat config) y apuntar el
+script ahí. Encaja con [[E-lint-muertos]], que añadiría knip/ts-prune en el mismo sitio.
+

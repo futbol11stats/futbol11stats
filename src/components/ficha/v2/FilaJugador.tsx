@@ -12,12 +12,13 @@ export type FilaJugadorProps = {
   escudo?: string | null
   nombreEquipo?: string | null
   datos?: ReactNode
+  pre?: ReactNode
   valor: ReactNode
   valorColor?: string
   fichas?: { has(k: string): boolean } | null
 }
 
-export default function FilaJugador({ rank, rankColor, codjugador, nombre, pos, escudo, nombreEquipo, datos, valor, valorColor, fichas }: FilaJugadorProps) {
+export default function FilaJugador({ rank, rankColor, codjugador, nombre, pos, escudo, nombreEquipo, datos, pre, valor, valorColor, fichas }: FilaJugadorProps) {
   return (
     <PlayerRow
       rank={rank}
@@ -28,6 +29,7 @@ export default function FilaJugador({ rank, rankColor, codjugador, nombre, pos, 
       escudo={escudo}
       equipo={nombreEquipo}
       meta={datos ? <span className="pl-stats">{datos}</span> : undefined}
+      pre={pre}
       valor={valor}
       valorStyle={valorColor ? { background: valorColor } : undefined}
       fichas={fichas}
