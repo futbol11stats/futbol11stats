@@ -61,25 +61,23 @@ export default function Prime({ pct, px = 3, className, decorativo }: {
   )
 }
 
-// La llama CON su porcentaje al lado, que es como se pinta en los dos sitios. Existe para que el gate
+// La llama CON su porcentaje al lado, que es como se pinta en los listados. Existe para que el gate
 // viva en UN único lugar: si `pct` es null no se pinta NADA — ni la llama ni un "0%", que es lo que
 // saldría de un Math.round(null) suelto en la plantilla.
-export function PrimeValor({ pct, px = 3, numPx = 30, ancho = 58, className }: {
+//
+// El tamaño del número va en CSS (.prime-n), NO en estilo inline: en móvil hay que cambiarlo por media
+// query y un inline no se deja pisar. En escritorio reserva ancho fijo para que los % queden alineados
+// entre filas; en móvil ese ancho se suelta (ver ficha.css).
+export function PrimeValor({ pct, px = 3, className }: {
   pct: number | null
   px?: number
-  numPx?: number
-  ancho?: number | null   // ancho fijo del número: mantiene los % alineados entre filas
   className?: string
 }) {
   if (pct == null) return null
   return (
-    <div className={className} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+    <div className={className ? `prime-v ${className}` : 'prime-v'}>
       <Prime pct={pct} px={px} decorativo />
-      <span style={{
-        width: ancho ?? undefined, textAlign: 'right', flex: 'none',
-        fontFamily: "var(--font-display), 'Barlow Condensed', sans-serif",
-        fontSize: numPx, fontWeight: 700, lineHeight: 1, fontVariantNumeric: 'tabular-nums',
-      }}>{Math.round(pct)}%</span>
+      <span className="prime-n">{Math.round(pct)}%</span>
     </div>
   )
 }

@@ -27,8 +27,10 @@ export default function RankingComp({ items, fichas, barColor }: {
 }) {
   const listaJugadores = items.length > 0 && items.every((r) => r.codjugador != null)
   if (listaJugadores) {
+    // rk-pre: alguna fila trae `pre` (hoy, el Prime). Acota a estas listas el reflow de móvil,
+    // que no debe tocar el resto de filas .pl del sitio.
     return (
-      <div>
+      <div className={items.some((r) => r.pre != null) ? 'rk-pre' : undefined}>
         {items.map((r, i) => (
           <FilaJugador key={i} rank={r.rank} rankColor={r.rankColor} codjugador={r.codjugador} nombre={r.nombre}
             pos={r.pos} escudo={r.escudo} nombreEquipo={r.nombreEquipo} datos={r.extra} pre={r.pre} valor={r.valor} valorColor={r.valorColor} fichas={fichas} />
