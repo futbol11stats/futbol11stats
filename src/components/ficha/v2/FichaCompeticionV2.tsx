@@ -321,21 +321,17 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
       title: 'ELO jugadores', sub: `tras J${jornadaNum}`,
       items: topTemp.elo.map((j, i) => ({
         rank: j.rank ?? i + 1, codjugador: j.codjugador, nombre: j.nombre, pos: j.posicion, escudo: j.escudo, nombreEquipo: j.nombre_equipo,
-        // PRIME a la izquierda del ELO. Se deriva aquí (nunca se guarda) de elo_min/elo_max, que YA están
-        // en COLS_TOP_JUGADORES: mientras el pipeline no los pueble vienen null y no se pinta nada.
-        // OJO CON DOS COSAS al publicar el dato:
-        //  · la CAPÍA no salta sola. elo_min/elo_max ya están en el select, así que hashCols NO cambia
-        //    y las páginas cacheadas seguirán sirviendo el null hasta que el pipeline revalide su
-        //    comp:<codgrupo> (o hasta el próximo deploy). En la ficha de jugador sí salta sola.
-        //  · SEMÁNTICA: `pj` de esta tabla son los partidos de ESTA temporada, pero la horquilla es de
-        //    CARRERA. El gate de 5 partidos queda, por tanto, más duro aquí que en la ficha (que usa
-        //    pj_total). Si el pipeline publica pj de carrera en esta tabla, cambiar aquí.
+        // PRIME a la izquierda del ELO. Se deriva aquí (nunca se guarda) de la horquilla de CARRERA
+        // (elo_min/elo_max) que el pipeline publica en las filas jornada IS NULL, idéntica a la de la
+        // ficha: el mismo jugador da el mismo % en los dos sitios.
+        // El gate va con elo_curva_n — puntos de la curva de ELO, NO partidos — y NO con `pj`, que en
+        // esta tabla son los de ESTA temporada y harían un gate distinto al de la ficha.
         // px=2 (22×28) Y NO 3: a px=3 la llama mide 42px de alto y la fila .pl mide hoy ~36 (móvil) /
         // ~34 (escritorio, donde el meta sube a la línea del nombre) -> la fila crecía ~8px, y el
         // requisito es que NO crezca. px debe seguir siendo ENTERO: el viewBox es 11×14 y crispEdges
         // solo mantiene el borde nítido con escala exacta, así que no hay 2,4 intermedio.
         // En la ficha de jugador la llama va a px=9, donde no compite con ninguna fila.
-        pre: <PrimeValor pct={calcPrime(j.elo, j.elo_min, j.elo_max, j.pj)} px={2} />,
+        pre: <PrimeValor pct={calcPrime(j.elo, j.elo_min, j.elo_max, j.elo_curva_n)} px={2} />,
         valor: fmtNum(j.elo), valorColor: colorElo(j.elo) || 'var(--e1)',
         extra: datosEloTemp(j),
       })),

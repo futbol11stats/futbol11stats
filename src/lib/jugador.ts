@@ -81,7 +81,7 @@ export async function fichasInfo(codjugadores: (string | number | null | undefin
 export const COLS_JUGADOR =
   'codjugador, nombre, anio_nacimiento, edad, posicion_federativa, posicion_pastilla, posicion_es_estimada, ' +
   'codequipo_actual, equipo_actual_nombre, escudo_actual, codtemporada_ultima, elo_actual, elo_percentil, ' +
-  'elo_max, temporada_elo_max, elo_serie, categoria_rama, categoria_nivel, rating_f11s, rating_f11s_fuente, rating_serie, ' +
+  'elo_max, temporada_elo_max, elo_min, elo_curva_n, elo_serie, categoria_rama, categoria_nivel, rating_f11s, rating_f11s_fuente, rating_serie, ' +
   'trayectoria_completa, pj_total, goles_total, minutos_total, temporadas, titular_total, suplente_total, ' +
   'dorsal_ultimo, dorsal_comun, dorsales_otros, es_portero, goles_encajados_total, ' +
   'porterias_cero_total, gc_pj, companeros_top'
@@ -119,11 +119,11 @@ export type JugadorFicha = {
   elo_actual: number | null
   elo_percentil: number | null
   elo_max: number | null
-  // PRIME (ver lib/prime.ts). OPCIONAL y AÚN NO EN COLS_JUGADOR a propósito: la columna elo_min no
-  // existe todavía en web_jugador y pedirla en el select daría 400 en PostgREST -> getJugadorV2 null
-  // -> fichas caídas. Cuando el pipeline la publique: añadirla a COLS_JUGADOR (hashCols invalida la
-  // caché sola) y esto pasa a pintarse. elo_max ya está arriba y es de CARRERA, que es lo que toca.
-  elo_min?: number | null
+  // PRIME (ver lib/prime.ts): horquilla de CARRERA. elo_curva_n son los PUNTOS DE LA CURVA de ELO
+  // (incluye copa y playoff), NO partidos jugados -> vale de tamaño de muestra para el gate, pero no
+  // se rotula como partidos. temporada_elo_min existe en la tabla y NO se pide: no se pinta.
+  elo_min: number | null
+  elo_curva_n: number | null
   temporada_elo_max: string | null
   elo_serie: { t: string; elo: number }[] | null
   categoria_rama: string | null

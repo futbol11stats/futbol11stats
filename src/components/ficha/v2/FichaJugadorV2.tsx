@@ -445,7 +445,7 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
                   que es GLOBAL"). En la temporada viva, eloBig ES el ELO actual. La horquilla (mín/máx) sí es
                   de carrera siempre: es el recorrido completo contra el que se mide. */}
               {(() => {
-                const pct = calcPrime(eloBig, j.elo_min, j.elo_max, j.pj_total)
+                const pct = calcPrime(eloBig, j.elo_min, j.elo_max, j.elo_curva_n)
                 if (pct == null) return null
                 return (
                   <div className="prime-row">

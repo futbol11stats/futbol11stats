@@ -2,7 +2,8 @@ import { describe, it, expect } from 'vitest'
 import { calcPrime } from './prime'
 
 // El gate es la mitad del valor de este cálculo: un prime pintado sobre una horquilla que aún no
-// significa nada (pocos partidos) o inexistente (máx = mín) sería un número con pinta de dato.
+// significa nada (curva corta) o inexistente (máx = mín) sería un número con pinta de dato.
+// El 4º argumento es elo_curva_n (puntos de la curva de ELO, con copa y playoff), NO partidos.
 describe('calcPrime', () => {
   it('el ejemplo del diseño: 890-1.000 y hoy 945 → 50%', () => {
     expect(calcPrime(945, 890, 1000, 20)).toBe(50)
@@ -18,7 +19,7 @@ describe('calcPrime', () => {
     expect(calcPrime(800, 890, 1000, 20)).toBe(0)
   })
 
-  it('menos de 5 partidos → null', () => {
+  it('curva de menos de 5 puntos → null', () => {
     expect(calcPrime(945, 890, 1000, 4)).toBeNull()
     expect(calcPrime(945, 890, 1000, 5)).toBe(50)
   })
