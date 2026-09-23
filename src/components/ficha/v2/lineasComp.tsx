@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import { Balon, Guante, Reloj, Camiseta, CamisetaHueca, TarjetaAmarilla, TarjetaDoble, TarjetaRoja } from '@/components/iconos'
 import { colorMediaJug } from '@/lib/competicionV2'
 import { fmtNum } from '@/lib/formato'
+import Prime from '@/components/ui/Prime'
 
 // Líneas de datos de las pestañas de TEMPORADA, con los mismos glifos y colores que las de jornada
 // (gol verde, guante ámbar, reloj minutos, tarjetas cada una su color). Compartidas por grupo y global.
@@ -109,7 +110,11 @@ const leyItem = (icon: ReactNode, label: string, color?: string): ReactNode => (
 export const leyGoleadorTemp = (<>{leyItem(<Balon size={12} />, 'valor: goles', 'var(--e4)')}{leyItem(null, 'PJ: partidos jugados')}{leyItem(<Balon size={12} />, '/PJ: media de goles', 'var(--e3)')}{leyItem(null, 'con gol: partidos en los que marcó')}{leyItem(<Reloj size={12} />, 'minutos por gol')}</>)
 export const leyPorteroTemp = (<>{leyItem(<Guante size={12} />, 'valor: porterías a cero', 'var(--amber)')}{leyItem(null, 'PJ: partidos jugados')}{leyItem(<Balon size={12} />, 'goles encajados', 'var(--e0)')}{leyItem(null, 'enc/PJ · % a cero')}</>)
 export const leyFantasyTemp = (<>{leyItem(null, 'valor: puntos fantasy acumulados')}{leyItem(null, '⌀ media por partido')}{leyItem(null, 'PJ: partidos jugados')}{leyItem(<Balon size={12} />, 'goles', 'var(--e3)')}</>)
-export const leyEloTemp = (<>{leyItem(null, 'valor: ELO actual')}{leyItem(null, 'PJ: partidos jugados')}{leyItem(null, 'máx / mín de la temporada')}</>)
+// OJO con 'máx / mín': datosEloTemp pinta elo_max/elo_min de web_top_jugadores, que desde 2026-09-23
+// son la horquilla de CARRERA (antes venían vacíos y salía '—'). La leyenda decía "de la temporada"
+// y había dejado de ser verdad. Es además la horquilla contra la que se calcula el Prime, así que las
+// dos entradas cuentan la misma historia y conviene que se lean juntas.
+export const leyEloTemp = (<>{leyItem(null, 'valor: ELO actual')}{leyItem(null, 'PJ: partidos jugados')}{leyItem(null, 'máx / mín: su horquilla de ELO de toda la carrera')}{leyItem(<Prime pct={100} px={1} decorativo />, 'Prime: dónde está dentro de esa horquilla (100% = su mejor momento)')}</>)
 export const leyXiTemp = (<>{leyItem(null, 'valor: puntos fantasy acumulados')}{leyItem(<Balon size={12} />, 'goles', 'var(--e3)')}{leyItem(null, 'racha 5p · power ranking')}</>)
 export const leySancionados = (umbral: number): ReactNode => (<>{leyItem(<TarjetaAmarilla size={11} />, `ciclos de ${umbral} amarillas`, 'var(--card-y)')}{leyItem(<TarjetaDoble size={12} />, 'dobles amarillas', 'var(--card-y)')}{leyItem(<TarjetaRoja size={11} />, 'rojas directas', 'var(--card-r)')}</>)
 export const leyJuegoLimpio = (<>{leyItem(<TarjetaAmarilla size={11} />, 'amarillas', 'var(--card-y)')}{leyItem(<TarjetaDoble size={12} />, 'dobles (expulsión)', 'var(--card-y)')}{leyItem(<TarjetaRoja size={11} />, 'rojas directas', 'var(--card-r)')}</>)
