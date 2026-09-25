@@ -33,6 +33,10 @@ export type ResultadoRow = {
   escudo_local?: string | null; escudo_visitante?: string | null
   codequipo_local: string | null; codequipo_visitante: string | null
   codacta?: string | null   // -> enlace a la ficha del partido
+  // DOS FECHAS, cada una con su oficio: `fecha` es la de MOSTRAR (DD/MM/AAAA, texto) y `fecha_iso` la de
+  // ORDENAR (DATE de verdad, publicada por el pipeline 2026-09-25, 130.243 filas sin un hueco). Como texto
+  // ISO ordena bien lexicográficamente, así que sirve tal cual para comparar sin parsear nada.
+  fecha_iso?: string | null
   // ELO de equipo POR PARTIDO (denormalizado en web_resultados). ΔELO = post − pre del lado del equipo. Se pobla
   // en el ciclo del pipeline; hasta entonces son valores viejos/null -> silencio, nunca inventado.
   elo_pre_local?: number | null; elo_post_local?: number | null; elo_pre_visitante?: number | null; elo_post_visitante?: number | null
@@ -49,7 +53,7 @@ export function filaEsLocal(r: Pick<ResultadoRow, 'codequipo_local' | 'codequipo
 }
 export async function getResultadosGrupo(codequipo: string | number | null | undefined, nombre: string | null, codgrupo: string | null | undefined): Promise<ResultadoRow[]> {
   if (!codgrupo || (codequipo == null && !nombre)) return []
-  const cols = 'jornada, fecha, goles_local, goles_visitante, nombre_local, nombre_visitante, escudo_local, escudo_visitante, codequipo_local, codequipo_visitante, codacta, elo_pre_local, elo_post_local, elo_pre_visitante, elo_post_visitante'
+  const cols = 'jornada, fecha, fecha_iso, goles_local, goles_visitante, nombre_local, nombre_visitante, escudo_local, escudo_visitante, codequipo_local, codequipo_visitante, codacta, elo_pre_local, elo_post_local, elo_pre_visitante, elo_post_visitante'
   return cacheTagged(async () => {
     const base = () => supabase.from('web_resultados').select(cols).eq('codgrupo', String(codgrupo))
     // UNIÓN codequipo ∪ nombre (deduplicada): codequipo casa liga (estable a renombrados); nombre casa copa (sin
@@ -218,23 +222,23 @@ export async function getCopasConMetricas(codequipo: string | number | null | un
       let pj = 0, gf = 0, gc = 0
       let elo: number | null = null
       let eloUltimoPartido: number | null = null   // respaldo para las ELIMINATORIAS (ver nota abajo)
-      let claveUltimo = -1
+      let ultimaFecha = ''                         // fecha_iso del último partido (ISO ordena como texto)
       if (cg) {
         const res = await getResultadosGrupo(codequipo, nombre, String(cg))
         for (const r of res) {
           if (r.goles_local == null || r.goles_visitante == null) continue
           const local = filaEsLocal(r, nombre, codequipo)
           pj++; gf += (local ? r.goles_local : r.goles_visitante) as number; gc += (local ? r.goles_visitante : r.goles_local) as number
-          // ÚLTIMO partido del equipo en esta copa, por (ronda, fecha). La fecha hay que ORDENARLA PARSEADA:
-          // llega en DD/MM/AAAA, que como texto ordena por día. Y la ronda NO basta sola: en la jornada 1
-          // (fase de grupos / primera eliminatoria) un equipo tiene 1,75 partidos de media — medido sobre las
-          // 322 filas fam-* —, así que con solo max(jornada) se cogería uno cualquiera de los tres. De la 2 en
-          // adelante hay exactamente 1,00 partidos por equipo y ronda.
-          const f = (r.fecha || '').split('/')
-          const fechaKey = f.length === 3 ? Number(`${f[2]}${f[1]}${f[0]}`) || 0 : 0
-          const clave = (Number(r.jornada) || 0) * 100000000 + fechaKey
-          if (clave >= claveUltimo) {
-            claveUltimo = clave
+          // ÚLTIMO partido del equipo en esta copa: por `fecha_iso` y nada más. En copa la JORNADA NO
+          // ORDENA, ni entre rondas ni dentro de una: los 102 partidos de fase de grupos valen todos 1, y una
+          // final vale 1, 2, 6 u 8 según la competición. Antes esto ordenaba por (jornada, fecha parseada a
+          // mano) porque `fecha` es DD/MM/AAAA; con fecha_iso sobra el parseo y sobra la jornada.
+          // NO se filtra por `ronda_slug is not null` aunque en copa esté siempre: dentro de este bucle las
+          // filas YA están acotadas al grupo de esta copa, así que el filtro no puede añadir nada y sí
+          // quitar — los 2 grupos de copa que no son fam-* (SEGUNDA JUVENIL COPA GRUPO 23 /A y /B, 13 filas)
+          // tienen ronda_slug nulo, y con ese filtro se quedarían sin ELO.
+          if (r.fecha_iso && r.fecha_iso >= ultimaFecha) {
+            ultimaFecha = r.fecha_iso
             const post = local ? r.elo_post_local : r.elo_post_visitante
             if (post != null) eloUltimoPartido = Number(post)
           }
@@ -270,7 +274,7 @@ export async function getCopasConMetricas(codequipo: string | number | null | un
     }
     return out
     // v5-elocierre: bump al añadir `elo` (ELO de cierre de la copa, por competición) a la salida.
-  }, ['getCopasConMetricas', 'v6-elopost', String(codequipo), nombre], codequipo)
+  }, ['getCopasConMetricas', 'v7-fechaiso', String(codequipo), nombre], codequipo)
 }
 
 // Copas + posición en liga del equipo (una sola query a web_equipo). Para el hero de la ficha de
