@@ -217,12 +217,27 @@ export async function getCopasConMetricas(codequipo: string | number | null | un
       const fechaInicio = ((rows[i] as { fecha_inicio?: unknown }).fecha_inicio as string | null) || null
       let pj = 0, gf = 0, gc = 0
       let elo: number | null = null
+      let eloUltimoPartido: number | null = null   // respaldo para las ELIMINATORIAS (ver nota abajo)
+      let claveUltimo = -1
       if (cg) {
         const res = await getResultadosGrupo(codequipo, nombre, String(cg))
         for (const r of res) {
           if (r.goles_local == null || r.goles_visitante == null) continue
           const local = filaEsLocal(r, nombre, codequipo)
           pj++; gf += (local ? r.goles_local : r.goles_visitante) as number; gc += (local ? r.goles_visitante : r.goles_local) as number
+          // ÚLTIMO partido del equipo en esta copa, por (ronda, fecha). La fecha hay que ORDENARLA PARSEADA:
+          // llega en DD/MM/AAAA, que como texto ordena por día. Y la ronda NO basta sola: en la jornada 1
+          // (fase de grupos / primera eliminatoria) un equipo tiene 1,75 partidos de media — medido sobre las
+          // 322 filas fam-* —, así que con solo max(jornada) se cogería uno cualquiera de los tres. De la 2 en
+          // adelante hay exactamente 1,00 partidos por equipo y ronda.
+          const f = (r.fecha || '').split('/')
+          const fechaKey = f.length === 3 ? Number(`${f[2]}${f[1]}${f[0]}`) || 0 : 0
+          const clave = (Number(r.jornada) || 0) * 100000000 + fechaKey
+          if (clave >= claveUltimo) {
+            claveUltimo = clave
+            const post = local ? r.elo_post_local : r.elo_post_visitante
+            if (post != null) eloUltimoPartido = Number(post)
+          }
         }
         // ELO de CIERRE de la copa (distinto del de liga: cada uno es el que tenía tras su último partido). Se lee
         // de web_clasificacion (misma tabla que el cierre de liga -> valores consistentes) acotado a ESTA copa por
@@ -236,12 +251,26 @@ export async function getCopasConMetricas(codequipo: string | number | null | un
           .or(`codgrupo_familia.eq.${cg},codgrupo.eq.${cg}`)
           .order('jornada', { ascending: false }).limit(1)
         elo = cl && cl[0] && cl[0].elo != null ? Number(cl[0].elo) : null
+        // ELIMINATORIAS: la fila de web_clasificacion NO existe y NO va a existir — una eliminatoria no tiene
+        // tabla, así que no es un dato perdido sino una consulta que no puede acertar. Medido: la fase de
+        // grupos tiene ELO en el 100% de los casos (41/41) y NINGUNA ronda eliminatoria lo tiene en ninguno
+        // (0 de 365). El dato sí lo tenemos, en web_resultados: elo_post del último partido de esa copa, con
+        // la MISMA semántica que en liga ("el ELO tras el último partido de esa competición") y sin consulta
+        // nueva, porque esas filas ya se leyeron arriba para PJ/GF/GC. Poblado al 100% (0 de 322 filas jugadas
+        // sin elo_post).
+        // Va como RESPALDO y no como fuente única A PROPÓSITO: donde la clasificación existe, los dos números
+        // NO coinciden (65 de 70 pares difieren, hasta 30,58 de desvío) porque `jornada` no significa lo mismo
+        // en las dos tablas —en clasificación es el matchday del grupo, en resultados la ronda—. Cuál es el
+        // correcto para la fase de grupos lo decide quien calcula el ELO; hasta entonces no se cambia ningún
+        // número que hoy se pinta bien. Si se confirma que elo_post es el bueno siempre, esto pasa a ser la
+        // fuente única quitando el `?? `.
+        if (elo == null) elo = eloUltimoPartido
       }
       ;(out[c.codtemporada] ??= []).push({ nombre_comp: c.nombre_comp, slug_familia: c.slug_familia, estado: c.estado, href: c.href, pj, gf, gc, media: media != null && Number.isFinite(media) ? media : null, elo, fechaInicio })
     }
     return out
     // v5-elocierre: bump al añadir `elo` (ELO de cierre de la copa, por competición) a la salida.
-  }, ['getCopasConMetricas', 'v5-elocierre', String(codequipo), nombre], codequipo)
+  }, ['getCopasConMetricas', 'v6-elopost', String(codequipo), nombre], codequipo)
 }
 
 // Copas + posición en liga del equipo (una sola query a web_equipo). Para el hero de la ficha de
