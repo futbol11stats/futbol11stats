@@ -23,11 +23,12 @@ export type TempActiva = { categoria: string; slug_comp: string; temporada_activ
 
 const CAT_BD: Record<string, string> = { aficionados: 'AFICIONADO', juveniles: 'JUVENIL' }
 
-// FLAG (OFF) — abrir cada competición del ÍNDICE en su temporada más reciente con CALENDARIO publicado
-// (web_grupos), aunque no haya jugado ninguna jornada. Hoy el índice abre en la última temporada con ≥1 partido
-// jugado (web_temporada_activa). NO ACTIVAR hasta subir el tier de la BD: defaultear ~100 competiciones a una
-// temporada en frío sobre la BD actual = tormenta de 500 en la primera visita (ver AUDITORIA_CONSUMO_VERCEL.md;
-// comprobado en vivo un 500 por statement timeout). Al activar, conviene pre-calentar (acotado, con la BD sana).
+// FLAG **ACTIVO** — el índice abre cada competición en su temporada más reciente con CALENDARIO publicado
+// (web_grupos), aunque no haya jugado ninguna jornada. (Hasta que se activó, abría en la última temporada con
+// ≥1 partido jugado, vía web_temporada_activa; ese es el camino de más abajo, hoy inalcanzable.)
+// AVISO QUE SIGUE EN PIE: defaultear ~100 competiciones a una temporada en frío castiga a la BD (ver
+// AUDITORIA_CONSUMO_VERCEL.md; hubo un 500 por statement timeout). Si se vuelve a ver, pre-calentar acotado.
+// OJO: este comentario decía "FLAG (OFF) — NO ACTIVAR" con la constante ya en true; corregido 2026-09-25.
 // ALCANCE deliberadamente ACOTADO a getGruposIndice: NO toca getTemporadasActivas, así que el suelo
 // activo/inactivo (sueloVivo) y el badge "En juego" (esTemporadaActiva) NO cambian; y la pastilla sigue siendo
 // "Por comenzar" porque la decide tienePartidosJugados, no esto.
@@ -89,7 +90,7 @@ export async function getSueloVivo(): Promise<number> {
 // juveniles compartan la misma lógica (fuente única). Devuelve un array (serializable) -> cacheable.
 export async function getGruposIndice(categoriaBD: 'AFICIONADO' | 'JUVENIL') {
   return cacheIndices(async () => {
-    // CAMINO NUEVO (flag ON, INERTE hoy): cada competición en su temporada más reciente con grupo publicado
+    // CAMINO EN USO (el flag está en true): cada competición en su temporada más reciente con grupo publicado
     // (calendario), aunque 0 jugado. No depende de web_temporada_activa ni de sueloVivo -> acotado al índice.
     if (ABRIR_TEMPORADA_CON_CALENDARIO) {
       const { data, error } = await supabase.from('web_grupos')
@@ -97,20 +98,30 @@ export async function getGruposIndice(categoriaBD: 'AFICIONADO' | 'JUVENIL') {
         .eq('categoria', categoriaBD).order('nombre_comp')
       if (error) throw new Error(`[indices] web_grupos (${categoriaBD}): ${error.message || 'error sin mensaje'}`)
       if (!data || data.length === 0) throw new Error(`[indices] web_grupos (${categoriaBD}) devolvió 0 filas (¿BD saturada?)`)
-      // max(codtemporada) por competición (slug_comp), ignorando las páginas viejas de copa.
+      // max(codtemporada) por competición, ignorando las páginas viejas de copa.
+      // LA CLAVE ES `nombre_comp`, NO `slug_comp` (arreglo 2026-09-25). Tiene que ser LA MISMA con la que
+      // agrupa quien consume esto (la home agrupa por nombre_comp, page.tsx), o una competición cuyo slug
+      // cambió aparece DOS VECES en la misma tarjeta.
+      // Qué pasaba: en el rebrand de 2023-24 los slugs se corrieron un puesto — 2ª Aficionados pasó de
+      // `tercera` a `segunda`, 1ª Aficionados de `segunda` a `primera`, Preferente de `primera` a
+      // `preferente`, 1ª Autonómica de `preferente` a `primera-autonomica` —. Al deduplicar por slug, cada
+      // slug reutilizado quedaba con max=T22 y sus filas viejas perdían... salvo `tercera`, que nadie
+      // heredó: se quedaba con max=T19 (2023-24) y sus 20 grupos sobrevivían. De ahí las dos pastillas por
+      // grupo en 2ª Aficionados (J1 de T22 + J30 de T19; J26 en el grupo 12, y nada en los grupos 21-22,
+      // que en 2023-24 no existían). Solo fallaba la ÚLTIMA de la cadena de renombrados.
       const maxPorComp = new Map<string, number>()
       for (const g of data as any[]) {
         if (!g.slug_comp || esViejaCopa(g.slug_comp)) continue
         const c = Number(g.codtemporada)
-        if (!maxPorComp.has(g.slug_comp) || c > (maxPorComp.get(g.slug_comp) as number)) maxPorComp.set(g.slug_comp, c)
+        if (!maxPorComp.has(g.nombre_comp) || c > (maxPorComp.get(g.nombre_comp) as number)) maxPorComp.set(g.nombre_comp, c)
       }
       const res = (data as any[]).filter((g) => g.slug_comp && !esViejaCopa(g.slug_comp)
-        && Number(g.codtemporada) === maxPorComp.get(g.slug_comp))
+        && Number(g.codtemporada) === maxPorComp.get(g.nombre_comp))
       if (res.length === 0) throw new Error(`[indices] web_grupos (${categoriaBD}) quedó vacío tras seleccionar por calendario`)
       return res
     }
 
-    // CAMINO ACTUAL (flag OFF): la última temporada con ≥1 partido jugado (vista web_temporada_activa).
+    // CAMINO ANTIGUO (solo si el flag vuelve a false): la última temporada con ≥1 partido jugado.
     const activas = await getTemporadasActivas()   // lanza si la BD no responde (y no cachea vacío)
     const seasons = temporadasVentana(activas)
     if (!seasons.length) throw new Error('[indices] getGruposIndice: sin temporadas en ventana (web_temporada_activa vacío)')
@@ -128,7 +139,10 @@ export async function getGruposIndice(categoriaBD: 'AFICIONADO' | 'JUVENIL') {
       .filter((g: any) => !esViejaCopa(g.slug_comp))
     if (res.length === 0) throw new Error(`[indices] web_grupos (${categoriaBD}) quedó vacío tras filtrar por temporada activa (dato inconsistente)`)
     return res
-  }, ['getGruposIndice', ABRIR_TEMPORADA_CON_CALENDARIO ? 'cal' : 'jugado', categoriaBD])
+  // La clave es MANUAL (este getter no usa hashCols: el select no cambia, cambia la lógica de filtrado),
+  // así que el token 'v2-nombre' es obligatorio: sin bumpearlo la home seguiría sirviendo el índice
+  // cacheado con las pastillas duplicadas.
+  }, ['getGruposIndice', 'v2-nombre', ABRIR_TEMPORADA_CON_CALENDARIO ? 'cal' : 'jugado', categoriaBD])
 }
 
 // ¿La temporada `codtemporada` es la ACTIVA de esta competición (dentro de la ventana)? Para el badge "EN
