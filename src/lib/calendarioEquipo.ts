@@ -11,12 +11,15 @@ import { codToSlug } from '@/lib/temporadaSlug'
 // así que no aparece en el feed — pendiente de que el pipeline lo publique.
 
 const DDMMYYYY = /^\d{2}\/\d{2}\/\d{4}$/
-const iso = (f: string | null) => (f && DDMMYYYY.test(f) ? f.slice(6, 10) + f.slice(3, 5) + f.slice(0, 2) : '99999999')
+// Orden por `fecha_iso` (DATE del pipeline, poblada al 100%): como texto ISO ordena bien, se compara tal
+// cual. Antes se recortaba `fecha` (DD/MM/AAAA) a mano para fabricar una clave ordenable. El centinela se
+// mantiene por si alguna fila llegara sin fecha: esas van al final, no al principio.
+const ordenable = (f: unknown) => (typeof f === 'string' && f ? f : '9999-12-31')
 
 export async function buildTeamCalendar(codequipo: string, nowMs: number): Promise<{ ics: string; nombre: string } | null> {
   const cod = String(codequipo)
   const { data: allRaw, error } = await supabase.from('web_resultados')
-    .select('codtemporada, codgrupo, jornada, nombre_local, nombre_visitante, codequipo_local, codequipo_visitante, goles_local, goles_visitante, fecha, hora, campo, codigo_campo, campo_lat, campo_lng, ronda_slug, ronda_label')
+    .select('codtemporada, codgrupo, jornada, nombre_local, nombre_visitante, codequipo_local, codequipo_visitante, goles_local, goles_visitante, fecha, fecha_iso, hora, campo, codigo_campo, campo_lat, campo_lng, ronda_slug, ronda_label')
     .or(`codequipo_local.eq.${cod},codequipo_visitante.eq.${cod}`)
   // NO tragarse el error como "sin partidos": un timeout/error transitorio debe propagarse (503 reintentado),
   // nunca convertirse en 404. Devolver null SOLO cuando de verdad no hay filas. (Ver: fallos silenciosos que
@@ -58,7 +61,7 @@ export async function buildTeamCalendar(codequipo: string, nowMs: number): Promi
   }
 
   const tempSlug = codToSlug(maxSeason)
-  rows.sort((a, b) => iso(a.fecha as string).localeCompare(iso(b.fecha as string)))
+  rows.sort((a, b) => ordenable(a.fecha_iso).localeCompare(ordenable(b.fecha_iso)))
 
   const vevents: string[] = []
   for (const r of rows) {

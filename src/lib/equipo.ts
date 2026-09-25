@@ -220,8 +220,8 @@ export async function getCopasConMetricas(codequipo: string | number | null | un
       const media = mediaRaw == null || mediaRaw === '' ? null : Number(mediaRaw)
       const fechaInicio = ((rows[i] as { fecha_inicio?: unknown }).fecha_inicio as string | null) || null
       let pj = 0, gf = 0, gc = 0
-      let elo: number | null = null
-      let eloUltimoPartido: number | null = null   // respaldo para las ELIMINATORIAS (ver nota abajo)
+      let elo: number | null = null   // se resuelve al final con eloUltimoPartido
+      let eloUltimoPartido: number | null = null   // ELO de cierre de esta copa (ÚNICA vía; ver nota abajo)
       let ultimaFecha = ''                         // fecha_iso del último partido (ISO ordena como texto)
       if (cg) {
         const res = await getResultadosGrupo(codequipo, nombre, String(cg))
@@ -243,38 +243,26 @@ export async function getCopasConMetricas(codequipo: string | number | null | un
             if (post != null) eloUltimoPartido = Number(post)
           }
         }
-        // ELO de CIERRE de la copa (distinto del de liga: cada uno es el que tenía tras su último partido). Se lee
-        // de web_clasificacion (misma tabla que el cierre de liga -> valores consistentes) acotado a ESTA copa por
-        // codgrupo_familia|codgrupo, y se coge la MAYOR jornada. Dentro de una sola copa la jornada SÍ es
-        // cronológica (matchdays del grupo), así que max jornada = último partido; el error de "jornada entre
-        // liga y copa" no aplica aquí porque no se mezclan competiciones (ver familia jornada≠fecha). En
-        // web_resultados la copa trae la fecha en DD/MM/AAAA (no ordenable como string) y jornada uniforme -> no
-        // sirve para esto; por eso se usa web_clasificacion.
-        const { data: cl } = await supabase.from('web_clasificacion').select('elo, jornada')
-          .eq('codequipo', String(codequipo)).eq('codtemporada', Number(c.codtemporada))
-          .or(`codgrupo_familia.eq.${cg},codgrupo.eq.${cg}`)
-          .order('jornada', { ascending: false }).limit(1)
-        elo = cl && cl[0] && cl[0].elo != null ? Number(cl[0].elo) : null
-        // ELIMINATORIAS: la fila de web_clasificacion NO existe y NO va a existir — una eliminatoria no tiene
-        // tabla, así que no es un dato perdido sino una consulta que no puede acertar. Medido: la fase de
-        // grupos tiene ELO en el 100% de los casos (41/41) y NINGUNA ronda eliminatoria lo tiene en ninguno
-        // (0 de 365). El dato sí lo tenemos, en web_resultados: elo_post del último partido de esa copa, con
-        // la MISMA semántica que en liga ("el ELO tras el último partido de esa competición") y sin consulta
-        // nueva, porque esas filas ya se leyeron arriba para PJ/GF/GC. Poblado al 100% (0 de 322 filas jugadas
-        // sin elo_post).
-        // Va como RESPALDO y no como fuente única A PROPÓSITO: donde la clasificación existe, los dos números
-        // NO coinciden (65 de 70 pares difieren, hasta 30,58 de desvío) porque `jornada` no significa lo mismo
-        // en las dos tablas —en clasificación es el matchday del grupo, en resultados la ronda—. Cuál es el
-        // correcto para la fase de grupos lo decide quien calcula el ELO; hasta entonces no se cambia ningún
-        // número que hoy se pinta bien. Si se confirma que elo_post es el bueno siempre, esto pasa a ser la
-        // fuente única quitando el `?? `.
-        if (elo == null) elo = eloUltimoPartido
+        // ELO de cierre de la copa = elo_post del ÚLTIMO partido del equipo en ella, por fecha_iso (arriba).
+        // UNA sola vía desde 2026-09-25: antes esto consultaba web_clasificacion y caía a elo_post solo en las
+        // eliminatorias, que no tienen tabla. Ya no hace falta, y la consulta sobraba:
+        //  · No son dos cálculos. El pipeline calcula el ELO UNA vez en orden cronológico; clasificación y
+        //    web_resultados leen de ahí. Emparejando el matchday N de la clasificación con el N-ésimo partido
+        //    por fecha, 198 de 204 filas coinciden al céntimo (las 6 restantes tienen partidos fuera del grupo
+        //    familia). La discrepancia que medí antes (65 de 70) era del EMPAREJAMIENTO: pedir "el último por
+        //    jornada" en una tabla donde los tres partidos de un grupo valen jornada 1 devuelve uno cualquiera.
+        //  · Y por fecha la pregunta se contesta mejor: para un equipo que pasó de ronda, el cierre de la copa
+        //    es su eliminatoria posterior, no el final de la fase de grupos. Al unificar cambian 18 de los 70
+        //    valores que se pintaban en fase de grupos, todos en esa dirección.
+        // De paso desaparece una consulta por copa dentro de un bucle: el dato ya venía en las filas leídas
+        // para PJ/GF/GC.
+        elo = eloUltimoPartido
       }
       ;(out[c.codtemporada] ??= []).push({ nombre_comp: c.nombre_comp, slug_familia: c.slug_familia, estado: c.estado, href: c.href, pj, gf, gc, media: media != null && Number.isFinite(media) ? media : null, elo, fechaInicio })
     }
     return out
     // v5-elocierre: bump al añadir `elo` (ELO de cierre de la copa, por competición) a la salida.
-  }, ['getCopasConMetricas', 'v7-fechaiso', String(codequipo), nombre], codequipo)
+  }, ['getCopasConMetricas', 'v8-solo-elopost', String(codequipo), nombre], codequipo)
 }
 
 // Copas + posición en liga del equipo (una sola query a web_equipo). Para el hero de la ficha de
