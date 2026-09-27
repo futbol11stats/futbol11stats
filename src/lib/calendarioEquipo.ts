@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase'
+import { claveFecha } from '@/lib/fechaOrden'
 import { matchVevent, wrapCalendar } from '@/lib/ics'
 import { parseCampo } from '@/lib/campoSlug'
 import { SITE_URL, CATEGORIA_SLUG } from '@/lib/seo'
@@ -11,10 +12,9 @@ import { codToSlug } from '@/lib/temporadaSlug'
 // así que no aparece en el feed — pendiente de que el pipeline lo publique.
 
 const DDMMYYYY = /^\d{2}\/\d{2}\/\d{4}$/
-// Orden por `fecha_iso` (DATE del pipeline, poblada al 100%): como texto ISO ordena bien, se compara tal
-// cual. Antes se recortaba `fecha` (DD/MM/AAAA) a mano para fabricar una clave ordenable. El centinela se
-// mantiene por si alguna fila llegara sin fecha: esas van al final, no al principio.
-const ordenable = (f: unknown) => (typeof f === 'string' && f ? f : '9999-12-31')
+// Orden por claveFecha (fecha_iso si viene; si no, la fecha de mostrar convertida). Depender solo de
+// fecha_iso mandó los partidos de COPA al final del feed durante dos días: un re-export la dejó nula en
+// esas 322 filas, que SÍ entran aquí porque traen codequipo. Ver lib/fechaOrden.ts.
 
 export async function buildTeamCalendar(codequipo: string, nowMs: number): Promise<{ ics: string; nombre: string } | null> {
   const cod = String(codequipo)
@@ -61,7 +61,7 @@ export async function buildTeamCalendar(codequipo: string, nowMs: number): Promi
   }
 
   const tempSlug = codToSlug(maxSeason)
-  rows.sort((a, b) => ordenable(a.fecha_iso).localeCompare(ordenable(b.fecha_iso)))
+  rows.sort((a, b) => claveFecha(a.fecha_iso, a.fecha).localeCompare(claveFecha(b.fecha_iso, b.fecha)))
 
   const vevents: string[] = []
   for (const r of rows) {

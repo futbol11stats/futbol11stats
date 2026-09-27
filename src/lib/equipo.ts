@@ -3,6 +3,7 @@
 // de las filas (nombre de fichero del bucket, como el resto del sitio) — igual que en la ficha de jugador.
 
 import { supabase, sel } from '@/lib/supabase'
+import { claveFecha, FECHA_AL_FINAL } from '@/lib/fechaOrden'
 import { slugify, codFromSlug, tempLabel } from '@/lib/jugador'
 import { getSueloVivo } from '@/lib/temporadas'
 import { cacheEquipo, cacheTagged, hashCols } from '@/lib/cacheComp'
@@ -222,23 +223,26 @@ export async function getCopasConMetricas(codequipo: string | number | null | un
       let pj = 0, gf = 0, gc = 0
       let elo: number | null = null   // se resuelve al final con eloUltimoPartido
       let eloUltimoPartido: number | null = null   // ELO de cierre de esta copa (ÚNICA vía; ver nota abajo)
-      let ultimaFecha = ''                         // fecha_iso del último partido (ISO ordena como texto)
+      let ultimaFecha = ''                         // clave ISO del último partido (ordena como texto)
       if (cg) {
         const res = await getResultadosGrupo(codequipo, nombre, String(cg))
         for (const r of res) {
           if (r.goles_local == null || r.goles_visitante == null) continue
           const local = filaEsLocal(r, nombre, codequipo)
           pj++; gf += (local ? r.goles_local : r.goles_visitante) as number; gc += (local ? r.goles_visitante : r.goles_local) as number
-          // ÚLTIMO partido del equipo en esta copa: por `fecha_iso` y nada más. En copa la JORNADA NO
-          // ORDENA, ni entre rondas ni dentro de una: los 102 partidos de fase de grupos valen todos 1, y una
-          // final vale 1, 2, 6 u 8 según la competición. Antes esto ordenaba por (jornada, fecha parseada a
-          // mano) porque `fecha` es DD/MM/AAAA; con fecha_iso sobra el parseo y sobra la jornada.
+          // ÚLTIMO partido del equipo en esta copa, por FECHA (claveFecha: fecha_iso si viene, y si no la
+          // fecha de mostrar convertida). Nunca por jornada: en copa no ordena ni entre rondas ni dentro de
+          // una — los 102 partidos de fase de grupos valen todos 1, y una final vale 1, 2, 6 u 8 —.
+          // NO se depende solo de fecha_iso: el 2026-09-27 un re-export la dejó NULA en las 322 filas de
+          // copa (dos días después de publicarla al 100%) y eso vació de ELO las 279 pastillas. Ver
+          // lib/fechaOrden.ts.
           // NO se filtra por `ronda_slug is not null` aunque en copa esté siempre: dentro de este bucle las
           // filas YA están acotadas al grupo de esta copa, así que el filtro no puede añadir nada y sí
           // quitar — los 2 grupos de copa que no son fam-* (SEGUNDA JUVENIL COPA GRUPO 23 /A y /B, 13 filas)
           // tienen ronda_slug nulo, y con ese filtro se quedarían sin ELO.
-          if (r.fecha_iso && r.fecha_iso >= ultimaFecha) {
-            ultimaFecha = r.fecha_iso
+          const k = claveFecha(r.fecha_iso, r.fecha)
+          if (k !== FECHA_AL_FINAL && k >= ultimaFecha) {
+            ultimaFecha = k
             const post = local ? r.elo_post_local : r.elo_post_visitante
             if (post != null) eloUltimoPartido = Number(post)
           }
@@ -262,7 +266,7 @@ export async function getCopasConMetricas(codequipo: string | number | null | un
     }
     return out
     // v5-elocierre: bump al añadir `elo` (ELO de cierre de la copa, por competición) a la salida.
-  }, ['getCopasConMetricas', 'v8-solo-elopost', String(codequipo), nombre], codequipo)
+  }, ['getCopasConMetricas', 'v9-clavefecha', String(codequipo), nombre], codequipo)
 }
 
 // Copas + posición en liga del equipo (una sola query a web_equipo). Para el hero de la ficha de
