@@ -12,7 +12,7 @@ import { fmtNum } from '@/lib/formato'
 import Sello from '@/components/Sello'
 import IndicadorLocal from '@/components/IndicadorLocal'
 import { tempLabel, fechaCorta, signoCls, conSigno, marcadorLocalVisitante, colorSigno } from '@/lib/jugador'
-import { claveFecha, FECHA_AL_FINAL } from '@/lib/fechaOrden'
+import { claveFechaDesc } from '@/lib/fechaOrden'
 
 export const PARTIDOS_HABILITADO = true
 
@@ -35,15 +35,9 @@ async function fetchPartidos(codjugador: string, codtemporada: string, codequipo
   let { data, error } = await q(COLS_P + ', es_local')
   if (error) ({ data, error } = await q(COLS_P))
   if (error) return { error: error.message, rows: [] as any[] }
-  // claveFecha en vez de un parser DD/MM/AAAA propio (duplicado del helper). Ojo al centinela: aquí el orden
-  // es DESC, así que lo que no tiene fecha se va al principio; antes con '00000000' se iba al final. Se
-  // mantiene ese comportamiento invirtiendo la comparación de los sin fecha.
-  const cl = (r: any) => claveFecha(r.fecha_iso, r.fecha)
-  const rows = ((data || []) as any[]).sort((a, b) => {
-    const ka = cl(a), kb = cl(b)
-    if (ka === FECHA_AL_FINAL || kb === FECHA_AL_FINAL) return ka === kb ? 0 : ka === FECHA_AL_FINAL ? 1 : -1
-    return kb.localeCompare(ka)   // más reciente primero
-  })
+  // Más reciente primero; lo que no tiene fecha se queda al final (ver fechaOrden.ts).
+  const rows = ((data || []) as any[])
+    .sort((a, b) => claveFechaDesc(b.fecha_iso, b.fecha).localeCompare(claveFechaDesc(a.fecha_iso, a.fecha)))
   return { error: null, rows }
 }
 

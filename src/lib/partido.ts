@@ -6,6 +6,7 @@ import { parseCampo, campoSlug } from '@/lib/campoSlug'
 import { campoMapsUrl } from '@/lib/club'
 import { getCamposConFicha } from '@/lib/campo'
 import { fichasExistentes, jugadorHref } from '@/lib/jugador'
+import { claveFechaDesc } from '@/lib/fechaOrden'
 
 // Ficha de PARTIDO. Datos del acta ya publicados: web_resultados (cabecera) + web_jugador_partidos (por jugador y
 // partido: titular/minutos/goles/tarjetas/PUNTOS fantasy/Δ ELO, keyed por codacta) + web_equipo_plantilla_{rama}
@@ -67,7 +68,7 @@ export type PartidoFicha = {
 }
 
 const POS_ORD: Record<string, number> = { POR: 0, DEF: 1, MED: 2, DEL: 3 }
-const isoF = (f: string | null) => (f && /^\d{2}\/\d{2}\/\d{4}$/.test(f) ? f.slice(6, 10) + f.slice(3, 5) + f.slice(0, 2) : '00000000')
+// Más reciente primero. claveFechaDesc deja al final lo que no tiene fecha (ver fechaOrden.ts).
 const ordenPos = (a: PartidoJugador, b: PartidoJugador) => {
   const pa = POS_ORD[a.pos || ''] ?? 9, pb = POS_ORD[b.pos || ''] ?? 9
   return pa !== pb ? pa - pb : (parseInt(a.dorsal || '99') || 99) - (parseInt(b.dorsal || '99') || 99)
@@ -90,7 +91,7 @@ async function historialDe(codequipo: string): Promise<PartidoMini[]> {
   const { data } = await supabase.from('web_resultados').select(MINI_COLS)
     .or(`codequipo_local.eq.${codequipo},codequipo_visitante.eq.${codequipo}`).not('goles_local', 'is', null)
   const rows = (data || []) as Array<Record<string, unknown>>
-  rows.sort((a, b) => isoF(b.fecha as string).localeCompare(isoF(a.fecha as string)))
+  rows.sort((a, b) => claveFechaDesc(null, b.fecha).localeCompare(claveFechaDesc(null, a.fecha)))
   return rows.map(toMini)
 }
 
@@ -114,7 +115,7 @@ async function enfrentamientos(a: string, b: string, n: number): Promise<Partido
     .or(`and(codequipo_local.eq.${a},codequipo_visitante.eq.${b}),and(codequipo_local.eq.${b},codequipo_visitante.eq.${a})`)
     .not('goles_local', 'is', null)
   const rows = (data || []) as Array<Record<string, unknown>>
-  rows.sort((x, y) => isoF(y.fecha as string).localeCompare(isoF(x.fecha as string)))
+  rows.sort((x, y) => claveFechaDesc(null, y.fecha).localeCompare(claveFechaDesc(null, x.fecha)))
   return rows.slice(0, n).map(toMini)
 }
 

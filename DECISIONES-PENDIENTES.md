@@ -636,3 +636,18 @@ commit 1096cf4. Hoy la red son `tsc --noEmit` y los tests, que no cubren reglas 
 Arreglo: migrar a `eslint.config.mjs` con `eslint-config-next` (v16 trae el flat config) y apuntar el
 script ahí. Encaja con [[E-lint-muertos]], que añadiría knip/ts-prune en el mismo sitio.
 
+### E-fechas-tres-formatos · Conviven TRES formatos de fecha en el esquema
+Anotado el 2026-09-28. No es una tarea: es un **aviso previo** a cualquiera que toque una ordenación por fecha.
+
+| Formato | Dónde | ¿Ordena bien como texto? |
+|---|---|---|
+| `DD/MM/YYYY` (texto) | `web_resultados.fecha` (la de MOSTRAR), `web_jugador_partidos.fecha` (3,5 M filas, 100%) | **NO** — ordena por día |
+| `DATE` | `web_resultados.fecha_iso` (la de ORDENAR) | Sí |
+| `YYYYMMDD` (texto compacto) | `web_equipo_movimientos.fecha` (116.130 filas, `20210919`…) | **Sí**, por suerte |
+
+**El mismo `.sort()` sobre la cadena cruda es correcto en una tabla e incorrecto en otra**, y nada avisa: ordena mal y ya está. `getMovimientosEquipo` ordena por la cadena en crudo y parecía un bug; no lo es, porque esa tabla usa el formato compacto. `fechaCortaYMD` (equipo.ts) también espera ese tercero.
+
+**Antes de tocar un orden por fecha, mira el formato de ESA columna**, no lo deduzcas del nombre del campo. Para `web_resultados` está `claveFecha()` / `claveFechaDesc()` en `src/lib/fechaOrden.ts`, que toman `fecha_iso` o convierten `fecha` y dejan siempre al final lo que no tiene fecha.
+
+**SI ALGÚN DÍA SE UNIFICAN LOS FORMATOS, revisar estos sorts ANTES**: los que hoy aciertan por el formato compacto empezarían a fallar en silencio.
+

@@ -19,3 +19,14 @@ export function claveFecha(fechaIso: unknown, fecha: unknown): string {
   const m = typeof fecha === 'string' ? DDMMYYYY.exec(fecha) : null
   return m ? `${m[3]}-${m[2]}-${m[1]}` : FECHA_AL_FINAL
 }
+
+// Misma clave, para listas en orden DESCENDENTE (lo más reciente primero).
+//
+// Existe porque el centinela tiene que cambiar de lado: en ascendente, '9999-12-31' manda lo que no tiene
+// fecha al final; en descendente iría PRIMERO, que es justo lo contrario de lo que queremos. Devolviendo
+// cadena vacía — la menor de todas — vuelve a quedarse al final. Se escribió a mano dos veces antes de
+// caer en que es una sola función.
+export function claveFechaDesc(fechaIso: unknown, fecha: unknown): string {
+  const k = claveFecha(fechaIso, fecha)
+  return k === FECHA_AL_FINAL ? '' : k
+}

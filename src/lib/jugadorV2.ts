@@ -12,6 +12,7 @@ import {
 import { slugToCod } from '@/lib/temporadaSlug'
 import { getResultadosGrupo, filaEsLocal, type ChipRacha } from '@/lib/equipo'
 import { derivarRol, escalon, cortesValidos, CORTES_FIJOS, type RolPartido } from '@/lib/escala'
+import { claveFecha } from '@/lib/fechaOrden'
 
 export type { JugadorFicha, HitoRow }
 
@@ -286,11 +287,12 @@ export async function getAmbitoTemporada(cod: string, codtemp: string): Promise<
     // Unión de ACTAS del equipo ∪ del jugador. Ausencia = acta que el equipo jugó y el jugador NO (no está en jugadas)
     // -> se preserva la detección de huecos, ahora por partido en vez de por número de jornada.
     const actasEquipo = new Set<string>(Array.from(teamPorActa.keys()).concat(Array.from(jugadas.keys())))
-    const isoF = (f: string | null | undefined) => (f && /^\d{2}\/\d{2}\/\d{4}$/.test(f) ? f.slice(6, 10) + f.slice(3, 5) + f.slice(0, 2) : '99999999')
+    // claveFecha en vez de un parser DD/MM/AAAA propio. Orden ASCENDENTE, y su centinela (9999-12-31) manda
+    // lo que no tiene fecha al final, igual que hacía el '99999999' de antes.
     const fechaDeActa = (a: string) => (jugadas.get(a)?.fecha ?? teamPorActa.get(a)?.fecha) as string | null | undefined
 
     const jornadas: JornadaDatum[] = Array.from(actasEquipo)
-      .sort((a, b) => isoF(fechaDeActa(a)).localeCompare(isoF(fechaDeActa(b))))   // más antiguo primero (izquierda -> derecha)
+      .sort((a, b) => claveFecha(null, fechaDeActa(a)).localeCompare(claveFecha(null, fechaDeActa(b))))   // más antiguo primero
       .map((acta) => {
         const p = jugadas.get(acta)
         if (!p) {

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { claveFecha, FECHA_AL_FINAL } from './fechaOrden'
+import { claveFecha, claveFechaDesc, FECHA_AL_FINAL } from './fechaOrden'
 
 // Este helper existe porque depender de UNA sola fecha ya nos rompió dos superficies (ELO de copa y orden
 // del feed .ics) cuando un re-export vació fecha_iso en las filas de copa. Los dos primeros tests son el
@@ -34,5 +34,26 @@ describe('claveFecha', () => {
       .map((f) => claveFecha(f.fecha_iso, f.fecha))
       .sort((a, b) => a.localeCompare(b))
     expect(orden).toEqual(['2025-11-12', '2025-12-17', '2026-03-05', FECHA_AL_FINAL])
+  })
+})
+
+// El centinela tiene que cambiar de lado según la dirección: sin fecha va SIEMPRE al final, ordenes como
+// ordenes. Es el detalle que se me escapó dos veces al migrar parsers a mano.
+describe('claveFechaDesc', () => {
+  it('mantiene la fecha y vacía el centinela', () => {
+    expect(claveFechaDesc('2026-03-05', null)).toBe('2026-03-05')
+    expect(claveFechaDesc(null, null)).toBe('')
+  })
+
+  it('en orden DESCENDENTE lo que no tiene fecha queda al FINAL', () => {
+    const filas = [
+      { fecha: '12/11/2025' },
+      { fecha: null },
+      { fecha: '05/03/2026' },
+    ]
+    const orden = [...filas]
+      .sort((a, b) => claveFechaDesc(null, b.fecha).localeCompare(claveFechaDesc(null, a.fecha)))
+      .map((f) => f.fecha)
+    expect(orden).toEqual(['05/03/2026', '12/11/2025', null])
   })
 })
