@@ -70,16 +70,24 @@ export function faseCompeticion(nombreComp: string | null | undefined, categoria
   return /play\s*off/i.test(nombreComp || '') ? 2 : 0
 }
 
-// Comparador de orden cronológico INVERSO dentro de una temporada: lo MÁS RECIENTE primero, siempre y en todas
-// las superficies (playoff → liga → copa). Por `fechaInicio` (ISO YYYY-MM-DD, primer partido) DESCENDENTE si AMBOS
-// la tienen; si falta en alguno, cae en la FASE también descendente (playoff 2 → liga 1 → copa 0). La ficha de
-// equipo ya trae fecha_inicio (web_equipo_temporadas + JSONB de copas); la de jugador caerá en fase hasta que el
-// re-export publique la columna en web_jugador_carrera -> se afinará sola, sin tocar código.
+// Orden cronólogico INVERSO de etapas (lo más reciente primero), con la FASE como respaldo.
+//
+// EL CAMPO SE LLAMA `fechaOrden` Y NO `fechaInicio` A PROPÓSITO (2026-09-28). El criterio del sitio es
+// ordenar por el ÚLTIMO PARTIDO de cada etapa (fecha_fin), no por cuándo empezó: una copa que arranca en
+// noviembre y acaba en marzo va DESPUÉS de una liga que empezó en septiembre y acabó en mayo.
+// Con el nombre viejo, los sitios sin migrar pasaban `fecha_inicio` a un campo llamado `fechaInicio` y
+// parecía obviamente correcto — así sobrevivió el bug en la ficha de equipo doce días después de
+// arreglarlo en la de jugador. Con este nombre, `fechaOrden: fecha_inicio` ya no parece correcto: parece
+// una decisión que hay que justificar. Y es OBLIGATORIO (aunque admita null): con el campo opcional, un
+// llamador que lo omitiera compilaba y se caía a la fase en silencio.
+//
+// Si a una de las dos le falta la fecha, se cae a la fase (playoff 2 > liga 1 > copa 0), que acierta en el
+// caso común (la liga termina después que la copa) pero NO cuando una copa acaba después de su liga.
 export function ordenPorFechaOFase(
-  a: { fechaInicio?: string | null; fase: number },
-  b: { fechaInicio?: string | null; fase: number },
+  a: { fechaOrden: string | null; fase: number },
+  b: { fechaOrden: string | null; fase: number },
 ): number {
-  if (a.fechaInicio && b.fechaInicio) return b.fechaInicio.localeCompare(a.fechaInicio)
+  if (a.fechaOrden && b.fechaOrden) return b.fechaOrden.localeCompare(a.fechaOrden)
   return b.fase - a.fase
 }
 

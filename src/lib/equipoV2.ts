@@ -4,6 +4,7 @@
 
 import { supabase, sel } from '@/lib/supabase'
 import { getResultadosGrupo, filaEsLocal, codgrupoFamilia, type ResultadoRow, type EquipoFicha, COLS_EQUIPO } from '@/lib/equipo'
+import { claveFecha } from '@/lib/fechaOrden'
 import { cacheEquipo, hashCols } from '@/lib/cacheComp'
 import { partidoSlug } from '@/lib/partidoSlug'
 import { badgeEdad, type BadgeEdad } from '@/lib/badgeEdad'
@@ -41,7 +42,7 @@ export async function getEquipoV2(cod: string): Promise<EquipoFicha | null> {
 }
 
 export async function getTemporadasEquipo(cod: string) {
-  const cols = 'codtemporada, nombre_comp, categoria_nivel, rama, codgrupo, grupo_nombre, pj, pts, posicion_final, gf, gc, badge, fecha_inicio'
+  const cols = 'codtemporada, nombre_comp, categoria_nivel, rama, codgrupo, grupo_nombre, pj, pts, posicion_final, gf, gc, badge, fecha_inicio, fecha_fin'
   return cacheEquipo(async () => {
     const { data, error } = await supabase.from('web_equipo_temporadas').select(cols).eq('codequipo', cod)
     if (error) throw error   // no cachear [] si la query falla (ver checklist: caché envenenada)
@@ -358,7 +359,9 @@ export type RondaDatum = {
   ta: number; td: number; tr: number   // tarjetas agregadas del equipo en esa acta
   href: string | null   // -> ficha del partido (como cualquier otra fila de partido); null si falta codacta
 }
-export type CopaComp = { label: string; titulo: string; competicion: string; rondas: RondaDatum[]; fechaInicio: string | null }
+// fechaOrden = fecha_fin (último partido del equipo en esa copa). Hoy el JSONB de copas NO la trae -> null
+// -> el comparador cae a la fase. Se lee ya para que se encienda sola cuando el pipeline la publique.
+export type CopaComp = { label: string; titulo: string; competicion: string; rondas: RondaDatum[]; fechaOrden: string | null }
 // Etiqueta corta del chip a partir de campos SEPARADOS (regla general, no recorte de string): tipo de
 // competición abreviado + ronda alcanzada. "Final Copa 1ª Autonómica" + "Final" -> "Copa · Final".
 function etiquetaCopa(competicion: string, rondaLabel: string | null): string {
@@ -396,11 +399,11 @@ export async function getCopasAmbito(codequipo: string, tempSel: string | null, 
       const cg = codgrupoFamilia(c) ?? c.codgrupo
       if (!cg) continue
       const res = await getResultadosGrupo(codequipo, nombre, String(cg))
-      // Orden CRONOLÓGICO INVERSO (reciente arriba), mismo criterio que el resto: por fecha del partido DESC
-      // (DD/MM/YYYY -> YYYYMMDD para comparar), con la jornada como desempate.
-      const ymd = (f: string | null) => { const m = (f || '').match(/^(\d{2})\/(\d{2})\/(\d{4})$/); return m ? `${m[3]}${m[2]}${m[1]}` : '' }
+      // Orden CRONOLÓGICO INVERSO (reciente arriba), con claveFecha (fecha_iso si viene, si no la de mostrar):
+      // era un parser DD/MM/AAAA escrito a mano, duplicado del helper.
       const jugados = res.filter((r) => r.goles_local != null && r.goles_visitante != null)
-        .sort((a, b) => ymd(b.fecha).localeCompare(ymd(a.fecha)) || ((b.jornada ?? 0) - (a.jornada ?? 0)))
+        .sort((a, b) => claveFecha(b.fecha_iso, b.fecha).localeCompare(claveFecha(a.fecha_iso, a.fecha))
+          || ((b.jornada ?? 0) - (a.jornada ?? 0)))
       // Ronda POR PARTIDO (no la máxima alcanzada) + tarjetas agregadas del equipo por acta, igual que la liga.
       const rondaPorIdx = await getRondasGrupo(String(cg))
       const evMap = await getEventosEquipo(codequipo, jugados.map((r) => r.codacta).filter(Boolean) as string[])
@@ -424,11 +427,13 @@ export async function getCopasAmbito(codequipo: string, tempSel: string | null, 
           href: r.codacta ? `/madrid/partido/${partidoSlug(r.codacta, r.nombre_local, r.nombre_visitante)}` : null,
         }
       })
-      if (rondas.length) out.push({ label: etiquetaCopa(c.competicion, c.ronda_label), titulo: c.competicion, competicion: c.competicion, rondas, fechaInicio: (c.fecha_inicio as string | null) || null })
+      if (rondas.length) out.push({ label: etiquetaCopa(c.competicion, c.ronda_label), titulo: c.competicion, competicion: c.competicion, rondas, fechaOrden: (c.fecha_fin as string | null) || null })
     }
     return out
-    // v3-finicio: bump por el playoff (v2) y ahora `fechaInicio` (fecha_inicio del JSONB) en la salida.
-  }, ['getCopasAmbito', 'v7-eventos-ronda', codequipo, String(tempSel)], codequipo, { codtemporada: tempSel })
+    // Historial de bumps: v2 playoff, v3 fecha_inicio en la salida, v8 el campo pasa a `fechaOrden` y se
+    // alimenta de fecha_fin. Clave MANUAL (no hay hashCols aquí): sin bumpear, el ámbito seguiría
+    // sirviendo objetos con la forma vieja y las pastillas se ordenarían como antes.
+  }, ['getCopasAmbito', 'v8-fechaorden', codequipo, String(tempSel)], codequipo, { codtemporada: tempSel })
 }
 
 // Eventos de EQUIPO por partido (Últimos partidos): tarjetas agregadas sumando las de sus jugadores en

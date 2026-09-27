@@ -7,14 +7,14 @@ import { ordenPorFechaOFase } from '@/lib/competiciones'
 // Chips de competición de la barra de ámbito (cliente). Filtran el gráfico de jornadas y los subtítulos
 // "echo" vía el store de módulo. El `sello` (badge de competición del sitio) se renderiza en servidor y
 // se pasa como prop, igual que las pastillas de la cabecera.
-export default function CompChips({ comps }: { comps: { label: string; count: number; sello?: ReactNode; titulo?: string; fase?: number; fechaInicio?: string | null }[] }) {
+export default function CompChips({ comps }: { comps: { label: string; count: number; sello?: ReactNode; titulo?: string; fase?: number; fechaOrden?: string | null }[] }) {
   const sel = useComp()
   const activo = Math.min(sel, comps.length - 1)
-  // Orden de DISPLAY cronológico por la fecha que pasa el llamador en `fechaInicio` (la ficha de jugador le pasa
+  // Orden de DISPLAY cronológico por la fecha que pasa el llamador en `fechaOrden` (la ficha de jugador le pasa
   // fecha_fin: la etapa que terminó después va primero); si falta en alguno, por fase copa→liga→playoff.
   // conservando el índice ORIGINAL para setComp/activo: el espacio de índices (compartido con Jornadas/Nivel y el
   // default en índice 0) NO cambia, solo el orden visual. sort estable -> empates respetan el orden de entrada.
-  const orden = comps.map((c, i) => ({ c, i })).sort((a, b) => ordenPorFechaOFase({ fechaInicio: a.c.fechaInicio, fase: a.c.fase ?? 0 }, { fechaInicio: b.c.fechaInicio, fase: b.c.fase ?? 0 }))
+  const orden = comps.map((c, i) => ({ c, i })).sort((a, b) => ordenPorFechaOFase({ fechaOrden: a.c.fechaOrden ?? null, fase: a.c.fase ?? 0 }, { fechaOrden: b.c.fechaOrden ?? null, fase: b.c.fase ?? 0 }))
   return (
     <>
       {orden.map(({ c, i }) => (

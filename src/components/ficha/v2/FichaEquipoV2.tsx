@@ -125,8 +125,8 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
   // Chips de ámbito: etiqueta corta visible + nombre completo en `titulo` (tooltip). El sello se calcula
   // con el nombre completo de la competición, no con la etiqueta abreviada.
   const chipComps = [
-    ...(jornadas.length > 0 ? [{ label: nombreComp || 'Liga', titulo: nombreComp || 'Liga', count: jornadas.length, sello: <Sello nombreComp={nombreComp || 'Liga'} size={18} />, fase: 1, fechaInicio: (tempRow?.fecha_inicio as string | null) || null }] : []),
-    ...copasAmbito.map((c) => ({ label: c.label, titulo: c.titulo, count: c.rondas.length, sello: <Sello nombreComp={c.competicion} size={18} />, fase: faseCompeticion(c.competicion, null), fechaInicio: c.fechaInicio })),
+    ...(jornadas.length > 0 ? [{ label: nombreComp || 'Liga', titulo: nombreComp || 'Liga', count: jornadas.length, sello: <Sello nombreComp={nombreComp || 'Liga'} size={18} />, fase: 1, fechaOrden: (tempRow?.fecha_fin as string | null) || null }] : []),
+    ...copasAmbito.map((c) => ({ label: c.label, titulo: c.titulo, count: c.rondas.length, sello: <Sello nombreComp={c.competicion} size={18} />, fase: faseCompeticion(c.competicion, null), fechaOrden: c.fechaOrden })),
   ]
   const ana = analisisResultados(resultados, e.nombre, e.codequipo)
   const forma = formaEquipo(jornadas)
@@ -606,13 +606,17 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
                   // que es UN valor por TEMPORADA -> salía el mismo número en liga y en copa (bug). NUNCA
                   // elo_actual: es global.
                   const ligaElo = mt?.elo ?? null
-                  // Orden cronológico INVERSO dentro de la temporada (lo más reciente primero: playoff → liga →
-                  // copa) por fecha_inicio con fallback a la fase. Comparador común ordenPorFechaOFase; sort estable.
-                  const cards: { fase: number; fechaInicio: string | null; node: ReactNode }[] = []
+                  // Orden cronológico INVERSO dentro de la temporada (lo más reciente primero) por FECHA DE FIN
+                  // — el último partido del equipo en esa etapa —, con la fase de respaldo. Antes iba por
+                  // fecha_inicio, y eso ponía la copa (que arranca en noviembre) por delante de la liga (que
+                  // empieza en septiembre y acaba en mayo). La ficha de JUGADOR ya ordenaba por fecha_fin desde
+                  // el 16-09; esta se quedó atrás doce días porque el campo se llamaba `fechaInicio` y pasarle
+                  // fecha_inicio parecía correcto. Comparador común ordenPorFechaOFase; sort estable.
+                  const cards: { fase: number; fechaOrden: string | null; node: ReactNode }[] = []
                   // LIGA (si la hubo): media, ELO, PTS/GF/GC y el badge de posición/ascenso/descenso/playoff.
                   if (t) {
                     const badgeCls = t.badge ? BADGE_CLS[t.badge] : null
-                    cards.push({ fase: faseCompeticion(t.nombre_comp, t.categoria_nivel), fechaInicio: (t.fecha_inicio as string | null) || null, node: (
+                    cards.push({ fase: faseCompeticion(t.nombre_comp, t.categoria_nivel), fechaOrden: (t.fecha_fin as string | null) || null, node: (
                       <div className="season" key={`${cStr}-liga`}>
                         <div className="accent" style={{ background: colorMedia(media) || 'var(--line)' }} />
                         <div className="s-top"><div className="s-yr">{tempLabel(c)}</div></div>
@@ -645,7 +649,7 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
                     const topMedia = cp.media != null, topElo = cp.elo != null
                     const nTop = (topMedia ? 1 : 0) + (topElo ? 1 : 0)
                     // Fase por tipo (copa pretemporada 0 / playoff post-liga 2); mismo helper que la liga y el jugador.
-                    cards.push({ fase: faseCompeticion(cp.nombre_comp, null), fechaInicio: cp.fechaInicio, node: (
+                    cards.push({ fase: faseCompeticion(cp.nombre_comp, null), fechaOrden: cp.fechaOrden, node: (
                       <div className="season" key={`${cStr}-copa-${ci}`}>
                         <div className="accent" style={{ background: (topMedia ? colorMedia(cp.media) : colorElo(cp.elo)) || 'var(--line)' }} />
                         <div className="s-top"><div className="s-yr">{tempLabel(c)}</div></div>

@@ -98,11 +98,11 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
   // comparador canónico ordenando por fecha_fin (el ELO es cronológico -> la etapa que acabó después lleva el ELO
   // vigente; ordenar por fecha_inicio podía dejar arriba una etapa que terminó antes y mostrar un ELO caduco); fase
   // playoff>liga>copa como respaldo si falta fecha_fin. ROBUSTO al orden con que la BD devuelva las filas. NO cambia
-  // categoriaSel (rank_principal/etapas[0]). El comparador ordena por su campo `fechaInicio` = aquí le pasamos fecha_fin.
+  // categoriaSel (rank_principal/etapas[0]). El comparador ordena por `fechaOrden`; aquí es fecha_fin.
   const etapaUltima: CarreraRow | undefined = etapas.length
     ? [...etapas].sort((a, b) => ordenPorFechaOFase(
-        { fechaInicio: a.fecha_fin, fase: faseCompeticion(a.nombre_comp, a.categoria_nivel) },
-        { fechaInicio: b.fecha_fin, fase: faseCompeticion(b.nombre_comp, b.categoria_nivel) }))[0]
+        { fechaOrden: a.fecha_fin, fase: faseCompeticion(a.nombre_comp, a.categoria_nivel) },
+        { fechaOrden: b.fecha_fin, fase: faseCompeticion(b.nombre_comp, b.categoria_nivel) }))[0]
     : undefined
   const categoriaElo = etapaUltima?.nombre_comp ?? categoriaSel
 
@@ -196,12 +196,12 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
   // la sección "Temporadas" y la Trayectoria. Se ordena por fecha_fin, no fecha_inicio: la etapa que terminó después
   // va arriba y coincide con el ELO vigente (fichajes a media temporada, no por arranque de competición). getCarreraV2
   // (orden_temporada) empataba liga/playoff/copa cuando el pipeline deja orden_temporada NULL -> orden arbitrario.
-  // Copia aparte: NO altera `carrera`/`etapas`. El comparador ordena por su campo `fechaInicio` = aquí le pasamos fecha_fin.
+  // Copia aparte: NO altera `carrera`/`etapas`. El comparador ordena por `fechaOrden`; aquí es fecha_fin.
   const carreraOrd = [...carrera].sort((a, b) =>
     String(b.codtemporada).localeCompare(String(a.codtemporada))
     || ordenPorFechaOFase(
-      { fechaInicio: a.fecha_fin, fase: faseCompeticion(a.nombre_comp, a.categoria_nivel) },
-      { fechaInicio: b.fecha_fin, fase: faseCompeticion(b.nombre_comp, b.categoria_nivel) })
+      { fechaOrden: a.fecha_fin, fase: faseCompeticion(a.nombre_comp, a.categoria_nivel) },
+      { fechaOrden: b.fecha_fin, fase: faseCompeticion(b.nombre_comp, b.categoria_nivel) })
     || (a.orden_temporada ?? 0) - (b.orden_temporada ?? 0))
 
   // Ficha SOLO-COPA: los agregados de VIDA (web_jugador) son estrictamente de LIGA -> en un jugador que solo ha
@@ -409,7 +409,7 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
         </div></div>
         {comps.length > 0 && <>
           <div className="scope-lbl" style={{ paddingTop: 11 }}>Competición</div>
-          <div className="track"><div className="rail"><CompChips comps={compsOrd.map((c) => { const e = etapaPorGrupo.get(String(c.codgrupo)); return { label: c.nombre_comp, count: c.jornadas.length, sello: <Sello nombreComp={c.nombre_comp} size={18} />, fase: faseCompeticion(c.nombre_comp, e?.categoria_nivel), fechaInicio: e?.fecha_fin ?? null } })} /></div></div>
+          <div className="track"><div className="rail"><CompChips comps={compsOrd.map((c) => { const e = etapaPorGrupo.get(String(c.codgrupo)); return { label: c.nombre_comp, count: c.jornadas.length, sello: <Sello nombreComp={c.nombre_comp} size={18} />, fase: faseCompeticion(c.nombre_comp, e?.categoria_nivel), fechaOrden: e?.fecha_fin ?? null } })} /></div></div>
         </>}
         <div className="scope-note">Las secciones marcadas «Todas las temporadas» no dependen de esta selección.</div>
       </div>

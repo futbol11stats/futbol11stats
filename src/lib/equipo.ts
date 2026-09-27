@@ -201,7 +201,7 @@ export async function getCopasPorTemporada(codequipo: string | number | null | u
 // (web_equipos_forma no trae filas de copa) -> no se incluye. Devuelve, por temporada, la lista de copas con sus
 // métricas (mismo orden y forma que getCopasPorTemporada + pj/gf/gc). Requiere el NOMBRE del equipo (web_resultados
 // no trae codequipo -> se filtra por nombre dentro del grupo, que es unívoco).
-export type CopaConMetricas = CopaEquipo & { pj: number; gf: number; gc: number; media: number | null; elo: number | null; fechaInicio: string | null }
+export type CopaConMetricas = CopaEquipo & { pj: number; gf: number; gc: number; media: number | null; elo: number | null; fechaOrden: string | null }
 export async function getCopasConMetricas(codequipo: string | number | null | undefined, nombre: string | null): Promise<Record<string, CopaConMetricas[]>> {
   if (!COPAS_HABILITADO || codequipo == null || !nombre) return {}
   return cacheEquipo(async () => {
@@ -219,7 +219,10 @@ export async function getCopasConMetricas(codequipo: string | number | null | un
       // JSONB -> se agregan desde web_resultados bajo el codgrupo de familia.
       const mediaRaw = (rows[i] as { media_fantasy?: unknown }).media_fantasy
       const media = mediaRaw == null || mediaRaw === '' ? null : Number(mediaRaw)
-      const fechaInicio = ((rows[i] as { fecha_inicio?: unknown }).fecha_inicio as string | null) || null
+      // fechaOrden = fecha_fin (último partido del equipo en esa copa). El JSONB aún no la trae -> null y el
+      // comparador cae a la fase; se lee ya para encenderse sola al publicarla. NO se deriva del último
+      // partido aunque aquí se calcule para el ELO: sería una segunda forma de obtener el mismo número.
+      const fechaOrden = ((rows[i] as { fecha_fin?: unknown }).fecha_fin as string | null) || null
       let pj = 0, gf = 0, gc = 0
       let elo: number | null = null   // se resuelve al final con eloUltimoPartido
       let eloUltimoPartido: number | null = null   // ELO de cierre de esta copa (ÚNICA vía; ver nota abajo)
@@ -262,11 +265,11 @@ export async function getCopasConMetricas(codequipo: string | number | null | un
         // para PJ/GF/GC.
         elo = eloUltimoPartido
       }
-      ;(out[c.codtemporada] ??= []).push({ nombre_comp: c.nombre_comp, slug_familia: c.slug_familia, estado: c.estado, href: c.href, pj, gf, gc, media: media != null && Number.isFinite(media) ? media : null, elo, fechaInicio })
+      ;(out[c.codtemporada] ??= []).push({ nombre_comp: c.nombre_comp, slug_familia: c.slug_familia, estado: c.estado, href: c.href, pj, gf, gc, media: media != null && Number.isFinite(media) ? media : null, elo, fechaOrden })
     }
     return out
     // v5-elocierre: bump al añadir `elo` (ELO de cierre de la copa, por competición) a la salida.
-  }, ['getCopasConMetricas', 'v9-clavefecha', String(codequipo), nombre], codequipo)
+  }, ['getCopasConMetricas', 'v10-fechaorden', String(codequipo), nombre], codequipo)
 }
 
 // Copas + posición en liga del equipo (una sola query a web_equipo). Para el hero de la ficha de
