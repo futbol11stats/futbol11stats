@@ -13,6 +13,10 @@ import { slugToCod } from '@/lib/temporadaSlug'
 import { getResultadosGrupo, filaEsLocal, type ChipRacha } from '@/lib/equipo'
 import { derivarRol, escalon, cortesValidos, CORTES_FIJOS, type RolPartido } from '@/lib/escala'
 import { claveFecha } from '@/lib/fechaOrden'
+import { cronoAsc } from '@/lib/forma'
+// Re-export: la lógica pura de forma vive en lib/forma.ts (testeable sin cliente de BD), pero se sigue
+// importando desde aquí en toda la ficha.
+export { ventanasForma, ultimosDePartidos, cronoAsc, cronoDesc, type Ventana } from '@/lib/forma'
 
 export type { JugadorFicha, HitoRow }
 
@@ -330,32 +334,12 @@ export async function getAmbitoTemporada(cod: string, codtemp: string): Promise<
 }
 
 // --- Forma: ventanas de últimas 5 / 10 / temporada sobre los partidos JUGADOS de la temporada ---
-export type Ventana = { label: string; media: number | null; pj: number; delta: number | null }
-export function ventanasForma(partidos: any[]): Ventana[] {
-  const jug = partidos.filter((p) => p.puntos != null).sort((a, b) => a.jornada - b.jornada)
-  const pts = jug.map((p) => p.puntos as number)
-  const media = (arr: number[]) => (arr.length ? arr.reduce((s, x) => s + x, 0) / arr.length : null)
-  const mTemp = media(pts)
-  const win = (n: number) => {
-    const s = pts.slice(-n)
-    const m = media(s)
-    return { media: m, pj: s.length, delta: m != null && mTemp != null ? m - mTemp : null }
-  }
-  const w5 = win(5), w10 = win(10)
-  return [
-    { label: 'Últimas 5', ...w5 },
-    { label: 'Últimas 10', ...w10 },
-    { label: 'Temporada', media: mTemp, pj: pts.length, delta: null },
-  ]
-}
-
-// --- Racha de 5 chips V/E/D de la temporada (más reciente a la derecha) ---
-// Solo partidos JUGADOS: un convocado sin entrar (jugado=false) tiene `resultado` (el del equipo), pero no lo
+// CRONOLOGÍA, NO JORNADA. Estos bloques MEZCLAN competiciones (liga + copa + playoff del jugadoJUGADOS: un convocado sin entrar (jugado=false) tiene `resultado` (el del equipo), pero no lo
 // jugó -> no entra en SU racha. Ver web_jugador_partidos.jugado (spec §57/§91.1) y [[partidos-jugados-vs-convocatoria]].
 export function racha5DePartidos(partidos: any[]): ChipRacha[] {
   return partidos
     .filter((p) => p.resultado != null && p.jugado !== false)
-    .sort((a, b) => a.jornada - b.jornada)
+    .sort(cronoAsc)
     .slice(-5)
     .map((p): ChipRacha => {
       const { marcador, signo } = marcadorLocalVisitante(p.resultado, p.es_local)
@@ -418,10 +402,6 @@ export async function balanceEquipo(partidos: any[]): Promise<{ con: Balance; si
   return { con, sin, suficiente: con.pj >= 8 && sin.pj >= 8 }
 }
 
-// --- Últimos 3 partidos jugados de la temporada (más reciente primero) ---
-export function ultimosDePartidos(partidos: any[], n = 3): any[] {
-  return [...partidos].filter((p) => p.puntos != null).sort((a, b) => b.jornada - a.jornada).slice(0, n)
-}
 
 // Color de rendimiento por escala. Devuelve la clase de PALETA_TEXTO para un valor y sus cortes.
 export function nivelDe(valor: number | null, cortes: readonly [number, number, number, number]): 0 | 1 | 2 | 3 | 4 | null {
