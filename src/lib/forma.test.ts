@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { ventanasForma, ultimosDePartidos } from './forma'
+import { ventanasForma, ultimosDePartidos, aPartidoCrono } from './forma'
 
 // EL CASO REAL que destapó el bug (T22 de un jugador de 3ª RFEF): 3 partidos de Copa RFEF con jornadas
 // 1-2-3 jugados en AGOSTO, y 4 de liga con jornadas 1-2-3-4 en SEPTIEMBRE. Ordenar por jornada los
@@ -18,8 +18,9 @@ const LIGA_SEPTIEMBRE = [
   { jornada: 4, fecha: '27/09/2026', puntos: 0, resultado: 'P', jugado: true },
 ]
 // Mezclados a propósito: el orden de llegada de la BD no debe influir.
+// Pasan por el adaptador, igual que en producción (getPartidosTemporada las devuelve ya adaptadas).
 const MEZCLA = [LIGA_SEPTIEMBRE[1], COPA_AGOSTO[2], LIGA_SEPTIEMBRE[3], COPA_AGOSTO[0],
-                LIGA_SEPTIEMBRE[0], COPA_AGOSTO[1], LIGA_SEPTIEMBRE[2]]
+                LIGA_SEPTIEMBRE[0], COPA_AGOSTO[1], LIGA_SEPTIEMBRE[2]].map(aPartidoCrono)
 
 describe('bloque FORMA con competiciones mezcladas', () => {
   it('"últimas 5" toma los cinco últimos POR FECHA (media 2), no por jornada (que daría 4)', () => {

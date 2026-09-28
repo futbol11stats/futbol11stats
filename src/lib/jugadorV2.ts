@@ -13,10 +13,11 @@ import { slugToCod } from '@/lib/temporadaSlug'
 import { getResultadosGrupo, filaEsLocal, type ChipRacha } from '@/lib/equipo'
 import { derivarRol, escalon, cortesValidos, CORTES_FIJOS, type RolPartido } from '@/lib/escala'
 import { claveFecha } from '@/lib/fechaOrden'
-import { cronoAsc } from '@/lib/forma'
+import { cronoAsc, aPartidoCrono } from '@/lib/forma'
 // Re-export: la lógica pura de forma vive en lib/forma.ts (testeable sin cliente de BD), pero se sigue
 // importando desde aquí en toda la ficha.
-export { ventanasForma, ultimosDePartidos, cronoAsc, cronoDesc, type Ventana } from '@/lib/forma'
+export { ventanasForma, ultimosDePartidos, ordenCronologico, ordenCronologicoInverso, cronoAsc, cronoDesc,
+  aPartidoCrono, type Ventana, type PartidoCrono } from '@/lib/forma'
 
 export type { JugadorFicha, HitoRow }
 
@@ -204,7 +205,11 @@ export async function getCortesElo(categoria: string | null, codtempInt: number 
   return p && cortesValidos(p) ? p : CORTES_FIJOS.elo
 }
 
-// --- Partidos jugados de UNA temporada (todas las competiciones), orden jornada ASC ---
+// --- Partidos de UNA temporada (todas las competiciones) ---
+// El `.order('jornada')` de la consulta es solo para que la BD devuelva algo estable: NO es el orden de
+// presentación. Esta lista MEZCLA liga, copa y playoff, y en copa la jornada no ordena, así que quien la
+// pinte tiene que pasarla por ordenCronologico (lib/forma.ts). Las filas salen ya adaptadas con
+// `jornadaEtiqueta`, que es el nombre que avisa de para qué sirve la jornada aquí: pintar y desempatar.
 const COLS_PART = 'codacta, codtemporada, codgrupo, jornada, ronda_label, fecha, equipo_nombre, escudo, codequipo, ' +
   'rival_cod, rival_nombre, rival_escudo, resultado, titular, minutos, jugado, goles, amarillas, dobles_amarilla, ' +
   'rojas, puntos, elo_delta, goles_encajados, competicion'
@@ -214,7 +219,7 @@ export async function getPartidosTemporada(cod: string, codtemp: string): Promis
       .eq('codjugador', cod).eq('codtemporada', codtemp).order('jornada', { ascending: true })
     let r = await q(COLS_PART + ', es_local')
     if (r.error) r = await q(COLS_PART)
-    return (r.data || []) as any[]
+    return ((r.data || []) as any[]).map(aPartidoCrono)
     // Tag SOLO jugador:<cod> (NO temporada:): son hechos de partido del jugador, cambian cuando JUEGA (y entonces
     // el censo nocturno emite jugador:<cod>). Quitarle temporada: evita que el temporada:<activa> del ELO nocturno
     // enfríe la ficha cada noche en balde. Rebaremo (reescribe pts_fantasy): cubierto por el censo jugador: que
@@ -343,6 +348,7 @@ export function racha5DePartidos(partidos: any[]): ChipRacha[] {
     .slice(-5)
     .map((p): ChipRacha => {
       const { marcador, signo } = marcadorLocalVisitante(p.resultado, p.es_local)
+      // p.jornada aquí es ETIQUETA (se pinta en el chip), no criterio de orden: el orden lo puso cronoAsc.
       return { signo: signo as 'G' | 'E' | 'P', jornada: p.jornada ?? null, marcador, rival: p.rival_nombre ?? null }
     })
     .filter((c) => c.signo === 'G' || c.signo === 'E' || c.signo === 'P')
