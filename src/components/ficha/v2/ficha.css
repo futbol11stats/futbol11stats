@@ -590,7 +590,12 @@
 .fjv2 .mmid-susp .susp-cola{display:none}
 @media (min-width:1000px){
   .fjv2 .mmid-susp .susp-cola{display:inline}
-  .fjv2 .susp-cola-movil{display:none}
+  /* Doble clase OTRA VEZ, y por lo mismo: el elemento lleva `mmeta-admin susp-cola-movil` y la base de
+     .mmeta-admin (más abajo) pone display:inline-block. Con una sola clase empatan en especificidad, gana la
+     de abajo por orden y el aviso salía DOS VECES en escritorio. Lo avisé dos líneas más arriba para el
+     nowrap y aun así caí aquí: en este fichero, cualquier regla que pise a .mmeta-admin necesita las dos
+     clases, no basta con ponerla después. */
+  .fjv2 .susp-cola-movil.mmeta-admin{display:none}
 }
 .fjv2 .rmeta-admin,.fjv2 .mmeta-admin{display:inline-block;font-size:var(--t-cap);font-weight:600;letter-spacing:.02em;padding:2px 9px;border-radius:999px;color:var(--ink-2);border:1px solid var(--line);background:var(--pitch-700);white-space:normal;max-width:100%}
 /* Campo del partido como enlace discreto (chincheta) en la línea de metadatos; hereda el tono muted de .rmeta. */
