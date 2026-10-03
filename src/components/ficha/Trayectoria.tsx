@@ -32,7 +32,13 @@ async function fetchPartidos(codjugador: string, codtemporada: string, codequipo
     if (codgrupo) b = b.eq('codgrupo', codgrupo)
     return b   // el orden NO va por jornada (en copa colisiona: final j1 == 1er grupo j1); se ordena por fecha ISO abajo
   }
-  let { data, error } = await q(COLS_P + ', es_local')
+  // Select en TRES niveles, cada uno renunciando a una columna OPCIONAL. `estado_partido` todavía NO existe
+  // en web_jugador_partidos (3,5 M filas): pedirla sin más sería un 400 de PostgREST y la trayectoria entera
+  // dejaría de cargar. Con esto, el día que el ciclo la publique aparece el rótulo "Susp." sin tocar código;
+  // hasta entonces se cae al nivel de abajo y se pinta el resultado como hoy. Mismo patrón que ya usaba
+  // `es_local` cuando era la columna que estaba por llegar.
+  let { data, error } = await q(COLS_P + ', es_local, estado_partido')
+  if (error) ({ data, error } = await q(COLS_P + ', es_local'))
   if (error) ({ data, error } = await q(COLS_P))
   if (error) return { error: error.message, rows: [] as any[] }
   // Más reciente primero; lo que no tiene fecha se queda al final (ver fechaOrden.ts).
@@ -46,6 +52,11 @@ async function fetchPartidos(codjugador: string, codtemporada: string, codequipo
 const ACENTO = 'border-l-2 border-grass-500/70'
 function PartidoFila({ p, portero }: { p: any; portero: boolean }) {
   const { marcador, signo } = marcadorLocalVisitante(p.resultado, p.es_local)
+  // SUSPENDIDO: el partido no se jugó, así que no hay resultado que ensenar. Abreviado porque la celda es
+  // estrecha (en móvil comparte sitio con el nombre del rival). NULL = sin estado conocido -> como hoy.
+  const susp = p.estado_partido === 'suspendido'
+  const resTxt = susp ? 'Susp.' : marcador
+  const resCls = susp ? 'text-chalk-500' : colorSigno(signo)
   const goles = p.goles ?? 0, min = p.minutos ?? 0, pts = p.puntos, gc = p.goles_encajados ?? 0
   const ta = p.amarillas ?? 0, da = p.dobles_amarilla ?? 0, tr = p.rojas ?? 0
   const delta = p.elo_delta
@@ -64,11 +75,11 @@ function PartidoFila({ p, portero }: { p: any; portero: boolean }) {
             : <span className="w-5 h-5 flex-shrink-0" />}
           <span className="truncate min-w-0 font-display">{nombreEquipo(p.rival_nombre)}</span>
           {/* Móvil: el marcador va JUNTO al rival (no debajo del escudo). En desktop vive en su columna (Comp.). */}
-          <span className={`sm:hidden flex-shrink-0 font-semibold tabular-nums ${colorSigno(signo)}`}>{marcador}</span>
+          <span className={`sm:hidden flex-shrink-0 font-semibold tabular-nums ${resCls}`}>{resTxt}</span>
         </div>
       </td>
       {/* COMP -> resultado coloreado (desktop) */}
-      <td className={`hidden sm:table-cell text-center font-semibold tabular-nums ${colorSigno(signo)}`}>{marcador}</td>
+      <td className={`hidden sm:table-cell text-center font-semibold tabular-nums ${resCls}`}>{resTxt}</td>
       {/* PJ -> T / S */}
       <td className="text-center text-chalk-500" title={p.titular ? 'Titular' : 'Suplente'}>{p.titular ? 'T' : 'S'}</td>
       {/* MIN (columna madre también en móvil) */}

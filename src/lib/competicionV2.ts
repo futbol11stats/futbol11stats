@@ -274,6 +274,7 @@ export type ResultadoCompRow = {
   fecha: string | null; hora: string | null; campo: string | null
   // Resultado ADMINISTRATIVO: 'local'|'visitante'|'ambos' = no se disputó (ver web_resultados.incidencia).
   incidencia?: 'local' | 'visitante' | 'ambos' | null
+  estado_partido?: string | null   // 'suspendido' = no se jugó y sigue pendiente de resolución
   grupo_label: string | null   // copa fase de grupos: "Grupo A"/"Grupo B" (NULL en liga y eliminatorias)
   // Enlace a Maps del campo del PARTIDO (no la instalación habitual del equipo). PENDIENTE de cableado: el
   // pipeline publicará codigo_campo (y quizá campo_lat/campo_lng) en web_resultados -> añadir al select de abajo.
@@ -295,7 +296,7 @@ export async function tienePartidosJugados(codgrupo: string, codtemporada: numbe
 
 export async function getResultadosV2(codgrupo: string, codtemporada: number, jornada: number): Promise<ResultadoCompRow[]> {
   const cols = 'id, codacta, nombre_local, escudo_local, goles_local, goles_visitante, nombre_visitante, escudo_visitante, ' +
-    'fecha, hora, campo, grupo_label, codigo_campo, campo_lat, campo_lng, incidencia'
+    'fecha, hora, campo, grupo_label, codigo_campo, campo_lat, campo_lng, incidencia, estado_partido'
   return cacheComp(async () => {
     const { data, error } = await supabase.from('web_resultados').select(cols)
       .eq('codgrupo', codgrupo).eq('codtemporada', codtemporada).eq('jornada', jornada).order('fecha').order('hora')

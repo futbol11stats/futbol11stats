@@ -651,16 +651,16 @@ Anotado el 2026-09-28. No es una tarea: es un **aviso previo** a cualquiera que 
 
 **SI ALGÚN DÍA SE UNIFICAN LOS FORMATOS, revisar estos sorts ANTES**: los que hoy aciertan por el formato compacto empezarían a fallar en silencio.
 
-### E-event-estado · `eventStatus` aplazado/suspendido: NO hay dato para distinguirlo
-Abierto el 2026-10-03, al corregir los avisos de Event de Search Console.
+### E-event-estado · `eventStatus` desde `estado_partido` (2026-10-03, HECHO con una salvedad)
+Abierto el 2026-10-03 por falta de dato; **resuelto el mismo día**: el pipeline publicó `web_resultados.estado_partido` con valores `suspendido` | `resuelto` | `programado` | NULL.
 
-La especificación pedía `EventPostponed` si el partido está aplazado y `EventCancelled` si suspendido. **No se puede implementar: el dato no existe.** Lo que hay en `web_resultados`:
-- **`motivo_estado`**: no nulo en **1 fila de 130.265**, y vale "Resultado Resolución Juez Único RFFM" — que no es un aplazamiento.
-- **`incidencia`**: `local` | `visitante` (52 filas). Es la **incomparecencia**: el equipo que no se presentó. No es un aplazamiento ni una suspensión — el partido tiene resultado por incomparecencia, así que mapearlo a `EventCancelled` sería falso.
+**Mapeo:** `suspendido` → `EventPostponed` (no se jugó y queda pendiente de resolución, que es lo que postponed significa). Todo lo demás — incluido NULL — → `EventScheduled`. **No se usa `EventCancelled`** (un suspendido no está anulado) **ni `EventCompleted`, que no existe en schema.org**: un partido jugado se queda en `EventScheduled` con su marcador en `name`. Las reglas de emisión no cambian: sin hora, sin campo o con incidencia no hay evento.
 
-Hoy, por tanto, **todos los eventos emiten `EventScheduled`**, que es lo cierto para un partido con fecha, hora y campo confirmados. El parámetro `estado?: 'aplazado' | 'suspendido'` está ya en `sportsEventLd` y **nadie lo alimenta**: el día que el pipeline publique un estado de partido, se conecta en los dos emisores y funciona sin tocar el nodo.
+**NULL no se deduce.** 128.764 filas de 130.265 lo tienen vacío, así que deducir el estado del marcador habría cambiado el comportamiento de casi toda la base. Vacío = se actúa como hasta hoy.
 
-**Petición al pipeline si se quiere cerrar:** un campo de estado del partido con valores acotados (programado / aplazado / suspendido), distinto de `incidencia`, que es otra cosa.
+**SALVEDAD — la ficha de jugador va por detrás:** `web_jugador_partidos` **no tiene** `estado_partido` (3,5 M filas). El historial de partidos lo pide en un select de TRES niveles (`+ es_local, estado_partido` → `+ es_local` → pelado), así que hoy cae al segundo nivel y pinta el resultado como siempre; el día que el ciclo publique la columna, aparece "Susp." sin tocar código. Mismo patrón que ya usaba `es_local` cuando era la columna pendiente. **No se añadió al select a secas** porque una columna inexistente es un 400 de PostgREST y tumbaría la trayectoria entera.
+
+**Y un aviso sobre las actas de verificación:** 5582166 (T22) sí está `suspendido` — es **el único** registro con ese estado en toda la tabla —, pero **5150242 (T20) tiene `estado_partido` NULL** y un 0-0 publicado, así que seguirá mostrando 0-0. Si se espera verla como suspendida, falta que el pipeline la marque.
 
 ### E-event-performer · La línea roja de datos estructurados, ACOTADA
 Hecho el 2026-10-03. La decisión de 2026-08 prohibía `performer` **por su nombre**, junto a `athlete` y `attendee`, para que no entrara la entidad-persona en páginas indexables en juvenil.

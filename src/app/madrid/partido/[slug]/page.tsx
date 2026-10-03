@@ -70,7 +70,7 @@ export default async function PartidoPage({ params }: { params: Promise<{ slug: 
     campoDireccion: dir?.direccion ?? null, campoLocalidad: dir?.localidad ?? null, campoCp: dir?.cp ?? null,
     competicion: `${p.nombreComp} · ${p.temporada}`, competicionNombre: p.nombreComp,
     jornadaTexto: `Jornada ${p.jornada}`,
-    incidencia: p.incidencia,
+    incidencia: p.incidencia, estadoPartido: p.estadoPartido,
   })
   const crumbs = breadcrumbLd([
     { name: 'Inicio', url: `${SITE_URL}/` },

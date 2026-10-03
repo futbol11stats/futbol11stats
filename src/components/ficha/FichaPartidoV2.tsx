@@ -21,7 +21,7 @@ import PartidoTabs from '@/components/ficha/PartidoTabs'
 import PlayerAvatar from '@/components/ui/PlayerAvatar'
 import FormaStrip from '@/components/ui/FormaStrip'
 import type { PartidoFicha, PartidoJugador, PartidoMini, PartidoLado } from '@/lib/partido'
-import { NO_DISPUTADO } from '@/lib/partido'
+import { NO_DISPUTADO, SUSPENDIDO } from '@/lib/partido'
 // Fondo de la pastilla de PUNTOS fantasy (baza propia; verde para lo bueno, el ámbar está reservado).
 const ptsStyle = (p: number | null) => p == null ? { background: 'rgba(255,255,255,.05)', color: 'var(--ink-4)' }
   : p >= 8 ? { background: 'var(--e3)', color: '#08111f' }
@@ -357,6 +357,7 @@ export default function FichaPartidoV2({ p }: { p: PartidoFicha }) {
   const icsUrl = `/api/ics/${p.codacta}`
   const googleUrl = puedeIcs ? googleRenderUrl({ title: `${p.local.nombre} vs ${p.visitante.nombre}`, fecha: p.fecha as string, hora: p.hora as string, campo: p.campoNombre, details: `${p.nombreComp} · Jornada ${p.jornada}\n${SITE_URL}/madrid/partido/${partidoSlug(p.codacta, p.local.nombre, p.visitante.nombre)}` }) : null
   const gL = p.golesLocal ?? 0, gV = p.golesVisitante ?? 0
+  const suspendido = p.estadoPartido === 'suspendido'
   // ¿Hay detalle del acta scrapeado? (alineaciones de web_jugador_partidos). Un partido JUGADO puede tener el
   // acta cerrada pero el detalle aún sin procesar -> sin filas. Distinguir "aún no lo tenemos" de "no hay nada".
   const hayAlineacion = p.local.titulares.length > 0 || p.visitante.titulares.length > 0
@@ -382,7 +383,12 @@ export default function FichaPartidoV2({ p }: { p: PartidoFicha }) {
             <FormaDots nombre={p.local.nombre} minis={p.formaLocal} />
           </div>
           <div className="mmid">
-            {p.jugado ? (
+            {/* SUSPENDIDO (estado_partido): sustituye al marcador Y al bloque de "Próximo partido". No se jugó,
+                así que no hay resultado; y tampoco procede anunciarlo como próximo, porque la fecha que
+                figura ya pasó o quedará sin efecto. Chip del mismo estilo que el de no disputado. */}
+            {suspendido ? (
+              <span className="mmeta-admin mmid-susp">{SUSPENDIDO}</span>
+            ) : p.jugado ? (
               <>
                 <span className="mres"><span style={{ color: colL }}>{gL}</span><span className="sep">-</span><span style={{ color: colV }}>{gV}</span></span>
                 <span className="pill n">FINAL</span>
@@ -406,7 +412,7 @@ export default function FichaPartidoV2({ p }: { p: PartidoFicha }) {
         <div className="mmeta">
           {/* Resultado ADMINISTRATIVO: el rótulo va primero, pegado al marcador, para que el 3-0 no se lea como
               un partido jugado. Mismo texto que en la lista de resultados (NO_DISPUTADO). */}
-          {p.incidencia && <span className="mmeta-admin">{NO_DISPUTADO}</span>}
+          {p.incidencia && !suspendido && <span className="mmeta-admin">{NO_DISPUTADO}</span>}
           {/* Jugado: fecha·hora aquí (bajo el marcador). Futuro: ya va enmarcada en el hero -> aquí solo campo. */}
           {p.jugado && (p.fecha || p.hora) && <span>{[p.fecha, p.hora].filter(Boolean).join(' · ')}</span>}
           {p.campoNombre && (

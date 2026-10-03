@@ -44,6 +44,8 @@ export type PartidoFicha = {
   // 'ambos' = el lado que no compareció o fue retirado -> nunca habrá detalle de acta (no se jugó). El histórico
   // (~2.459 walkovers viejos) NO se backfillea: queda NULL y cae al mensaje neutral de "sin detalle".
   incidencia: 'local' | 'visitante' | 'ambos' | null
+  // estado_partido del acta: 'suspendido' = no se jugó y sigue sin resolver. NULL = sin estado conocido.
+  estadoPartido: string | null
   local: PartidoLado; visitante: PartidoLado
   golesLocal: number | null; golesVisitante: number | null; fecha: string | null; hora: string | null
   campoNombre: string | null; campoSuperficie: string | null; campoHref: string | null; campoLat: number | null; campoLng: number | null
@@ -73,6 +75,11 @@ export type PartidoFicha = {
 // (local/visitante/ambos) pero NO distingue la causa, así que nombrar una de las dos afirmaría algo que el
 // dato no sostiene. "No disputado" sí es cierto en los dos casos.
 export const NO_DISPUTADO = 'No disputado · resultado administrativo'
+// Suspendido (web_resultados.estado_partido): el partido NO se jugó y la federación aún no lo ha resuelto.
+// Distinto de NO_DISPUTADO, que ya tiene resultado administrativo. Versión corta para la celda del marcador
+// de la lista, donde el texto largo no cabe sin romper la rejilla de 390px.
+export const SUSPENDIDO = 'Suspendido · pendiente de resolución'
+export const SUSPENDIDO_CORTO = 'Suspendido'
 
 const POS_ORD: Record<string, number> = { POR: 0, DEF: 1, MED: 2, DEL: 3 }
 // Más reciente primero. claveFechaDesc deja al final lo que no tiene fecha (ver fechaOrden.ts).
@@ -131,14 +138,14 @@ async function enfrentamientos(a: string, b: string, n: number): Promise<Partido
 export async function getPartido(codacta: string): Promise<PartidoFicha | null> {
   if (!/^\d+$/.test(codacta)) return null
   const { data: rRaw } = await supabase.from('web_resultados')
-    .select('id, codacta, codtemporada, codgrupo, jornada, nombre_local, escudo_local, goles_local, goles_visitante, nombre_visitante, escudo_visitante, fecha, hora, campo, codigo_campo, campo_lat, campo_lng, codequipo_local, codequipo_visitante, ronda_slug, incidencia, elo_pre_local, elo_post_local, elo_pre_visitante, elo_post_visitante')
+    .select('id, codacta, codtemporada, codgrupo, jornada, nombre_local, escudo_local, goles_local, goles_visitante, nombre_visitante, escudo_visitante, fecha, hora, campo, codigo_campo, campo_lat, campo_lng, codequipo_local, codequipo_visitante, ronda_slug, incidencia, estado_partido, elo_pre_local, elo_post_local, elo_pre_visitante, elo_post_visitante')
     .eq('codacta', codacta).maybeSingle()
   const r = rRaw as {
     id: number; codacta: string | null; codtemporada: number; codgrupo: string; jornada: number
     nombre_local: string; escudo_local: string | null; goles_local: number | null; goles_visitante: number | null
     nombre_visitante: string; escudo_visitante: string | null; fecha: string | null; hora: string | null
     campo: string | null; codigo_campo: string | null; campo_lat: number | null; campo_lng: number | null
-    codequipo_local: string | null; codequipo_visitante: string | null; ronda_slug: string | null; incidencia: string | null
+    codequipo_local: string | null; codequipo_visitante: string | null; ronda_slug: string | null; incidencia: string | null; estado_partido: string | null
     elo_pre_local: number | null; elo_post_local: number | null; elo_pre_visitante: number | null; elo_post_visitante: number | null
   } | null
   if (!r) return null
@@ -374,6 +381,7 @@ export async function getPartido(codacta: string): Promise<PartidoFicha | null> 
       id: String(r.id), codacta: String(r.codacta ?? ''), jugado, esJuvenil, codtemporada: r.codtemporada,
       categoria, slugComp: g?.slug_comp || '', slugGrupo: g?.slug_grupo || '', temporada, nombreComp: g?.nombre_comp || 'RFFM · Madrid', jornada: r.jornada, compHref,
       incidencia: (r.incidencia === 'local' || r.incidencia === 'visitante' || r.incidencia === 'ambos') ? r.incidencia : null,
+      estadoPartido: r.estado_partido ?? null,
       local, visitante, golesLocal: r.goles_local, golesVisitante: r.goles_visitante, fecha: r.fecha, hora: r.hora,
       campoNombre: campoNombre || null, campoSuperficie, campoHref, campoLat: r.campo_lat, campoLng: r.campo_lng,
       codigoCampo: r.codigo_campo != null ? String(r.codigo_campo) : null,
@@ -391,5 +399,5 @@ export async function getPartido(codacta: string): Promise<PartidoFicha | null> 
       posPreVisitante: posV.posPre, posPostVisitante: posV.posPost,
       hitos,
     }
-  }, ['getPartido', 'v11-codigocampo', String(r.codacta)], [String(r.codgrupo)], r.codtemporada)
+  }, ['getPartido', 'v12-estadopartido', String(r.codacta)], [String(r.codgrupo)], r.codtemporada)
 }

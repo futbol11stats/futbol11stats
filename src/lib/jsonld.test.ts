@@ -53,3 +53,32 @@ describe('sportsEventLd y el organizador', () => {
     expect(sportsEventLd({ ...BASE, competicion: '3ª RFEF · 2026-27' })).not.toHaveProperty('superEvent')
   })
 })
+
+// eventStatus sale de web_resultados.estado_partido. Lo que se congela aquí: que 'suspendido' es POSTPONED
+// (no cancelled: no está anulado, está pendiente), que NULL no se deduce del marcador — 128.764 de 130.265
+// filas lo tienen vacío — y que no aparece EventCompleted, que no existe en schema.org.
+describe('eventStatus desde estado_partido', () => {
+  it("'suspendido' -> EventPostponed", () => {
+    expect(sportsEventLd({ ...BASE, estadoPartido: 'suspendido' })?.eventStatus)
+      .toBe('https://schema.org/EventPostponed')
+  })
+
+  it('resuelto, programado y NULL -> EventScheduled (NULL no se deduce)', () => {
+    for (const e of ['resuelto', 'programado', null, undefined]) {
+      expect(sportsEventLd({ ...BASE, estadoPartido: e })?.eventStatus)
+        .toBe('https://schema.org/EventScheduled')
+    }
+  })
+
+  it('un partido jugado NO usa EventCompleted (no existe en schema.org)', () => {
+    const n = sportsEventLd({ ...BASE, golesLocal: 1, golesVisitante: 2, estadoPartido: 'resuelto' })
+    expect(n?.eventStatus).toBe('https://schema.org/EventScheduled')
+    expect(JSON.stringify(n)).not.toContain('EventCompleted')
+  })
+
+  it('suspendido sigue sujeto a las reglas de emisión: sin campo u hora, no hay evento', () => {
+    expect(sportsEventLd({ ...BASE, estadoPartido: 'suspendido', campo: null })).toBeNull()
+    expect(sportsEventLd({ ...BASE, estadoPartido: 'suspendido', startDate: null })).toBeNull()
+  })
+})
+

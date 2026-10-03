@@ -576,6 +576,10 @@
    (no es un error) — en la línea de metadatos, tanto en la lista de resultados como en la ficha del partido.
    Mismo tratamiento en los dos sitios a propósito: es el MISMO hecho. Envuelve en móvil en vez de recortarse,
    porque el texto completo es el que informa. */
+/* SUSPENDIDO en la celda del marcador de la lista: mismo chip neutro, en versión corta para que la rejilla
+   de tres columnas no se rompa a 390px. En el hero de la ficha el chip va a tamaño normal (.mmid-susp). */
+.fjv2 .rsc-susp{display:inline-block;font-family:var(--font-display),'Barlow Condensed',sans-serif;font-size:var(--t-cap);font-weight:700;letter-spacing:.03em;padding:3px 9px;border-radius:999px;color:var(--ink-2);border:1px solid var(--line);background:var(--pitch-700);white-space:nowrap}
+.fjv2 .mmid-susp{font-size:var(--t-body);padding:5px 13px;text-align:center}
 .fjv2 .rmeta-admin,.fjv2 .mmeta-admin{display:inline-block;font-size:var(--t-cap);font-weight:600;letter-spacing:.02em;padding:2px 9px;border-radius:999px;color:var(--ink-2);border:1px solid var(--line);background:var(--pitch-700);white-space:normal;max-width:100%}
 /* Campo del partido como enlace discreto (chincheta) en la línea de metadatos; hereda el tono muted de .rmeta. */
 .fjv2 .rmeta-campo{display:inline-flex;align-items:center;gap:3px;color:inherit;text-decoration:none}

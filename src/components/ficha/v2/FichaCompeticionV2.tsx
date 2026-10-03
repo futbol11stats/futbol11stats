@@ -12,7 +12,7 @@ import { ensureMadrid, SITE_URL } from '@/lib/seo'
 import { fechaCortaDMY, equipoSlug } from '@/lib/equipo'
 import { campoMapsUrl, parseCampo } from '@/lib/club'
 import { isoMadrid } from '@/lib/horaMadrid'
-import { NO_DISPUTADO } from '@/lib/partido'
+import { NO_DISPUTADO, SUSPENDIDO, SUSPENDIDO_CORTO } from '@/lib/partido'
 import { getDireccionesCampos, type DireccionCampo } from '@/lib/campo'
 import { getCamposConFicha, campoSlug } from '@/lib/campo'
 import SuperficieCampo from '@/components/SuperficieCampo'
@@ -428,12 +428,13 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
       : txt
   }
   const renderPartido = (r: ResultadoCompRow, i: number) => {
+    const suspendido = r.estado_partido === 'suspendido'
     const jugado = r.goles_local != null && r.goles_visitante != null
     const metaFH = [r.fecha ? fechaCortaDMY(r.fecha) : null, r.hora || null].filter(Boolean).join(' · ')
     const campoEl = renderCampoPartido(r)
     // Botón "Añadir a mi calendario": solo partido NO jugado, con fecha Y hora (no 00:00). El .ics lo sirve
     // /api/ics/<id> (LOCATION+GEO del campo si los hay). Discreto, bajo el "vs", sin tocar los marcadores.
-    const puedeIcs = !jugado
+    const puedeIcs = !jugado && !suspendido
       && !!r.fecha && /^\d{2}\/\d{2}\/\d{4}$/.test(r.fecha)
       && !!r.hora && /^\d{1,2}:\d{2}$/.test(r.hora) && r.hora !== '00:00'
     // Botón de calendario: vía principal Google Calendar (crear evento, un toque en Android); Apple -> .ics.
@@ -454,12 +455,15 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
           </div>
           {(() => {
             const tieneFicha = !!r.codacta
-            const inner = jugado ? (() => {
+            const inner = suspendido ? <span className="rsc-susp">{SUSPENDIDO_CORTO}</span> : jugado ? (() => {
               const gL = r.goles_local as number, gV = r.goles_visitante as number
               const cL = gL > gV ? 'var(--e3)' : gL < gV ? 'var(--e0)' : 'var(--ink-2)'
               const cV = gV > gL ? 'var(--e3)' : gV < gL ? 'var(--e0)' : 'var(--ink-2)'
               return <><span style={{ color: cL }}>{gL}</span><span className="rsc-sep">-</span><span style={{ color: cV }}>{gV}</span></>
             })() : (tieneFicha && codtemporada === 22 ? <span className="rsc-previa">Previa</span> : 'vs')
+            // SUSPENDIDO: sustituye al marcador. En la celda va la versión CORTA (la rejilla de 390px no
+            // admite el texto largo sin romperse) y el "pendiente de resolución" completo baja a la línea
+            // de metadatos, igual que el rótulo de no disputado.
             // JUGADO con acta -> el marcador abre la ficha del partido en CUALQUIER temporada (las fichas son ISR).
             // FUTURO con acta en la temporada actual (T22) -> botón "Previa" (pronóstico). Sin acta -> "vs" plano.
             const linkable = tieneFicha && (jugado || codtemporada === 22)
@@ -472,11 +476,12 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
             <span className={`rnm${jugado && (r.goles_visitante as number) > (r.goles_local as number) ? ' w' : ''}`}><NombreEquipo codequipo={equiposMap.get(r.nombre_visitante) ?? null} nombre={r.nombre_visitante} /></span>
           </div>
         </div>
-        {(metaFH || campoEl || puedeIcs || r.incidencia) && (
+        {(metaFH || campoEl || puedeIcs || r.incidencia || suspendido) && (
           <div className="rmeta">
             {/* Resultado ADMINISTRATIVO: primero y en su propio chip, para que el marcador no se lea como un
                 partido jugado. Mismo texto que en la ficha del partido (NO_DISPUTADO). */}
             {r.incidencia && <span className="rmeta-admin">{NO_DISPUTADO}</span>}
+            {suspendido && <span className="rmeta-admin">{SUSPENDIDO}</span>}
             {(metaFH || campoEl) && <span>{metaFH}{campoEl && <>{metaFH ? ' · ' : ''}{campoEl}</>}</span>}
             {puedeIcs && (
               <CalendarLink appleHref={icsUrl} otherHref={googleUrl || icsUrl} className="rmeta-cal">
@@ -687,6 +692,7 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
                   campo: r.campo ? parseCampo(r.campo).nombre : null,
                   campoCodigo: r.codigo_campo ?? null,
                   incidencia: r.incidencia ?? null,
+                  estadoPartido: r.estado_partido ?? null,
                   campoDireccion: dirCampos.get(String(r.codigo_campo ?? ''))?.direccion ?? null,
                   campoLocalidad: dirCampos.get(String(r.codigo_campo ?? ''))?.localidad ?? null,
                   campoCp: dirCampos.get(String(r.codigo_campo ?? ''))?.cp ?? null,

@@ -150,7 +150,9 @@ export function sportsEventLd(ev: {
   competicion?: string | null    // texto decorado para `description` (grupo/temporada/ronda)
   competicionNombre?: string | null   // nombre CRUDO (web_grupos.nombre_comp) -> organizer
   jornadaTexto?: string | null   // "Jornada 7" | "Cuartos de final" -> description
-  estado?: 'aplazado' | 'suspendido' | null   // -> eventStatus; hoy SIEMPRE null (ver DECISIONES-PENDIENTES)
+  // web_resultados.estado_partido: 'suspendido' | 'resuelto' | 'programado' | null. NULL = sin estado
+  // conocido -> se trata como programado, NO se deduce del marcador.
+  estadoPartido?: string | null
   incidencia?: 'local' | 'visitante' | 'ambos' | null   // resultado ADMINISTRATIVO -> no hubo evento
 }): Record<string, unknown> | null {
   // Un partido con resultado administrativo (retirada o incomparecencia) NO SE DISPUTÓ: no es un evento, y
@@ -188,8 +190,11 @@ export function sportsEventLd(ev: {
     sport: 'Soccer',
     startDate: ev.startDate,
     location: place,
-    eventStatus: ev.estado === 'aplazado' ? 'https://schema.org/EventPostponed'
-      : ev.estado === 'suspendido' ? 'https://schema.org/EventCancelled'
+    // 'suspendido' -> EventPostponed: el partido no se jugó y queda pendiente de resolución, que es
+    // exactamente lo que significa postponed. NO EventCancelled (no está anulado) y NO EventCompleted,
+    // que no existe en schema.org — un partido jugado se queda en EventScheduled, con su marcador en `name`.
+    eventStatus: ev.estadoPartido === 'suspendido'
+      ? 'https://schema.org/EventPostponed'
       : 'https://schema.org/EventScheduled',
 
     homeTeam: localTeam,
