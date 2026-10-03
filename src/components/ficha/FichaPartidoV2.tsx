@@ -265,13 +265,21 @@ function pct3(p: { l: number; e: number; v: number }): [number, number, number] 
 
 function PronoCard({ p }: { p: PartidoFicha }) {
   const hayPre = p.eloPreLocal != null && p.eloPreVisitante != null
-  const hayPost = p.eloPostLocal != null && p.eloPostVisitante != null
+  // SUSPENDIDO: no hay "tras el partido". Sin resultado no hay ELO posterior, y si la fila trajera uno
+  // sería de antes de suspenderse o un residuo — pintarlo afirmaría un cambio que no ha ocurrido. El
+  // pronóstico PREVIO sí se mantiene: era cierto cuando se publicó.
+  // Un resultado ADMINISTRATIVO (incidencia) SÍ lo muestra: esos cuentan en el ELO de equipo (decisión de
+  // Fernando), así que su movimiento de ELO es real.
+  const hayPost = p.estadoPartido !== 'suspendido' && p.eloPostLocal != null && p.eloPostVisitante != null
   const fav = favoritoFrase(p.eloPreLocal, p.eloPreVisitante)
   const prob = probsElo(p.eloPreLocal, p.eloPreVisitante)
   const pc = prob ? pct3(prob) : null
   const ctxL = ctxPuesto(p.posPreLocal, p.posPostLocal)
   const ctxV = ctxPuesto(p.posPreVisitante, p.posPostVisitante)
-  if (!hayPre && !hayPost && !ctxL && !ctxV) return null
+  // En suspendido tampoco procede el contexto de puesto (es "cómo quedaron tras el partido").
+  const susp = p.estadoPartido === 'suspendido'
+  const postL = susp ? null : ctxL, postV = susp ? null : ctxV
+  if (!hayPre && !hayPost && !postL && !postV) return null
   const favLado = fav && fav.lado !== 'igual' ? (fav.lado === 'local' ? p.local : p.visitante) : null
   // Escudo SIEMPRE primero en el marcado; el CSS coloca el del visitante a la derecha en escritorio (fila enfrentada)
   // y apila ambos a ancho completo en móvil (escudo a la izquierda). pp-info toma el ancho restante -> sin amontonar.
@@ -311,11 +319,11 @@ function PronoCard({ p }: { p: PartidoFicha }) {
       </>)}
       {fav && <div className="prono-fav">{favLado ? <><b><NombreEquipo codequipo={favLado.codequipo} nombre={favLado.nombre} /></b> {fav.texto}</> : fav.texto}</div>}
       {prob && <div className="prono-note">Probabilidad estimada a partir del ELO, no una predicción.</div>}
-      {(hayPost || ctxL || ctxV) && <>
+      {(hayPost || postL || postV) && <>
         <div className="prono-div"><span>tras el partido</span></div>
         <div className="prono-post">
-          {teamPost(p.eloPostLocal, p.movEloLocal, ctxL, p.local, 'l')}
-          {teamPost(p.eloPostVisitante, p.movEloVisitante, ctxV, p.visitante, 'v')}
+          {teamPost(p.eloPostLocal, p.movEloLocal, postL, p.local, 'l')}
+          {teamPost(p.eloPostVisitante, p.movEloVisitante, postV, p.visitante, 'v')}
         </div>
       </>}
     </section>
