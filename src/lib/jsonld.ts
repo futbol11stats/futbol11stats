@@ -143,7 +143,10 @@ export function sportsEventLd(ev: {
     eventStatus: ev.estado === 'aplazado' ? 'https://schema.org/EventPostponed'
       : ev.estado === 'suspendido' ? 'https://schema.org/EventCancelled'
       : 'https://schema.org/EventScheduled',
-    organizer: { '@type': 'Organization', name: 'Real Federación de Fútbol de Madrid' },
+    // `url` oficial del organizador (la Prueba de resultados enriquecidos lo pide como recomendado).
+    // Comprobado el 2026-10-03: https://www.rffm.es responde 200 y rffm.es sin www devuelve un 301 hacia
+    // ella, así que la forma con www es la canónica. Es además la que usa el pipeline para scrapear.
+    organizer: { '@type': 'Organization', name: 'Real Federación de Fútbol de Madrid', url: 'https://www.rffm.es' },
     homeTeam: localTeam,
     awayTeam: awayTeam,
     competitor: [localTeam, awayTeam],
