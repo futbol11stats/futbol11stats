@@ -21,7 +21,7 @@ import PartidoTabs from '@/components/ficha/PartidoTabs'
 import PlayerAvatar from '@/components/ui/PlayerAvatar'
 import FormaStrip from '@/components/ui/FormaStrip'
 import type { PartidoFicha, PartidoJugador, PartidoMini, PartidoLado } from '@/lib/partido'
-import { NO_DISPUTADO, SUSPENDIDO } from '@/lib/partido'
+import { NO_DISPUTADO, SUSPENDIDO_CORTO } from '@/lib/partido'
 // Fondo de la pastilla de PUNTOS fantasy (baza propia; verde para lo bueno, el ámbar está reservado).
 const ptsStyle = (p: number | null) => p == null ? { background: 'rgba(255,255,255,.05)', color: 'var(--ink-4)' }
   : p >= 8 ? { background: 'var(--e3)', color: '#08111f' }
@@ -353,11 +353,13 @@ const RACHA_DEFS = [
 
 export default function FichaPartidoV2({ p }: { p: PartidoFicha }) {
   const tieneHora = !!p.hora && /^\d{1,2}:\d{2}$/.test(p.hora) && p.hora !== '00:00'   // la RFFM publica la hora la semana del partido
-  const puedeIcs = !p.jugado && !!p.fecha && /^\d{2}\/\d{2}\/\d{4}$/.test(p.fecha) && tieneHora
+  const suspendido = p.estadoPartido === 'suspendido'
+  // Un SUSPENDIDO no se ofrece al calendario: la fecha que figura ya pasó o quedará sin efecto, así que el
+  // evento que se añadiría es falso. Misma regla que en la lista de resultados.
+  const puedeIcs = !p.jugado && !suspendido && !!p.fecha && /^\d{2}\/\d{2}\/\d{4}$/.test(p.fecha) && tieneHora
   const icsUrl = `/api/ics/${p.codacta}`
   const googleUrl = puedeIcs ? googleRenderUrl({ title: `${p.local.nombre} vs ${p.visitante.nombre}`, fecha: p.fecha as string, hora: p.hora as string, campo: p.campoNombre, details: `${p.nombreComp} · Jornada ${p.jornada}\n${SITE_URL}/madrid/partido/${partidoSlug(p.codacta, p.local.nombre, p.visitante.nombre)}` }) : null
   const gL = p.golesLocal ?? 0, gV = p.golesVisitante ?? 0
-  const suspendido = p.estadoPartido === 'suspendido'
   // ¿Hay detalle del acta scrapeado? (alineaciones de web_jugador_partidos). Un partido JUGADO puede tener el
   // acta cerrada pero el detalle aún sin procesar -> sin filas. Distinguir "aún no lo tenemos" de "no hay nada".
   const hayAlineacion = p.local.titulares.length > 0 || p.visitante.titulares.length > 0
@@ -387,7 +389,9 @@ export default function FichaPartidoV2({ p }: { p: PartidoFicha }) {
                 así que no hay resultado; y tampoco procede anunciarlo como próximo, porque la fecha que
                 figura ya pasó o quedará sin efecto. Chip del mismo estilo que el de no disputado. */}
             {suspendido ? (
-              <span className="mmeta-admin mmid-susp">{SUSPENDIDO}</span>
+              <span className="mmeta-admin mmid-susp">
+                {SUSPENDIDO_CORTO}<span className="susp-cola"> · pendiente de resolución</span>
+              </span>
             ) : p.jugado ? (
               <>
                 <span className="mres"><span style={{ color: colL }}>{gL}</span><span className="sep">-</span><span style={{ color: colV }}>{gV}</span></span>
@@ -413,6 +417,9 @@ export default function FichaPartidoV2({ p }: { p: PartidoFicha }) {
           {/* Resultado ADMINISTRATIVO: el rótulo va primero, pegado al marcador, para que el 3-0 no se lea como
               un partido jugado. Mismo texto que en la lista de resultados (NO_DISPUTADO). */}
           {p.incidencia && !suspendido && <span className="mmeta-admin">{NO_DISPUTADO}</span>}
+          {/* A 390px la cola baja aquí: en el centro solo cabe "Suspendido" sin estrangular los nombres de los
+              equipos (se partían palabra a palabra). En escritorio sobra sitio y va entera arriba. */}
+          {suspendido && <span className="mmeta-admin susp-cola-movil">Pendiente de resolución</span>}
           {/* Jugado: fecha·hora aquí (bajo el marcador). Futuro: ya va enmarcada en el hero -> aquí solo campo. */}
           {p.jugado && (p.fecha || p.hora) && <span>{[p.fecha, p.hora].filter(Boolean).join(' · ')}</span>}
           {p.campoNombre && (

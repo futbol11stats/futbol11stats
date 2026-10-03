@@ -579,7 +579,19 @@
 /* SUSPENDIDO en la celda del marcador de la lista: mismo chip neutro, en versión corta para que la rejilla
    de tres columnas no se rompa a 390px. En el hero de la ficha el chip va a tamaño normal (.mmid-susp). */
 .fjv2 .rsc-susp{display:inline-block;font-family:var(--font-display),'Barlow Condensed',sans-serif;font-size:var(--t-cap);font-weight:700;letter-spacing:.03em;padding:3px 9px;border-radius:999px;color:var(--ink-2);border:1px solid var(--line);background:var(--pitch-700);white-space:nowrap}
-.fjv2 .mmid-susp{font-size:var(--t-body);padding:5px 13px;text-align:center}
+/* El chip del centro, en móvil, solo "Suspendido": a 390px el texto completo ocupaba tanto que la rejilla
+   del marcador estrangulaba las columnas de los equipos y los nombres se partían letra a letra. La cola
+   ("pendiente de resolución") baja a la línea de metadatos (.susp-cola-movil) y arriba se oculta. A partir
+   de 1000px se invierte: la cola va arriba, entera, y el chip de abajo desaparece. */
+/* Doble clase a propósito: el elemento lleva `mmeta-admin mmid-susp` y la base, que va MÁS ABAJO en este
+   fichero, define white-space:normal. Con la misma especificidad ganaría por orden y este nowrap no haría
+   nada, así que se sube la especificidad en vez de fiarse de la posición. */
+.fjv2 .mmid-susp.mmeta-admin{font-size:var(--t-body);padding:5px 13px;text-align:center;white-space:nowrap}
+.fjv2 .mmid-susp .susp-cola{display:none}
+@media (min-width:1000px){
+  .fjv2 .mmid-susp .susp-cola{display:inline}
+  .fjv2 .susp-cola-movil{display:none}
+}
 .fjv2 .rmeta-admin,.fjv2 .mmeta-admin{display:inline-block;font-size:var(--t-cap);font-weight:600;letter-spacing:.02em;padding:2px 9px;border-radius:999px;color:var(--ink-2);border:1px solid var(--line);background:var(--pitch-700);white-space:normal;max-width:100%}
 /* Campo del partido como enlace discreto (chincheta) en la línea de metadatos; hereda el tono muted de .rmeta. */
 .fjv2 .rmeta-campo{display:inline-flex;align-items:center;gap:3px;color:inherit;text-decoration:none}
