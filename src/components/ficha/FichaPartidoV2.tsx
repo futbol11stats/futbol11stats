@@ -541,7 +541,11 @@ export default function FichaPartidoV2({ p }: { p: PartidoFicha }) {
           id: 'alineaciones', label: 'Alineaciones',
           // Se muestra para TODO partido jugado (antes solo si había alineación). Si el detalle del acta aún no
           // está scrapeado, el panel explica el silencio en vez de desaparecer (que parecería "sin datos").
-          show: p.jugado,
+          // Y TAMBIÉN en los SUSPENDIDOS que tengan alineación: se jugaron en parte, así que sus minutos y
+          // puntos son hechos del acta y cuentan mientras el acta exista (§8.24). Ocultarlos era incoherente
+          // con que esos mismos puntos sí sumen en la ficha de cada jugador. Sin marcador y sin MVP, que esos
+          // sí dependen de `p.jugado` y siguen fuera.
+          show: p.jugado || (suspendido && hayAlineacion),
           panel: !hayAlineacion ? (
             <section className="gc-alineaciones">
               {/* Se ramifica por web_resultados.incidencia (NO por el marcador 3-0, que también puede ser un
