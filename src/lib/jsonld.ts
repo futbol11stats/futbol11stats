@@ -65,6 +65,53 @@ export function sportsTeamLd(team: { name: string; url: string; sport?: string; 
   return node
 }
 
+// ORGANIZADOR POR COMPETICIÓN, con tabla EXPLÍCITA y SIN valor por defecto.
+//
+// Por qué una tabla y no una constante: el organizador es un hecho de cada competición, no del sitio. Hoy
+// todas las que publicamos las organiza la RFFM —incluidas 3ª RFEF Madrid y la Copa RFEF Fase Autonómica,
+// cuya fase madrileña gestiona ella—, así que la tabla parece redundante. Deja de serlo en cuanto entre una
+// competición de otra federación.
+//
+// ⚠ AL INCORPORAR UNA COMPETICIÓN NUEVA HAY QUE AÑADIR SU LÍNEA. Si no está, `organizadorCompeticion`
+//   devuelve null y el SportsEvent se emite SIN `organizer` — que es correcto aunque incompleto. Lo que NUNCA
+//   pasa es que se le atribuya a la RFFM algo que no organiza: no hay valor por defecto, a propósito.
+//   Ejemplo del caso que viene: la División de Honor Juvenil la organiza la RFEF (https://www.rfef.es), no la
+//   RFFM; hoy está fuera de alcance, y el día que entre, sin su línea saldría sin organizer en vez de con uno
+//   falso. Ver DECISIONES-PENDIENTES (E-event-organizer).
+//
+// La clave es el `nombre_comp` CRUDO de web_grupos (las 15 de abajo son todas las publicadas a 2026-10-03),
+// no un título decorado con grupo/temporada: por eso los emisores pasan `competicionNombre` aparte del texto
+// que va en `description`.
+const RFFM = { name: 'Real Federación de Fútbol de Madrid', url: 'https://www.rffm.es' } as const
+
+const ORGANIZADOR_POR_COMPETICION: Record<string, { name: string; url: string }> = {
+  // Aficionados
+  '3ª RFEF Madrid': RFFM,
+  'Preferente Madrid': RFFM,
+  '1ª Aficionados Madrid': RFFM,
+  '2ª Aficionados Madrid': RFFM,
+  '1ª Autonómica Madrid': RFFM,
+  'Copa de Aficionados RFFM': RFFM,
+  'Copa Primera División Autonómica Aficionado': RFFM,
+  'Copa RFEF Fase Autonómica': RFFM,
+  'Play Off Tercera Federación': RFFM,
+  // Juveniles
+  'Nacional Juvenil Madrid': RFFM,
+  'Preferente Juvenil Madrid': RFFM,
+  '1ª Juvenil Madrid': RFFM,
+  '2ª Juvenil Madrid': RFFM,
+  '1ª Autonómica Juvenil Madrid': RFFM,
+  'Copa Primera División Autonómica Juvenil': RFFM,
+}
+
+// Organizador de una competición por su nombre crudo. null = no lo sabemos -> no se emite `organizer`.
+// Se recorta el nombre (un espacio de más no debe hacer fallar la búsqueda) pero NO se normaliza más: la
+// tabla es explícita a propósito, y un nombre que no casa debe caer a null, no adivinar.
+export function organizadorCompeticion(competicion: string | null | undefined): { name: string; url: string } | null {
+  const k = String(competicion ?? '').trim()
+  return k ? (ORGANIZADOR_POR_COMPETICION[k] ?? null) : null
+}
+
 // El código 9999 / "PENDIENTE ASIGNACION CAMPO" es un MARCADOR DE RELLENO de la RFFM, no una instalación:
 // hoy son 16 partidos y 2 de ellos tienen hora, así que sin esto emitiríamos un evento con un lugar
 // inventado — justo lo que la regla prohíbe. Se comprueba por código Y por nombre: el código es el dato
@@ -100,7 +147,8 @@ export function sportsEventLd(ev: {
   campoCodigo?: string | null    // para descartar el campo de RELLENO (ver CAMPO_SIN_ASIGNAR)
   campoDireccion?: string | null; campoLocalidad?: string | null; campoCp?: string | null
   campoLat?: number | null; campoLng?: number | null   // coords del PARTIDO (web_resultados.campo_*)
-  competicion?: string | null    // superEvent + description
+  competicion?: string | null    // texto decorado para `description` (grupo/temporada/ronda)
+  competicionNombre?: string | null   // nombre CRUDO (web_grupos.nombre_comp) -> organizer
   jornadaTexto?: string | null   // "Jornada 7" | "Cuartos de final" -> description
   estado?: 'aplazado' | 'suspendido' | null   // -> eventStatus; hoy SIEMPRE null (ver DECISIONES-PENDIENTES)
   incidencia?: 'local' | 'visitante' | 'ambos' | null   // resultado ADMINISTRATIVO -> no hubo evento
@@ -143,10 +191,7 @@ export function sportsEventLd(ev: {
     eventStatus: ev.estado === 'aplazado' ? 'https://schema.org/EventPostponed'
       : ev.estado === 'suspendido' ? 'https://schema.org/EventCancelled'
       : 'https://schema.org/EventScheduled',
-    // `url` oficial del organizador (la Prueba de resultados enriquecidos lo pide como recomendado).
-    // Comprobado el 2026-10-03: https://www.rffm.es responde 200 y rffm.es sin www devuelve un 301 hacia
-    // ella, así que la forma con www es la canónica. Es además la que usa el pipeline para scrapear.
-    organizer: { '@type': 'Organization', name: 'Real Federación de Fútbol de Madrid', url: 'https://www.rffm.es' },
+
     homeTeam: localTeam,
     awayTeam: awayTeam,
     competitor: [localTeam, awayTeam],
@@ -155,6 +200,10 @@ export function sportsEventLd(ev: {
   }
   // endDate = startDate + 120 min, misma zona. SOLO derivado del startDate que ya emitimos: nunca por su
   // cuenta. Si por lo que sea no se puede calcular, se omite en vez de inventarlo.
+  // `organizer` SOLO si la competición está en la tabla. Sin tabla no hay organizador: antes era una
+  // constante RFFM para todo, lo que habría atribuido a la RFFM la primera competición ajena que entrara.
+  const org = organizadorCompeticion(ev.competicionNombre)
+  if (org) node.organizer = { '@type': 'Organization', name: org.name, url: org.url }
   const fin = masMinutos(ev.startDate, 120)
   if (fin) node.endDate = fin
   const desc = [ev.jornadaTexto, ev.competicion, `${ev.local} vs ${ev.visitante}`].filter(Boolean).join(' · ')

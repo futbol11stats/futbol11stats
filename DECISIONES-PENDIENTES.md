@@ -667,8 +667,18 @@ Hecho el 2026-10-03. La decisión de 2026-08 prohibía `performer` **por su nomb
 
 Ahora se emite `performer` y `competitor` **con los dos EQUIPOS** (`SportsTeam`, que son organizaciones), porque lo pidió Fernando para completar el marcado. El motivo del veto era **la persona, no la propiedad**, y con equipos la protección real se mantiene. **Sigue vetado meter personas** en `performer`/`competitor`, y siguen vetados `athlete` y `attendee` sin excepción. El comentario de `jsonld.ts` lleva la acotación fechada para que no parezca que alguien se saltó la regla.
 
-### E-event-organizer · `organizer` es siempre la RFFM
-Hecho el 2026-10-03, y conviene saberlo por si cambia el alcance. Todo evento emite `organizer: Real Federación de Fútbol de Madrid`. Es correcto para lo que publicamos hoy (las competiciones RFFM, incluidas 3ª RFEF Madrid y la Copa RFEF Fase Autonómica en su fase madrileña). **Si algún día se ingestan competiciones de otra federación** — División de Honor Juvenil, 1ª/2ª RFEF, hoy fuera de alcance — este campo pasaría a ser falso y habría que derivarlo de la competición.
+### E-event-organizer · `organizer` derivado de la competición, sin valor por defecto
+Reescrito el 2026-10-03 (antes: "es siempre la RFFM").
+
+**Regla:** `organizadorCompeticion(nombre_comp)` (en `lib/jsonld.ts`) consulta una **tabla explícita** y devuelve `{ name, url }` o **null**. Si es null, el `SportsEvent` se emite **SIN `organizer`**. **No hay valor por defecto**, y eso es la decisión: antes era una constante RFFM para todo evento, así que la primera competición ajena que entrara se le habría atribuido a la RFFM sin que nadie lo notara.
+
+Hoy la tabla tiene las **15 competiciones publicadas** (las 9 de aficionados y las 6 de juveniles de `web_grupos`), todas → Real Federación de Fútbol de Madrid, `https://www.rffm.es`. URL comprobada el 2026-10-03: responde 200 y `rffm.es` sin www devuelve 301 hacia ella, así que la forma con www es la canónica; es además la que el pipeline usa para scrapear. Incluye **3ª RFEF Madrid** y **Copa RFEF Fase Autonómica**, cuya fase madrileña organiza la RFFM.
+
+**AL INCORPORAR UNA COMPETICIÓN NUEVA HAY QUE AÑADIR SU LÍNEA.** Si no, sale sin `organizer` — incompleto pero cierto — en vez de con uno falso. El caso que viene: la **División de Honor Juvenil** la organiza la **RFEF** (`https://www.rfef.es`), no la RFFM; hoy está fuera de alcance (ver /sobre).
+
+La clave de la tabla es el `nombre_comp` **crudo** de `web_grupos`, no un título decorado con grupo o temporada: por eso los emisores pasan `competicionNombre` aparte del texto de `description`. Solo se recorta el nombre; un nombre que no casa cae a null y no se adivina.
+
+**Test** (`src/lib/jsonld.test.ts`): competición conocida → organizer con name y url; desconocida y sin nombre → evento emitido **sin** organizer.
 
 ### E-event-superevent · Fuera `superEvent` (2026-10-03, HECHO)
 `sportsEventLd` anidaba la competición como `superEvent: { '@type': 'SportsEvent', name: '3ª RFEF Madrid · 2026-27' }`. Google la validaba como un **Event propio** y le exigía `startDate` y `location`, que una liga no tiene — y que no se van a inventar. **Era la causa real de los avisos**, por encima de la zona horaria y de los eventos sin location que ya se habían corregido el mismo día. La competición sigue publicada en `description` ("Jornada N · Competición · Local vs Visitante").

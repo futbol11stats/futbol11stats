@@ -693,6 +693,8 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
                   jornadaTexto: esFamilia ? (rondaSel?.label ?? `Jornada ${jornadaNum}`) : `Jornada ${jornadaNum}`,
                   campoLat: r.campo_lat ?? null, campoLng: r.campo_lng ?? null,   // coords del partido -> Place.geo
                   competicion: `${tituloGrupo} · ${temporada}${esFamilia && rondaSel ? ` · ${rondaSel.label}` : ''}`,
+                  // Nombre CRUDO para el organizador: `tituloGrupo` lleva el grupo pegado y no casaría la tabla.
+                  competicionNombre: grupo.nombre_comp,
                 })))} />
               )}
               {resultados.length === 0 ? <p className="vacio">Sin resultados en esta jornada.</p>
