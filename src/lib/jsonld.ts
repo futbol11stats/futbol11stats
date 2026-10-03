@@ -103,7 +103,11 @@ export function sportsEventLd(ev: {
   competicion?: string | null    // superEvent + description
   jornadaTexto?: string | null   // "Jornada 7" | "Cuartos de final" -> description
   estado?: 'aplazado' | 'suspendido' | null   // -> eventStatus; hoy SIEMPRE null (ver DECISIONES-PENDIENTES)
+  incidencia?: 'local' | 'visitante' | 'ambos' | null   // resultado ADMINISTRATIVO -> no hubo evento
 }): Record<string, unknown> | null {
+  // Un partido con resultado administrativo (retirada o incomparecencia) NO SE DISPUTÓ: no es un evento, y
+  // marcarlo como tal afirma que ocurrió algo que no ocurrió. Fuera, aunque tenga fecha, hora y campo.
+  if (ev.incidencia) return null
   if (!ev.startDate || !ev.campo || esCampoDeRelleno(ev.campoCodigo, ev.campo)) return null
 
   const team = (name: string, url?: string | null, logo?: string | null) => {
@@ -152,7 +156,12 @@ export function sportsEventLd(ev: {
   if (fin) node.endDate = fin
   const desc = [ev.jornadaTexto, ev.competicion, `${ev.local} vs ${ev.visitante}`].filter(Boolean).join(' · ')
   if (ev.jornadaTexto || ev.competicion) node.description = desc
-  if (ev.competicion) node.superEvent = { '@type': 'SportsEvent', name: ev.competicion }
+  // SIN superEvent (quitado 2026-10-03): anidar la competición como `SportsEvent` hacía que Google la
+  // validara como un evento propio y le exigiera startDate y location — que una liga no tiene, y que no
+  // vamos a inventar. Era la causa real de los avisos. La competición sigue en `description`.
+  // Tras esto, el grafo tiene UN SOLO nivel de SportsEvent por partido; ningún otro nodo es de tipo Event
+  // (los demás son Organization, WebSite, BreadcrumbList, SportsTeam, SportsOrganization, Place,
+  // PostalAddress y GeoCoordinates).
   return node
 }
 

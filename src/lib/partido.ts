@@ -68,6 +68,12 @@ export type PartidoFicha = {
   hitos: { codjugador: string; nombre: string; pos: string | null; lado: 'local' | 'visitante'; tipo: string; detalle: string | null; valor: number | null; ambito: string | null; contexto: string | null; href: string | null }[]
 }
 
+// Rótulo ÚNICO de los partidos con resultado administrativo, compartido por la ficha y la lista de
+// resultados. Deliberadamente NO dice "incomparecencia" ni "retirada": `incidencia` marca el LADO
+// (local/visitante/ambos) pero NO distingue la causa, así que nombrar una de las dos afirmaría algo que el
+// dato no sostiene. "No disputado" sí es cierto en los dos casos.
+export const NO_DISPUTADO = 'No disputado · resultado administrativo'
+
 const POS_ORD: Record<string, number> = { POR: 0, DEF: 1, MED: 2, DEL: 3 }
 // Más reciente primero. claveFechaDesc deja al final lo que no tiene fecha (ver fechaOrden.ts).
 const ordenPos = (a: PartidoJugador, b: PartidoJugador) => {

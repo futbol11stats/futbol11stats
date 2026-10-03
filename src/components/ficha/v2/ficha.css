@@ -572,6 +572,11 @@
 .fjv2 .rmatch .rnm.w{font-weight:700;color:var(--ink)}
 .fjv2 .rmatch .rsc{font-family:var(--font-display),'Barlow Condensed',sans-serif;font-size:var(--n-sm);font-weight:700;font-variant-numeric:tabular-nums;padding:3px 9px;border-radius:6px;background:rgba(255,255,255,.06);flex:none}
 .fjv2 .rmeta{padding:0 var(--pad) 9px;font-size:var(--t-cap);color:var(--ink-3);text-align:center;display:flex;flex-direction:column;align-items:center;gap:3px}
+/* Resultado ADMINISTRATIVO (no disputado): chip neutro — ámbar apagado, NO verde (no es un logro) ni rojo
+   (no es un error) — en la línea de metadatos, tanto en la lista de resultados como en la ficha del partido.
+   Mismo tratamiento en los dos sitios a propósito: es el MISMO hecho. Envuelve en móvil en vez de recortarse,
+   porque el texto completo es el que informa. */
+.fjv2 .rmeta-admin,.fjv2 .mmeta-admin{display:inline-block;font-size:var(--t-cap);font-weight:600;letter-spacing:.02em;padding:2px 9px;border-radius:999px;color:var(--ink-2);border:1px solid var(--line);background:var(--pitch-700);white-space:normal;max-width:100%}
 /* Campo del partido como enlace discreto (chincheta) en la línea de metadatos; hereda el tono muted de .rmeta. */
 .fjv2 .rmeta-campo{display:inline-flex;align-items:center;gap:3px;color:inherit;text-decoration:none}
 .fjv2 .rmeta-campo:hover{color:var(--ink-2);text-decoration:underline;text-decoration-style:dotted}

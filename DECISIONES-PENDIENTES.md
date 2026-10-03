@@ -670,3 +670,18 @@ Ahora se emite `performer` y `competitor` **con los dos EQUIPOS** (`SportsTeam`,
 ### E-event-organizer · `organizer` es siempre la RFFM
 Hecho el 2026-10-03, y conviene saberlo por si cambia el alcance. Todo evento emite `organizer: Real Federación de Fútbol de Madrid`. Es correcto para lo que publicamos hoy (las competiciones RFFM, incluidas 3ª RFEF Madrid y la Copa RFEF Fase Autonómica en su fase madrileña). **Si algún día se ingestan competiciones de otra federación** — División de Honor Juvenil, 1ª/2ª RFEF, hoy fuera de alcance — este campo pasaría a ser falso y habría que derivarlo de la competición.
 
+### E-event-superevent · Fuera `superEvent` (2026-10-03, HECHO)
+`sportsEventLd` anidaba la competición como `superEvent: { '@type': 'SportsEvent', name: '3ª RFEF Madrid · 2026-27' }`. Google la validaba como un **Event propio** y le exigía `startDate` y `location`, que una liga no tiene — y que no se van a inventar. **Era la causa real de los avisos**, por encima de la zona horaria y de los eventos sin location que ya se habían corregido el mismo día. La competición sigue publicada en `description` ("Jornada N · Competición · Local vs Visitante").
+
+Comprobado de paso: tras quitarlo, el grafo tiene **UN SOLO nivel de SportsEvent por partido**. Ningún otro nodo es de tipo Event — los demás son `Organization`, `WebSite`, `SearchAction`/`EntryPoint`, `BreadcrumbList`/`ListItem`, `SportsTeam`, `SportsOrganization`, `Place`, `PostalAddress` y `GeoCoordinates` —, así que no hay ningún otro sitio donde falten `startDate`/`location`.
+
+### E-event-administrativo · Partidos no disputados: sin marcado y con rótulo (2026-10-03, HECHO)
+`web_resultados.incidencia` (`local`/`visitante`/`ambos`) marca los partidos resueltos **sin jugarse**. Dos consecuencias:
+
+1. **No se emite `SportsEvent`**, aunque tengan fecha, hora y campo. Un partido no disputado no es un evento, y marcarlo como tal afirma que ocurrió algo que no ocurrió. Las migas de pan se mantienen. El filtro va en `sportsEventLd`, así que cubre los dos emisores a la vez.
+2. **Rótulo único en la vista**: `NO_DISPUTADO` ("No disputado · resultado administrativo"), exportado desde `lib/partido.ts` y usado por la ficha de partido y por la lista de resultados, para que el mismo hecho se cuente igual en los dos sitios.
+
+**Decisión de copy que va más allá del encargo, y conviene saberla:** el párrafo de Alineaciones de la ficha decía *"Resultado por incomparecencia o retirada. No compareció {equipo}"*. Usaba las dos palabras que el encargo prohíbe y además afirmaba la causa. `incidencia` dice **quién** (el lado), no **por qué**. Reescrito a *"Resultado administrativo: lo resolvió la federación sin que el partido se jugara. {equipo} no lo disputó"*, que es cierto en los dos casos. Se tocó porque, si no, la misma página afirmaba en un párrafo lo que el rótulo nuevo se cuida de no afirmar.
+
+**Nota para `E-event-estado`:** `incidencia` NO sirve para `eventStatus`. Un partido con incidencia tiene resultado válido (0-3), así que no es `EventCancelled`; y ahora, además, ni siquiera emite evento. Sigue faltando un estado de partido (programado/aplazado/suspendido) del pipeline.
+

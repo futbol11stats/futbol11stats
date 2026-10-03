@@ -21,6 +21,7 @@ import PartidoTabs from '@/components/ficha/PartidoTabs'
 import PlayerAvatar from '@/components/ui/PlayerAvatar'
 import FormaStrip from '@/components/ui/FormaStrip'
 import type { PartidoFicha, PartidoJugador, PartidoMini, PartidoLado } from '@/lib/partido'
+import { NO_DISPUTADO } from '@/lib/partido'
 // Fondo de la pastilla de PUNTOS fantasy (baza propia; verde para lo bueno, el ámbar está reservado).
 const ptsStyle = (p: number | null) => p == null ? { background: 'rgba(255,255,255,.05)', color: 'var(--ink-4)' }
   : p >= 8 ? { background: 'var(--e3)', color: '#08111f' }
@@ -361,9 +362,10 @@ export default function FichaPartidoV2({ p }: { p: PartidoFicha }) {
   const hayAlineacion = p.local.titulares.length > 0 || p.visitante.titulares.length > 0
     || p.local.suplentes.length > 0 || p.visitante.suplentes.length > 0
   // Resultado administrativo (incidencia != NULL): el lado que no compareció/fue retirado. NUNCA habrá detalle.
-  const incompTexto = p.incidencia === 'ambos' ? 'No comparecieron ambos equipos'
-    : p.incidencia === 'local' ? `No compareció ${nombreEquipo(p.local.nombre)}`
-    : p.incidencia === 'visitante' ? `No compareció ${nombreEquipo(p.visitante.nombre)}` : ''
+  // Lado afectado, SIN nombrar la causa: `incidencia` dice quién, no si fue retirada o incomparecencia.
+  const ladoTexto = p.incidencia === 'ambos' ? 'Ninguno de los dos equipos lo disputó'
+    : p.incidencia === 'local' ? `${nombreEquipo(p.local.nombre)} no lo disputó`
+    : p.incidencia === 'visitante' ? `${nombreEquipo(p.visitante.nombre)} no lo disputó` : ''
   const colL = p.jugado ? (gL > gV ? 'var(--e3)' : gL < gV ? 'var(--e0)' : 'var(--ink)') : 'var(--ink)'
   const colV = p.jugado ? (gV > gL ? 'var(--e3)' : gV < gL ? 'var(--e0)' : 'var(--ink)') : 'var(--ink)'
   const mvpLado = p.mvp?.lado === 'local' ? p.local : p.visitante
@@ -402,6 +404,9 @@ export default function FichaPartidoV2({ p }: { p: PartidoFicha }) {
           </div>
         </div>
         <div className="mmeta">
+          {/* Resultado ADMINISTRATIVO: el rótulo va primero, pegado al marcador, para que el 3-0 no se lea como
+              un partido jugado. Mismo texto que en la lista de resultados (NO_DISPUTADO). */}
+          {p.incidencia && <span className="mmeta-admin">{NO_DISPUTADO}</span>}
           {/* Jugado: fecha·hora aquí (bajo el marcador). Futuro: ya va enmarcada en el hero -> aquí solo campo. */}
           {p.jugado && (p.fecha || p.hora) && <span>{[p.fecha, p.hora].filter(Boolean).join(' · ')}</span>}
           {p.campoNombre && (
@@ -526,8 +531,8 @@ export default function FichaPartidoV2({ p }: { p: PartidoFicha }) {
               {p.incidencia ? (<>
                 <SectionHeader title="Alineaciones" sub="no se disputó" />
                 <p style={{ padding: '4px var(--pad) 0', color: 'var(--ink-3)', fontSize: 'var(--t-sm)', lineHeight: 1.5 }}>
-                  Resultado por incomparecencia o retirada. <b>{incompTexto}</b>, así que no se disputó y no hay
-                  acta que detallar.
+                  Resultado <b>administrativo</b>: lo resolvió la federación sin que el partido se jugara.
+                  {ladoTexto && <> <b>{ladoTexto}</b>,</>} así que no hay acta que detallar.
                 </p>
               </>) : (<>
                 <SectionHeader title="Alineaciones" sub="sin detalle del acta" />

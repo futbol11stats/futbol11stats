@@ -12,6 +12,7 @@ import { ensureMadrid, SITE_URL } from '@/lib/seo'
 import { fechaCortaDMY, equipoSlug } from '@/lib/equipo'
 import { campoMapsUrl, parseCampo } from '@/lib/club'
 import { isoMadrid } from '@/lib/horaMadrid'
+import { NO_DISPUTADO } from '@/lib/partido'
 import { getDireccionesCampos, type DireccionCampo } from '@/lib/campo'
 import { getCamposConFicha, campoSlug } from '@/lib/campo'
 import SuperficieCampo from '@/components/SuperficieCampo'
@@ -201,7 +202,7 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
     ])
     // Solo los campos de los partidos que VAN a emitir evento (con hora): si ninguno la tiene, no hay consulta.
     dirCampos = await getDireccionesCampos(
-      resultados.filter((r) => isoMadrid(r.fecha, r.hora) && r.campo).map((r) => r.codigo_campo))
+      resultados.filter((r) => !r.incidencia && isoMadrid(r.fecha, r.hora) && r.campo).map((r) => r.codigo_campo))
   } else if (tabEf === 'goleadores-jornada') {
     const [gj, res, em] = await Promise.all([
       getDestacadosV2(grupo.codgrupo, codtemporada, jornadaNum, 'goleadores_jornada'),
@@ -471,8 +472,11 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
             <span className={`rnm${jugado && (r.goles_visitante as number) > (r.goles_local as number) ? ' w' : ''}`}><NombreEquipo codequipo={equiposMap.get(r.nombre_visitante) ?? null} nombre={r.nombre_visitante} /></span>
           </div>
         </div>
-        {(metaFH || campoEl || puedeIcs) && (
+        {(metaFH || campoEl || puedeIcs || r.incidencia) && (
           <div className="rmeta">
+            {/* Resultado ADMINISTRATIVO: primero y en su propio chip, para que el marcador no se lea como un
+                partido jugado. Mismo texto que en la ficha del partido (NO_DISPUTADO). */}
+            {r.incidencia && <span className="rmeta-admin">{NO_DISPUTADO}</span>}
             {(metaFH || campoEl) && <span>{metaFH}{campoEl && <>{metaFH ? ' · ' : ''}{campoEl}</>}</span>}
             {puedeIcs && (
               <CalendarLink appleHref={icsUrl} otherHref={googleUrl || icsUrl} className="rmeta-cal">
@@ -682,6 +686,7 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
                   // no texto para lector. La superficie (HA/HN/T) se conserva en la vista (renderCampoPartido), no aquí.
                   campo: r.campo ? parseCampo(r.campo).nombre : null,
                   campoCodigo: r.codigo_campo ?? null,
+                  incidencia: r.incidencia ?? null,
                   campoDireccion: dirCampos.get(String(r.codigo_campo ?? ''))?.direccion ?? null,
                   campoLocalidad: dirCampos.get(String(r.codigo_campo ?? ''))?.localidad ?? null,
                   campoCp: dirCampos.get(String(r.codigo_campo ?? ''))?.cp ?? null,
