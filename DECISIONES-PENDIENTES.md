@@ -651,3 +651,22 @@ Anotado el 2026-09-28. No es una tarea: es un **aviso previo** a cualquiera que 
 
 **SI ALGÚN DÍA SE UNIFICAN LOS FORMATOS, revisar estos sorts ANTES**: los que hoy aciertan por el formato compacto empezarían a fallar en silencio.
 
+### E-event-estado · `eventStatus` aplazado/suspendido: NO hay dato para distinguirlo
+Abierto el 2026-10-03, al corregir los avisos de Event de Search Console.
+
+La especificación pedía `EventPostponed` si el partido está aplazado y `EventCancelled` si suspendido. **No se puede implementar: el dato no existe.** Lo que hay en `web_resultados`:
+- **`motivo_estado`**: no nulo en **1 fila de 130.265**, y vale "Resultado Resolución Juez Único RFFM" — que no es un aplazamiento.
+- **`incidencia`**: `local` | `visitante` (52 filas). Es la **incomparecencia**: el equipo que no se presentó. No es un aplazamiento ni una suspensión — el partido tiene resultado por incomparecencia, así que mapearlo a `EventCancelled` sería falso.
+
+Hoy, por tanto, **todos los eventos emiten `EventScheduled`**, que es lo cierto para un partido con fecha, hora y campo confirmados. El parámetro `estado?: 'aplazado' | 'suspendido'` está ya en `sportsEventLd` y **nadie lo alimenta**: el día que el pipeline publique un estado de partido, se conecta en los dos emisores y funciona sin tocar el nodo.
+
+**Petición al pipeline si se quiere cerrar:** un campo de estado del partido con valores acotados (programado / aplazado / suspendido), distinto de `incidencia`, que es otra cosa.
+
+### E-event-performer · La línea roja de datos estructurados, ACOTADA
+Hecho el 2026-10-03. La decisión de 2026-08 prohibía `performer` **por su nombre**, junto a `athlete` y `attendee`, para que no entrara la entidad-persona en páginas indexables en juvenil.
+
+Ahora se emite `performer` y `competitor` **con los dos EQUIPOS** (`SportsTeam`, que son organizaciones), porque lo pidió Fernando para completar el marcado. El motivo del veto era **la persona, no la propiedad**, y con equipos la protección real se mantiene. **Sigue vetado meter personas** en `performer`/`competitor`, y siguen vetados `athlete` y `attendee` sin excepción. El comentario de `jsonld.ts` lleva la acotación fechada para que no parezca que alguien se saltó la regla.
+
+### E-event-organizer · `organizer` es siempre la RFFM
+Hecho el 2026-10-03, y conviene saberlo por si cambia el alcance. Todo evento emite `organizer: Real Federación de Fútbol de Madrid`. Es correcto para lo que publicamos hoy (las competiciones RFFM, incluidas 3ª RFEF Madrid y la Copa RFEF Fase Autonómica en su fase madrileña). **Si algún día se ingestan competiciones de otra federación** — División de Honor Juvenil, 1ª/2ª RFEF, hoy fuera de alcance — este campo pasaría a ser falso y habría que derivarlo de la competición.
+

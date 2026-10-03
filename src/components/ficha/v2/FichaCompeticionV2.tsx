@@ -11,6 +11,8 @@ import { nombreOficial, denominacion, familiaSello } from '@/lib/sellos'
 import { ensureMadrid, SITE_URL } from '@/lib/seo'
 import { fechaCortaDMY, equipoSlug } from '@/lib/equipo'
 import { campoMapsUrl, parseCampo } from '@/lib/club'
+import { isoMadrid } from '@/lib/horaMadrid'
+import { getDireccionesCampos, type DireccionCampo } from '@/lib/campo'
 import { getCamposConFicha, campoSlug } from '@/lib/campo'
 import SuperficieCampo from '@/components/SuperficieCampo'
 import { googleRenderUrl } from '@/lib/ics'
@@ -110,14 +112,8 @@ function cardsSpan(ta: number, dob: number, rj: number) {
     </span>
   )
 }
-// fecha 'DD/MM/YYYY' (+ hora 'HH:MM' opcional) -> ISO 'YYYY-MM-DD' o 'YYYY-MM-DDTHH:MM' para SportsEvent.startDate.
-function fechaHoraIso(fecha: string | null, hora: string | null): string | null {
-  const f = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec((fecha || '').trim())
-  if (!f) return null
-  const dmy = `${f[3]}-${f[2]}-${f[1]}`
-  const h = hora ? /(\d{1,2}):(\d{2})/.exec(hora) : null
-  return h ? `${dmy}T${h[1].padStart(2, '0')}:${h[2]}` : dmy
-}
+// El ISO con zona lo construye isoMadrid (lib/horaMadrid.ts). El helper que había aquí montaba el ISO sin
+// desplazamiento y devolvía la fecha sola cuando no había hora: de ahí los eventos sin startDate válido.
 
 // Icono de tarjeta según el motivo de la suspensión (texto de web_suspendidos).
 function motivoCard(motivo: string | null) {
@@ -190,6 +186,8 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
   // Datos de la pestaña activa (tab-gated).
   let mvpJ: any[] = [], equiposForma: any[] = [], xi: any[] = [], golJ: any[] = [], tarjJ: any[] = [], suspendidos: any[] = []
   let resultados: ResultadoCompRow[] = [], equiposMap = new Map<string, string>()
+  // Direcciones de campo para location.address de los eventos de la pestaña de resultados (lote, 1 consulta).
+  let dirCampos = new Map<string, DireccionCampo>()
   let golesEquipo: GolEquipoRow[] = []
   let partMap = new Map<string, any>()
   let tramosComp: { tramo: string; gf: number }[] = []
@@ -201,6 +199,9 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
       getResultadosV2(grupo.codgrupo, codtemporada, jornadaNum),
       getEquiposMapV2(grupo.codgrupo, codtemporada),
     ])
+    // Solo los campos de los partidos que VAN a emitir evento (con hora): si ninguno la tiene, no hay consulta.
+    dirCampos = await getDireccionesCampos(
+      resultados.filter((r) => isoMadrid(r.fecha, r.hora) && r.campo).map((r) => r.codigo_campo))
   } else if (tabEf === 'goleadores-jornada') {
     const [gj, res, em] = await Promise.all([
       getDestacadosV2(grupo.codgrupo, codtemporada, jornadaNum, 'goleadores_jornada'),
@@ -664,6 +665,8 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
               {/* SportsEvent a NIVEL DE EQUIPO por partido. LÍNEA ROJA: solo equipos/fecha/campo/marcador; NUNCA
                   jugadores (athlete/performer/attendee) -> reintroduciría la entidad-persona descartada, y aquí,
                   en resultados, que es indexable en juvenil por NO tener nombres de personas. Ver jsonld.ts. */}
+              {/* Direcciones de los campos SOLO de los partidos que van a emitir evento (fecha+hora+campo):
+                  una consulta en lote por página, no una por partido. */}
               {resultados.length > 0 && (
                 <JsonLd data={graphLd(...resultados.map((r) => sportsEventLd({
                   local: r.nombre_local,
@@ -674,10 +677,15 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
                   visitanteLogo: escudoUrl(r.escudo_visitante),
                   golesLocal: r.goles_local,
                   golesVisitante: r.goles_visitante,
-                  fechaIso: fechaHoraIso(r.fecha, r.hora),
+                  startDate: isoMadrid(r.fecha, r.hora),
                   // location.name = nombre LIMPIO (sin código de superficie): es un nombre de LUGAR para máquinas,
                   // no texto para lector. La superficie (HA/HN/T) se conserva en la vista (renderCampoPartido), no aquí.
                   campo: r.campo ? parseCampo(r.campo).nombre : null,
+                  campoCodigo: r.codigo_campo ?? null,
+                  campoDireccion: dirCampos.get(String(r.codigo_campo ?? ''))?.direccion ?? null,
+                  campoLocalidad: dirCampos.get(String(r.codigo_campo ?? ''))?.localidad ?? null,
+                  campoCp: dirCampos.get(String(r.codigo_campo ?? ''))?.cp ?? null,
+                  jornadaTexto: esFamilia ? (rondaSel?.label ?? `Jornada ${jornadaNum}`) : `Jornada ${jornadaNum}`,
                   campoLat: r.campo_lat ?? null, campoLng: r.campo_lng ?? null,   // coords del partido -> Place.geo
                   competicion: `${tituloGrupo} · ${temporada}${esFamilia && rondaSel ? ` · ${rondaSel.label}` : ''}`,
                 })))} />

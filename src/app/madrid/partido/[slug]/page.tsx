@@ -11,14 +11,13 @@ import { escudoUrl } from '@/lib/supabase'
 import { SITE_URL } from '@/lib/seo'
 import JsonLd from '@/components/JsonLd'
 import { graphLd, breadcrumbLd, sportsEventLd } from '@/lib/jsonld'
+import { isoMadrid } from '@/lib/horaMadrid'
+import { getDireccionesCampos } from '@/lib/campo'
 import FichaPartidoV2 from '@/components/ficha/FichaPartidoV2'
 
-// Fecha ISO para startDate del SportsEvent: 'DD/MM/YYYY' (+ 'HH:MM') -> 'YYYY-MM-DD' (+ 'THH:MM').
-function fechaIso(fecha: string | null, hora: string | null): string | null {
-  if (!fecha || !/^\d{2}\/\d{2}\/\d{4}$/.test(fecha)) return null
-  const iso = `${fecha.slice(6, 10)}-${fecha.slice(3, 5)}-${fecha.slice(0, 2)}`
-  return hora && /^\d{1,2}:\d{2}$/.test(hora) && hora !== '00:00' ? `${iso}T${hora.padStart(5, '0')}` : iso
-}
+// El ISO con zona lo construye isoMadrid (lib/horaMadrid.ts). Antes se armaba aquí a mano y SIN zona — y
+// además se devolvía la fecha sola cuando no había hora, que es lo que producía eventos sin startDate
+// válido. Ahora, sin hora no hay evento.
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params
@@ -55,14 +54,21 @@ export default async function PartidoPage({ params }: { params: Promise<{ slug: 
   if (slug !== canonicalSlug) permanentRedirect(`/madrid/partido/${canonicalSlug}`)
 
   const url = `${SITE_URL}/madrid/partido/${canonicalSlug}`
+  // Dirección postal del campo para location.address. Solo si el evento va a emitirse (fecha+hora+campo):
+  // así no se gasta una lectura en los partidos que no llevan marcado.
+  const startDate = isoMadrid(p.fecha, p.hora)
+  const dir = startDate && p.campoNombre && p.codigoCampo
+    ? (await getDireccionesCampos([p.codigoCampo])).get(p.codigoCampo) ?? null
+    : null
   const eventLd = sportsEventLd({
     local: p.local.nombre, visitante: p.visitante.nombre,
     localUrl: p.local.codequipo ? `${SITE_URL}${equipoHref(p.local.codequipo, p.local.nombre)}` : null,
     visitanteUrl: p.visitante.codequipo ? `${SITE_URL}${equipoHref(p.visitante.codequipo, p.visitante.nombre)}` : null,
     localLogo: escudoUrl(p.local.escudo), visitanteLogo: escudoUrl(p.visitante.escudo),
     golesLocal: p.golesLocal, golesVisitante: p.golesVisitante,
-    fechaIso: fechaIso(p.fecha, p.hora), campo: p.campoNombre, campoLat: p.campoLat, campoLng: p.campoLng,
-    competicion: `${p.nombreComp} · Jornada ${p.jornada} · ${p.temporada}`,
+    startDate, campo: p.campoNombre, campoCodigo: p.codigoCampo, campoLat: p.campoLat, campoLng: p.campoLng,
+    campoDireccion: dir?.direccion ?? null, campoLocalidad: dir?.localidad ?? null, campoCp: dir?.cp ?? null,
+    competicion: `${p.nombreComp} · ${p.temporada}`, jornadaTexto: `Jornada ${p.jornada}`,
   })
   const crumbs = breadcrumbLd([
     { name: 'Inicio', url: `${SITE_URL}/` },
@@ -73,7 +79,8 @@ export default async function PartidoPage({ params }: { params: Promise<{ slug: 
 
   return (
     <>
-      <JsonLd data={graphLd(eventLd, crumbs)} />
+      {/* El evento puede faltar (sin hora o sin campo): el grafo sale solo con las migas, que siempre valen. */}
+      <JsonLd data={graphLd(...[eventLd, crumbs].filter((n) => n != null))} />
       <FichaPartidoV2 p={p} />
     </>
   )

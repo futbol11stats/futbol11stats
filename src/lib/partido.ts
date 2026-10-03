@@ -47,6 +47,7 @@ export type PartidoFicha = {
   local: PartidoLado; visitante: PartidoLado
   golesLocal: number | null; golesVisitante: number | null; fecha: string | null; hora: string | null
   campoNombre: string | null; campoSuperficie: string | null; campoHref: string | null; campoLat: number | null; campoLng: number | null
+  codigoCampo: string | null   // para la dirección postal del Place en los datos estructurados
   mvp: { nombre: string; pos: string | null; puntos: number; lado: 'local' | 'visitante'; href: string | null } | null
   formaLocal: PartidoMini[]; formaVisitante: PartidoMini[]; h2h: PartidoMini[]
   rachasLocal: Rachas; rachasVisitante: Rachas   // marcando/victorias/invicto: actual + récord, por equipo
@@ -369,6 +370,7 @@ export async function getPartido(codacta: string): Promise<PartidoFicha | null> 
       incidencia: (r.incidencia === 'local' || r.incidencia === 'visitante' || r.incidencia === 'ambos') ? r.incidencia : null,
       local, visitante, golesLocal: r.goles_local, golesVisitante: r.goles_visitante, fecha: r.fecha, hora: r.hora,
       campoNombre: campoNombre || null, campoSuperficie, campoHref, campoLat: r.campo_lat, campoLng: r.campo_lng,
+      codigoCampo: r.codigo_campo != null ? String(r.codigo_campo) : null,
       mvp,
       formaLocal: conElo(formaLbase, codeqL),
       formaVisitante: conElo(formaVbase, codeqV),
@@ -383,5 +385,5 @@ export async function getPartido(codacta: string): Promise<PartidoFicha | null> 
       posPreVisitante: posV.posPre, posPostVisitante: posV.posPost,
       hitos,
     }
-  }, ['getPartido', 'v10-elo-fila', String(r.codacta)], [String(r.codgrupo)], r.codtemporada)
+  }, ['getPartido', 'v11-codigocampo', String(r.codacta)], [String(r.codgrupo)], r.codtemporada)
 }

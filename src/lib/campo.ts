@@ -120,3 +120,26 @@ export async function getCampo(codigo: string): Promise<CampoFicha | null> {
     }
   }, ['getCampo', 'v1', codigo])
 }
+
+// Dirección postal de VARIOS campos de una vez, para `location.address` de los datos estructurados Event.
+// Lectura MÍNIMA (4 columnas) y en LOTE: la pestaña de resultados emite un evento por partido y pedir la
+// dirección campo a campo multiplicaría las consultas de una página que ya es cara. Cacheado con la etiqueta
+// de índices porque los campos cambian con el censo, no con los partidos.
+// Devuelve Map<codigo_campo, {...}>; los códigos sin fila simplemente no aparecen y quien pregunte emitirá
+// el Place solo con el nombre (que es válido: la dirección enriquece, no habilita).
+export type DireccionCampo = { direccion: string | null; localidad: string | null; cp: string | null }
+
+export async function getDireccionesCampos(codigos: (string | null | undefined)[]): Promise<Map<string, DireccionCampo>> {
+  const ids = Array.from(new Set(codigos.filter(Boolean).map(String)))
+  if (!ids.length) return new Map()
+  const cols = 'codigo_campo, direccion, localidad, codigo_postal'
+  const arr = await cacheIndices(async () => {
+    const { data, error } = await supabase.from('web_campo').select(cols).in('codigo_campo', ids)
+    if (error) throw error   // no cachear un Map vacío por un error transitorio
+    return (data || []) as { codigo_campo: string; direccion: string | null; localidad: string | null; codigo_postal: string | null }[]
+  }, ['getDireccionesCampos', 'v1', cols, ids.slice().sort().join(',')])
+  return new Map(arr.map((c) => [String(c.codigo_campo), {
+    direccion: c.direccion ?? null, localidad: c.localidad ?? null, cp: c.codigo_postal ?? null,
+  }]))
+}
+
