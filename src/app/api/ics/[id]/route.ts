@@ -24,21 +24,25 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   if (!/^\d+$/.test(codacta)) return new Response('Not found', { status: 404 })
 
   const { data: rRaw } = await supabase.from('web_resultados')
-    .select('id, codtemporada, codgrupo, jornada, nombre_local, nombre_visitante, codequipo_local, codequipo_visitante, goles_local, goles_visitante, fecha, hora, campo, codigo_campo, campo_lat, campo_lng, ronda_slug, ronda_label')
+    .select('id, codtemporada, codgrupo, jornada, nombre_local, nombre_visitante, codequipo_local, codequipo_visitante, goles_local, goles_visitante, fecha, hora, campo, codigo_campo, campo_lat, campo_lng, ronda_slug, ronda_label, estado_partido')
     .eq('codacta', codacta).maybeSingle()
   const r = rRaw as {
     codtemporada: number; codgrupo: string; jornada: number
     nombre_local: string; nombre_visitante: string; codequipo_local: string | null; codequipo_visitante: string | null
     goles_local: number | null; goles_visitante: number | null; fecha: string | null; hora: string | null
-    campo: string | null; codigo_campo: string | null; campo_lat: number | null; campo_lng: number | null; ronda_slug: string | null; ronda_label: string | null
+    campo: string | null; codigo_campo: string | null; campo_lat: number | null; campo_lng: number | null; ronda_slug: string | null; ronda_label: string | null; estado_partido: string | null
   } | null
   if (!r) return new Response('Not found', { status: 404 })
 
-  // CONDICIONES: sin resultado + fecha válida + hora válida (no 00:00).
+  // CONDICIONES: sin resultado + fecha válida + hora válida (no 00:00) + NO suspendido.
+  // El suspendido pasaba el filtro (no tiene marcador y sí fecha y hora) y servía un .ics de un partido
+  // que no se va a jugar: el botón ya no se ofrece, pero la ruta era alcanzable por URL directa o desde un
+  // enlace viejo.
   const jugado = r.goles_local != null || r.goles_visitante != null
+  const suspendido = r.estado_partido === 'suspendido'
   const fechaOk = !!r.fecha && DDMMYYYY.test(r.fecha)
   const horaOk = !!r.hora && HHMM.test(r.hora) && r.hora !== '00:00'
-  if (jugado || !fechaOk || !horaOk) return new Response('Evento no disponible', { status: 404 })
+  if (jugado || suspendido || !fechaOk || !horaOk) return new Response('Evento no disponible', { status: 404 })
 
   // Enlace + etiqueta de competición desde web_grupos (categoría/slug/tipo). Copa: segmento = ronda; liga: jornada-N.
   const { data: gRaw } = await supabase.from('web_grupos')

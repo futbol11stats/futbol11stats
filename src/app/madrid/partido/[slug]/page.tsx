@@ -26,10 +26,15 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const p = await getPartido(codacta)
   if (!p) return { title: 'Partido no encontrado | Fútbol11Stats' }
   const canonical = `/madrid/partido/${partidoSlug(p.codacta, p.local.nombre, p.visitante.nombre)}`
-  const marcador = p.jugado ? `${p.golesLocal}-${p.golesVisitante}` : 'vs'
+  // SUSPENDIDO: ni marcador ni "vs". El "vs" anunciaba en el título y en las redes un partido por jugarse
+  // que no se va a jugar; el guión más el rótulo dicen lo que hay.
+  const susp = p.estadoPartido === 'suspendido'
+  const marcador = susp ? '-' : p.jugado ? `${p.golesLocal}-${p.golesVisitante}` : 'vs'
   const rama = p.categoria === 'juveniles' ? 'juvenil' : 'aficionado'
-  const title = `${p.local.nombre} ${marcador} ${p.visitante.nombre} · J${p.jornada} ${p.nombreComp} ${p.temporada} | Fútbol11Stats`
-  const description = p.jugado
+  const title = `${p.local.nombre} ${marcador} ${p.visitante.nombre}${susp ? ' · Suspendido' : ''} · J${p.jornada} ${p.nombreComp} ${p.temporada} | Fútbol11Stats`
+  const description = susp
+    ? `${p.local.nombre} - ${p.visitante.nombre}, jornada ${p.jornada} de ${p.nombreComp} (${p.temporada}): partido SUSPENDIDO y pendiente de resolución, sin resultado. Fútbol ${rama} de Madrid en Fútbol11Stats.`
+    : p.jugado
     ? `${p.local.nombre} ${p.golesLocal}-${p.golesVisitante} ${p.visitante.nombre}: alineaciones con los PUNTOS FANTASY de cada jugador, el MVP del partido y el cara a cara. Jornada ${p.jornada} de ${p.nombreComp} (${p.temporada}), fútbol ${rama} de Madrid.`
     : `${p.local.nombre} - ${p.visitante.nombre}, jornada ${p.jornada} de ${p.nombreComp} (${p.temporada}): fecha, hora, campo, historial entre ambos y añadir a tu calendario. Fútbol ${rama} de Madrid en Fútbol11Stats.`
   // NOINDEX: juveniles (menores), partidos SIN JUGAR (thin) y todo lo que no sea la temporada actual (T22, decisión

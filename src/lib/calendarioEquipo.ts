@@ -19,7 +19,7 @@ const DDMMYYYY = /^\d{2}\/\d{2}\/\d{4}$/
 export async function buildTeamCalendar(codequipo: string, nowMs: number): Promise<{ ics: string; nombre: string } | null> {
   const cod = String(codequipo)
   const { data: allRaw, error } = await supabase.from('web_resultados')
-    .select('codtemporada, codgrupo, jornada, nombre_local, nombre_visitante, codequipo_local, codequipo_visitante, goles_local, goles_visitante, fecha, fecha_iso, hora, campo, codigo_campo, campo_lat, campo_lng, ronda_slug, ronda_label')
+    .select('codtemporada, codgrupo, jornada, nombre_local, nombre_visitante, codequipo_local, codequipo_visitante, goles_local, goles_visitante, fecha, fecha_iso, hora, campo, codigo_campo, campo_lat, campo_lng, ronda_slug, ronda_label, estado_partido')
     .or(`codequipo_local.eq.${cod},codequipo_visitante.eq.${cod}`)
   // NO tragarse el error como "sin partidos": un timeout/error transitorio debe propagarse (503 reintentado),
   // nunca convertirse en 404. Devolver null SOLO cuando de verdad no hay filas. (Ver: fallos silenciosos que
@@ -66,6 +66,10 @@ export async function buildTeamCalendar(codequipo: string, nowMs: number): Promi
   const vevents: string[] = []
   for (const r of rows) {
     if (!r.fecha || !DDMMYYYY.test(String(r.fecha))) continue   // sin fecha no hay evento
+    // SUSPENDIDO: fuera del feed. Entraba como evento normal — sin marcador, así que se publicaba como
+    // partido PRÓXIMO — y el abonado se encontraba en su calendario un partido que no se va a jugar.
+    // Al desaparecer del feed, los clientes de calendario borran el evento en el siguiente sondeo.
+    if (r.estado_partido === 'suspendido') continue
     const g = gmap.get(String(r.codgrupo))
     const cat = g ? CATEGORIA_SLUG[g.categoria] : null
     const isLiga = !g?.tipo || g.tipo === 'LIGA'

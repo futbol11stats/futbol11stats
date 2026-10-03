@@ -695,3 +695,23 @@ Comprobado de paso: tras quitarlo, el grafo tiene **UN SOLO nivel de SportsEvent
 
 **Nota para `E-event-estado`:** `incidencia` NO sirve para `eventStatus`. Un partido con incidencia tiene resultado válido (0-3), así que no es `EventCancelled`; y ahora, además, ni siquiera emite evento. Sigue faltando un estado de partido (programado/aplazado/suspendido) del pipeline.
 
+### E-suspendido-barrido · "Suspendido" como estado nuevo: barrido completo (2026-10-04)
+`estado_partido = 'suspendido'` es un estado que **ninguna superficie contemplaba**: el código partía de un único booleano `p.jugado`, y con él solo hay dos mundos — jugado o por jugarse —. Un suspendido **no es ninguno de los dos**, y por eso cada sitio que miraba `jugado` lo trataba como futuro.
+
+Revisados **15 usos** de `p.jugado` y equivalentes (marcador no nulo, fecha pasada) en vistas, listas, OG/meta, JSON-LD, sitemap, ICS y textos generados. **Cuatro mostraban algo falso** y se corrigieron; el resto ya acertaba o su omisión no afirma nada.
+
+| Sitio | Hoy | Correcto | Acción |
+|---|---|---|---|
+| Título y OG de la ficha | "Local **vs** Visitante" | No se va a jugar: "vs" es falso | Guión + "· Suspendido" |
+| `description` de la ficha | "fecha, hora, campo **y añadir a tu calendario**" | Ni futuro ni calendario | Texto propio: suspendido, pendiente, sin resultado |
+| `/api/ics/<codacta>` | **Servía el evento** (sin marcador + con fecha y hora = pasaba el filtro) | No hay evento | 404 |
+| Feed `.ics` de equipo | Entraba como partido **próximo** en el calendario del abonado | No debe estar | Excluido (los clientes lo borran al sondear) |
+| `noindex` de la ficha | noindex por `!p.jugado` | Correcto: es thin | — |
+| Sitemap de partidos | excluido por `goles_local is not null` | Correcto | — |
+| Marcador, colores, MVP, "Tras el partido", botón de calendario, chip | ya resueltos los días 3 y 4 | | — |
+| Gráfico de jornadas y `muted` del jugador | usan `web_jugador_partidos.jugado`, que es **convocatoria**, otro flag | No aplica | — |
+
+**PENDIENTE DE DECISIÓN (no es falso, pero puede ser incompleto):** la pestaña de **Alineaciones** se oculta (`show: p.jugado`), y resulta que el suspendido **sí tiene 30 jugadores con minutos y puntos** (§8.24: cuentan mientras el acta exista, ver [[suspendido-los-puntos-cuentan]]). Hoy no se ven. Ocultarlas no afirma nada falso, así que no se tocó; mostrarlas sería más informativo y coherente con que los puntos cuenten. Decisión de Fernando.
+
+**Y la lección de fondo:** el problema no era ningún `if` mal escrito, era que **`p.jugado` es un booleano para un dominio de tres estados**. Mientras la pregunta sea "¿jugado?" en vez de "¿qué estado tiene?", cada superficie nueva volverá a asumir dos mundos. Si aparece un cuarto caso (aplazado con nueva fecha, por ejemplo), lo barato es convertirlo en un estado explícito antes de repartirlo por la vista.
+
