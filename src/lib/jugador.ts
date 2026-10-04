@@ -283,7 +283,12 @@ export function parseResultado(resultado: string | null): { marcador: string; si
     const a = +s[1], b = +s[2]
     return { marcador: `${a}-${b}`, signo: a > b ? 'G' : a < b ? 'P' : 'E' }
   }
-  return { marcador: resultado || '', signo: '' }
+  // NO SE DEVUELVE LA CADENA CRUDA. Si no casa ninguno de los dos formatos conocidos ("3-1 G" o "0-0"),
+  // no es un marcador y pintarlo sería publicar basura con pinta de resultado. Caso real encontrado el
+  // 2026-10-04: UNA fila de web_jugador_actuaciones, de un partido SUSPENDIDO, con el literal
+  // "None-None" (un None de Python serializado) — y se estaba pintando tal cual en el bloque de mejores
+  // actuaciones de ese jugador. El dato lo corrige el pipeline; esto evita que el siguiente se vea.
+  return { marcador: '', signo: '' }
 }
 export const colorSigno = (s: string) => (s === 'G' ? 'text-grass-300' : s === 'P' ? 'text-red-300' : 'text-chalk-400')
 

@@ -157,6 +157,9 @@
 .fjv2 .rival-lane{position:relative;height:54px;flex-direction:column;gap:6px}
 /* Marcador al mismo tamaño que la etiqueta de jornada (--t-sm); tabular-nums para que "10-10" no baile. */
 .fjv2 .rival-mk{font-family:var(--font-display),'Barlow Condensed',sans-serif;font-size:var(--t-sm);font-weight:700;line-height:1;font-variant-numeric:tabular-nums;white-space:nowrap}
+/* "Susp." en la casilla del marcador: tono neutro, el mismo criterio que en el historial — ni verde ni
+   rojo, porque no hay resultado del que alegrarse ni lamentarse. */
+.fjv2 .rival-mk.rival-mk-susp{color:var(--ink-3);font-size:var(--t-cap)}
 .fjv2 .res-t-G{color:var(--e3)} .fjv2 .res-t-E{color:var(--ink-3)} .fjv2 .res-t-P{color:var(--e0)}
 .fjv2 .rival-top{display:flex;align-items:center;justify-content:center;gap:3px}
 /* Escudos como en el resto del sitio: caja blanca rounded-sm, escudo object-contain (sin círculo ni recorte). */

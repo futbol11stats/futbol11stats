@@ -154,7 +154,13 @@ export default function Jornadas({ comps, cortes }: { comps: CompAmbito[]; corte
                   {/* Rival: marcador (coloreado) encima del escudo; casa/avión al lado; la línea de
                       resultado ocupa TODO el ancho de la columna, abajo. */}
                   <div className="lane rival-lane">
-                    {d.resultado && <div className={`rival-mk res-t-${res}`}>{marcador}</div>}
+                    {/* SUSPENDIDO: "Susp." en la casilla del marcador. Sin esto la casilla quedaba vacía
+                        (resultado es NULL) y el escudo con el icono casa/fuera subían, descuadrando esta
+                        columna respecto a las demás jornadas. El carril de ELO sí se queda vacío — no hay ELO
+                        en un suspendido — pero .lane tiene altura fija (--laneH), así que no descuadra. */}
+                    {d.suspendido
+                      ? <div className="rival-mk rival-mk-susp">Susp.</div>
+                      : d.resultado && <div className={`rival-mk res-t-${res}`}>{marcador}</div>}
                     <div className="rival-top">
                       <EscudoBox escudo={d.rivalEscudo ?? null} nombre={d.rivalNombre ?? undefined} size={20} radius={3} />
                       {d.esLocal != null && <IndicadorLocal esLocal={d.esLocal} />}

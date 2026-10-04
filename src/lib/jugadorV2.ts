@@ -212,7 +212,7 @@ export async function getCortesElo(categoria: string | null, codtempInt: number 
 // `jornadaEtiqueta`, que es el nombre que avisa de para qué sirve la jornada aquí: pintar y desempatar.
 const COLS_PART = 'codacta, codtemporada, codgrupo, jornada, ronda_label, fecha, equipo_nombre, escudo, codequipo, ' +
   'rival_cod, rival_nombre, rival_escudo, resultado, titular, minutos, jugado, goles, amarillas, dobles_amarilla, ' +
-  'rojas, puntos, elo_delta, goles_encajados, competicion'
+  'rojas, puntos, elo_delta, goles_encajados, competicion, estado_partido'
 export async function getPartidosTemporada(cod: string, codtemp: string): Promise<any[]> {
   return cacheJugador(async () => {
     const q = (c: string) => supabase.from('web_jugador_partidos').select(c)
@@ -237,6 +237,9 @@ export type JornadaDatum = {
   eloDelta?: number | null   // #7 Δ ELO del partido, para el carril de ELO por jornada
   titular?: boolean; minutos?: number; rol?: RolPartido
   rivalNombre?: string | null; rivalEscudo?: string | null; resultado?: string | null; esLocal?: boolean | null
+  // SUSPENDIDO: no hay marcador que pintar, pero SÍ puntos y minutos (§8.24). El gráfico necesita saberlo
+  // para rotular la casilla del resultado en vez de dejarla vacía, que descolocaba el escudo de esa columna.
+  suspendido?: boolean
 }
 export type CompAmbito = { codgrupo: string; nombre_comp: string; jornadas: JornadaDatum[] }
 
@@ -326,6 +329,7 @@ export async function getAmbitoTemporada(cod: string, codtemp: string): Promise<
           rojas: p.rojas ?? 0, gc: p.goles_encajados ?? null, eloDelta: p.elo_delta ?? null, titular: !!p.titular, minutos: p.minutos ?? 0, rol,
           rivalNombre: p.rival_nombre ?? null, rivalEscudo: p.rival_escudo ?? null,
           resultado: p.resultado ?? null, esLocal: p.es_local ?? null,
+          suspendido: p.estado_partido === 'suspendido',
         }
       })
     comps.push({ codgrupo, nombre_comp: nombreComp, jornadas })
