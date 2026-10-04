@@ -52,8 +52,14 @@ async function fetchPartidos(codjugador: string, codtemporada: string, codequipo
 const ACENTO = 'border-l-2 border-grass-500/70'
 function PartidoFila({ p, portero }: { p: any; portero: boolean }) {
   const { marcador, signo } = marcadorLocalVisitante(p.resultado, p.es_local)
-  // SUSPENDIDO: el partido no se jugó, así que no hay resultado que ensenar. Abreviado porque la celda es
-  // estrecha (en móvil comparte sitio con el nombre del rival). NULL = sin estado conocido -> como hoy.
+  // SUSPENDIDO: no hay resultado que ensenar. Abreviado porque la celda es estrecha (en móvil comparte sitio
+  // con el nombre del rival). NULL = sin estado conocido -> se pinta el resultado como siempre.
+  //
+  // ⚠ "Susp." CONVIVE CON LOS MINUTOS Y LOS PUNTOS DE LA MISMA FILA, Y ESO ES CORRECTO (§8.24 de la
+  //   especificación del pipeline, decisión de Fernando): un partido suspendido se jugó EN PARTE, y sus
+  //   minutos y puntos cuentan mientras el acta exista. Ver ficha 5150242: 90' y 7 puntos en un partido
+  //   suspendido. NO es una incoherencia que haya que "arreglar" ocultando los puntos ni descontándolos de
+  //   los agregados — ya lo di por contradicción una vez y no lo era.
   const susp = p.estado_partido === 'suspendido'
   const resTxt = susp ? 'Susp.' : marcador
   const resCls = susp ? 'text-chalk-500' : colorSigno(signo)
