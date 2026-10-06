@@ -1,6 +1,18 @@
-export const revalidate = 2592000
-export const dynamicParams = true
-export function generateStaticParams() { return [] }  // ISR on-demand: 0 en build, se generan y CACHEAN en la 1a visita (revalidate 30d)
+// RENDER DINÁMICO SIN CACHÉ DE RUTA (2026-10-07). Medido sobre la factura: estas páginas se escribían
+// ~16,6 veces al mes y se leían ~1,9, así que la caché ISR no cacheaba nada — solo pagaba la prima de
+// escritura. Los ~4,2M de writes que desaparecen NO eran renders extra: eran renders que ya ocurrían y que
+// además se guardaban. Lo único que se añade son los ~483k aciertos de caché que ahora sí renderizan.
+// Orden de magnitud del neto: unos 20 $/mes a favor (tarifa MEDIA de la factura, no marginal; las líneas
+// del Pro llevan franquicia, así que el ahorro real es mayor).
+//
+// LA CACHÉ DE DATOS SIGUE INTACTA: `unstable_cache` dentro de los getters funciona igual en una ruta
+// dinámica (precedente en el repo: /campos y /clubes ya son force-dynamic y usan cacheIndices), con su TTL
+// de 30 días y SUS MISMOS TAGS — comp:/temporada:/jugador: no cambian. Lo único que deja de guardarse es el
+// HTML. De hecho la cobertura mejora: una página que se renderiza siempre no puede quedarse rancia por un
+// tag que no se emitió.
+// SEO sin cambios: mismo HTML, mismo 200, `noindex` intacto (vive en generateMetadata), y ni el sitemap ni
+// los enlaces internos dependían de la caché — estas dos rutas YA se generaban bajo demanda.
+export const dynamic = 'force-dynamic'
 
 import type { Metadata } from 'next'
 import { notFound, permanentRedirect } from 'next/navigation'
