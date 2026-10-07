@@ -3,7 +3,8 @@ export const revalidate = 2592000  // ISR 30d (Fluid CPU free tier): contenido c
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import { SITE_URL, ensureMadrid, tabLabel, noindexJuvenil, descripcionCompeticion } from '@/lib/seo'
+import { SITE_URL, ensureMadrid, tabLabel, noindexTab, descripcionCompeticion, TABS_GLOBAL } from '@/lib/seo'
+import { jornadaSegValida } from '@/lib/competiciones'
 import JsonLd from '@/components/JsonLd'
 import { graphLd, breadcrumbLd } from '@/lib/jsonld'
 import { nombreOficial } from '@/lib/sellos'
@@ -23,6 +24,11 @@ const CATEGORIA_MAP: Record<string, string> = {
   juveniles: 'JUVENIL',
 }
 
+// La vista global AGREGA todos los grupos de la competición, así que sus dos números tienen que ser el
+// MÁXIMO de los grupos, no los de una fila cualquiera. Antes era `.limit(1).maybeSingle()`: el canonical
+// (`jornada-${jornada_actual}`) y el título salían de un grupo arbitrario, mientras el componente usa
+// `Math.max(...)`. Con grupos de 26 y de 34 jornadas en la misma competición eso descuadra, y ahora además
+// descuadraría el TOPE de jornada: el 404 caería sobre jornadas que la navegación sí enlaza.
 async function getCompeticion(slugComp: string, categoria: string, codtemporada: number) {
   let query = supabase
     .from('web_grupos')
@@ -31,9 +37,16 @@ async function getCompeticion(slugComp: string, categoria: string, codtemporada:
     .eq('codtemporada', codtemporada)
   const cat = CATEGORIA_MAP[categoria]
   if (cat) query = query.eq('categoria', cat)
-  const { data, error } = await query.limit(1).maybeSingle()
-  if (error) throw error   // maybeSingle: sin filas -> data null (404 legítimo); error real -> throw (no congelar un 404)
-  return data
+  const { data, error } = await query
+  if (error) throw error   // sin filas -> null (404 legítimo); error real -> throw (no congelar un 404)
+  const filas = (data || []) as Array<{ nombre_comp: string; nombre_historico: string | null; total_jornadas: number | null; jornada_actual: number | null }>
+  if (!filas.length) return null
+  return {
+    nombre_comp: filas[0].nombre_comp,
+    nombre_historico: filas[0].nombre_historico,
+    total_jornadas: Math.max(...filas.map((f) => f.total_jornadas || 0), 0),
+    jornada_actual: Math.max(...filas.map((f) => f.jornada_actual || 0), 1),
+  }
 }
 
 export async function generateMetadata({
@@ -63,8 +76,8 @@ export async function generateMetadata({
     title,
     description,
     alternates: { canonical },
-    // JUVENIL: noindex en las pestañas globales que listan jugadores (menores); clasificación no.
-    ...(noindexJuvenil(categoria, tab) ? { robots: { index: false, follow: true } } : {}),
+    // noindex por privacidad (juvenil) O por audiencia cero (las once pestañas). Ver noindexTab.
+    ...(noindexTab(categoria, tab) ? { robots: { index: false, follow: true } } : {}),
     openGraph: { title, description, url: canonical, siteName: 'Fútbol11Stats', locale: 'es_ES', type: 'website' },
   }
 }
@@ -87,6 +100,10 @@ export default async function GlobalPage({
 
   const competicion = await getCompeticion(slug_comp, categoria, codtemporada)
   if (!competicion) notFound()
+
+  // LISTA BLANCA de pestaña + TOPE de jornada (global siempre es liga; el tope es el máximo de sus grupos).
+  if (!TABS_GLOBAL.has(tab)) notFound()
+  if (!jornadaSegValida(jornada, { tipo: 'LIGA', total_jornadas: competicion.total_jornadas })) notFound()
 
   // BreadcrumbList (JSON-LD) con URLs canónicas (www). El time-machine se colapsa a la jornada ACTUAL.
   const catLabel = categoria === 'juveniles' ? 'Juveniles' : 'Aficionados'

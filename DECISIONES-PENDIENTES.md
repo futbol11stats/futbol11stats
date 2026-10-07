@@ -715,3 +715,141 @@ Revisados **15 usos** de `p.jugado` y equivalentes (marcador no nulo, fecha pasa
 
 **Y la lección de fondo:** el problema no era ningún `if` mal escrito, era que **`p.jugado` es un booleano para un dominio de tres estados**. Mientras la pregunta sea "¿jugado?" en vez de "¿qué estado tiene?", cada superficie nueva volverá a asumir dos mundos. Si aparece un cuarto caso (aplazado con nueva fecha, por ejemplo), lo barato es convertirlo en un estado explícito antes de repartirlo por la vista.
 
+
+### E-sitemap-slug-caducado · El sitemap debe revalidarse por tag cuando cambia un slug (2026-10-07, ANOTADO, NO TOCADO)
+Los sitemaps tienen `revalidate` de 30 días como el resto. Cuando el pipeline **renombra** un equipo o un club, su slug cambia, la ruta vieja pasa a redirigir a la nueva… y el sitemap sigue publicando la vieja hasta 30 días. Resultado: Googlebot encuentra en el sitemap URLs que responden 301, y eso es exactamente lo que explica las **15 "página con redirección"** de Search Console: no son enlaces internos roídos, es nuestro propio sitemap listando slugs pre-renombrado.
+
+Lo correcto es que el renombrado **revalide el sitemap por tag**, igual que revalida la ficha: hoy `/api/revalidate` acota tags a `comp:` y `temporada:`, y ningún tag cubre los sitemaps. No se toca ahora porque cada tag nuevo regenera una página ISR y el cupo está en revisión hasta la factura del 6 de noviembre (ver [[revalidacion-coste-vercel]]). Cuando se abra: un tag `sitemap` emitido solo por el paso de renombrado, no por el ciclo nocturno — si lo emite el ciclo, se regeneran los sitemaps cada noche sin que haya cambiado ningún slug.
+
+### E-429-challenge · El 429 "Security Checkpoint" es de plataforma y NO depende del user agent (2026-10-07)
+**Qué devuelve el 429.** La página `Vercel Security Checkpoint`, con cabeceras `x-vercel-mitigated: challenge` y `x-vercel-challenge-token: 2.<ts>.60.…`. No es nuestro código ni una regla nuestra: el proyecto **no tiene configuración de WAF** (`GET /v1/security/firewall/config/active` → 404 "Seawall Config not found"), así que la mitigación la pone la plataforma, no un rule que hayamos escrito.
+
+**Con qué user agent se dispara: con todos.** Matriz medida sobre `/sobre`:
+
+| Cliente | Resultado |
+|---|---|
+| curl por defecto | 429 |
+| UA de Googlebot | 429 |
+| UA de Chrome completo | 429 |
+| UA de Chrome + `Accept: text/html` | 429 |
+| UA vacío | 429 |
+
+El discriminante **no es el user agent**: es **ejecutar el desafío**. La página pide JavaScript (`Enable JavaScript to continue`), arranca un `Worker` contra `/.well-known/vercel/security/static/challenge.v2.min.js` y mide movimiento de ratón. Un navegador real lo resuelve y sigue de forma invisible — por eso Fernando navega el sitio sin ver nada —; cualquier cliente que no ejecute JS se queda en el 429.
+
+**No es nuestra IP.** Es la prueba que lo cierra: pedida la misma URL **desde la infraestructura de Vercel** (`x-vercel-id: iad1::…`, otra región que la de este equipo, `cdg1`) devuelve el **mismo 429** con su propio token. El 429 es del sitio para clientes sin JS, no de este terminal. Queda corregida la lectura anterior (ver [[waf-challenge-tapa-get-en-prod]]).
+
+**Qué pasa y qué no pasa.** Los artefactos estáticos salen limpios: `/robots.txt` 200, `/sitemap.xml` 200, `/api/calendario/equipo/2002.ics` 200 — coherente con que `web_calendario_hits` siga contando suscripciones a diario. Lo que se desafía es el **HTML dinámico**.
+
+**Y aquí está el riesgo de indexación.** Si Googlebot recibe 429 en el HTML: (a) 429 es "servidor saturado", y Google responde **bajando la tasa de rastreo**, que es literalmente el frenazo observado; (b) el sitemap sí se le sirve, así que **descubre** URLs que luego no puede rastrear — el patrón exacto de las 13.816 "descubiertas, actualmente sin rastrear".
+
+**Lo que NO se puede concluir desde aquí.** Que el UA de Googlebot reciba 429 **no prueba nada**: Vercel verifica a los rastreadores por IP y DNS inverso, no por la cadena del UA, así que un UA falsificado desde nuestra IP está *bien* desafiado. Y la documentación de Vercel dice que Attack Mode "challenges browser traffic **while allowing known bots through**" — los bots verificados se permiten. En contra del escenario catastrófico: 8.456 URLs procesadas en Search Console y 5,8M de peticiones que **llegan a las funciones** (un request desafiado en el edge no llega, luego ese tráfico pasa el desafío).
+
+**La prueba que lo zanja, y solo la puede hacer Fernando:** Search Console → Inspección de URL → **Probar URL publicada** sobre una ficha. Eso pide la página como Googlebot real, desde IP de Google, y muestra el HTML obtenido. Si aparece `Vercel Security Checkpoint`, estamos desafiando a Googlebot y es urgente; si aparece la ficha, el bot está en la lista de permitidos y el frenazo tiene otra causa.
+
+**Primer sospechoso: Bot Protection, no Attack Mode.** Esto ya pasó el 30 de agosto, con el mismo síntoma y la misma prueba de que no era nuestra IP, y entonces se midió la causa: **Bot Protection = Challenge** en Vercel → Firewall, con *Attack Challenge Mode* en OFF. Se resolvió el 31 de agosto pasándolo a **Log**. Así que lo primero que hay que mirar es Bot Protection, y solo después Attack Mode. Ver [[waf-challenge-tapa-get-en-prod]].
+
+Como dato, por si fuera Attack Mode: su `--duration` admite `1h` (por defecto), `6h` y `24h`, y la API tiene `attackModeActiveUntil`; que el desafío siga activo nueve días no encaja con una activación manual de 1-24 h. No se propone ninguna regla de firewall: ese frente lo abre Fernando con los user agents en la mano.
+
+**Y una pieza de instrumentación que se cae con esto:** `web_calendario_hits` se habia usado como prueba de que el sitio se servía con normalidad. Hoy ya no vale, porque la ruta `.ics` **no está retada** mientras el HTML sí: un contador propio solo prueba lo de su propia ruta.
+
+### E-competicion-universo · Inventario de la ruta combinatoria de competición (2026-10-07, MEDIDO, NADA TOCADO)
+
+**(a) El inventario real: 14 pestañas, no 13, y hay un segundo eje que no estaba contado.**
+
+Las pestañas salen de los arrays de navegación de los dos componentes, no de `TAB_LABELS` (donde falta `estadisticas`, que por eso coge el rótulo por defecto — y acierta por casualidad). Son **14 identificadores distintos**, en tres repartos:
+
+| Vista | De jornada | De temporada | Total |
+|---|---|---|---|
+| Grupo · LIGA | `clasificacion`, `resultados`, `goleadores-jornada`, `tarjetas-jornada`, `top5-jugadores-jornada`, `top5-equipos-jornada`, `once-optimo-jornada` (7) | `top10-goleadores-temporada`, `top10-porteros-temporada`, `top10-tarjetas-temporada`, `top10-fantasy-temporada`, `top10-elo-jugadores-temporada`, `once-optimo-temporada`, `estadisticas` (7) | **14** |
+| Grupo · COPA | 5 (sin clasificación ni Top-5 Equipos; +`clasificacion` solo en la ronda de grupos) | 5 (sin ELO de jugadores) | **10** |
+| Global · LIGA | `clasificacion`, `top5-jugadores-jornada`, `top5-equipos-jornada`, `once-optimo-jornada` (4) | las 7 de temporada | **11** |
+
+**`global` multiplica por categoría, sí, pero no por grupo:** sustituye el segmento `[slug_grupo]` por el literal `global`, así que su eje es categoría × competición × temporada = **60 combinaciones**, con un techo de jornadas que es el `max(total_jornadas)` de sus grupos: **2.012 jornadas** en total.
+
+Censo (coincide con el de Fernando: 529 combinaciones grupo×temporada y 15.967 jornadas):
+
+| | combos | jornadas | × pestañas | URLs |
+|---|---|---|---|---|
+| Grupo LIGA aficionados | 211 | 6.770 | 14 | 94.780 |
+| Grupo LIGA juveniles | 293 | 9.146 | 14 | 128.044 |
+| Grupo COPA aficionados | 20 | 46 | 10 | 460 |
+| Grupo COPA juveniles | 5 | 5 | 10 | 50 |
+| **Global** (solo ligas) | 60 | 2.012 | 11 | **22.132** |
+| | | | | **≈ 245.500** |
+
+Contra las 207.571 de Fernando: **+18%**. La diferencia es el eje `global` que no estaba contado (+22.132) y una pestaña de más en liga (+15.916); en contra, la copa tiene 10 pestañas y no 13 (−150). El universo rastreable del sitio sube de 312.700 a **del orden de 550.000**, y esta ruta es el **44%**.
+
+**Y la cifra de 245.500 es solo la alcanzable por navegación. El universo que responde 200 no tiene techo** (ver (b)).
+
+**(b) La ruta NO tiene freno. Medido en local, no deducido:**
+
+| URL | Respuesta | Canonical |
+|---|---|---|
+| `jornada-4/clasificacion` (actual, jugada) | **200** · 223.964 B | `…/jornada-4/clasificacion` |
+| `jornada-29/clasificacion` (en calendario, sin jugar) | **200** · 223.371 B | `…/jornada-4/clasificacion` |
+| `jornada-999/clasificacion` (fuera del calendario) | **200** · 223.437 B | `…/jornada-4/clasificacion` |
+| `jornada-abc/clasificacion` (no numérica) | **200** · 222.941 B | `…/jornada-4/clasificacion` |
+| `jornada-4/pestana-inventada-xyz` | **200** · 223.725 B | **`…/jornada-4/pestana-inventada-xyz`** |
+| `global/…/jornada-999/pestana-falsa` | **200** · 272.444 B | **`…/jornada-2/pestana-falsa`** |
+| `grupo-999`, `slug_comp` inventado, temporada imposible | **404** | — |
+
+Dos causas en el código, ninguna accidental-de-un-`if`:
+- `jornadaNum = parseInt(jornadaSeg.replace('jornada-','')) || grupo.jornada_actual` — **sin tope**. Cualquier número entra, las consultas vuelven vacías o con el último snapshot, y la página se pinta igual (de ahí que los seis cuerpos midan lo mismo).
+- `tabEf = tabsActivas.some(t => t[0] === tab) ? tab : tabsActivas[0][0]` — **el tab desconocido cae a la primera pestaña** en vez de 404.
+
+**La asimetría es lo que importa:** el eje de jornada **sí** tiene freno de indexación, porque `generateMetadata` colapsa el canonical a `jornada_actual`; el eje de pestaña **no**, porque el canonical se construye con el `tab` **crudo** → cada cadena inventada es una URL 200 **autocanónica e indexable** que sirve la clasificación. Ahí sí se fabrica universo infinito. Los 404 están solo en grupo, competición y temporada.
+
+**(c) Qué es indexable y cómo se descubre.**
+
+`noindex` solo lo pone `noindexJuvenil`: categoría juvenil y pestaña que no esté en `{clasificacion, resultados, top5-equipos-jornada}`. Aplicado al inventario:
+
+- **indexables ≈ 135.800** (todo aficionados + las 3 pestañas sin jugadores de juvenil)
+- **con `noindex` ≈ 109.700** (45% de la ruta) — pero **se rastrean igual**: el `noindex` va en la respuesta, así que Google tiene que descargar las 109.700 para enterarse.
+
+El **sitemap declara 1.032 URLs de competición** (937 de grupo + 95 de global): de la temporada viva solo la jornada actual y solo 8 de las 14 pestañas (las de jornada están excluidas a propósito), y de las temporadas cerradas solo la vista final. Es decir, **el sitemap declara el 0,4% de la ruta**.
+
+**Confirmado: el descubrimiento es 100% la navegación**, y el mecanismo exacto es la barra de jornadas:
+```
+Array.from({ length: grupo.total_jornadas }, …).map((j) =>
+  <Link href={`${base}/jornada-${j}/${tab}`}>J{j}</Link>)
+```
+Emite **J1…total_jornadas conservando la pestaña activa**, con dos consecuencias: (1) en la temporada en curso publica enlaces a jornadas que no se han jugado — de ahí `grupo-9/2026-27/jornada-29` (calendario de 30, va por la 4) y `grupo-16/2026-27/jornada-19` (calendario de 30, va por la 2) de las listas de Search Console; y (2) desde una pestaña **de temporada** ofrece N enlaces al **mismo contenido**, porque esas 7 pestañas no dependen de la jornada aunque la lleven en la URL. Ese es el multiplicador: la mitad de las 245.500 son duplicados exactos por construcción.
+
+**(d) No tengo señal real de visitas, y conviene decirlo sin adornos.**
+
+Vercel Web Analytics responde **404 "Web Analytics not found"** a `visits/count` y 400 a `visits/aggregate`, pese a que `<Analytics />` y `<SpeedInsights />` están montados en `layout.tsx` y los paquetes instalados. Lo más probable es que el producto no esté activado en el panel — pero después de haber leído un 404 de API como "no existe configuración de firewall" y equivocarme, esto se queda como **"la API dice que no hay; verificar en el panel"**, no como hecho.
+
+No hay ninguna otra fuente interna: `web_calendario_hits` solo cuenta calendarios, y los runtime logs tienen un día de retención y no sobreviven al edge-cache.
+
+**La única fuente real es Search Console → Rendimiento → Resultados de búsqueda**, filtrando por URL que contenga `/jornada-`, y contrastando con el filtro de `/clasificacion` y de `top10-…-temporada`. Eso da clics e impresiones por URL, que es exactamente la señal que hace falta, y solo la puede sacar Fernando. **Si no sale de ahí, se decide por criterio editorial y se dice que es criterio, no dato.**
+
+### E-competicion-recorte · Recorte de la ruta de competición por audiencia medida (2026-10-07, HECHO EN LOCAL, SIN DESPLEGAR)
+
+Criterio de Fernando a partir de Vercel Analytics (30 días): de las 14 pestañas solo tres tienen visitas —`clasificacion` (dominante), `resultados` (segunda, volumen real) y `top10-fantasy-temporada` (una instancia, 16 visitas, mismo orden que una clasificación de grupo medio)—. Las otras once están a cero **también en aficionados**, donde sí son indexables: ésa es la comparación limpia. Siguen funcionando para quien las abra; salen del índice y del rastreo.
+
+**1. Lista blanca de pestañas, con 404.** `TABS_GRUPO_LIGA` (14), `TABS_GRUPO_COPA` (11) y `TABS_GLOBAL` (11) en `lib/seo.ts`, replicando los arrays de navegación de los componentes. Cierra el agujero infinito: un tab inventado devolvía 200 con canonical autoreferente. **La copa lleva 11, no 10:** las 10 estables más `clasificacion`, que existe en la ronda de fase de grupos; dejarla fuera convertiría en 404 una pestaña que funciona hoy. `estadisticas` añadida a `TAB_LABELS`, donde faltaba (acertaba por el valor por defecto).
+
+**2. Tope del eje de jornada.** `jornadaSegValida` (`lib/competiciones.ts`, 17 tests): no numérico → 404, por encima del total de jornadas (o del nº de rondas en copa) → 404, slug de ronda inexistente → 404. **Una jornada futura que sí está en el calendario sigue en 200**, porque existe y tiene visitas reales. El `0` se acepta: es el valor histórico del time-machine, su canonical ya colapsa, y un 404 rompería enlaces viejos sin ganar nada.
+
+**3. `noindex` por audiencia, SUMADO al de privacidad — no sustituyéndolo.** `noindexTab = noindexJuvenil(cat, tab) || !TABS_CON_AUDIENCIA.has(tab)`. Tiene que ser un OR: si el criterio de audiencia *sustituyera* al de privacidad, `top10-fantasy-temporada` quedaría **indexable en juvenil**, y esa pestaña lista jugadores — publicaríamos nombres de menores en el índice como efecto colateral de un recorte de rastreo.
+
+| | URLs | indexables ANTES | indexables DESPUÉS | bloqueadas en robots |
+|---|---|---|---|---|
+| grupo liga aficionados | 94.780 | 94.780 | 20.310 | 74.470 |
+| grupo liga juveniles | 128.044 | 27.438 | 18.292 | 100.606 |
+| grupo copa (ambas) | 561 | 516 | 148 | 408 |
+| global aficionados | 11.088 | 11.088 | 2.016 | 9.072 |
+| global juveniles | 11.044 | 2.008 | 1.004 | 9.036 |
+| **TOTAL** | **245.517** | **135.830** | **41.770** | **193.592** |
+
+Indexables **−69%**. Con `noindex`: 109.687 → 203.747. Bloqueadas en robots: **193.592 (79% del universo)**. Quedan **10.155 con noindex pero rastreables**: son juvenil en pestaña permitida (clasificación/resultados/fantasy), donde el `noindex` es de privacidad y el robots no debe taparlo.
+
+**4. Patrón de robots.** Once reglas `Disallow: /madrid/*/<pestaña>$`. El nombre va **completo** a propósito: `/madrid/*/top10-*` sería más corto pero se comería `top10-fantasy-temporada`, que es la que hay que conservar. Verificado con el algoritmo de Google (prefijo, `*` que cruza `/`, `$` de fin de URL, gana el patrón más largo y el Allow en empate) sobre **25 URLs reales: 0 fallos** — las tres conservadas permitidas en grupo, copa, global, juvenil, temporada viva, temporada cerrada y jornada futura; las once bloqueadas en todas sus variantes; y las rutas ajenas (jugador, partido, e incluso un slug de jugador que acaba en `-estadisticas`) intactas.
+
+**5. El sitemap, recortado en la misma tanda.** `GROUP_TABS_LIGA` 8→3, `GROUP_TABS_COPA` 5→2, `GLOBAL_TABS` 7→2. Un sitemap que declara URLs con `noindex` se contradice y gasta rastreo en pedir páginas que luego dicen "no me indexes".
+
+**6. Fallo latente arreglado de paso (vista global).** `getCompeticion` usaba `.limit(1).maybeSingle()`: el canonical y el título salían de **un grupo arbitrario** mientras el componente usa `Math.max(...)`. Con grupos de 26 y 34 jornadas en la misma competición eso ya descuadraba, y ahora descuadraría el **tope de jornada**: el 404 caería sobre jornadas que la propia navegación enlaza. Ahora agrega el máximo.
+
+**CORRECCIÓN MÍA, Y ES LOAD-BEARING.** Dije que las siete pestañas de temporada no dependen de la jornada y que por eso media ruta eran duplicados. **Falso: cinco de las siete sí dependen.** `getTopTemporadaV2` rebobina goleadores/porteros/fantasy a la jornada pedida, `getXiTemporadaV2` igual y `getJuegoLimpioV2` hace `.lte('jornada', jornada)`; el subtítulo lo dice, "acumulado hasta J4". Es un time-machine real. Solo **dos** la ignoran: `top10-elo-jugadores-temporada` (lee `elo_temp` con `.is('jornada', null)`) y `estadisticas` (`getTramosCompeticionV2` no recibe jornada). Duplicados exactos reales ≈ **34.700**, no ~122.000 — y las dos están entre las once que el robots bloquea, así que el coste de rastreo ya queda resuelto sin tocar la navegación.
+
+**ORDEN DE DESPLIEGUE — IMPORTANTE, Y NO ES COSMÉTICO.** `Disallow` y `noindex` se estorban: una URL bloqueada en robots **no se puede rastrear, así que Google nunca lee su `noindex`**. Las que ya estén indexadas se quedarían como "Indexada aunque bloqueada por robots.txt" en vez de salir del índice. La secuencia correcta son **dos despliegues**: primero `noindex` + lista blanca + tope de jornada + sitemap recortado, se espera a que Google recorra y las suelte, y **solo después** el `Disallow`. Si se sube todo junto se congela en el índice lo que se quería sacar de él. Decisión de Fernando; el patrón queda escrito y probado para el segundo.

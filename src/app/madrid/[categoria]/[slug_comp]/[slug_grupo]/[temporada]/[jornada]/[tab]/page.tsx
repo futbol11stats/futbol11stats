@@ -4,11 +4,11 @@ import type { Metadata } from 'next'
 import { notFound, permanentRedirect, redirect } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { tienePartidosJugados } from '@/lib/competicionV2'
-import { SITE_URL, ensureMadrid, tabLabel, noindexJuvenil, descripcionCompeticion } from '@/lib/seo'
+import { SITE_URL, ensureMadrid, tabLabel, noindexTab, descripcionCompeticion, TABS_GRUPO_LIGA, TABS_GRUPO_COPA } from '@/lib/seo'
 import JsonLd from '@/components/JsonLd'
 import { graphLd, breadcrumbLd } from '@/lib/jsonld'
 import { nombreOficial, denominacion } from '@/lib/sellos'
-import { FAMILIA_SLUGS, OLD_A_FAMILIA, familiaSlugGrupo, type Ronda } from '@/lib/competiciones'
+import { FAMILIA_SLUGS, OLD_A_FAMILIA, familiaSlugGrupo, jornadaSegValida, type Ronda } from '@/lib/competiciones'
 import FichaCompeticionV2 from '@/components/ficha/v2/FichaCompeticionV2'
 import { slugToCod } from '@/lib/temporadaSlug'
 
@@ -89,8 +89,10 @@ export async function generateMetadata({
     title,
     description,
     alternates: { canonical },
-    // JUVENIL: noindex en las pestañas que listan jugadores (menores); clasificación/resultados no.
-    ...(noindexJuvenil(categoria, tab) ? { robots: { index: false, follow: true } } : {}),
+    // noindex por DOS motivos sumados (ver noindexTab): privacidad en juvenil (pestañas con nombres de
+    // menores) y audiencia cero en las once pestañas sin visitas. "follow" se mantiene: los enlaces
+    // internos a clasificación y resultados siguen contando.
+    ...(noindexTab(categoria, tab) ? { robots: { index: false, follow: true } } : {}),
     openGraph: { title, description, url: canonical, siteName: 'Fútbol11Stats', locale: 'es_ES', type: 'website' },
   }
 }
@@ -121,6 +123,12 @@ export default async function GrupoPage({
 
   const grupo = await getGrupoBySlug(categoria, slug_comp, slug_grupo, codtemporada)
   if (!grupo) notFound()
+
+  // LISTA BLANCA de pestaña + TOPE de jornada. Va DESPUÉS de resolver el grupo porque la lista depende del
+  // tipo (liga/copa) y el tope de sus jornadas o rondas. Cierra el universo infinito: hasta ahora un tab
+  // inventado devolvía 200 autocanónico y cualquier número de jornada devolvía 200.
+  if (!(grupo.tipo && grupo.tipo !== 'LIGA' ? TABS_GRUPO_COPA : TABS_GRUPO_LIGA).has(tab)) notFound()
+  if (!jornadaSegValida(jornada, grupo)) notFound()
 
   const isCopa = !!grupo.tipo && grupo.tipo !== 'LIGA'
   const rondas: Ronda[] = isCopa && Array.isArray(grupo.rondas) ? grupo.rondas : []

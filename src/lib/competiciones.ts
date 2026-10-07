@@ -129,3 +129,27 @@ export function segRondaActual(grupo: { tipo?: string | null; jornada_actual: nu
 // Nº de rondas de una copa (para "N rondas" en los índices). Fallback a jornada_actual.
 export const numRondas = (grupo: { jornada_actual: number; rondas?: unknown }): number =>
   Array.isArray(grupo.rondas) ? (grupo.rondas as unknown[]).length : grupo.jornada_actual
+
+// ¿Es válido el segmento [jornada] de una URL de competición para ESTE grupo?
+//
+// Antes no se validaba: `parseInt(seg.replace('jornada-','')) || grupo.jornada_actual` aceptaba cualquier
+// número y, si no parseaba, caía a la jornada actual. Medido: `jornada-999` y `jornada-abc` devolvían 200
+// con un cuerpo del mismo tamaño que la jornada real. En copa era peor todavía, porque un slug de ronda
+// que no existe también caía a la ronda actual.
+//
+// Lo que NO se toca: una jornada FUTURA que sí está en el calendario sigue siendo 200. Existe, solo que
+// aún no tiene datos, y hay visitas reales (primera-autonomica/grupo-2/2026-27/jornada-34 tiene 16).
+// El `0` se acepta porque es el valor histórico del time-machine y su canonical ya colapsa a la jornada
+// actual: devolverle 404 rompería enlaces viejos sin ganar nada.
+export function jornadaSegValida(
+  seg: string,
+  grupo: { tipo?: string | null; total_jornadas?: number | null; rondas?: unknown },
+): boolean {
+  const rondas: Ronda[] = grupo.tipo && grupo.tipo !== 'LIGA' && Array.isArray(grupo.rondas) ? (grupo.rondas as Ronda[]) : []
+  if (rondas.length && rondas.some((r) => r.slug === seg)) return true   // copa por familia: slug de ronda
+  const m = /^jornada-(\d+)$/.exec(seg)                                   // nada más es numérico: 404
+  if (!m) return false
+  const n = Number(m[1])
+  const tope = rondas.length || grupo.total_jornadas || 0
+  return n >= 0 && n <= tope
+}
