@@ -853,3 +853,57 @@ Indexables **−69%**. Con `noindex`: 109.687 → 203.747. Bloqueadas en robots:
 **CORRECCIÓN MÍA, Y ES LOAD-BEARING.** Dije que las siete pestañas de temporada no dependen de la jornada y que por eso media ruta eran duplicados. **Falso: cinco de las siete sí dependen.** `getTopTemporadaV2` rebobina goleadores/porteros/fantasy a la jornada pedida, `getXiTemporadaV2` igual y `getJuegoLimpioV2` hace `.lte('jornada', jornada)`; el subtítulo lo dice, "acumulado hasta J4". Es un time-machine real. Solo **dos** la ignoran: `top10-elo-jugadores-temporada` (lee `elo_temp` con `.is('jornada', null)`) y `estadisticas` (`getTramosCompeticionV2` no recibe jornada). Duplicados exactos reales ≈ **34.700**, no ~122.000 — y las dos están entre las once que el robots bloquea, así que el coste de rastreo ya queda resuelto sin tocar la navegación.
 
 **ORDEN DE DESPLIEGUE — IMPORTANTE, Y NO ES COSMÉTICO.** `Disallow` y `noindex` se estorban: una URL bloqueada en robots **no se puede rastrear, así que Google nunca lee su `noindex`**. Las que ya estén indexadas se quedarían como "Indexada aunque bloqueada por robots.txt" en vez de salir del índice. La secuencia correcta son **dos despliegues**: primero `noindex` + lista blanca + tope de jornada + sitemap recortado, se espera a que Google recorra y las suelte, y **solo después** el `Disallow`. Si se sube todo junto se congela en el índice lo que se quería sacar de él. Decisión de Fernando; el patrón queda escrito y probado para el segundo.
+
+### E-competicion-fase1-desplegada · Fase 1 verificada en producción (2026-10-07)
+
+Despliegue `dpl_5QbammifGL95RAUEWvZDo83rvBxx`, commit `148c8f0`, READY en 45 s, alias `www.futbol11stats.com`. El `[desplegar]` funcionó: el commit de prueba sin marca quedó CANCELED, así que el `ignoreCommand` hace lo que debe por defecto.
+
+**Verificado contra producción con navegador real** (curl recibe 429 del Bot Protection; ver [[waf-challenge-tapa-get-en-prod]]). 16 códigos de respuesta, 16 correctos:
+
+| | |
+|---|---|
+| 404 | tab inventada (grupo **y** global), `jornada-999` (grupo y global), `jornada-abc`, slug de ronda inventado en copa |
+| 200 | `clasificacion`/`resultados`/`fantasy` en **grupo**, `clasificacion`/`fantasy` en **global**, los tres en **copa**, jornada futura del calendario (`jornada-29`) y el tope exacto (`jornada-30`) |
+
+Y 12 comprobaciones del `noindex`, 12 correctas. Importante: **va en `<meta name="robots">`, no en la cabecera `X-Robots-Tag`** — mirar la cabecera da un falso negativo. Las tres conservadas salen sin meta; las once descartadas con `noindex, follow`; **el fantasy JUVENIL sale `noindex`** y la clasificación juvenil sin meta: el OR de privacidad+audiencia se comporta en producción como se diseñó.
+
+**Cuántas de las 193.592 pueden estar indexadas hoy (para el criterio de salida de la fase 2).** No tengo Search Console, así que doy una cota, no un recuento:
+
+- El sitemap antiguo declaraba 1.032 URLs de competición, y de ellas **unas 317 eran de las once descartadas** (287 de grupo + ~30 de global): 5 de las 6 pestañas de ranking en liga y 3 de las 4 en copa, y **solo en aficionados**, porque en juvenil ya salían por `noindexJuvenil`. Las históricas no aportan ninguna (solo declaraban la vista final).
+- Todo lo demás de las 193.592 era descubrible **solo por navegación**, y las 13.816 "descubiertas, actualmente sin rastrear" dicen que Google en su mayoría no las pidió.
+- Ninguna de las once tuvo **una sola visita en 30 días**, tampoco en aficionados.
+
+**Conclusión: el orden de magnitud son centenares, no millares** — techo de unas 317 declaradas más lo poco que haya entrado por navegación, sobre un total de 34.781 indexadas que son casi todas fichas. La espera de la fase 2 se mide en días. Se confirma en Search Console filtrando por las once rutas.
+
+### E-enlace-partido-sin-acta · Enlaces a 404 desde la ficha del jugador (2026-10-07, PROPUESTA, SIN IMPLEMENTAR)
+
+**El hecho.** `FichaJugadorV2.tsx:714` enlaza con `a.codacta ? href : null`: la única condición es que la fila del jugador traiga `codacta`, sin mirar `web_resultados`. Y el destino **no es una ficha vacía: es un 404** (`lib/partido.ts` arranca leyendo `web_resultados`, devuelve `null` si no hay fila, y `page.tsx:56` lo convierte en `notFound()`).
+
+**El tamaño real, medido.** De **106.394 actas** referenciadas por filas de jugador, **8 no tienen fila en `web_resultados`**: 226 filas y 191 jugadores, **todas de T17**, y son exactamente las ocho ya conocidas. Es decir: la *clase* existe y seguirá existiendo mientras nada la impida, pero su *población de hoy* no esconde nada más.
+
+**Dos problemas distintos, y conviene no confundirlos:**
+
+1. **El dato.** Que ocho actas tengan filas de jugador publicadas y ningún tablón de partido es un hueco de ingesta del pipeline. El arreglo de fondo es publicar las filas que faltan (o no publicar las del jugador). Eso no lo arregla la web.
+2. **La estructura.** Que la web pueda emitir un enlace a una página que no existe, sin forma de saberlo. Eso sí es nuestro, y es lo que hay que cerrar para que la clase no vuelva a producir enlaces rotos.
+
+**Propuesta, por orden de preferencia:**
+
+**(A) La señal viene del pipeline, en la propia fila. Es la que haría.** Una columna booleana en `web_jugador_partidos` — `tiene_ficha`, o el nombre que prefiera el pipeline — que diga si esa acta tiene fila en `web_resultados`. La web la lee **en el select que ya hace**: cero consultas extra, cero latencia extra, y la condición pasa a `a.codacta && a.tiene_ficha`. El pipeline lo calcula con un anti-join **una vez, al exportar**, en lugar de que la web lo deduzca en cada render. Coste: un booleano por fila, despreciable. Y es seguro respecto a la caché: añadir la columna cambia el select, y `hashCols` provoca el cache-miss solo (ver [[cache-key-derivada-del-select-hashcols]]).
+
+Es además lo correcto conceptualmente: que una acta tenga página es una propiedad del conjunto publicado, no algo que el lector deba inferir.
+
+**(B) Si el pipeline no puede, la web lo deriva con UNA consulta por ficha, no por fila.** La ficha ya carga los partidos del jugador; basta un `in` sobre `codacta` contra `web_resultados` y un `Set`. Es **una** consulta por render, no cuarenta, y con búsqueda por índice. Coste: un viaje extra en cada regeneración de ficha de jugador — unas 40.000 fichas, y son ISR, así que una vez por llenado de caché. Funciona, pero duplica un trabajo que el pipeline ya tiene hecho. Lo propondría como puente explícito, no como solución.
+
+**(C) Descartada: hacer que el destino no sea 404.** Renderizar algo en la ficha de partido cuando no hay fila de resultados pero sí filas de jugador fabricaría una página delgada donde hoy hay un 404 honesto, y necesitaría su propio `noindex`. Sería crear justo el tipo de página que acabamos de sacar del índice.
+
+**Urgencia: baja.** El sitemap ya excluye esos partidos (exige `goles_local` no nulo), así que Google no los ve y no hay coste SEO. El coste es que 191 fichas tienen un enlace que no lleva a nada.
+
+### E-tope-destapa-agregado · Un tope nuevo destapa un agregado mal calculado (2026-10-07, lección)
+
+Al poner el tope de jornada en la vista global hubo que mirar de dónde salía el número de jornadas, y ahí estaba el fallo: `getCompeticion` usaba `.limit(1).maybeSingle()` sobre `web_grupos`, es decir **una fila arbitraria**, mientras el componente que pinta la página usa `Math.max(...)` de todos los grupos de la competición.
+
+Llevaba tiempo escondido y **ya estaba haciendo daño en silencio**: con grupos de 26 y de 34 jornadas en la misma competición, el canonical apuntaba a la jornada actual de un grupo cualquiera, no a la de la competición. Un canonical incorrecto no rompe nada visible; simplemente consolida mal.
+
+Lo que lo convierte en lección es el segundo efecto: **el tope nuevo lo habría transformado de "canonical raro" en "404 sobre jornadas que la propia navegación enlaza"**. Un agregado mal calculado es inocuo mientras solo decora; en cuanto algo lo usa para decidir, se vuelve un fallo duro.
+
+**Regla:** antes de usar un número existente como **límite** (tope, gate, condición de 404), comprobar cómo se calcula — no que exista, ni que venga saliendo bien. Un valor que nadie validaba porque solo se mostraba pasa a ser load-bearing en el momento en que decide un código de respuesta. Familia de [[pgstat-no-es-count-y-campos-loadbearing]].
