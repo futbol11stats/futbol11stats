@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server'
+import { PAGINA_RETIRADA } from '@/lib/paginaRetirada'
 
 // Middleware ACOTADO A PROPÓSITO a /madrid/jugador/* (ver `config.matcher`): no queremos una capa corriendo en
 // todas las peticiones del sitio. Dos ramas, ambas leen una tabla diminuta del pipeline cacheada por isolate con
@@ -55,10 +56,7 @@ const getAlias = lectorCacheado<Map<string, string>>(
   () => new Map(),
 )
 
-const PAGINA_410 = `<!doctype html><html lang="es"><head><meta charset="utf-8">`
-  + `<meta name="robots" content="noindex"><meta name="viewport" content="width=device-width,initial-scale=1">`
-  + `<title>Ficha retirada</title></head><body style="font-family:system-ui,sans-serif;max-width:34rem;margin:4rem auto;padding:0 1rem;line-height:1.5">`
-  + `<h1>Ficha retirada</h1><p>Esta ficha se ha eliminado de forma permanente y ya no está disponible.</p></body></html>`
+// El cuerpo vive en lib/paginaRetirada.ts, con el porqué de que sea una cadena y no una página de Next.
 
 export async function middleware(req: NextRequest) {
   // El slug es `${codjugador}-${nombre}` (o solo el código): el codjugador es el prefijo antes del primer "-".
@@ -71,7 +69,17 @@ export async function middleware(req: NextRequest) {
   // 1) SUPRIMIDO → 410 Gone (precedencia sobre el alias).
   const suprimidos = await getSuprimidos()
   if (suprimidos.has(cod)) {
-    return new NextResponse(PAGINA_410, { status: 410, headers: { 'content-type': 'text/html; charset=utf-8' } })
+    // El noindex va además EN CABECERA: el código (410) y la etiqueta del cuerpo son señales independientes, y
+    // así la instrucción llega aunque el cuerpo no se parsee. `no-store` evita que una intermedia guarde la
+    // respuesta (un cambio en web_suprimidos debe notarse al vencer el TTL, no cuando caduque un caché ajeno).
+    return new NextResponse(PAGINA_RETIRADA, {
+      status: 410,
+      headers: {
+        'content-type': 'text/html; charset=utf-8',
+        'x-robots-tag': 'noindex, nofollow',
+        'cache-control': 'private, no-store, max-age=0',
+      },
+    })
   }
 
   // 2) ALIAS (ghost de fusión) → 301 al canónico. Redirige al CÓDIGO canónico pelado (`/madrid/jugador/<canon>`)

@@ -907,3 +907,25 @@ Llevaba tiempo escondido y **ya estaba haciendo daño en silencio**: con grupos 
 Lo que lo convierte en lección es el segundo efecto: **el tope nuevo lo habría transformado de "canonical raro" en "404 sobre jornadas que la propia navegación enlaza"**. Un agregado mal calculado es inocuo mientras solo decora; en cuanto algo lo usa para decidir, se vuelve un fallo duro.
 
 **Regla:** antes de usar un número existente como **límite** (tope, gate, condición de 404), comprobar cómo se calcula — no que exista, ni que venga saliendo bien. Un valor que nadie validaba porque solo se mostraba pasa a ser load-bearing en el momento en que decide un código de respuesta. Familia de [[pgstat-no-es-count-y-campos-loadbearing]].
+
+### E-pagina-410-vestida · La página de ficha retirada, con la cara del sitio (2026-10-08)
+
+**Lo que ya estaba bien y conviene no volver a dudar:** la página **ya devolvía 410**, no 200; ya llevaba `noindex`; y **nunca ha leído el nombre del slug**. El middleware parte el slug por el primer guion y se queda con el código (`cod = slug.split('-')[0]`); el nombre no se toca en ningún punto. No había fuga que tapar.
+
+**Lo que estaba mal era solo el aspecto**, y la causa es estructural: el cuerpo era una cadena HTML pelada dentro de `middleware.ts`.
+
+**Por qué no puede ser una página de Next, que es la pregunta de fondo.** El 410 **solo** se puede emitir desde el middleware: una página del App Router no puede fijar un código arbitrario — tiene `notFound()` (404) y `redirect()`, y nada más. Y el middleware corre en el edge **antes** de renderizar, así que no alcanza el layout, ni el componente de cabecera, ni las clases de Tailwind, ni las fuentes de `next/font` (sus `woff2` llevan hash en el nombre). Lo que pinte esa respuesta tiene que ser autosuficiente.
+
+Se valoraron y se descartaron dos alternativas:
+- **Rewrite del middleware a una página real.** El `rewrite` conserva el estado del destino, que sería 200: se gana el layout y se pierde el 410, que es justo lo que no se puede perder.
+- **Route handler que renderice el componente con `renderToStaticMarkup` y devuelva 410.** Daría las dos cosas, pero un route handler tampoco recibe el layout, y seguiría sin poder referenciar la hoja de estilos con hash. Mucha maquinaria para acabar en el mismo sitio.
+
+**Lo hecho:** el cuerpo se muda a `lib/paginaRetirada.ts` y reproduce la barra superior, el logotipo y los colores reales de `tailwind.config.js`, con enlace a la portada y a la búsqueda, y pie con Privacidad / Aviso legal / Sobre el proyecto. El `noindex` va ahora **también en cabecera** (`X-Robots-Tag`), porque el código y la etiqueta del cuerpo son señales independientes, más `cache-control: no-store` para que ninguna intermedia conserve la respuesta. Título genérico: *Ficha no disponible | Fútbol11Stats*.
+
+**La pega, declarada en el propio fichero:** es una **copia a mano**. Si la paleta o el logotipo cambian, esta página no se entera. Para que la deriva sea barata se reproduce lo mínimo reconocible y no se clona el header entero (ni el buscador, que es un componente cliente). La tipografía es la del sistema: traer las del sitio desde Google reintroduciría la cadena externa que se quitó a propósito.
+
+**Verificado:** 11 tests (`paginaRetirada.test.ts`) y revisión visual en navegador a 1568 px y a 390 px — sin desbordamiento horizontal, la marca baja a 22,4 px, los botones apilan y miden 43-44 px de alto. Los tests fijan lo que de verdad importa: que el módulo exporte **una constante y no una función** —para que no se le pueda pasar el nombre—, que el título sea genérico, que no haya `og:title` ni `description`, y que no exista redirección automática (ni `meta refresh`, ni `location`, ni temporizador, ni `<script>` alguno). Nada de redirigir a los segundos: mueve la página debajo de quien lee, rompe el botón de atrás y es un fallo de accesibilidad si no se puede detener.
+
+**Y la respuesta a si es la misma página que la de un jugador inexistente: NO, son dos distintas, así que el texto no miente.** El 410 se emite **solo** si el código está en `web_suprimidos`; un jugador que simplemente no existe cae en `notFound()`.
+
+**Pero el hallazgo es que esa otra página tampoco es nuestra:** no hay `src/app/not-found.tsx`, así que un jugador inexistente recibe el **404 por defecto de Next** — el clásico *"404 · This page could not be found"*, en inglés, sin cabecera, sin logotipo y sin un enlace. Exactamente la misma queja que motivó esto, en una página que se ve más veces. Se arregla con un `not-found.tsx` de unas diez líneas que **sí** hereda el layout completo (cabecera, logotipo y buscador reales, sin copias a mano). No se ha tocado: cambia el 404 de **todo** el sitio y eso no estaba en el encargo. Pendiente de que Fernando lo pida.
