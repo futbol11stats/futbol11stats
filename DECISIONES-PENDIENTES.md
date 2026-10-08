@@ -929,3 +929,30 @@ Se valoraron y se descartaron dos alternativas:
 **Y la respuesta a si es la misma página que la de un jugador inexistente: NO, son dos distintas, así que el texto no miente.** El 410 se emite **solo** si el código está en `web_suprimidos`; un jugador que simplemente no existe cae en `notFound()`.
 
 **Pero el hallazgo es que esa otra página tampoco es nuestra:** no hay `src/app/not-found.tsx`, así que un jugador inexistente recibe el **404 por defecto de Next** — el clásico *"404 · This page could not be found"*, en inglés, sin cabecera, sin logotipo y sin un enlace. Exactamente la misma queja que motivó esto, en una página que se ve más veces. Se arregla con un `not-found.tsx` de unas diez líneas que **sí** hereda el layout completo (cabecera, logotipo y buscador reales, sin copias a mano). No se ha tocado: cambia el 404 de **todo** el sitio y eso no estaba en el encargo. Pendiente de que Fernando lo pida.
+
+### E-404-propio · El 404 del sitio, y lo que Next hace de verdad con notFound() (2026-10-08)
+
+Hasta ahora no existía `src/app/not-found.tsx`, así que todo 404 enseñaba la página por defecto de Next —*"404 · This page could not be found"*, en inglés, sin cabecera y sin un enlace—. Importaba poco hasta el 7 de octubre; desde la lista blanca de pestañas y el tope de jornada, esa pantalla la ven muchas más URLs.
+
+**Lo que se creía y no era.** El plan era "un `not-found.tsx` de diez líneas hereda el layout completo". Lo hereda **por un camino de los dos**, y el que importa es justo el otro. Medido sobre el **build de producción**, no en dev:
+
+| Camino | Qué manda el servidor |
+|---|---|
+| URL que no casa con ninguna ruta | HTML completo **con el layout**: cabecera, logotipo, buscador y pie |
+| `notFound()` desde una página | 404 con el **`<body>` vacío** (`<div hidden>`), documento `<html id="__next_error__">`, sin layout; toda la interfaz viaja en el payload de React y la pinta el cliente |
+
+Esto **contradice la documentación de Next**, que dice que `not-found.js` se renderiza dentro del layout raíz. Se descartaron dos hipótesis antes de aceptarlo: no depende de que haya un `await` antes del `notFound()` (una página que lo llama en la primera línea se comporta igual), ni de que el layout raíz sea `async` con datos (convertido en síncrono a mano, sigue igual). Es el comportamiento de Next 16.3.5 con la configuración por defecto.
+
+**Un apaño que se construyó y se retiró, que es la parte que conviene recordar.** Viendo que el camino del `notFound()` no trae cabecera, se le dio a la página una propia, con una regla CSS `body:has(> header) .nf-chrome{display:none}` para que no saliera duplicada por el otro camino. Funcionaba. Se retiró al medir **qué hay realmente en el cuerpo servido**: nada. El `<body>` es `<div hidden>`, así que sin JavaScript no habría cabecera que enseñar de todos modos, y **con** JavaScript el cliente monta el layout entero —con la cabecera de verdad, su navegación y su buscador—, así que la de repuesto quedaba oculta siempre. Era código muerto más una regla CSS frágil, defendiendo un caso que no existe.
+
+La lección: **medir el HTML servido antes de diseñar alrededor de lo que se ve en el navegador.** La captura de pantalla mostraba la página bien por los dos caminos y no distinguía cuál de los dos la había pintado.
+
+**Lo que queda, y es lo que se queda.** `not-found.tsx` sin cromo propio: por el camino de la URL mal tecleada lo pone el layout en el servidor, y por el de `notFound()` lo pone el cliente. Verificado en build de producción por los dos caminos, con una sola cabecera en cada uno y `clasificacion` todavía en 200.
+
+**Dos cosas que conviene tener escritas:**
+- Por el camino del `notFound()`, **un cliente sin JavaScript ve un 404 en blanco**. No se puede evitar desde aquí. No afecta al SEO: el código sigue siendo 404, Next inyecta `noindex`, y Google ni indexa 404 ni se queda sin ejecutar JavaScript.
+- Por ese mismo camino, el **título de la pestaña** que acaba viendo el visitante es el de la ruta original (lo deja el render del cliente), aunque el HTML del servidor sí trae *Página no encontrada | Fútbol11Stats*. Cosmético; no se persigue.
+
+El texto es genérico a propósito: no insinúa que la página existiera, porque esta misma pantalla la ve quien teclea mal una dirección. La baja permanente de una ficha tiene página aparte, con su 410 (ver [[E-pagina-410-vestida]]).
+
+**Y la deriva de la paleta de la página 410, cerrada.** `paginaRetirada.test.ts` compara ahora cada token `--familia-tono` del `:root` de esa página contra `tailwind.config.js`, y además falla si aparece cualquier hex suelto fuera del `:root` que se saltaría la comprobación (solo se admite el blanco puro). **Verificado que el test falla de verdad:** cambiando `grass-400` de `#22a050` a `#22a051` en la configuración, el test se pone rojo nombrando el token exacto. Era un valor sin mantenedor; ahora tiene uno.
