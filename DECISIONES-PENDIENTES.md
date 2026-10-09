@@ -985,3 +985,32 @@ Para desbloquearlo hace falta una de dos cosas: dar acceso a esa cuenta en la pr
 2. **«Excluida por etiqueta noindex»**, contra las **3.668** de cuando salió la fase 1;
 3. **«Rastreada: actualmente sin indexar»**, contra las **4.788** de entonces;
 4. y, en el informe de páginas indexadas, cuántas URLs contienen cada uno de los once segmentos de pestaña (`goleadores-jornada`, `tarjetas-jornada`, `top5-jugadores-jornada`, `top5-equipos-jornada`, `once-optimo-jornada`, `once-optimo-temporada`, `top10-goleadores-temporada`, `top10-porteros-temporada`, `top10-tarjetas-temporada`, `top10-elo-jugadores-temporada`, `estadisticas`), que es la cifra que de verdad decide.
+
+### E-fase2-criterio-salida · Inspección URL por URL: el índice aún no ha respondido (2026-10-09)
+
+El informe de Indexación → Páginas se corta el **4 de octubre** («Última actualización: 4/10/26»), tres días antes de que la fase 1 saliera (**7 oct 2026, 13:15 Madrid**, despliegue `dpl_5Qbammif…`). La **Inspección de URL** sí refleja el índice actual, así que es el instrumento válido.
+
+**La prueba en vivo, hecha ANTES de pedir nada** (el orden importa: si el `noindex` no se estuviera sirviendo a Googlebot, pedir rastreo refrescaría el estado indexado en vez de retirarlo). Sobre `/madrid/juveniles/preferente/grupo-4/2021-22/jornada-34/top5-equipos-jornada`:
+
+> **La URL no está disponible para Google.** La página no se puede indexar: **Excluida por una etiqueta "noindex"**.
+> Rastreo 9 oct 2026, 9:22:07 · Herramienta de inspección de Google para smartphones · **¿Se permite el rastreo? Sí** · Obtención de página **Correcto** · **¿Se permite la indexación? No: se ha detectado la etiqueta "noindex" en la etiqueta meta "robots"**.
+
+Limpio. Y de paso **cierra definitivamente la duda del WAF**: el propio obtenedor de Google descarga la página sin problema (ver [[waf-challenge-tapa-get-en-prod]]).
+
+**Estado almacenado de las cinco URLs sonda** (todas `top5-equipos-jornada`, la pestaña que la fase 1 convirtió en `noindex` por primera vez):
+
+| URL | Estado | Último rastreo | ¿Indexación permitida? |
+|---|---|---|---|
+| juveniles/preferente/grupo-4/2021-22/jornada-34 | **En Google** | 5 oct 9:48:33 | Sí |
+| juveniles/preferente/global/2023-24/jornada-34 | **En Google** | 5 oct 6:54:54 | Sí |
+| juveniles/segunda/grupo-20/2026-27/jornada-3 | **En Google** | 4 oct 8:58:08 | Sí |
+| juveniles/segunda/grupo-5/2022-23/jornada-1 | **En Google** | 4 oct 18:35:45 | Sí |
+| aficionados/tercera/grupo-16/2023-24/jornada-30 | **En Google** | 3 oct 18:40:18 | Sí |
+
+**Las cinco indexadas, las cinco rastreadas por última vez ANTES del 7 de octubre a las 13:15, y en las cinco Google sigue creyendo que la indexación está permitida.** No es que el `noindex` no funcione: es que Google todavía no ha vuelto a pasar. El criterio de salida —rastreadas después del 7/10 13:15 y fuera del índice— **no se cumple en ninguna**.
+
+**La fase 2 no se despliega.** Cuatro motivos ahora: el pico de ISR de hoy, la atribución, que el índice no ha respondido, y que estas cinco (y las 24 de su grupo) quedarían congeladas como «Indexada aunque bloqueada por robots.txt» — el único cubo que hoy está a 0.
+
+**Lo que NO pude verificar, y conviene saberlo para la próxima.** Las solicitudes de indexación: el rótulo «Se ha solicitado la indexación» **no persiste entre recargas**, así que su ausencia al recargar no prueba nada y su presencia solo se ve en la misma vista. Lo observé una vez (en la de aficionados); en el resto no puedo afirmar que la solicitud entrara. Además, el panel de inspección **deja bloques del DOM de la URL anterior**, de modo que leer por DOM sin filtrar por visibilidad devuelve datos de la inspección previa — me pasó una vez y lo detecté porque dos URLs distintas daban el mismo sello horario al segundo. Las cifras de la tabla de arriba están leídas con filtro de visibilidad y dos de ellas contrastadas contra la pantalla.
+
+No es crítico: la solicitud solo acelera: Google va a volver a rastrear esas URLs de todos modos. El lunes se repite **la misma inspección sobre las mismas cinco**, no el agregado, que seguirá por detrás.
