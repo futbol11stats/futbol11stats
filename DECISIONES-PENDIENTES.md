@@ -1014,3 +1014,23 @@ Limpio. Y de paso **cierra definitivamente la duda del WAF**: el propio obtenedo
 **Lo que NO pude verificar, y conviene saberlo para la próxima.** Las solicitudes de indexación: el rótulo «Se ha solicitado la indexación» **no persiste entre recargas**, así que su ausencia al recargar no prueba nada y su presencia solo se ve en la misma vista. Lo observé una vez (en la de aficionados); en el resto no puedo afirmar que la solicitud entrara. Además, el panel de inspección **deja bloques del DOM de la URL anterior**, de modo que leer por DOM sin filtrar por visibilidad devuelve datos de la inspección previa — me pasó una vez y lo detecté porque dos URLs distintas daban el mismo sello horario al segundo. Las cifras de la tabla de arriba están leídas con filtro de visibilidad y dos de ellas contrastadas contra la pantalla.
 
 No es crítico: la solicitud solo acelera: Google va a volver a rastrear esas URLs de todos modos. El lunes se repite **la misma inspección sobre las mismas cinco**, no el agregado, que seguirá por detrás.
+
+### E-portal-web-gate · El enlace al portal del club ya estaba cerrado (2026-10-09, verificado, sin tocar nada)
+
+El pipeline retiró dos URLs de club tóxicas (`sdpozo.com` del club 1799 y `cdsanpedro.es` del 3765), ambas con `portal_web_ok = false`. La pregunta era si la web las estaba enlazando: no se podía comprobar desde el pipeline (el WAF le devuelve 429) ni ya en producción (la URL es NULL). Se comprobó leyendo el código.
+
+**No hubo exposición en vivo.** El filtro no está en el componente: está una capa más arriba, en la de datos, en `src/lib/club.ts:210`:
+
+```ts
+portal_web: (cRaw as any)?.portal_web_ok === true ? portalWebValido((cRaw as any)?.portal_web) : null,
+```
+
+Con el flag en `false`, `getClub` devuelve `portal_web: null` y el componente nunca ve la URL. Las dos superficies que la consumen comprueban solo el valor, pero ese valor ya viene anulado: el enlace «Web oficial» (`clubes/[slug]/page.tsx:112`) y el **`sameAs` del JSON-LD** (`:61`), que era el otro sitio por donde se podía escapar. Ambas reciben el mismo objeto de `getClub()`. No hay ninguna otra superficie que lea la columna — ni el índice `/clubes`, ni la ficha de equipo.
+
+**Y la caché tampoco lo rompió**, que era el único modo de que el código correcto sirviera el dato viejo: `getClub` usa una clave manual, fuera de `hashCols`, así que un gate añadido sin bump habría seguido devolviendo entradas con la URL dentro. El commit que introdujo el filtro (`f8440f2`, 27/08/2026) **bumpeó la clave en la misma tanda**, de `v4-campo-codequipo` a `v5-portalok`.
+
+**Conclusión: el `NO_PUBLICAR` del pipeline es defensa en profundidad, no un arreglo de un agujero abierto.**
+
+**La ausencia del enlace es MUDA por decisión, no por descuido.** Cuando el flag es `false` no aparece nada: ni el enlace, ni un hueco, ni una explicación. Para el visitante es indistinguible de un club que nunca tuvo web, **y así debe ser: no publicamos un juicio sobre el dominio de un tercero.** `portal_web_estado` existe y no se consume en `src/` — se publica para el log y el banner del ciclo del pipeline, no para la ficha. Que no se use aquí es lo correcto, y queda escrito para que nadie lo lea como un cabo suelto y lo "arregle".
+
+**No se añade filtro en el componente.** Con el gate de la capa de datos y la derivación del pipeline ya hay **dos capas independientes**, y es suficiente. Una tercera comprobación en la vista no añadiría seguridad y sí repartiría la misma regla por tres sitios, que es como se consigue que dentro de un año solo dos de ellos estén actualizados.
