@@ -956,3 +956,32 @@ La lección: **medir el HTML servido antes de diseñar alrededor de lo que se ve
 El texto es genérico a propósito: no insinúa que la página existiera, porque esta misma pantalla la ve quien teclea mal una dirección. La baja permanente de una ficha tiene página aparte, con su 410 (ver [[E-pagina-410-vestida]]).
 
 **Y la deriva de la paleta de la página 410, cerrada.** `paginaRetirada.test.ts` compara ahora cada token `--familia-tono` del `:root` de esa página contra `tailwind.config.js`, y además falla si aparece cualquier hex suelto fuera del `:root` que se saltaría la comprobación (solo se admite el blanco puro). **Verificado que el test falla de verdad:** cambiando `grass-400` de `#22a050` a `#22a051` en la configuración, el test se pone rojo nombrando el token exacto. Era un valor sin mantenedor; ahora tiene uno.
+
+### E-despliegue-410-vestido · Despliegue del 9 de octubre y verificación en producción (2026-10-09)
+
+**Motivo del despliegue:** producción llevaba días sirviendo el 410 de "Ficha retirada" sin vestir — una línea pelada, sin cabecera, sin logotipo y sin enlace de vuelta — mientras el arreglo esperaba en `main`. Es el único flujo con exposición legal: quien ejerció su derecho de supresión y vuelve a su antigua URL se encontraba eso.
+
+Despliegue `dpl_9Csin9ak4wyY3zJMFRZtFBnJRB6B`, commit `b62c11b`, READY en 48 s. En el log del build se lee el guardián haciendo su trabajo: `git log -1 --pretty=%B | grep -qF '[desplegar]' && exit 1 || exit 0`.
+
+**Verificado en producción, con navegador** (curl recibe 429 del Bot Protection):
+
+| Comprobación | Resultado |
+|---|---|
+| Ficha retirada devuelve **410**, no 404 | **410** en los dos códigos de `web_suprimidos`, y también con nombre en el slug |
+| Cabecera `X-Robots-Tag` | `noindex, nofollow` |
+| Cabecera, logotipo y enlaces visibles | sí — una `<header>`, portada, búsqueda y pie legal |
+| **El nombre no aparece en ningún sitio** | pedida la URL con un nombre **inventado** en el slug, la sonda no aparece ni en el HTML, ni en el `<title>`, ni en ninguna cabecera. El título es el genérico |
+| URL sin ruta | **404** con la página nueva **dentro del layout** (una `<header>`) |
+| Redirección automática en el 410 | **ninguna**: sin `meta refresh`, sin `<script>`, sin `location`, sin temporizador |
+| No regresión | portada 200, clasificación 200, `robots.txt` 200, fichas de jugador 200 tras su 308 |
+| ¿Se coló la fase 2? | no: `robots.txt` sigue con `Allow: /` y sin ningún `Disallow` de pestañas |
+
+**La redirección a los 5 s no se implementó, y fue deliberado.** Mueve la página debajo de quien está leyendo, rompe el botón de atrás y es un fallo de accesibilidad si no se puede detener (WCAG 2.2.1). Los dos enlaces visibles hacen el mismo trabajo sin quitarle el control al visitante. Hay tests que impiden que vuelva a entrar por descuido.
+
+**La fase 2 NO entró, y no por criterio sino por falta de dato.** Su condición de salida es el recuento de Search Console de las once pestañas, y no lo tengo: el navegador está autenticado como `fgarate@gmail.com`, que **no tiene acceso** a la propiedad `futbol11stats.com` ("Vaya, no puedes acceder a esta propiedad"). Sin ese número no se puede desplegar el `Disallow`, porque una URL bloqueada en robots no se puede rastrear y Google nunca leería su `noindex`: lo ya indexado se congelaría como "Indexada aunque bloqueada por robots.txt" en vez de salir del índice. La rama `fase2/robots-disallow` sigue esperando, probada y lista.
+
+Para desbloquearlo hace falta una de dos cosas: dar acceso a esa cuenta en la propiedad, o que Fernando saque a mano estas cifras de la propiedad `futbol11stats.com`, en **Indexación → Páginas**:
+1. el total de **«Indexada aunque bloqueada por robots.txt»** (debería ser 0 hoy, y es el cubo que hay que vigilar DESPUÉS de la fase 2);
+2. **«Excluida por etiqueta noindex»**, contra las **3.668** de cuando salió la fase 1;
+3. **«Rastreada: actualmente sin indexar»**, contra las **4.788** de entonces;
+4. y, en el informe de páginas indexadas, cuántas URLs contienen cada uno de los once segmentos de pestaña (`goleadores-jornada`, `tarjetas-jornada`, `top5-jugadores-jornada`, `top5-equipos-jornada`, `once-optimo-jornada`, `once-optimo-temporada`, `top10-goleadores-temporada`, `top10-porteros-temporada`, `top10-tarjetas-temporada`, `top10-elo-jugadores-temporada`, `estadisticas`), que es la cifra que de verdad decide.
