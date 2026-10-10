@@ -1102,6 +1102,40 @@ El agregado lo confirma por el otro lado. **KB por unidad, por ruta: 7,18 · 7,2
 
 **6. El límite del dato.** **El 8 de octubre no se puede medir** sin Observability Plus: el selector de rango se corta en "Last 24 hours" y de "Last 3 days" en adelante es de pago. La ventana usada aquí (9 oct ~09:00 → 10 oct ~09:00) arranca justo antes del despliegue de las 08:42 del día 9, así que captura casi exactamente su refill — que es lo que la hace representativa de *un despliegue*, no de *un día cualquiera*.
 
+
+**7. El desperdicio, medido sobre una ficha real (2026-10-10).** Ficha de jugador con trayectoria larga, en producción: **260,6 KB crudo → 27,5 KB gzip → `techo(27,5/8)` = exactamente 4 unidades.** El modelo del escalón de 8 KB queda validado contra una página concreta, no solo contra el agregado.
+
+Quitando piezas y recomprimiendo:
+
+| Quitando… | Ahorro gzip | Unidades |
+|---|---|---|
+| Atributos `style=` en línea | −1,7 KB (6%) | 4 |
+| SVG en línea (repetido en las 68 filas) | −2,1 KB (8%) | 4 |
+| Nombres de clase | −2,3 KB (8%) | 4 |
+| **Las tres juntas** | **−7,8 KB (28%)** | **3** |
+| La carga RSC entera | −14,5 KB (53%) | 2 |
+
+**Hay desperdicio y no es contenido** — el visitante no vería nada distinto. Pero con dos salvedades que hay que leer juntas:
+
+- **El 28% es un techo, no una promesa.** La medida *elimina* esos bytes; la refactorización real los *sustituye* (un sprite añade `<use href>`, una clase sustituye al `style`). **El neto realista es 15–20%.**
+- **Y es todo o nada.** El escalón de 3 unidades llega a 24 KB y estamos en 27,5: hacen falta −3,5 KB. **Ninguna pieza cruza sola** (6–8% cada una); **juntas cruzan con 0,3 KB de margen**. O sea: el ahorro es **probable, no seguro**.
+
+Gzip ya aplasta la repetición, que es lo que vuelve inútiles las microoptimizaciones por separado.
+
+**8. Las filas de base de datos del gráfico NO son desperdicio.** La carga RSC lleva `codacta`, `jornada`, `ronda`, `estado`, `tipo`, `resultado` ×68 y parecían campos serializados que nadie lee. Se comprobó uno por uno: **los usa todos el gráfico `Jornadas`** (escudo del rival, marcador, rol, tarjetas, Δ ELO). **Quitarlos ahorra 0,5 KB (2%).** No es la palanca y no hay que volver a mirarlo.
+
+**9. Vercel escribe DOS entradas por página: el HTML y el `.rsc`.** Medido: el `.rsc` servido aparte son 104,9 KB crudo → **14,7 KB gzip**. Eso explica la cifra que teníamos descuadrada —**29K escrituras sobre 15K rutas únicas = 1,93 escrituras por ruta**, no era ruido— y sube una regeneración de ficha a **~6 unidades, no 4**.
+
+**10. El JavaScript antiguo: NO se toca.** Lo zanja el tipo de coste: son **13,8 KiB de un fichero estático y cacheado**, así que el ahorro sería **de la primera visita, no de cada página** — no entra en la cuenta del ISR ni se repite.
+
+Y el corte real no es el que parecía: **no es 2021, es Safari 15.4 (marzo de 2022)**, que es cuando llegan `Array.prototype.at` y `Object.hasOwn` a WebKit (en Chrome y Firefox sí es julio-septiembre de 2021). Como **en iOS todos los navegadores son WebKit**, el **~47% del tráfico** —`Chrome Mobile iOS` 27% + `Mobile Safari` 19% + `Safari` 1%— **no se puede medir por nombre de navegador**: depende de la versión de iOS. Y Vercel Web Analytics **solo registra el nombre, no la versión**, así que el dato no existe.
+
+Lo que sí se vio (30 días, 12.233 visitantes): **ni un navegador antiguo en la lista de 23** — sin Internet Explorer, sin Android Browser de serie, sin UC Browser, sin Opera Mini —, y toda la cola por debajo del 1% suma **122 visitantes (1,0%)** de navegadores modernos de nicho.
+
+**Si algún día se quiere decidir con datos propios**, la vía es un **evento de Web Analytics con detección de característica** (`'at' in Array.prototype && 'hasOwn' in Object`): una línea, sin datos personales, y en una semana el porcentaje real de nuestros visitantes en vez de cuotas globales. **Anotado, no hecho.**
+
+**11. LA CONVERGENCIA, que es la conclusión del día.** Velocidad y coste **apuntan al mismo trabajo: aligerar la ficha.** No son dos frentes, es uno. Y está **aparcado por prioridad, no por imposible**: el ahorro existe (15–20%, ~3–5 $/mes), el camino está medido y no toca el contenido. **Primero la calidad del dato.**
+
 ### E-almacenamiento-despliegues · La línea de coste que empieza el 23 de octubre (2026-10-10, medido)
 
 Vercel empieza a facturar **Deployment Storage y Functions Storage el 23 de octubre de 2026, a 0,10 $/GB-mes**.
