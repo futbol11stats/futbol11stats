@@ -1113,7 +1113,19 @@ Vercel empieza a facturar **Deployment Storage y Functions Storage el 23 de octu
 - **Con la retención de hoy** (producción 1 año) el stock es de varios cientos de despliegues → del orden de **6–9 GB**, o **0,60–0,90 $/mes**; aun multiplicando por 3 el suelo, 2–3 $/mes.
 - **Con 30 días** (lo que entra solo el 23 de octubre): ~60 despliegues retenidos → **~2 GB**, **~0,20 $/mes**.
 
-**Y lo más importante: con el crédito incluido, probablemente cueste CERO.** El plan Pro trae **20,00 $ de crédito de uso por ciclo**. Hoy (6 oct – 6 nov, con 4 días corridos): **Infrastructure Subtotal 5,86 $, Credits Applied −5,93 $, Total 19,93 $** — es decir, **todo el consumo actual lo absorbe el crédito y la factura es solo la suscripción**. Quedan ~14 $ de margen; una línea de almacenamiento de unos pocos GB cabe entera. El correo decía "before any applicable usage credit", y efectivamente: el crédito lo cubre.
+**El crédito NO cubre el mes, y el almacenamiento SÍ se facturará.** El plan Pro trae **20,00 $ de crédito de uso por ciclo**, y a 10 de octubre la pantalla marca **Infrastructure Subtotal 5,86 $, Credits Applied −5,93 $, Total 19,93 $**. Eso es un **acumulado de 4 días de 31**, no el total del ciclo — leerlo como "lo cubre el crédito" es confundir el marcador con el resultado final. Proyectado al ritmo actual:
+
+| | |
+|---|---|
+| Ritmo | **1,48 $/día** |
+| Infraestructura del ciclo (31 d) | **~46 $** |
+| Crédito agotado tras | **13,5 días de ciclo → hacia el 19 de octubre** |
+| Exceso sobre el crédito | **~26 $** |
+| **Factura del periodo** | **~46 $** (26 $ de exceso + 20 $ de suscripción) |
+
+Así que **desde el 19 de octubre, aproximadamente, todo lo que se consuma se factura**, y la línea de almacenamiento que arranca el 23 cae ya fuera del crédito. **Pero son ~0,20 $/mes con los 30 días de retención: la decisión de no salirse no cambia.** Lo que cambia es la foto: la factura de este periodo no son 20 $, son del orden de 46 $.
+
+**Y un factor que conviene tener delante aunque la decisión esté tomada:** ISR Writes proyecta **~25 $/mes, el 54% de la infraestructura**. La palanca del peso se aparcó cuando la referencia parecía una factura de 20 $; contra una de 46 $, los ~7 $/mes de cruzar a 3 unidades y los ~14 $/mes de cruzar a 2 pesan proporcionalmente más. No se reabre nada aquí — solo queda anotado que la premisa económica es otra.
 
 (De paso, el ciclo completo para tener la foto: ISR Writes 663,83K → 3,19 $ · Fluid Active CPU 5 h → 0,98 $ · Fast Origin Transfer 9 GB → 0,52 $ · Fluid Provisioned Memory 27,58 GB·h → 0,38 $ · Function Invocations 331,41K → 0,20 $ · Web Analytics 14,65K → 0,44 $ · ISR Reads 152,08K → 0,07 $ · Build CPU 16 min → 0,06 $. Las ISR Writes son **el 54% del consumo**, y 3,19 $ en 4 días proyectan **~24 $/mes**.)
 
