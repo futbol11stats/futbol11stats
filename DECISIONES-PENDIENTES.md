@@ -1034,3 +1034,38 @@ Con el flag en `false`, `getClub` devuelve `portal_web: null` y el componente nu
 **La ausencia del enlace es MUDA por decisión, no por descuido.** Cuando el flag es `false` no aparece nada: ni el enlace, ni un hueco, ni una explicación. Para el visitante es indistinguible de un club que nunca tuvo web, **y así debe ser: no publicamos un juicio sobre el dominio de un tercero.** `portal_web_estado` existe y no se consume en `src/` — se publica para el log y el banner del ciclo del pipeline, no para la ficha. Que no se use aquí es lo correcto, y queda escrito para que nadie lo lea como un cabo suelto y lo "arregle".
 
 **No se añade filtro en el componente.** Con el gate de la capa de datos y la derivación del pipeline ya hay **dos capas independientes**, y es suficiente. Una tercera comprobación en la vista no añadiría seguridad y sí repartiría la misma regla por tres sitios, que es como se consigue que dentro de un año solo dos de ellos estén actualizados.
+
+### E-isr-quien-escribe · De dónde salen de verdad las escrituras ISR (2026-10-10, medido)
+
+**1. La capa de datos es un único `revalidate`.** `src/lib/cacheComp.ts:5` → `const TTL = 2592000` (30 días), usado en los **dos únicos `unstable_cache` del repo** (líneas 31 y 36). Todo lo demás cuelga de ahí: `cacheComp` (28 usos), `cacheEquipo` (17), `cacheJugador` (10), `cacheIndices` (9), `cacheTagged` (3) y `cacheClub` (1). **No hay ni un solo `fetch(..., { next: { revalidate } })` en todo `src/`**, ni `'use cache'`, ni `cacheLife`, ni `fetchCache`. El recuento de los 18 `export const revalidate` de ruta **no se dejaba nada**: no había un segundo reloj escondido.
+
+(Los otros mandos de caché, que no son `revalidate`: `s-maxage=7200` + `stale-while-revalidate=86400` en el feed `.ics` de equipo, `s-maxage=1800` en `/api/ics/[id]`, el `no-store` del 410, tres `force-dynamic` de API más `/campos` y `/clubes`, y seis `dynamicParams = true`.)
+
+**2. Ni el reloj ni los tags escriben nada.** En la ventana medida, **`Time-based Revalidations = 0` y `Tag Revalidations = 0`**. Ni una. Las escrituras son **llenados en frío** de rutas que no estaban en caché desde el último despliegue. Es decir: **el `revalidate` de 30 días no cuesta nada, y la revalidación por tags del pipeline tampoco.** Lo que cuesta es repoblar la caché después de desplegar.
+
+**3. El precio de un despliegue, que es el número a tener delante cada vez que se decida desplegar:**
+
+> **≈ 45.000 escrituras · ≈ 187.000 unidades · del orden de 0,90 $.**
+
+**4. La ruta de competición escribe CERO.** Reparto de las ~45,1K escrituras en 24 h:
+
+| Ruta | Lecturas | Escrituras | Rutas únicas |
+|---|---|---|---|
+| `/madrid/jugador/[slug]` | 2,7K | **30K** | 15K |
+| `/madrid/partido/[slug]` | 299 | **7,2K** | 3,7K |
+| `/madrid/jugador/[slug]/[temporada]` | 144 | **3,1K** | 1,6K |
+| `/madrid/equipo/[slug]` | 2,3K | 2,2K | 1,6K |
+| `/madrid/equipo/[slug]/[temporada]` | 189 | 1,6K | 840 |
+| `/clubes/[slug]` | 247 | 630 | 341 |
+| `/campos/[slug]` | 179 | 388 | 232 |
+| **competición** | **0** | **0** | **0** |
+
+La ruta de competición **sí aparece** en la tabla, con sus URLs literales (`/madrid/aficionados/segunda/grupo-11/2025-26/jornada-14/top10-tarjetas-temporada` y compañía), todas a **0 / 0 / 0**. **Jugador + partido = 40,3K de 45,1K: el 89%.**
+
+**CONSECUENCIA, Y HAY QUE DEJAR DE HACERLO AL REVÉS: la fase 1 y la fase 2 NO son palancas de coste.** Cada una tiene su motivo y es bueno —privacidad en juvenil la primera, higiene del índice las dos—, pero **justificarlas por la factura es falso**: la ruta que recortan no escribe. A partir de aquí se defienden por lo que son, no por lo que ahorran.
+
+**5. Lo que queda abierto (LECTURA, no hecho).** Yo mido 45,1K escrituras y la factura del día 9 dice **201.893**. Son **4,5×**. Pero medí también **187K *unidades*** en la misma ventana, y esa cifra sí se parece a las 201.893 facturadas. La lectura más probable es entonces que **lo que se factura es la unidad, no la escritura, y que cada escritura consume ~4,1 unidades de media** — es decir, que **la unidad escala con el tamaño de la entrada**. Si es así, **la palanca que queda no es escribir menos veces: es que la página pese menos.**
+
+No se da por hecho: las ventanas no coinciden (la mía son 24 h rodantes; la factura es día natural), y no he visto la definición de la unidad facturable. Antes de tirar de esa palanca hay que confirmarlo.
+
+**6. El límite del dato.** **El 8 de octubre no se puede medir** sin Observability Plus: el selector de rango se corta en "Last 24 hours" y de "Last 3 days" en adelante es de pago. La ventana usada aquí (9 oct ~09:00 → 10 oct ~09:00) arranca justo antes del despliegue de las 08:42 del día 9, así que captura casi exactamente su refill — que es lo que la hace representativa de *un despliegue*, no de *un día cualquiera*.
