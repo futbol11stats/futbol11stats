@@ -1064,8 +1064,65 @@ La ruta de competición **sí aparece** en la tabla, con sus URLs literales (`/m
 
 **CONSECUENCIA, Y HAY QUE DEJAR DE HACERLO AL REVÉS: la fase 1 y la fase 2 NO son palancas de coste.** Cada una tiene su motivo y es bueno —privacidad en juvenil la primera, higiene del índice las dos—, pero **justificarlas por la factura es falso**: la ruta que recortan no escribe. A partir de aquí se defienden por lo que son, no por lo que ahorran.
 
-**5. Lo que queda abierto (LECTURA, no hecho).** Yo mido 45,1K escrituras y la factura del día 9 dice **201.893**. Son **4,5×**. Pero medí también **187K *unidades*** en la misma ventana, y esa cifra sí se parece a las 201.893 facturadas. La lectura más probable es entonces que **lo que se factura es la unidad, no la escritura, y que cada escritura consume ~4,1 unidades de media** — es decir, que **la unidad escala con el tamaño de la entrada**. Si es así, **la palanca que queda no es escribir menos veces: es que la página pese menos.**
+**5. CERRADO (2026-10-10): lo facturado es la unidad, y 1 unidad = 8 KB de la entrada, redondeando hacia arriba.**
 
-No se da por hecho: las ventanas no coinciden (la mía son 24 h rodantes; la factura es día natural), y no he visto la definición de la unidad facturable. Antes de tirar de esa palanca hay que confirmarlo.
+La tabla de ISR tiene un selector Count / Units / Bytes que da tres vistas de las mismas filas. Cruzadas, el tamaño por entrada y las unidades por entrada cumplen `techo(KB / 8)`:
+
+| Ruta | Tamaño/entrada | Unidades reales | `techo(KB/8)` | |
+|---|---|---|---|---|
+| `jugador/[slug]` | 5–52 KB | 1–7 | 1–7 | ✓ |
+| `partido/[slug]` | 5–48 KB | 1–6 | 1–6 | ✓ |
+| `jugador/[slug]/[temporada]` | 14–54 KB | 2–7 | 2–7 | ✓ |
+| `equipo/[slug]` | 5–64 KB | 1–8 | 1–8 | ✓ |
+| `equipo/[slug]/[temporada]` | 5–64 KB | 1–8 | 1–8 | ✓ |
+| `clubes/[slug]` | 5–11 KB | 1–2 | 1–2 | ✓ |
+| `campos/[slug]` | 7–32 KB | 1–5 | 1–4 | ≈ |
+| `jugadores/sitemap` | 210 KB–2 MB | **27**–236 | **27**–237 | ✓ |
+
+**La prueba que no puede ser casualidad es el sitemap: 210 KB → 27 unidades, y `techo(210/8) = 26,25 → 27`.** Los dos casos que bailan uno se explican porque los extremos vienen redondeados en pantalla.
+
+El agregado lo confirma por el otro lado. **KB por unidad, por ruta: 7,18 · 7,27 · 7,64 · 7,30 · 7,37 · 6,64 · 4,85** — todos por debajo de 8 y acercándose, que es justo lo que predice redondear hacia arriba cada entrada: cuanto mayor la entrada, menos se desperdicia. **`clubes` baja a 4,85 porque sus entradas de 5–11 KB desperdician medio escalón.** Y cierra la cuenta: 187K unidades medidas frente a 201.893 facturadas el día 9 son la misma magnitud; el 4,5× era la razón unidades/escritura (~4,1), o sea una ficha media de ~30 KB.
+
+**La tabla de escalones, y lo que de verdad importa de ella:**
+
+| Peso de la ficha | Unidades | Coste relativo |
+|---|---|---|
+| ~30 KB (hoy) | 4 | 100% |
+| < 24 KB | 3 | −25% |
+| < 16 KB | 2 | −50% |
+| < 8 KB | 1 | −75% |
+
+**El ahorro es ESCALONADO, no lineal: de 30 a 25 KB no se ahorra nada; de 25 a 24 se ahorra un 25% de golpe.** Hay que cruzar el escalón o no tocar nada. Adelgazar por adelgazar no devuelve un céntimo.
+
+**Es inferencia empírica, no cita oficial.** La definición de la unidad no aparece en los docs que devuelve el buscador, y `list_billing_charges` responde "Plan not found" (es de Enterprise). Ocho contrastes independientes más el agregado, pero sin documento que lo diga.
+
+**DECISIÓN (Fernando, 2026-10-10): la palanca del peso NO se toca por ahora, y queda aparcada con el precio puesto.** La línea entera de ISR Writes son **~30 $/mes**; cruzar a 3 unidades ahorra **~7 $/mes** y a 2 unidades **~14 $/mes**. El coste es cirugía en las fichas de jugador y de partido, que son **el contenido que de verdad se lee**. No compensa hoy. Si la factura crece, ya sabemos cuánto vale la palanca y qué escalón hay que cruzar.
+
+**Y el sitemap, escrito para que nadie lo persiga.** Las entradas de `/jugadores/sitemap/[...]` son **las más caras por unidad de todo el sistema (27–236 unidades cada una**, dos órdenes de magnitud por encima de una ficha). Pero **hay dos o tres, no 41.000**: sus 4,5K unidades de lectura en 24 h son **0,002 $**. Es el hallazgo más llamativo y el más irrelevante en total. No es una palanca; es una anécdota.
 
 **6. El límite del dato.** **El 8 de octubre no se puede medir** sin Observability Plus: el selector de rango se corta en "Last 24 hours" y de "Last 3 days" en adelante es de pago. La ventana usada aquí (9 oct ~09:00 → 10 oct ~09:00) arranca justo antes del despliegue de las 08:42 del día 9, así que captura casi exactamente su refill — que es lo que la hace representativa de *un despliegue*, no de *un día cualquiera*.
+
+### E-almacenamiento-despliegues · La línea de coste que empieza el 23 de octubre (2026-10-10, medido)
+
+Vercel empieza a facturar **Deployment Storage y Functions Storage el 23 de octubre de 2026, a 0,10 $/GB-mes**.
+
+**Las dos cifras en GB todavía no existen.** No hay línea de *Deployments Storage* ni de *Functions Storage* en el desglose de Usage, y **tampoco aparecen en el filtro de productos** (que lista exactamente: Pro, ISR Writes, Fluid Active CPU, Fast Origin Transfer, Web Analytics Events, Fluid Provisioned Memory, Function Invocations, ISR Reads, Build CPU Minutes, CDN Requests – Additional CPU Duration). Tampoco en Settings → Build and Deployment. **Vercel no expone todavía la métrica**; aparecerá cuando empiece a medirse.
+
+**Estimación con lo que sí se puede medir.** El artefacto que se despliega es `.next/server` (**28,2 MB**) + `.next/static` (**1,4 MB**) ≈ **30 MB por despliegue** — `dev/` (292 MB) y `cache/` (129 MB) son locales y no suben. Es un **suelo**: los bundles de función duplican dependencias compartidas, así que el tamaño real puede ser varias veces eso. En la ventana del 4-sep al 10-oct hay **85 despliegues (71 READY, 10 cancelados, 4 con error)**, o sea ~2/día.
+
+- **Con la retención de hoy** (producción 1 año) el stock es de varios cientos de despliegues → del orden de **6–9 GB**, o **0,60–0,90 $/mes**; aun multiplicando por 3 el suelo, 2–3 $/mes.
+- **Con 30 días** (lo que entra solo el 23 de octubre): ~60 despliegues retenidos → **~2 GB**, **~0,20 $/mes**.
+
+**Y lo más importante: con el crédito incluido, probablemente cueste CERO.** El plan Pro trae **20,00 $ de crédito de uso por ciclo**. Hoy (6 oct – 6 nov, con 4 días corridos): **Infrastructure Subtotal 5,86 $, Credits Applied −5,93 $, Total 19,93 $** — es decir, **todo el consumo actual lo absorbe el crédito y la factura es solo la suscripción**. Quedan ~14 $ de margen; una línea de almacenamiento de unos pocos GB cabe entera. El correo decía "before any applicable usage credit", y efectivamente: el crédito lo cubre.
+
+(De paso, el ciclo completo para tener la foto: ISR Writes 663,83K → 3,19 $ · Fluid Active CPU 5 h → 0,98 $ · Fast Origin Transfer 9 GB → 0,52 $ · Fluid Provisioned Memory 27,58 GB·h → 0,38 $ · Function Invocations 331,41K → 0,20 $ · Web Analytics 14,65K → 0,44 $ · ISR Reads 152,08K → 0,07 $ · Build CPU 16 min → 0,06 $. Las ISR Writes son **el 54% del consumo**, y 3,19 $ en 4 días proyectan **~24 $/mes**.)
+
+**¿Consumen almacenamiento los despliegues cancelados? NO SE PUDO MEDIR, y lo que parecía la respuesta era un falso positivo.** `list_deployment_files` devuelve "File tree not found" para un cancelado… **y también para el despliegue de producción que sí construyó**, así que ese endpoint no distingue nada. Lo que sí está establecido: **"Canceled Deployments" es una categoría propia de la política de retención, hoy a 30 días**, de modo que Vercel **sí guarda algo** de ellos. Si ese algo tiene tamaño facturable se sabrá cuando aparezca la métrica.
+
+Indicio a favor de que sea despreciable: un build cancelado por la puerta dura **~2 segundos** y muere antes de `vercel build` (el log pasa de `Running "git log -1 … [desplegar]"` a terminar), así que no hay salida de build que guardar — como mucho, metadatos y el log. **Pero es un indicio, no una medida.**
+
+**DECISIÓN (Fernando, 2026-10-10): no nos salimos.** El opt-out —la casilla **"Keep retention and enable paid storage"** en Settings → Build and Deployment— sirve para **conservar la retención larga, o sea para pagar más almacenamiento**. Dejarlo correr nos baja a 30 días, que es la opción barata y **nos sobra: un despliegue malo se detecta en horas, no en semanas**. No se toca ningún ajuste de retención.
+
+Política vigente hoy, para saber qué se pierde el 23: **Cancelados 30 d · Con error 90 d · Pre-producción 180 d · Producción 1 año** → todo a **30 días**. El recorte real es el de producción, de un año a un mes.
+
+**No verificado:** no conseguí leer con fiabilidad si la casilla del opt-out está hoy marcada o no (la página dejó de responder y tocarla estaba fuera de encargo). **Conviene que Fernando lo confirme de un vistazo**: debe estar DESmarcada para que la retención baje sola a 30 días.
