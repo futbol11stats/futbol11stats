@@ -1125,7 +1125,14 @@ Vercel empieza a facturar **Deployment Storage y Functions Storage el 23 de octu
 
 Así que **desde el 19 de octubre, aproximadamente, todo lo que se consuma se factura**, y la línea de almacenamiento que arranca el 23 cae ya fuera del crédito. **Pero son ~0,20 $/mes con los 30 días de retención: la decisión de no salirse no cambia.** Lo que cambia es la foto: la factura de este periodo no son 20 $, son del orden de 46 $.
 
-**Y un factor que conviene tener delante aunque la decisión esté tomada:** ISR Writes proyecta **~25 $/mes, el 54% de la infraestructura**. La palanca del peso se aparcó cuando la referencia parecía una factura de 20 $; contra una de 46 $, los ~7 $/mes de cruzar a 3 unidades y los ~14 $/mes de cruzar a 2 pesan proporcionalmente más. No se reabre nada aquí — solo queda anotado que la premisa económica es otra.
+**Corrección de la premisa, porque la escribí al revés.** Anoté que la palanca del peso se había aparcado "contra una referencia de 20 $" y que una factura de 46 $ la hacía pesar más. **Falso: se aparcó contra una estimación de ~60 $.** La factura real proyectada, ~46 $, es **más baja** que la referencia con la que se tomó la decisión, así que **la corrección del crédito no fortalece el caso de reabrirla — lo debilita.** (Dato de contexto, no argumento: ISR Writes proyecta ~25 $/mes, el 54% de la infraestructura.)
+
+**Y la distinción que hará buena la decisión el día que se reabra: cruzar el escalón por DESPERDICIO no es lo mismo que cruzarlo QUITANDO CONTENIDO.**
+
+- **Desperdicio** — duplicación HTML/RSC, campos serializados que nadie lee, JSON embebido sin uso. Se recorta **sin que el visitante note nada** y sería barato.
+- **Contenido** — cirugía sobre las fichas de jugador y de partido, que es lo que de verdad se lee. **Eso es lo que está rechazado.**
+
+**Si se reabre, la primera pregunta no es cuánto pesa la página: es cuál de las dos cosas hay.** Si el escalón se cruza tirando desperdicio, la decisión de no tocarlo deja de aplicar porque el coste que la motivaba —dañar el contenido— no existe en ese caso.
 
 (De paso, el ciclo completo para tener la foto: ISR Writes 663,83K → 3,19 $ · Fluid Active CPU 5 h → 0,98 $ · Fast Origin Transfer 9 GB → 0,52 $ · Fluid Provisioned Memory 27,58 GB·h → 0,38 $ · Function Invocations 331,41K → 0,20 $ · Web Analytics 14,65K → 0,44 $ · ISR Reads 152,08K → 0,07 $ · Build CPU 16 min → 0,06 $. Las ISR Writes son **el 54% del consumo**, y 3,19 $ en 4 días proyectan **~24 $/mes**.)
 
