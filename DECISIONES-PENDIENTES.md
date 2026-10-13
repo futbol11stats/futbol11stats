@@ -1179,3 +1179,41 @@ Indicio a favor de que sea despreciable: un build cancelado por la puerta dura *
 Política vigente hoy, para saber qué se pierde el 23: **Cancelados 30 d · Con error 90 d · Pre-producción 180 d · Producción 1 año** → todo a **30 días**. El recorte real es el de producción, de un año a un mes.
 
 **No verificado:** no conseguí leer con fiabilidad si la casilla del opt-out está hoy marcada o no (la página dejó de responder y tocarla estaba fuera de encargo). **Conviene que Fernando lo confirme de un vistazo**: debe estar DESmarcada para que la retención baje sola a 30 días.
+
+### E-r4-cronologia · El gráfico por jornada, en cronología real (2026-10-13)
+
+**El problema.** El eje de "Puntos y ELO por jornada" iba por NÚMERO de jornada. Si un partido se aplaza o se adelanta, ese orden miente: pone junto lo que no pasó junto. **El eje correcto dice J3 · J10 · J4 · J5 — las etiquetas desordenadas son la verdad.**
+
+**Medido antes de tocar nada** (T22, `web_jugador_partidos`): **523 de 30.071 jugadores (1,7%)** y **1.492 filas de 96.692** cambian de orden según se ordene por jornada o por fecha. No sale cero, que era la comprobación de que el dato de fecha se está usando de verdad.
+
+**El del JUGADOR ya estaba bien** desde el arreglo de copa (`jugadorV2.ts`, ordena con `claveFecha`). **El del EQUIPO no**: `buildJornadasEquipo` devolvía la serie en el orden en que la entrega `getSerieLiga`, que es por jornada.
+
+**La trampa, y por qué no basta con ordenar.** `pts_fantasy` en `web_clasificacion` es **acumulado por NÚMERO de jornada**, y el fantasy de una jornada se obtiene restando el acumulado de la anterior. Si se reordena por fecha ANTES de restar, la resta coge el acumulado equivocado y salen cifras sin sentido. Así que hay **dos órdenes distintos a propósito**: se calcula en orden de jornada y se reordena por fecha al final.
+
+**Alcance mayor del esperado:** del mismo array cuelgan **cuatro bloques**, y ninguno tenía cronología — el gráfico, "Últimas 5/10", la racha (`slice(-5)`) y "Últimos partidos" (`slice(-3)`). Misma familia que el bug de FORMA del jugador; ver [[buscar-la-forma-del-bug-no-del-arreglo]].
+
+`COLS_CLASIF` suma **`fecha_iso`** (poblada al 100% anoche) para poder ordenar también las jornadas aún no jugadas, que no tienen fila de resultado de la que sacar la fecha. El cambio de columnas lo detecta `hashCols` y la caché se invalida sola.
+
+**Verificado en build de producción, no solo en test:** el jugador 181697 pinta **J1 J2 J3 J5 J4 J6**, y el equipo 1032104 muestra **J6 · J4 · J5** en "Últimos partidos" — su cronología real es J5 (4 oct) antes que J4 (7 oct). **5 tests nuevos, y comprobado que fallan sin el arreglo** (dan `[1,2,3,4,10]` en vez de `[1,2,3,10,4]`).
+
+### E-rotulo-suspendido · "Acta pendiente de cerrar" (2026-10-13)
+
+`estado_partido = 'suspendido'` se rotula **"Acta pendiente de cerrar"**, genérico y sin minuto, para los ocho casos. **Por el mismo motivo que `NO_DISPUTADO` no dice "incomparecencia": el dato no dice ni por qué se suspendió ni en qué minuto.** Decir "suspendido en el 63'" o "por lluvia" sería inventar. Lo que el dato sostiene es que el acta existe y no está cerrada, y eso vale igual se suspendiera antes de empezar o a falta de diez minutos.
+
+**Los rótulos se mudan a `lib/rotulos.ts`, un módulo SIN dependencias.** Los pintan también componentes **cliente** (`Trayectoria`, `Jornadas`) y `lib/partido.ts` importa el cliente de Supabase: importarlos de allí lo arrastraría al bundle del navegador. `lib/partido.ts` los reexporta para no romper a quien ya los usaba.
+
+**Y aparecieron dos `'Susp.'` escritos a mano**, fuera de toda constante, en esos mismos dos componentes. El día que cambia el vocabulario —hoy— no se habrían enterado. Ahora hay tres longitudes para el mismo hecho (`SUSPENDIDO`, `_CORTO`, `_MINI`) en un solo sitio, porque el rótulo tiene que caber en la celda del marcador de 390px, en el chip de la ficha y en la fila de la lista.
+
+**Simplificación que el rótulo nuevo permite:** 23 caracteres frente a los 36 del viejo, así que **deja de hacer falta partirlo en chip + cola** y se retira el duplicado de móvil — que era justo el fallo corregido el 4 de octubre. Comprobado a 390 px: no desborda (385 px), el centro mide lo mismo (206 px) que en un partido normal del mismo grupo, y solo hay **un** `.mmeta-admin`.
+
+### E-solicitar-indexacion-imposible · No se puede pedir indexación de una página con noindex (2026-10-13)
+
+El plan para forzar a Google a leer el `noindex` era **Solicitar indexación** en Search Console sobre las siete URLs. **No se puede, y no es un error transitorio:**
+
+> **"Solicitud de indexación rechazada — Se han detectado problemas de indexación en la URL durante la prueba de versión publicada."**
+
+El flujo **prueba la URL en vivo antes de aceptar la solicitud**, detecta el `noindex` y la rechaza. Intentado tres veces, con dos mensajes de error distintos antes del definitivo. **La herramienta sirve para pedir que indexen algo, no para pedir que lo dejen de indexar**, así que por diseño nunca va a servir para acelerar esto.
+
+**Consecuencia para el criterio de salida de la fase 2:** depende enteramente del rastreo natural de Google, que en estas páginas es lento — las siete siguen con último rastreo del 2 al 5 de octubre, cinco días después del despliegue del `noindex`. No hay palanca para acelerarlo desde aquí.
+
+**La única vía real de acelerar sería la herramienta de Retirada de URLs** (oculta de los resultados en ~1 día mientras el `noindex` hace el trabajo permanente). Es un cambio en la propiedad y no estaba en el encargo: **anotado, no hecho**, decisión de Fernando.
