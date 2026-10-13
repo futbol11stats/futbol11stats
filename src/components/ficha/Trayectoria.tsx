@@ -13,6 +13,7 @@ import Sello from '@/components/Sello'
 import IndicadorLocal from '@/components/IndicadorLocal'
 import { tempLabel, fechaCorta, signoCls, conSigno, marcadorLocalVisitante, colorSigno } from '@/lib/jugador'
 import { claveFechaDesc } from '@/lib/fechaOrden'
+import { SUSPENDIDO_MINI } from '@/lib/rotulos'
 
 export const PARTIDOS_HABILITADO = true
 
@@ -52,8 +53,10 @@ async function fetchPartidos(codjugador: string, codtemporada: string, codequipo
 const ACENTO = 'border-l-2 border-grass-500/70'
 function PartidoFila({ p, portero }: { p: any; portero: boolean }) {
   const { marcador, signo } = marcadorLocalVisitante(p.resultado, p.es_local)
-  // SUSPENDIDO: no hay resultado que ensenar. Abreviado porque la celda es estrecha (en móvil comparte sitio
-  // con el nombre del rival). NULL = sin estado conocido -> se pinta el resultado como siempre.
+  // SUSPENDIDO: no hay resultado que ensenar. Se usa la versión MINI del rótulo (lib/rotulos.ts) porque la
+  // celda es estrecha: en móvil comparte sitio con el nombre del rival. Antes era 'Susp.' escrito a mano aquí,
+  // fuera de toda constante — y por eso no se habría enterado del cambio de vocabulario.
+  // NULL = sin estado conocido -> se pinta el resultado como siempre.
   //
   // ⚠ "Susp." CONVIVE CON LOS MINUTOS Y LOS PUNTOS DE LA MISMA FILA, Y ESO ES CORRECTO (§8.24 de la
   //   especificación del pipeline, decisión de Fernando): un partido suspendido se jugó EN PARTE, y sus
@@ -61,7 +64,7 @@ function PartidoFila({ p, portero }: { p: any; portero: boolean }) {
   //   suspendido. NO es una incoherencia que haya que "arreglar" ocultando los puntos ni descontándolos de
   //   los agregados — ya lo di por contradicción una vez y no lo era.
   const susp = p.estado_partido === 'suspendido'
-  const resTxt = susp ? 'Susp.' : marcador
+  const resTxt = susp ? SUSPENDIDO_MINI : marcador
   const resCls = susp ? 'text-chalk-500' : colorSigno(signo)
   const goles = p.goles ?? 0, min = p.minutos ?? 0, pts = p.puntos, gc = p.goles_encajados ?? 0
   const ta = p.amarillas ?? 0, da = p.dobles_amarilla ?? 0, tr = p.rojas ?? 0

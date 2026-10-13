@@ -70,16 +70,11 @@ export type PartidoFicha = {
   hitos: { codjugador: string; nombre: string; pos: string | null; lado: 'local' | 'visitante'; tipo: string; detalle: string | null; valor: number | null; ambito: string | null; contexto: string | null; href: string | null }[]
 }
 
-// Rótulo ÚNICO de los partidos con resultado administrativo, compartido por la ficha y la lista de
-// resultados. Deliberadamente NO dice "incomparecencia" ni "retirada": `incidencia` marca el LADO
-// (local/visitante/ambos) pero NO distingue la causa, así que nombrar una de las dos afirmaría algo que el
-// dato no sostiene. "No disputado" sí es cierto en los dos casos.
-export const NO_DISPUTADO = 'No disputado · resultado administrativo'
-// Suspendido (web_resultados.estado_partido): el partido NO se jugó y la federación aún no lo ha resuelto.
-// Distinto de NO_DISPUTADO, que ya tiene resultado administrativo. Versión corta para la celda del marcador
-// de la lista, donde el texto largo no cabe sin romper la rejilla de 390px.
-export const SUSPENDIDO = 'Suspendido · pendiente de resolución'
-export const SUSPENDIDO_CORTO = 'Suspendido'
+// Los rótulos de estado (NO_DISPUTADO, SUSPENDIDO…) se han movido a lib/rotulos.ts, un módulo SIN
+// dependencias: los pintan también componentes CLIENTE (Trayectoria, Jornadas) y este fichero importa el
+// cliente de Supabase, así que importarlos de aquí lo arrastraría al bundle del navegador. Se reexportan
+// para no romper a quien ya los importaba de este módulo.
+export { NO_DISPUTADO, SUSPENDIDO, SUSPENDIDO_CORTO, SUSPENDIDO_MINI } from '@/lib/rotulos'
 
 const POS_ORD: Record<string, number> = { POR: 0, DEF: 1, MED: 2, DEL: 3 }
 // Más reciente primero. claveFechaDesc deja al final lo que no tiene fecha (ver fechaOrden.ts).

@@ -1,0 +1,26 @@
+// Rótulos de ESTADO DE PARTIDO, en un módulo SIN DEPENDENCIAS a propósito.
+//
+// Viven aquí y no en lib/partido.ts porque los pintan también componentes CLIENTE (Trayectoria, Jornadas), y
+// lib/partido.ts importa el cliente de Supabase: importarlo desde el cliente arrastraría toda esa cadena al
+// bundle del navegador. Un fichero de constantes puras lo evita. lib/partido.ts los reexporta para no romper
+// a quien ya los importaba de allí.
+//
+// Antes de centralizarlos había 'Susp.' escrito a mano en dos componentes, fuera de cualquier constante: el
+// día que cambió el vocabulario (hoy) esos dos no se habrían enterado.
+
+// Resultado administrativo (web_resultados.incidencia): el partido NO se jugó pero YA tiene resultado.
+// Deliberadamente no dice "incomparecencia" ni "retirada": `incidencia` marca el LADO, no la causa.
+export const NO_DISPUTADO = 'No disputado · resultado administrativo'
+
+// Suspendido (web_resultados.estado_partido): el acta existe y no está cerrada.
+//
+// GENÉRICO A PROPÓSITO, por el mismo motivo que NO_DISPUTADO: el dato NO dice por qué se suspendió ni en qué
+// minuto. "Suspendido en el minuto 63" o "por lluvia" sería inventar. "Acta pendiente de cerrar" es
+// exactamente lo que el dato sostiene, y vale igual para los ocho casos — se suspendiera antes de empezar o
+// a falta de diez minutos.
+//
+// TRES LONGITUDES, UNA SOLA VERDAD: el mismo hecho tiene que caber en la celda del marcador de la rejilla de
+// 390px, en el chip de la ficha y en la fila de la lista.
+export const SUSPENDIDO = 'Acta pendiente de cerrar'
+export const SUSPENDIDO_CORTO = 'Acta pendiente'
+export const SUSPENDIDO_MINI = 'Acta'

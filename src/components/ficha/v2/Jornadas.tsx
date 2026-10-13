@@ -13,6 +13,7 @@ import { derivarRol } from '@/lib/escala'
 import { marcadorLocalVisitante } from '@/lib/jugador'
 import { useComp } from './compStore'
 import type { CompAmbito, JornadaDatum } from '@/lib/jugadorV2'
+import { SUSPENDIDO_MINI } from '@/lib/rotulos'
 
 const PAL = ['#f87171', '#94a3b8', '#22a050', '#2ee56b', '#8cf0a2']
 function escalonPts(v: number, c: readonly [number, number, number, number]) {
@@ -159,7 +160,7 @@ export default function Jornadas({ comps, cortes }: { comps: CompAmbito[]; corte
                         columna respecto a las demás jornadas. El carril de ELO sí se queda vacío — no hay ELO
                         en un suspendido — pero .lane tiene altura fija (--laneH), así que no descuadra. */}
                     {d.suspendido
-                      ? <div className="rival-mk rival-mk-susp">Susp.</div>
+                      ? <div className="rival-mk rival-mk-susp">{SUSPENDIDO_MINI}</div>
                       : d.resultado && <div className={`rival-mk res-t-${res}`}>{marcador}</div>}
                     <div className="rival-top">
                       <EscudoBox escudo={d.rivalEscudo ?? null} nombre={d.rivalNombre ?? undefined} size={20} radius={3} />

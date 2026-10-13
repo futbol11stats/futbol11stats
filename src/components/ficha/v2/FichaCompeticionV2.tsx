@@ -12,7 +12,7 @@ import { ensureMadrid, SITE_URL } from '@/lib/seo'
 import { fechaCortaDMY, equipoSlug } from '@/lib/equipo'
 import { campoMapsUrl, parseCampo } from '@/lib/club'
 import { isoMadrid } from '@/lib/horaMadrid'
-import { NO_DISPUTADO, SUSPENDIDO, SUSPENDIDO_CORTO } from '@/lib/partido'
+import { NO_DISPUTADO, SUSPENDIDO, SUSPENDIDO_MINI } from '@/lib/partido'
 import { getDireccionesCampos, type DireccionCampo } from '@/lib/campo'
 import { getCamposConFicha, campoSlug } from '@/lib/campo'
 import SuperficieCampo from '@/components/SuperficieCampo'
@@ -455,15 +455,15 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
           </div>
           {(() => {
             const tieneFicha = !!r.codacta
-            const inner = suspendido ? <span className="rsc-susp">{SUSPENDIDO_CORTO}</span> : jugado ? (() => {
+            const inner = suspendido ? <span className="rsc-susp">{SUSPENDIDO_MINI}</span> : jugado ? (() => {
               const gL = r.goles_local as number, gV = r.goles_visitante as number
               const cL = gL > gV ? 'var(--e3)' : gL < gV ? 'var(--e0)' : 'var(--ink-2)'
               const cV = gV > gL ? 'var(--e3)' : gV < gL ? 'var(--e0)' : 'var(--ink-2)'
               return <><span style={{ color: cL }}>{gL}</span><span className="rsc-sep">-</span><span style={{ color: cV }}>{gV}</span></>
             })() : (tieneFicha && codtemporada === 22 ? <span className="rsc-previa">Previa</span> : 'vs')
-            // SUSPENDIDO: sustituye al marcador. En la celda va la versión CORTA (la rejilla de 390px no
-            // admite el texto largo sin romperse) y el "pendiente de resolución" completo baja a la línea
-            // de metadatos, igual que el rótulo de no disputado.
+            // SUSPENDIDO: sustituye al marcador. En la celda del marcador va la versión MINI ("Acta"), que es
+            // lo único que admite la rejilla de 390px; el rótulo entero ("Acta pendiente de cerrar") baja a la
+            // línea de metadatos, igual que el de no disputado. Las tres longitudes están en lib/rotulos.ts.
             // JUGADO con acta -> el marcador abre la ficha del partido en CUALQUIER temporada (las fichas son ISR).
             // FUTURO con acta en la temporada actual (T22) -> botón "Previa" (pronóstico). Sin acta -> "vs" plano.
             const linkable = tieneFicha && (jugado || codtemporada === 22)

@@ -73,8 +73,11 @@ export type ClasifRow = {
   jornada: number; pos: number | null; pts: number | null; pts_fantasy: number | null
   mov: string | null; elo: number | null; pj: number | null
   gf: number | null; gc: number | null; pg: number | null; pe: number | null; pp: number | null
+  // Fecha de la jornada (DATE, publicada por el pipeline). Sirve para ORDENAR el gráfico por cronología
+  // cuando la jornada aún no se ha jugado y por tanto no hay fila de resultado de la que sacar la fecha.
+  fecha_iso?: string | null
 }
-const COLS_CLASIF = 'jornada, pos, pts, pts_fantasy, mov, elo, pj, gf, gc, pg, pe, pp'
+const COLS_CLASIF = 'jornada, pos, pts, pts_fantasy, mov, elo, pj, gf, gc, pg, pe, pp, fecha_iso'
 
 export async function getSerieLiga(codequipo: string, codgrupo: string | null): Promise<ClasifRow[]> {
   if (!codgrupo) return []
@@ -104,10 +107,22 @@ export type JornadaEquipoDatum = {
 }
 
 // Cruza la serie de clasificación (fantasy/pos/mov) con los resultados del grupo (marcador/rival/localía).
+//
+// DOS ÓRDENES DISTINTOS, y confundirlos rompe una cosa u otra:
+//   · El fantasy de UNA jornada se calcula restando el ACUMULADO de la anterior, y el acumulado de
+//     web_clasificacion se acumula por NÚMERO DE JORNADA. Esa resta tiene que hacerse con la serie en orden
+//     de jornada — que es como la pide getSerieLiga — o sale un valor sin sentido.
+//   · Lo que se PINTA va en orden CRONOLÓGICO. Si un partido de la J10 se adelanta entre la J3 y la J4, el
+//     eje dice J3 · J10 · J4 · J5. Las etiquetas desordenadas son la verdad, no un fallo.
+// Por eso se calcula primero en orden de jornada y se reordena por fecha al final.
+//
+// Afecta a TODO lo que cuelga de este array: el gráfico, "Últimas 5/10" y la racha (formaEquipo hace
+// slice(-5) sobre él) y "Últimos partidos" (slice(-3)). Los cuatro querían cronología; ninguno la tenía.
+// Misma familia que el bug de FORMA del jugador; ver [[buscar-la-forma-del-bug-no-del-arreglo]].
 export function buildJornadasEquipo(serie: ClasifRow[], resultados: ResultadoRow[], nombre: string, codequipo?: string | number | null): JornadaEquipoDatum[] {
   const resPorJornada = new Map<number, ResultadoRow>()
   for (const r of resultados) if (r.goles_local != null && r.goles_visitante != null) resPorJornada.set(r.jornada, r)
-  return serie.map((c, i) => {
+  const filas = serie.map((c, i) => {
     const prev = i > 0 ? (serie[i - 1].pts_fantasy ?? 0) : 0
     const fan = c.pts_fantasy != null ? Math.max(0, c.pts_fantasy - prev) : null
     const r = resPorJornada.get(c.jornada)
@@ -127,8 +142,16 @@ export function buildJornadasEquipo(serie: ClasifRow[], resultados: ResultadoRow
       const elPost = local ? r.elo_post_local : r.elo_post_visitante
       eloDelta = (elPre != null && elPost != null) ? Math.round((elPost - elPre) * 10) / 10 : null
     }
-    return { jornada: c.jornada, fan, pos: c.pos, mov: parseMov(c.mov), rivalNombre, rivalEscudo, marcador, signo, esLocal, fecha: r?.fecha ?? null, codacta: r?.codacta ?? null, eloDelta }
+    // Clave de orden: la fecha del PARTIDO si lo hay (la de verdad), y si la jornada no se ha jugado, la
+    // fecha de la propia jornada en web_clasificacion. claveFecha manda al final lo que no tiene ninguna.
+    const orden = claveFecha(r?.fecha_iso ?? c.fecha_iso ?? null, r?.fecha ?? null)
+    return { orden, d: { jornada: c.jornada, fan, pos: c.pos, mov: parseMov(c.mov), rivalNombre, rivalEscudo, marcador, signo, esLocal, fecha: r?.fecha ?? null, codacta: r?.codacta ?? null, eloDelta } }
   })
+  // Reordenar a CRONOLOGÍA ya con el fantasy calculado. Desempate por jornada: dos partidos el mismo día
+  // (o dos jornadas sin fecha) mantienen el orden del calendario en vez de quedar al azar.
+  return filas
+    .sort((a, b) => a.orden.localeCompare(b.orden) || a.d.jornada - b.d.jornada)
+    .map((x) => x.d)
 }
 
 // Escudos de rival por nombre (web_resultados no trae codequipo -> se cruza por nombre con web_equipo).
