@@ -195,6 +195,9 @@
 .fjv2 .batt i{height:9px;flex:1;border-radius:2px;background:rgba(255,255,255,.1)}
 .fjv2 .batt-lbl{font-size:var(--t-sm);color:var(--ink-3);margin-top:8px;line-height:1.5}
 .fjv2 .batt-lbl b{color:var(--ink-2)}
+/* Explicación del método del ELO: va al pie del bloque y un escalón por debajo de la línea del
+   percentil, que es la que explica la batería. Más tenue y más pequeña para que no compita con ella. */
+.fjv2 .elo-metodo{font-size:var(--t-cap);color:var(--ink-4);margin-top:6px}
 /* Nota del balance del equipo (Análisis): explica el % de victorias, sobre las filas Global/Con/Sin. */
 .fjv2 .bal-note{margin-top:11px;padding:9px 11px;border-radius:8px;font-size:var(--t-sm);line-height:1.5;background:rgba(46,229,107,.09);border:1px solid rgba(46,229,107,.24);color:#b7f5cb}
 .fjv2 .bal-note b{font-weight:700;color:#8cf0a2}

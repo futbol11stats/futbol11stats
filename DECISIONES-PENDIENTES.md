@@ -1217,3 +1217,41 @@ El flujo **prueba la URL en vivo antes de aceptar la solicitud**, detecta el `no
 **Consecuencia para el criterio de salida de la fase 2:** depende enteramente del rastreo natural de Google, que en estas páginas es lento — las siete siguen con último rastreo del 2 al 5 de octubre, cinco días después del despliegue del `noindex`. No hay palanca para acelerarlo desde aquí.
 
 **La única vía real de acelerar sería la herramienta de Retirada de URLs** (oculta de los resultados en ~1 día mientras el `noindex` hace el trabajo permanente). Es un cambio en la propiedad y no estaba en el encargo: **anotado, no hecho**, decisión de Fernando.
+
+### E-ga4-spa-ya-contaba · GA4 sí registra las navegaciones SPA: el arreglo se revierte (2026-10-16)
+
+Se construyó un loader propio de GA4 (`components/GA4.tsx`, fork del de `@next/third-parties@16.2.11`) con
+`send_page_view: false` y vistas manuales desde `usePathname()`, para cubrir un hueco que **no existe**.
+**Revertido por completo**: `CookieConsent.tsx` vuelve a `<GoogleAnalytics gaId="…" />` dentro del gate, y el
+fichero del fork se borra. La medición mejorada de GA4 **se queda encendida**. Las cuatro frases que quedan:
+
+1. **La medición mejorada de GA4 sí registra las navegaciones SPA de este sitio.**
+2. **Sus hits llegan ~6 s después del clic: cualquier conteo de `page_view` hecho antes de esos 6 s lee cero
+   y parece que no mide.**
+3. **`send_page_view: false` solo apaga la vista inicial del `config`, no las de navegación.**
+4. **La discrepancia con Vercel Web Analytics no viene de las navegaciones: viene de que GA4 está dentro del
+   gate de consentimiento y `<Analytics />` de Vercel fuera (`layout.tsx:93-94`), más los bloqueadores.**
+
+**Cómo se midió, porque el control que lo cazó casi no lo caza.** El control previsto era contar `page_view`
+en el `dataLayer`: carga + 3 clics = 4. **Dio 4 exactos y era un falso verde** — el `dataLayer` solo ve lo que
+empuja nuestro código. En la pestaña Red había **7** hits: la aterrizaje 1 y **cada navegación interna 2**.
+Los nuestros llevan `dp` y `_ee=1`; los de GA4 no llevan `dp` (construyen la vista del documento vivo), llevan
+`ae=a`, y el contador `_s` de la secuencia de hit confirma que son hits distintos, no reintentos.
+
+**La atribución, que es lo que lo cierra:** sustituí `window.gtag` por un no-op que se come los `page_view` y
+navegué. Nuestro evento quedó bloqueado (nada nuevo en el `dataLayer`) y **GA4 mandó el suyo igual**
+(`ae=a`, `dl` = la página nueva, `dr` = la anterior). No lo causa nuestro código: la medición mejorada se
+configura en la propiedad y viaja dentro de `gtag.js`, así que nuestro loader nunca pudo influir en ella.
+
+**El retraso de ~6 s es la trampa entera.** Los `tfd` de una tanda de tres clics: 62939 (nuestro) → 68924
+(el de GA4) → 71968 → 77931 → 80938. Tres clics seguidos van más rápido que eso, así que quien mira la red
+inmediatamente después ve solo los propios y concluye que GA4 no mide. **La observación original no era falsa,
+era prematura.** Primera lectura mía a 3 s: tampoco lo vio. Lo mismo valdría para Tiempo real de GA4.
+
+**Lección transferible:** un control que mide la capa donde vive nuestro código **no puede detectar un emisor
+ajeno**. Para "¿se cuenta dos veces?" el único observatorio válido es el que ve salir las peticiones, no el
+que ve entrar nuestras llamadas. Familia de [[verificar-superficie-viva-antes-de-construir]], con el signo
+cambiado: allí construí sobre algo que no se renderizaba; aquí, sobre un hueco que ya estaba tapado.
+
+**Lo que sí se despliega de esta tanda:** solo el rótulo del método del ELO (`ELO_METODO` en `lib/rotulos.ts`,
+al pie del bloque "Nivel"). Nada de GA4 llega a producción.

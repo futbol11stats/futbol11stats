@@ -3,6 +3,7 @@
 import type { ReactNode } from 'react'
 import { useComp } from './compStore'
 import { fmtNum } from '@/lib/formato'
+import { ELO_METODO } from '@/lib/rotulos'
 
 export type CompPct = { pct: number | null; nombreComp: string | null; selloSm?: ReactNode }
 
@@ -31,6 +32,11 @@ export default function NivelElo({ elo, eloColor, comps, maxLbl }: {
           ? <span className="cat-inline">{c.selloSm} {c.nombreComp}</span>
           : 'su categoría'}</div>
       )}
+      {/* Qué mide el ELO, AL FINAL del bloque y no bajo el valor: la línea del percentil explica la batería
+          que tiene justo encima y debe quedarse pegada a ella; esto es lo más general y por eso va abajo.
+          Se pinta siempre, haya percentil o no: la pregunta "¿qué es este número?" no depende de que haya
+          pool con el que comparar. El texto vive en lib/rotulos.ts. */}
+      <div className="batt-lbl elo-metodo">{ELO_METODO}</div>
     </>
   )
 }

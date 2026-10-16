@@ -24,3 +24,9 @@ export const NO_DISPUTADO = 'No disputado · resultado administrativo'
 export const SUSPENDIDO = 'Acta pendiente de cerrar'
 export const SUSPENDIDO_CORTO = 'Acta pendiente'
 export const SUSPENDIDO_MINI = 'Acta'
+
+// Explicación del método del ELO, al pie del bloque "Nivel" de la ficha de jugador. Vive aquí y no dentro
+// del componente por la misma razón que los de arriba: un rótulo escrito a mano dentro de un .tsx acaba
+// teniendo una segunda copia en otro sitio — ya pasó con 'Susp.'.
+export const ELO_METODO =
+  'Compara los puntos del jugador en cada partido con la media de su propio equipo: sube si destaca dentro del equipo y baja si no.'
