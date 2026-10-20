@@ -1291,3 +1291,26 @@ tarjeta no es Next y no tiene contexto de dominio.
 en "Collecting page data". A la segunda, verde sin tocar nada. Transitorio, anotado por si se repite.
 
 **Fuera de alcance a propósito:** imágenes generadas por jugador. Otro frente, lo decide Fernando.
+
+**El control de §3, a medias y por qué.** El Sharing Debugger de Facebook **pide sesión iniciada**
+("Inicia sesión en Facebook para usar esta herramienta") y ahí no entro yo. Queda pendiente de Fernando, con
+la URL ya precargada:
+`developers.facebook.com/tools/debug/?q=https%3A%2F%2Fwww.futbol11stats.com%2Fmadrid%2Fjugador%2F25566-borja-sanchez-gil`
+
+**Pero el fondo sí se midió,** que era si el rastreador llega y lee la imagen — para eso estaba el bypass del
+cortafuegos. Pidiendo la ficha con el user agent de cada uno:
+
+| Rastreador | Respuesta | `og:image` |
+|---|---|---|
+| `facebookexternalhit/1.1` | **200** | sí |
+| `WhatsApp/2.23.20.0` | **200** | sí |
+| `Twitterbot/1.0` | **200** | sí |
+| cliente sin identificar | **429** | — |
+
+Y `/og-f11s.png` devuelve **200 image/png, 88.736 bytes** también con el UA de Facebook. Los tres rastreadores
+que importan pasan el cortafuegos y leen la imagen; **el 429 a un cliente sin identificar sigue vivo**, que es
+el estado conocido de [[waf-challenge-tapa-get-en-prod]] y no estorba aquí.
+
+Lo único que el Debugger añadiría sobre esto es el **render** de la tarjeta y el purgado de la caché de Meta
+para los enlaces ya compartidos antes del arreglo. Eso segundo sí importa si ya se publicó algún enlace: la
+caché de Meta es pegajosa y solo se refresca con "Extraer nueva información" desde esa herramienta.
