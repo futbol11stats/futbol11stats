@@ -8,6 +8,7 @@ import { supabase } from '@/lib/supabase'
 import { COLS_EQUIPO, codFromSlug, equipoSlug, type EquipoFicha } from '@/lib/equipo'
 import { cacheEquipo } from '@/lib/cacheComp'
 import FichaEquipoV2 from '@/components/ficha/v2/FichaEquipoV2'
+import { OG_IMAGE } from '@/lib/seo'
 
 // La ficha de equipo la renderiza FichaEquipoV2. Este page.tsx conserva generateMetadata (incluido el noindex
 // juvenil), el canonical, el redirect 308 al slug canónico y los exports de ISR; el JSON-LD (breadcrumb +
@@ -42,7 +43,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     // NOINDEX en fichas JUVENILES: sus plantillas listan nombres de menores -> no indexables. "follow"
     // para que los enlaces salientes sigan pasando autoridad. Las de aficionados siguen indexables.
     ...(e.rama === 'juvenil' ? { robots: { index: false, follow: true } } : {}),
-    openGraph: { title, description, url: canonical, siteName: 'Fútbol11Stats', locale: 'es_ES', type: 'website' },
+    openGraph: { title, description, url: canonical, siteName: 'Fútbol11Stats', locale: 'es_ES', type: 'website', images: [OG_IMAGE] },
   }
 }
 

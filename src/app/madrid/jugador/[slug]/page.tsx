@@ -9,6 +9,7 @@ import { COLS_JUGADOR, codFromSlug, jugadorSlug, formatNombre, type JugadorFicha
 import { cacheJugador } from '@/lib/cacheComp'
 import FichaJugadorV2 from '@/components/ficha/v2/FichaJugadorV2'
 import { fmtNum } from '@/lib/formato'
+import { OG_IMAGE } from '@/lib/seo'
 
 // La ficha de jugador la renderiza FichaJugadorV2. Este page.tsx conserva el generateMetadata, el canonical,
 // el redirect 308 al slug canónico y los exports de ISR; el JSON-LD (breadcrumb) lo emite FichaJugadorV2.
@@ -42,7 +43,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     title,
     description,
     alternates: { canonical },
-    openGraph: { title, description, url: canonical, siteName: 'Fútbol11Stats', locale: 'es_ES', type: 'profile' },
+    openGraph: { title, description, url: canonical, siteName: 'Fútbol11Stats', locale: 'es_ES', type: 'profile', images: [OG_IMAGE] },
   }
 }
 

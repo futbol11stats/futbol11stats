@@ -22,6 +22,7 @@ import { Balon, Guante, Escudo, Guion, TarjetaAmarilla, TarjetaDoble, TarjetaRoj
 import { Home as IconHome, Plane } from 'lucide-react'
 import Badge11 from '@/components/ui/Badge11'
 import { colorElo } from '@/lib/equipoV2'
+import { OG_IMAGE } from '@/lib/seo'
 
 // Marca neutral con Madrid como ámbito ACTUAL (preparada para ampliar a otras federaciones). generateMetadata
 // (no metadata estático) para DERIVAR el nº de temporadas del dato y LEER los volúmenes de la BD (web_alcance
@@ -40,6 +41,7 @@ export async function generateMetadata(): Promise<Metadata> {
       siteName: 'Fútbol11Stats',
       locale: 'es_ES',
       type: 'website',
+      images: [OG_IMAGE],
     },
   }
 }

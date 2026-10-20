@@ -7,6 +7,7 @@ import { notFound, permanentRedirect } from 'next/navigation'
 import FichaEquipoV2 from '@/components/ficha/v2/FichaEquipoV2'
 import { getEquipoV2 } from '@/lib/equipoV2'
 import { codFromSlug, equipoSlug } from '@/lib/equipo'
+import { OG_IMAGE } from '@/lib/seo'
 
 // Vista por TEMPORADA de la ficha de equipo: la temporada va por segmento de ruta (mismo caso que en jugador).
 // Canonical PROPIO a sí misma (indexable por derecho) + title con la temporada (para no competir con la ficha
@@ -26,7 +27,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     title, description,
     alternates: { canonical },
     ...(e.rama === 'juvenil' ? { robots: { index: false, follow: true } } : {}),
-    openGraph: { title, description, url: canonical, siteName: 'Fútbol11Stats', locale: 'es_ES', type: 'website' },
+    openGraph: { title, description, url: canonical, siteName: 'Fútbol11Stats', locale: 'es_ES', type: 'website', images: [OG_IMAGE] },
   }
 }
 

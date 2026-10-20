@@ -12,7 +12,7 @@ import { nombreEquipo } from '@/lib/nombre'
 import EscudoBox from '@/components/ficha/v2/EscudoBox'
 import JsonLd from '@/components/JsonLd'
 import { graphLd, breadcrumbLd } from '@/lib/jsonld'
-import { SITE_URL } from '@/lib/seo'
+import { SITE_URL, OG_IMAGE } from '@/lib/seo'
 import { escudoUrl } from '@/lib/supabase'
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
@@ -28,7 +28,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   return {
     title, description,
     alternates: { canonical },
-    openGraph: { title, description, url: canonical, siteName: 'Fútbol11Stats', locale: 'es_ES', type: 'website' },
+    openGraph: { title, description, url: canonical, siteName: 'Fútbol11Stats', locale: 'es_ES', type: 'website', images: [OG_IMAGE] },
   }
 }
 

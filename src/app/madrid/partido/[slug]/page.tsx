@@ -8,7 +8,7 @@ import { getPartido } from '@/lib/partido'
 import { partidoSlug, idFromPartidoSlug } from '@/lib/partidoSlug'
 import { equipoHref } from '@/lib/equipo'
 import { escudoUrl } from '@/lib/supabase'
-import { SITE_URL } from '@/lib/seo'
+import { SITE_URL, OG_IMAGE } from '@/lib/seo'
 import JsonLd from '@/components/JsonLd'
 import { graphLd, breadcrumbLd, sportsEventLd } from '@/lib/jsonld'
 import { isoMadrid } from '@/lib/horaMadrid'
@@ -44,7 +44,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   return {
     title, description, alternates: { canonical },
     ...(noindex ? { robots: { index: false, follow: true } } : {}),
-    openGraph: { title, description, url: canonical, siteName: 'Fútbol11Stats', locale: 'es_ES', type: 'website' },
+    openGraph: { title, description, url: canonical, siteName: 'Fútbol11Stats', locale: 'es_ES', type: 'website', images: [OG_IMAGE] },
   }
 }
 

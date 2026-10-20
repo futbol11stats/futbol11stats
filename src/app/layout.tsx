@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import { Inter, Barlow_Condensed } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import { SpeedInsights } from '@vercel/speed-insights/next'
-import { SITE_URL } from '@/lib/seo'
+import { SITE_URL, OG_IMAGE } from '@/lib/seo'
 import CookieConsent from '@/components/CookieConsent'
 import CookieSettingsButton from '@/components/CookieSettingsButton'
 import Buscador from '@/components/buscador/Buscador'
@@ -27,6 +27,7 @@ export const metadata: Metadata = {
     siteName: 'Fútbol11Stats',
     locale: 'es_ES',
     type: 'website',
+    images: [OG_IMAGE],
   },
 }
 

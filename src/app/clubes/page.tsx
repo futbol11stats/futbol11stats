@@ -10,7 +10,7 @@ import { getClubesIndex, clubSlug } from '@/lib/club'
 import ClubesLista from '@/components/clubes/ClubesLista'
 import JsonLd from '@/components/JsonLd'
 import { graphLd, websiteLd, organizationLd, breadcrumbLd } from '@/lib/jsonld'
-import { SITE_URL } from '@/lib/seo'
+import { SITE_URL, OG_IMAGE } from '@/lib/seo'
 
 export const metadata: Metadata = {
   title: 'Clubes de fútbol aficionado y juvenil de Madrid | Fútbol11Stats',
@@ -20,6 +20,7 @@ export const metadata: Metadata = {
     title: 'Clubes de fútbol de Madrid | Fútbol11Stats',
     description: 'Directorio de clubes del fútbol aficionado y juvenil de Madrid con todos sus equipos.',
     url: '/clubes', siteName: 'Fútbol11Stats', locale: 'es_ES', type: 'website',
+    images: [OG_IMAGE],
   },
 }
 

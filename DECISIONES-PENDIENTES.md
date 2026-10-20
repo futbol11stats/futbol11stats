@@ -1255,3 +1255,39 @@ cambiado: allí construí sobre algo que no se renderizaba; aquí, sobre un huec
 
 **Lo que sí se despliega de esta tanda:** solo el rótulo del método del ELO (`ELO_METODO` en `lib/rotulos.ts`,
 al pie del bloque "Nivel"). Nada de GA4 llega a producción.
+
+### E-og-image · La imagen de las tarjetas sociales, y por qué no basta el layout (2026-10-20)
+
+**El defecto:** ninguna ficha servía `og:image`. Todo enlace compartido —WhatsApp, X, Telegram, y los que se
+publican en Instagram y TikTok— salía sin imagen. Solo la home la tenía, y por un camino distinto: el fichero
+`src/app/opengraph-image.png` de la convención de Next, que **se engancha al segmento donde vive** (`/`) y no
+baja a las rutas hijas.
+
+**Y había una segunda mitad del defecto, invisible hasta medirla:** las fichas servían
+`twitter:card = summary` mientras la home servía `summary_large_image`. Aunque se les hubiera puesto imagen,
+la tarjeta habría salido con un sello pequeño en vez de la foto grande.
+
+**Por qué NO basta con ponerla en el layout,** que era el plan de partida. Next **no fusiona** el `openGraph`
+del layout con el de la página: lo **sustituye entero**. Verificado en la fuente del paquete instalado,
+`node_modules/next/dist/lib/metadata/resolve-metadata.js:182-184` — el `case 'openGraph'` hace una asignación,
+no un merge. Y las **15** superficies del sitio declaran su propio `openGraph` (para el título, la descripción
+y el canonical), así que **ninguna** habría heredado la imagen. El layout solo, en este repo, no arregla nada.
+
+De ahí `OG_IMAGE` en `lib/seo.ts`, repetida en las 15. La constante existe justamente porque el valor tiene
+que estar en 15 sitios: un literal suelto garantiza que el día que cambie se actualicen 12.
+
+**El recurso es nuevo y propio,** `public/og-f11s.png` (copia del og actual, 1200×630). **No es el logo de
+RRSS** (`public/LogoF11S_ig.svg`), que no se toca. Y no se referencia el `opengraph-image.png` de la
+convención porque su URL lleva un hash que cambia con cada build: esta es estable y se puede pegar fuera.
+URL **absoluta** con dominio: `metadataBase` resuelve las relativas para Next, pero el robot que lee la
+tarjeta no es Next y no tiene contexto de dominio.
+
+**Verificado en el build**, no deducido: `/`, `/madrid/aficionados` y `/madrid/juveniles` sirven `og:image`,
+`og:image:width`, `og:image:height` y `og:image:alt` — y `twitter:card` **sube solo** a
+`summary_large_image`, porque Next rellena `twitter` desde `openGraph` cuando no se declara
+(`resolve-metadata.js:620-635`). Esa mitad se arregló sin tocarla.
+
+**Nota de build:** el primer intento murió con `build worker exited with code: 3221226505` (crash de Windows)
+en "Collecting page data". A la segunda, verde sin tocar nada. Transitorio, anotado por si se repite.
+
+**Fuera de alcance a propósito:** imágenes generadas por jugador. Otro frente, lo decide Fernando.

@@ -4,7 +4,7 @@ import type { Metadata } from 'next'
 import { supabase } from '@/lib/supabase'
 import Link from 'next/link'
 import JsonLd from '@/components/JsonLd'
-import { SITE_URL } from '@/lib/seo'
+import { SITE_URL, OG_IMAGE } from '@/lib/seo'
 import { graphLd, websiteLd, organizationLd, breadcrumbLd } from '@/lib/jsonld'
 import { ORDEN_AFICIONADOS as COMPETICION_ORDER } from '@/lib/competiciones'
 import CompeticionCard from '@/components/ui/CompeticionCard'
@@ -22,6 +22,7 @@ export const metadata: Metadata = {
     siteName: 'Fútbol11Stats',
     locale: 'es_ES',
     type: 'website',
+    images: [OG_IMAGE],
   },
 }
 

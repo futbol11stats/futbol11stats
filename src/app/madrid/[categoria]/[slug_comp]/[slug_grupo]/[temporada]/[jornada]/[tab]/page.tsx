@@ -4,7 +4,7 @@ import type { Metadata } from 'next'
 import { notFound, permanentRedirect, redirect } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { tienePartidosJugados } from '@/lib/competicionV2'
-import { SITE_URL, ensureMadrid, tabLabel, noindexTab, descripcionCompeticion, TABS_GRUPO_LIGA, TABS_GRUPO_COPA } from '@/lib/seo'
+import { SITE_URL, ensureMadrid, tabLabel, noindexTab, descripcionCompeticion, TABS_GRUPO_LIGA, TABS_GRUPO_COPA, OG_IMAGE } from '@/lib/seo'
 import JsonLd from '@/components/JsonLd'
 import { graphLd, breadcrumbLd } from '@/lib/jsonld'
 import { nombreOficial, denominacion } from '@/lib/sellos'
@@ -93,7 +93,7 @@ export async function generateMetadata({
     // menores) y audiencia cero en las once pestañas sin visitas. "follow" se mantiene: los enlaces
     // internos a clasificación y resultados siguen contando.
     ...(noindexTab(categoria, tab) ? { robots: { index: false, follow: true } } : {}),
-    openGraph: { title, description, url: canonical, siteName: 'Fútbol11Stats', locale: 'es_ES', type: 'website' },
+    openGraph: { title, description, url: canonical, siteName: 'Fútbol11Stats', locale: 'es_ES', type: 'website', images: [OG_IMAGE] },
   }
 }
 

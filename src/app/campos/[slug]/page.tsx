@@ -16,7 +16,7 @@ import EscudoImg from '@/components/EscudoImg'
 import SuperficieCampo from '@/components/SuperficieCampo'
 import JsonLd from '@/components/JsonLd'
 import { graphLd, breadcrumbLd } from '@/lib/jsonld'
-import { SITE_URL } from '@/lib/seo'
+import { SITE_URL, OG_IMAGE } from '@/lib/seo'
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params
@@ -29,7 +29,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const geo = [c.localidad, c.provincia].filter(Boolean).join(', ')
   const title = `${nombre}${c.localidad ? ` (${c.localidad})` : ''} — campo de fútbol | Fútbol11Stats`
   const description = `${nombre}${geo ? `, ${geo}` : ''}: ubicación, cómo llegar y los ${c.equipos.length} equipos del fútbol aficionado y juvenil de Madrid que juegan allí, en Fútbol11Stats.`
-  return { title, description, alternates: { canonical }, openGraph: { title, description, url: canonical, siteName: 'Fútbol11Stats', locale: 'es_ES', type: 'website' } }
+  return { title, description, alternates: { canonical }, openGraph: { title, description, url: canonical, siteName: 'Fútbol11Stats', locale: 'es_ES', type: 'website', images: [OG_IMAGE] } }
 }
 
 export default async function CampoPage({ params }: { params: Promise<{ slug: string }> }) {

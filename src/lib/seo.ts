@@ -3,6 +3,25 @@
 // Host canónico: el apex hace 308 -> www, así que www es el canónico (metadataBase, canonicals, sitemap, robots).
 export const SITE_URL = 'https://www.futbol11stats.com'
 
+// Imagen por defecto de las tarjetas sociales (WhatsApp, X, Telegram, y los enlaces que se publican en
+// Instagram y TikTok). 1200x630 porque es lo que esperan todos los lectores de tarjetas.
+//
+// URL ABSOLUTA a propósito: el robot que lee la tarjeta no tiene contexto de dominio y una ruta relativa
+// no la resuelve. `metadataBase` arregla eso para Next, pero esto viaja a lectores que no son Next.
+//
+// RECURSO PROPIO, en /public: NO es el logo de RRSS (public/LogoF11S_ig.svg), que no se toca. Tampoco es
+// el src/app/opengraph-image.png de la convención de fichero, cuya URL lleva un hash que cambia con el
+// build; esta es estable y por eso se puede pegar en sitios ajenos.
+//
+// HAY QUE REPETIRLA EN CADA PÁGINA que declare su propio `openGraph`: Next no fusiona el objeto del
+// layout con el de la página, lo sustituye entero. Por eso existe esta constante y no un literal suelto.
+export const OG_IMAGE = {
+  url: `${SITE_URL}/og-f11s.png`,
+  width: 1200,
+  height: 630,
+  alt: 'Fútbol11Stats — estadísticas del fútbol aficionado y juvenil de Madrid',
+}
+
 // El sitio es Madrid-céntrico hoy pero crecerá a otras federaciones. Las competiciones de LIGA ya
 // llevan "Madrid" en nombre_comp; las copas/playoffs no. Añade "Madrid" solo si falta (sin duplicar).
 export function ensureMadrid(name: string): string {

@@ -3,7 +3,7 @@ export const revalidate = 2592000  // ISR 30d (Fluid CPU free tier): contenido c
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import { SITE_URL, ensureMadrid, tabLabel, noindexTab, descripcionCompeticion, TABS_GLOBAL } from '@/lib/seo'
+import { SITE_URL, ensureMadrid, tabLabel, noindexTab, descripcionCompeticion, TABS_GLOBAL, OG_IMAGE } from '@/lib/seo'
 import { jornadaSegValida } from '@/lib/competiciones'
 import JsonLd from '@/components/JsonLd'
 import { graphLd, breadcrumbLd } from '@/lib/jsonld'
@@ -78,7 +78,7 @@ export async function generateMetadata({
     alternates: { canonical },
     // noindex por privacidad (juvenil) O por audiencia cero (las once pestañas). Ver noindexTab.
     ...(noindexTab(categoria, tab) ? { robots: { index: false, follow: true } } : {}),
-    openGraph: { title, description, url: canonical, siteName: 'Fútbol11Stats', locale: 'es_ES', type: 'website' },
+    openGraph: { title, description, url: canonical, siteName: 'Fútbol11Stats', locale: 'es_ES', type: 'website', images: [OG_IMAGE] },
   }
 }
 

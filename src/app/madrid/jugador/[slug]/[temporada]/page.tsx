@@ -7,6 +7,7 @@ import { notFound, permanentRedirect } from 'next/navigation'
 import FichaJugadorV2 from '@/components/ficha/v2/FichaJugadorV2'
 import { getJugadorV2 } from '@/lib/jugadorV2'
 import { codFromSlug, jugadorSlug, formatNombre } from '@/lib/jugador'
+import { OG_IMAGE } from '@/lib/seo'
 
 // Vista por TEMPORADA de la ficha de jugador: cada temporada es una página indexable por derecho.
 //  - canonical PROPIO apuntando a sí misma (no a la ficha base), para que sea indexable por derecho.
@@ -24,7 +25,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const title = `${nombre} — temporada ${temporada} | Fútbol11Stats`
   const description = `${nombre} en ${temporada}: partidos jornada a jornada, forma, goles, ELO y análisis del ` +
     `fútbol aficionado de Madrid.`
-  return { title, description, alternates: { canonical }, openGraph: { title, description, url: canonical, siteName: 'Fútbol11Stats', locale: 'es_ES', type: 'profile' } }
+  return { title, description, alternates: { canonical }, openGraph: { title, description, url: canonical, siteName: 'Fútbol11Stats', locale: 'es_ES', type: 'profile', images: [OG_IMAGE] } }
 }
 
 export default async function Page({ params }: { params: Promise<{ slug: string; temporada: string }> }) {

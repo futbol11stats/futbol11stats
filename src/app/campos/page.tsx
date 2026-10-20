@@ -11,7 +11,7 @@ import { parseCampo } from '@/lib/club'
 import CamposLista from '@/components/campos/CamposLista'
 import JsonLd from '@/components/JsonLd'
 import { graphLd, websiteLd, organizationLd, breadcrumbLd } from '@/lib/jsonld'
-import { SITE_URL } from '@/lib/seo'
+import { SITE_URL, OG_IMAGE } from '@/lib/seo'
 
 export const metadata: Metadata = {
   title: 'Campos de fútbol de Madrid | Fútbol11Stats',
@@ -21,6 +21,7 @@ export const metadata: Metadata = {
     title: 'Campos de fútbol de Madrid | Fútbol11Stats',
     description: 'Directorio de campos del fútbol aficionado y juvenil de Madrid con su ubicación y los equipos que juegan allí.',
     url: '/campos', siteName: 'Fútbol11Stats', locale: 'es_ES', type: 'website',
+    images: [OG_IMAGE],
   },
 }
 
