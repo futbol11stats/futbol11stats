@@ -1314,3 +1314,59 @@ el estado conocido de [[waf-challenge-tapa-get-en-prod]] y no estorba aquí.
 Lo único que el Debugger añadiría sobre esto es el **render** de la tarjeta y el purgado de la caché de Meta
 para los enlaces ya compartidos antes del arreglo. Eso segundo sí importa si ya se publicó algún enlace: la
 caché de Meta es pegajosa y solo se refresca con "Extraer nueva información" desde esa herramienta.
+
+### E-suelo-sin-indices · Una lectura de adorno invalidaba el sitio entero (2026-10-21)
+
+**El mecanismo.** La caché de ruta de una página **hereda las etiquetas de las lecturas que ocurren dentro de
+ella**. `getSueloVivo()` estaba cacheada con el tag `indices`, y el pipeline emite `indices` **en cualquier
+delta, o sea todas las noches**. Bastaba con que esa lectura ocurriera en el RootLayout —y toda página se
+renderiza dentro del layout— para que la emisión nocturna tirara la caché del **sitio entero**, ~400.000
+páginas con ISR de 30 días. Medido en producción con un experimento de tres pasos y control negativo.
+
+**Lo que decide ese valor:** una **opacidad**. `Number(ultima) < suelo` pinta `opacity-60` en el escudo de
+los resultados del buscador. Un entero que cambia **como mucho una vez por temporada** —y ni siquiera al
+empezar: usa `MIN`, así que solo sube cuando TODAS las competiciones han pasado.
+
+**El tag prometía una frescura que el sistema no sostiene.** Con `revalidate = 30d`, ese número ya podía ir
+30 días desfasado en cualquier ficha cacheada. No estaba comprando nada.
+
+**Por qué el arreglo NO fue sacar la lectura del RootLayout,** que era el plan de partida. El suelo se lee en
+**cuatro** sitios: el layout, `/buscar`, `FichaJugadorV2` y `resolveCopas` (dentro de `cacheEquipo`). Tocar
+solo el layout habría dejado acopladas las fichas de jugador y equipo — **el 89 % de las escrituras ISR**. El
+arreglo va en la lectura, `getSueloVivo`, y los cuatro consumidores se curan solos.
+
+**Y no se podía envolver la llamada existente.** `getSueloVivo` llamaba a `getTemporadasActivas()`, cacheada
+con `indices` y **compartida con los índices de verdad**, que sí lo quieren. Anidar habría dejado el tag
+dentro. La consulta cruda se extrae a `leerTemporadasActivas()` (sin cachear) y se cachea **dos veces** con
+etiquetas distintas: `getTemporadasActivas` (tag `indices`, para home/categorías/sitemap/`getNumTemporadas`)
+y `getActivasSinIndices` (tag `temporada-activa`, para el suelo y el badge "EN JUEGO"). Dos entradas de
+caché sobre la misma vista diminuta; el coste es despreciable y la alternativa era duplicar el cuerpo.
+
+**`esTemporadaActiva` va en el mismo viaje** aunque **hoy no cueste nada**: la ruta de competición es
+dinámica y escribe cero ISR. Es la misma mina esperando a la fase 3, cuando esa ruta pase a ISR.
+
+**El tag `temporada-activa` NO lo emite el pipeline.** Es una escotilla manual para el día del cambio de
+temporada. No confundir con `temporada:<cod>`, que sí se emite y es otra cosa.
+
+**Lo que el tag costaba, dicho sin inflarlo:** invalidar es gratis; lo que se paga es la reescritura, y solo
+de las páginas que reciben visita. El techo no son 400.000, es el tráfico diario × 2 entradas (HTML + `.rsc`).
+La forma honesta: **convertía un reloj de 30 días en uno de 24 horas** para toda página visitada.
+
+### E-estaticos-cache · Los sellos y el favicon (2026-10-21)
+
+Next sirve `public/` con `max-age=0, must-revalidate`: el navegador revalida en **cada página**. Los cinco
+sellos se pedían ~1.400 veces al día frente a las ~320 de un chunk inmutable. Cabecera larga en
+`next.config.js` (`max-age=604800, s-maxage=2592000, stale-while-revalidate=86400`).
+
+**Sin `immutable`, y es deliberado:** estas URLs **no están versionadas** (`/sellos/rffm.png` a pelo). Con
+`immutable`, un sello sustituido se quedaría clavado en los navegadores sin forma de forzarlo ni recargando.
+**Regla si algún día se sustituye un sello: renómbralo.**
+
+**Lista explícita, no comodín:** un `source` amplio casaría también con las páginas y les pondría caché de
+navegador a documentos que hoy son ISR. Comprobado en el build local que `/madrid/aficionados` y la ficha de
+jugador conservan su `s-maxage=2592000`.
+
+`/favicon.ico` daba **404** ~200 veces al día: existía `src/app/icon.png` (512×512) pero ningún `.ico`, y los
+navegadores lo piden por convención. Generado `src/app/favicon.ico` multi-tamaño (16/32/48) desde el icono
+que ya había. **Y entra en la lista de cabeceras aunque no viva en `public/`**: salía con el mismo
+`max-age=0, must-revalidate`, y dejarlo fuera habría sido arreglar media familia.

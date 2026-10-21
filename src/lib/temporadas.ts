@@ -16,7 +16,7 @@
 // se serializaría a {}).
 
 import { supabase } from '@/lib/supabase'
-import { cacheIndices } from '@/lib/cacheComp'
+import { cacheIndices, cacheTagged } from '@/lib/cacheComp'
 import { esViejaCopa } from '@/lib/competiciones'
 
 export type TempActiva = { categoria: string; slug_comp: string; temporada_activa: number }
@@ -34,19 +34,54 @@ const CAT_BD: Record<string, string> = { aficionados: 'AFICIONADO', juveniles: '
 // "Por comenzar" porque la decide tienePartidosJugados, no esto.
 const ABRIR_TEMPORADA_CON_CALENDARIO = true
 
+// Consulta CRUDA de la vista, SIN cachear. Existe aparte porque la misma lectura se cachea DOS VECES con
+// etiquetas distintas (ver justo debajo); duplicar el cuerpo sería garantizar que un día diverjan.
+//
+// REGLA: el build NO debe depender del estado de la BD. Si la consulta falla o viene vacía (BD saturada,
+// p.ej. un export corriendo a la vez), LANZAMOS en vez de devolver []. Un [] aquí vaciaría los índices de
+// navegación y —peor— se cachearía (unstable_cache) -> índice fantasma servido a usuarios. Lanzar NO se
+// cachea (unstable_cache no guarda rechazos) y hace el fallo VISIBLE (el build cae / ISR mantiene la última
+// versión buena) en vez de publicar una página que parece correcta y no lo es.
+async function leerTemporadasActivas(): Promise<TempActiva[]> {
+  const { data, error } = await supabase.from('web_temporada_activa').select('categoria, slug_comp, temporada_activa')
+  if (error) throw new Error(`[temporada-activa] web_temporada_activa: ${error.message || 'error sin mensaje'}`)
+  if (!data || data.length === 0) throw new Error('[temporada-activa] web_temporada_activa devolvió 0 filas (¿BD saturada?)')
+  return data as TempActiva[]
+}
+
 // Vista `web_temporada_activa` -> array. Cacheado (tag 'indices'; el pipeline lo revalida al cargar datos).
+// SOLO PARA LOS ÍNDICES DE VERDAD (home, /madrid/aficionados, /madrid/juveniles, sitemap, getNumTemporadas):
+// esos sí quieren refrescarse en cada delta. Si lo llamas desde una ficha, le cuelgas `indices` a su página.
 export async function getTemporadasActivas(): Promise<TempActiva[]> {
-  return cacheIndices(async () => {
-    const { data, error } = await supabase.from('web_temporada_activa').select('categoria, slug_comp, temporada_activa')
-    // REGLA: el build NO debe depender del estado de la BD. Si la consulta falla o viene vacía (BD saturada,
-    // p.ej. un export corriendo a la vez), LANZAMOS en vez de devolver []. Un [] aquí vaciaría los índices de
-    // navegación y —peor— se cachearía (unstable_cache) -> índice fantasma servido a usuarios. Lanzar NO se
-    // cachea (unstable_cache no guarda rechazos) y hace el fallo VISIBLE (el build cae / ISR mantiene la última
-    // versión buena) en vez de publicar una página que parece correcta y no lo es.
-    if (error) throw new Error(`[indices] web_temporada_activa: ${error.message || 'error sin mensaje'}`)
-    if (!data || data.length === 0) throw new Error('[indices] web_temporada_activa devolvió 0 filas (¿BD saturada?)')
-    return data as TempActiva[]
-  }, ['web_temporada_activa'])
+  return cacheIndices(leerTemporadasActivas, ['web_temporada_activa'])
+}
+
+// LA MISMA VISTA, ENTRADA DE CACHÉ DISTINTA Y SIN EL TAG `indices`.
+//
+// Por qué existe, que es la parte que importa: el pipeline emite `indices` en CUALQUIER delta, o sea todas
+// las noches. Y la caché de ruta de una página hereda las etiquetas de las lecturas que ocurren dentro de
+// ella, así que bastaba una lectura etiquetada `indices` en el RootLayout para que esa emisión nocturna
+// tirara la caché del SITIO ENTERO (~400.000 páginas con ISR de 30 días). Medido en producción con el
+// experimento de calentar -> emitir -> volver a pedir.
+//
+// No era solo el layout: el suelo se lee en CUATRO sitios (layout, /buscar, FichaJugadorV2 y resolveCopas
+// dentro de cacheEquipo) y el badge "EN JUEGO" en dos más. Por eso el arreglo va aquí abajo, en la lectura,
+// y no en el RootLayout: arreglar el layout habría dejado sin tocar las fichas de jugador y equipo, que son
+// la mayor parte de las escrituras ISR.
+//
+// NO envuelve a getTemporadasActivas a propósito: anidarla dejaría el tag `indices` dentro, que es
+// exactamente lo que se quiere sacar de estas páginas.
+//
+// EL TAG `temporada-activa` NO LO EMITE EL PIPELINE HOY. Es una escotilla manual para el día que todas las
+// competiciones pasen de temporada, por si no se quiere esperar al siguiente despliegue. Ojo: no es el
+// `temporada:<cod>` de los recálculos masivos, que sí se emite y es otra cosa. Si algún día se añade a la
+// emisión nocturna, vuelve el problema entero.
+//
+// Frescura: el TTL de cacheTagged son los mismos 30 días que el ISR de ruta, a propósito — poner menos le
+// bajaría el reloj a las páginas que la leen. No se pierde nada: el valor cambia COMO MUCHO una vez por
+// temporada, y cualquier despliegue ya vacía toda la caché.
+async function getActivasSinIndices(): Promise<TempActiva[]> {
+  return cacheTagged(leerTemporadasActivas, ['web_temporada_activa', 'sin-indices'], ['temporada-activa'])
 }
 
 // T_top y suelo de la ventana. floor = T_top - 1 (las dos temporadas "actuales").
@@ -80,9 +115,11 @@ export function sueloVivo(activas: TempActiva[]): number {
   return enVentana.length ? Math.min(...enVentana) : 0
 }
 
-// Async directo para el badge (jugador, equipo, buscador). getTemporadasActivas ya está cacheado.
+// Async directo para el badge activo/inactivo (jugador, equipo, buscador del header, /buscar).
+// Lee por getActivasSinIndices: lo pintan CUATRO superficies, tres de ellas con ISR, y no pueden arrastrar
+// `indices` a su caché de ruta. Lo que decide es una opacidad; no justifica invalidar nada.
 export async function getSueloVivo(): Promise<number> {
-  return sueloVivo(await getTemporadasActivas())
+  return sueloVivo(await getActivasSinIndices())
 }
 
 // Grupos a mostrar en el índice de una categoría: cada competición en SU temporada activa (dentro de la
@@ -148,7 +185,10 @@ export async function getGruposIndice(categoriaBD: 'AFICIONADO' | 'JUVENIL') {
 // ¿La temporada `codtemporada` es la ACTIVA de esta competición (dentro de la ventana)? Para el badge "EN
 // JUEGO" de la ficha de competición. Sustituye a `codtemporada === LIVE_COD`. Recibe la categoria de URL
 // (aficionados|juveniles) y el slug_comp.
+// Lee por getActivasSinIndices por lo mismo: hoy la ruta de competición es dinámica y no escribe ISR, así
+// que el tag no cuesta nada — pero es la misma mina esperando a la fase 3, cuando esa ruta pase a ISR.
+// Arreglar media familia es no arreglarla.
 export async function esTemporadaActiva(categoriaUrl: string, slugComp: string, codtemporada: number): Promise<boolean> {
-  const m = mapaActivas(await getTemporadasActivas())
+  const m = mapaActivas(await getActivasSinIndices())
   return m.get(`${CAT_BD[categoriaUrl] ?? categoriaUrl}|${slugComp}`) === codtemporada
 }
