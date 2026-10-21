@@ -1370,3 +1370,30 @@ jugador conservan su `s-maxage=2592000`.
 navegadores lo piden por convención. Generado `src/app/favicon.ico` multi-tamaño (16/32/48) desde el icono
 que ya había. **Y entra en la lista de cabeceras aunque no viva en `public/`**: salía con el mismo
 `max-age=0, must-revalidate`, y dejarlo fuera habría sido arreglar media familia.
+
+**EL EXPERIMENTO DESPUÉS DE DESPLEGAR (2026-10-21). Funcionó.** Sobre la ficha del jugador 25566, desde el
+navegador (`curl` no sirve: el WAF devuelve 429 a cualquier cliente sin JS, también con cabeceras de
+navegador — ya no pasan ni los estáticos):
+
+| Paso | `x-vercel-cache` | `age` |
+|---|---|---|
+| calentar (6 sondas) | HIT | 9 → 24, subiendo |
+| **POST de solo `indices`** | **HIT** | **39 → 42 → 45 → 48, sigue subiendo** |
+| POST de `jugador:25566` (control positivo) | **STALE** → HIT | 63 → **2** (entrada NUEVA) |
+
+**La edad no se interrumpe tras emitir `indices`: es la misma entrada, no se ha recreado.** El tag ya no
+propaga a las fichas.
+
+**Y el control positivo es lo que hace que ese resultado signifique algo.** Sin él, un "sigue en HIT" no
+distingue entre "el tag ya no propaga" y "mi POST no hizo nada": el endpoint podría haber devuelto 200 sin
+efecto. Emitir `jugador:25566` da STALE y luego una entrada nueva con la edad reiniciada — exactamente la
+firma de la invalidación. El instrumento mide, y donde debe invalidar, invalida.
+
+**Verificado también en producción** lo de §4: `/favicon.ico` devuelve **200** (antes 404) y él, los sellos y
+los logos salen con `public, max-age=604800, s-maxage=2592000, stale-while-revalidate=86400`.
+
+**Nota de despliegue, que no es menor.** El push de `8e9c6fd` llegó al remoto (confirmado con `git ls-remote`)
+y **Vercel no creó ningún despliegue**: el webhook se lo saltó en silencio. Un commit vacío de reintento
+(`8be495b`) tampoco lo disparó. Hubo que crear el despliegue a mano por la API
+(`dpl_F8uqzVyo71JDSbGyxExAnKCXwNQH`). Es la segunda vez que pasa; ver [[verify-vercel-deploy-after-push]].
+**Comprobar siempre que el despliegue existe, no que el push salió bien.**
