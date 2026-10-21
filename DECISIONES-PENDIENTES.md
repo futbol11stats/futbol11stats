@@ -1392,8 +1392,19 @@ firma de la invalidación. El instrumento mide, y donde debe invalidar, invalida
 **Verificado también en producción** lo de §4: `/favicon.ico` devuelve **200** (antes 404) y él, los sellos y
 los logos salen con `public, max-age=604800, s-maxage=2592000, stale-while-revalidate=86400`.
 
-**Nota de despliegue, que no es menor.** El push de `8e9c6fd` llegó al remoto (confirmado con `git ls-remote`)
-y **Vercel no creó ningún despliegue**: el webhook se lo saltó en silencio. Un commit vacío de reintento
-(`8be495b`) tampoco lo disparó. Hubo que crear el despliegue a mano por la API
-(`dpl_F8uqzVyo71JDSbGyxExAnKCXwNQH`). Es la segunda vez que pasa; ver [[verify-vercel-deploy-after-push]].
-**Comprobar siempre que el despliegue existe, no que el push salió bien.**
+**Nota de despliegue, y una lección que me costó dinero.** Tras el push de `8e9c6fd`, Vercel no mostraba
+ningún despliegue. Lo comprobé por SHA (cero resultados) y por `git ls-remote` (el commit estaba en el
+remoto), empujé un commit vacío de reintento (`8be495b`), tampoco apareció nada, y acabé creando el
+despliegue a mano por la API.
+
+**Me precipité: el webhook no se lo había saltado, iba con ~16 minutos de retraso.** Acabó creando su propio
+despliegue para `8e9c6fd` DESPUÉS del que lancé yo. Resultado: **dos despliegues de producción para el mismo
+cambio**, ~1,80 $ en vez de ~0,90 $.
+
+La regla de [[verify-vercel-deploy-after-push]] sigue siendo buena —comprobar que el despliegue existe, no
+que el push salió bien—, pero **le faltaba el plazo**: "no aparece" en los primeros minutos NO es "se lo ha
+saltado". Antes de forzar un despliegue a mano hay que esperar bastante más, del orden de 20 minutos.
+
+(El experimento NO quedó contaminado: el despliegue tardío quedó READY antes de empezar a calentar, y la
+edad de la entrada sube sin cortes durante toda la medición, lo que descarta cualquier cambio de alias
+intermedio.)
