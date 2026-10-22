@@ -1490,3 +1490,37 @@ es mayor que la última jugada. **Anotado, no tocado:** no sé si fue decisión 
 **Anotado y no arreglado (es otro frente):** en 2ª Aficionada y 2ª Juvenil la ruta `global` junta bajo un
 mismo número de jornada partidos separados hasta **35 días**, porque el calendario va por competición ×
 tamaño de calendario y no por competición.
+
+### E-estado-no-terminal · Dos conclusiones sacadas de un estado que aún no había terminado (2026-10-22)
+
+**Dos instancias en dos días, y la misma forma.** Las dos veces la conclusión salió de un estado **NO
+TERMINAL**, y las dos veces fue al revés de lo que pasaba:
+
+| Día | Lo que vi | Lo que concluí | Lo que era |
+|---|---|---|---|
+| 21 | no hay despliegue para mi push | «el webhook se lo saltó» | **iba con ~16 min de retraso** |
+| 22 | hay un despliegue construyendo sin la marca | «la verja no para nada» | **la verja sí para; aún no le había tocado** |
+
+**La regla: esperar al estado final antes de concluir.** `BUILDING` no es un veredicto, igual que "no
+aparece" a los dos minutos no es "no va a aparecer". Es la misma regla del plazo que ya está escrita en
+[[verify-vercel-deploy-after-push]], aplicada al otro extremo del proceso. El *Ignored Build Step* corre **al
+arrancar** la construcción, así que durante unos segundos todo despliegue existe y figura como "building":
+**ver un despliegue construyendo no prueba que haya pasado la verja.**
+
+**LA VERJA FUNCIONA.** Medido sobre los despliegues de producción desde el 21 a las 18:00: los que llevan la
+marca acaban READY y los que no, CANCELED — `5cf6b16` y `2f4000e` se cancelaron **solos**, sin que nadie los
+tocara.
+
+**Y UNA TRAMPA QUE NO TENÍAMOS VISTA, que sale de mirar los seis uno a uno:** la verja casa el literal
+`[desplegar]` **en cualquier parte del mensaje, y no entiende la negación**. Dos commits míos escribían en el
+cuerpo «Sin [desplegar] a propósito» para explicar que NO debían subir —y la frase contenía la marca—:
+
+- `489ae43` (21 oct, solo documentación) **desplegó**. Es la "incoherencia de la verja" que dejé sin
+  explicar ese día: no era incoherencia, era mi propio texto.
+- `70d4ee5` (22 oct) **iba a desplegar**. Cancelarlo no fue precipitarse: fue lo que lo paró.
+
+**REGLA PRÁCTICA: no escribas nunca la marca en prosa, ni para negarla.** Para decir que algo no sube, se
+dice "sin la marca" o "no debe subirse". Nombrarla la dispara.
+
+**Las dos conclusiones equivocadas costaron dinero** (despliegues de más, ver
+[[coste-de-cada-deploy-agrupar]]), que es lo que las distingue de un error de redacción.
