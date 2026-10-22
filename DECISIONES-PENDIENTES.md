@@ -1555,3 +1555,44 @@ podría mandar a la J4 sin que cambiara nada. Es anterior a este arreglo y lo af
 resultados, plantillas), no solo el redirect. **Es la familia de [[jornada-semantica-difiere-por-tabla]]:
 cruzar por una clave que no identifica una sola fila devuelve la equivocada sin error.** Pendiente de
 decidir: o el pipeline deduplica, o la web ordena por algo estable.
+
+### E-grupo-duplicado · Un grupo duplicado que congela una ficha en "Por comenzar" (2026-10-22, MEDIDO, NO TOCADO)
+
+**Cuántos: UNO, y solo en T22.** De las **528** claves `categoria+slug_comp+slug_grupo+codtemporada` de las
+seis temporadas publicadas, **una sola está duplicada**: `JUVENIL/segunda/grupo-9` de T22, con dos
+`codgrupo` distintos. T17–T21 están limpias (cero duplicados cada una). No es un patrón: es un caso.
+
+**Pero ese caso está roto en producción ahora mismo.** Las dos filas tienen el calendario completo:
+
+| codgrupo | Resultados | **Jugados** | **Filas de clasificación** |
+|---|---|---|---|
+| **27085485** ← el que sirve producción | 210 | **0** | **0** |
+| 27119635 | 210 | 28 | 60, hasta la J4 |
+
+Una es un **cascarón**: calendario entero, ningún marcador, ninguna tabla. Parece que el calendario se cargó
+bajo un código y, al empezar a jugarse, el grupo se re-identificó con otro, quedando el primero huérfano.
+
+**Lo que ve el usuario, comprobado en el sitio vivo:** la ficha del Grupo 9 de 2ª Juvenil muestra la pastilla
+**«Por comenzar»** y la tabla de **pretemporada ordenada por ELO con todo a cero** — para un grupo que lleva
+**4 jornadas y 28 partidos jugados**. Y en `/madrid/juveniles` la pastilla **«Grupo 9 · J4» aparece DOS
+veces** en la tarjeta de 2ª Juvenil; las dos enlazan a la misma URL, que es la rota.
+
+**NO lo causa el redirect de jornadas sin jugar**, que se desplegó hoy: la página resuelve al código huérfano
+con o sin él. El redirect solo lo hizo visible (la J20 manda a la J1 en vez de a la J4).
+
+**Dos sitios donde el código da por hecho que la clave identifica UNA fila:**
+- `getGrupoBySlug` resuelve con `data.find(startsWith('fam-')) ?? data[0]` y **sin `ORDER BY`**: cuál gana no
+  está decidido por nadie. Hoy sale consistentemente el cascarón, pero no porque se haya elegido.
+- `getGruposIndice` deduplica por `nombre_comp` → máxima temporada, **pero no por `slug_grupo`**: dos filas
+  de la misma temporada sobreviven las dos y pintan dos pastillas idénticas. Es exactamente
+  [[slug-comp-se-reciclo-en-el-rebrand]]: *deduplica con la MISMA clave con la que agrupa el consumidor*.
+
+**Arreglos posibles, a decidir:**
+1. **Pipeline (raíz):** no publicar el `codgrupo` huérfano. Lo distingue sin ambigüedad: 0 jugados y 0 filas
+   de clasificación teniendo el calendario entero.
+2. **Web (defensa):** desempatar en `getGrupoBySlug` por la fila que SÍ tiene clasificación —una consulta
+   extra solo cuando hay más de una fila, que hoy es 1 clave de 528— y deduplicar por `slug_grupo` en el
+   índice. No arregla el dato, pero quita el no-determinismo y la pastilla doble.
+
+Recomiendo **las dos**: la 1 porque es la causa, y la 2 porque la web no debería depender de que el dato
+venga limpio para no servir una página congelada.
