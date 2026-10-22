@@ -26,6 +26,7 @@ import JsonLd from '@/components/JsonLd'
 import { graphLd, sportsEventLd } from '@/lib/jsonld'
 import { escudoUrl } from '@/lib/supabase'
 import { esTemporadaActiva } from '@/lib/temporadas'
+import { getUltimaJornadaJugada } from '@/lib/ultimaJornada'
 import { colorElo } from '@/lib/equipoV2'
 import { fichasInfo } from '@/lib/jugador'
 import { ZONA_BG, ZONA_LEYENDA, ARRASTRE_TIPOS } from '@/components/zonasClasif'
@@ -159,6 +160,20 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
   // Estado de la competición (mismo discriminante que la pastilla de la cabecera): ¿algún partido jugado?
   const hayJugados = await tienePartidosJugados(grupo.codgrupo, codtemporada)
   const sinEmpezarLiga = !isCopa && !hayJugados
+
+  // JORNADA A MEDIAS, DICHA EN VOZ ALTA. Si la última jugada no está completa —hoy 16 de los 89 grupos—, el
+  // rótulo lo dice: "tras la jornada 6 · 6 de 8 jugados". Retroceder a la última jornada COMPLETA habría
+  // enseñado una tabla MÁS VIEJA que la que el sitio ya sirve durante buena parte de cada semana, así que la
+  // jornada a medias se acepta y lo que se arregla es callarlo.
+  //
+  // Es la otra mitad del mismo arreglo que el redirect de la ruta: ahí se dejó de decir "tras la jornada 20"
+  // enseñando la J6; aquí se deja de decir "tras la jornada 6" enseñando seis octavos de la J6.
+  //
+  // Misma clave de caché que el redirect de la ruta -> no hay consulta extra. `undefined` (no se pudo saber)
+  // cae en el mismo lado que `null`: sin sufijo, como hoy.
+  const ultimaJ = isCopa ? null : await getUltimaJornadaJugada(grupo.codgrupo, codtemporada)
+  const jParcial = ultimaJ && ultimaJ.jornada === jornadaNum && ultimaJ.partidos_jugados < ultimaJ.partidos_jornada
+    ? ` · ${ultimaJ.partidos_jugados} de ${ultimaJ.partidos_jornada} jugados` : ''
   // Clasificación: normal si hay jugados; en PRETEMPORADA (liga sin empezar, web_clasificacion vacía) se compone
   // por ELO con todo a cero. Alimenta KPIs + panel; en copa no hay clasificación.
   const clasif: ClasifCompRow[] = isCopa ? []
@@ -269,7 +284,7 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
 
   // Vista de ranking (.rr) para las pestañas soportadas en este incremento. Escudo real en todas.
   type RankView = { title: string; sub: string; items: RankItem[]; leyenda?: ReactNode; barColor?: string }
-  const acum = `acumulado hasta J${jornadaNum}`
+  const acum = `acumulado hasta J${jornadaNum}${jParcial}`
   let rankView: RankView | null = null
   if (tabEf === 'top5-jugadores-jornada') {
     rankView = {
@@ -553,7 +568,7 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
       {/* PANORAMA — líderes + cifras a ancho completo, dependen del ámbito */}
       {!isCopa && (
         <Panorama lideres={lideres} cifras={cifras} kpis={kpis} fichas={fichas}
-          subLideres={`${temporada}${grupo.nombre_grupo ? ` · ${grupo.nombre_grupo}` : ''}`} subCifras={`tras la jornada ${jornadaNum}`} />
+          subLideres={`${temporada}${grupo.nombre_grupo ? ` · ${grupo.nombre_grupo}` : ''}`} subCifras={`tras la jornada ${jornadaNum}${jParcial}`} />
       )}
 
       {/* PESTAÑAS sticky: Reportes de (pastilla) · Jornada (pastilla) · Ver (subrayado) */}
@@ -580,7 +595,7 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
           {/* CLASIFICACIÓN de LIGA (increment 1) */}
           {tabEf === 'clasificacion' && !isCopa && (
             <section id="s-clasif">
-              <SectionHeader title="Clasificación" sub={`tras la jornada ${jornadaNum}`} />
+              <SectionHeader title="Clasificación" sub={`tras la jornada ${jornadaNum}${jParcial}`} />
               {clasif.length > 0 ? (
                 <>
                   <div className="ctabla"><ScrollRail className="ctw" wrapClassName="srail-tabla">
@@ -766,7 +781,7 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
           {/* ESTADÍSTICAS — reparto V/E/D + goles por equipo (espejo) + goles por tramo (solo verde). */}
           {tabEf === 'estadisticas' && (
             <section>
-              <SectionHeader title="Estadísticas" sub={`acumulado hasta J${jornadaNum}`} />
+              <SectionHeader title="Estadísticas" sub={`acumulado hasta J${jornadaNum}${jParcial}`} />
               {cifras && (
                 <div className="statbox">
                   <div className="cap" style={{ marginBottom: 9 }}>Reparto de resultados</div>

@@ -11,6 +11,7 @@ import { nombreOficial, denominacion } from '@/lib/sellos'
 import { FAMILIA_SLUGS, OLD_A_FAMILIA, familiaSlugGrupo, jornadaSegValida, type Ronda } from '@/lib/competiciones'
 import FichaCompeticionV2 from '@/components/ficha/v2/FichaCompeticionV2'
 import { slugToCod } from '@/lib/temporadaSlug'
+import { getUltimaJornadaJugada } from '@/lib/ultimaJornada'
 
 // La vista de GRUPO de competición la renderiza FichaCompeticionV2. Este page.tsx conserva generateMetadata
 // (title/description/canonical con colapso jornada→actual + canonical de familia + noindex juvenil), el
@@ -145,6 +146,39 @@ export default async function GrupoPage({
     const jNum = parseInt(jornada.replace('jornada-', ''), 10) || jactNum
     if (jNum === jactNum && !(await tienePartidosJugados(grupo.codgrupo, codtemporada))) {
       redirect(`/madrid/${categoria}/${slug_comp}/${slug_grupo}/${temporada}/jornada-1/resultados`)
+    }
+  }
+
+  // JORNADA SIN JUGAR -> 307 a la última jugada, en la MISMA pestaña.
+  //
+  // El problema: de los 2.830 pares grupo-jornada publicados de T22, 2.403 (el 85 %) no tienen ni un partido
+  // jugado. Y la página no se vaciaba: `fetchSnapshot` rebobina a la jornada más cercana con dato, pero el
+  // rótulo usa la jornada PEDIDA. Resultado: /jornada-20/clasificacion enseñaba la tabla de la J6 diciendo
+  // "tras la jornada 20". El redirect no solo deduplica miles de URLs: deja de mentir.
+  //
+  // `resultados` SE QUEDA FUERA, y es la única. Las otras trece, ante una jornada sin jugar, o se vacían
+  // (`.eq('jornada')` exacto), o enseñan otra con etiqueta falsa (rebobinan), o nunca miraron la jornada
+  // (ELO de jugadores, estadísticas). `resultados` es la única cuyo contenido para una jornada futura es el
+  // que el usuario venía a ver: los ENFRENTAMIENTOS. Redirigirla sería quitárselo.
+  //
+  // TEMPORAL (307), nunca 308: la jornada 7 no está jugada hoy y lo estará la semana que viene. Un 308 lo
+  // cachean navegador y Google como definitivo y seguirían redirigiendo cuando ya no toca. (Esta ruta además
+  // se sirve con `no-store` —es dinámica, sin generateStaticParams—, así que la decisión se toma en cada
+  // petición y no hay caché de ruta que la congele. Lo que sí está cacheado es el DATO: ver lib/ultimaJornada.)
+  //
+  // SOLO JORNADAS FUTURAS (`>`): si la J4 se aplazó y ya se jugó la J6, pedir la J4 NO redirige. Empujar al
+  // usuario hacia DELANTE sería peor que dejarle ver lo que pidió. La vista da la última jugada, no qué
+  // jornadas concretas se jugaron, así que los huecos intermedios se quedan como están — decisión pendiente.
+  //
+  // COPA FUERA (`!isCopa`) y ruta GLOBAL fuera (es otro fichero): ver lib/ultimaJornada.
+  if (!isCopa && tab !== 'resultados') {
+    const jNum = parseInt(jornada.replace('jornada-', ''), 10) || (grupo.jornada_actual || 1)
+    const ultima = await getUltimaJornadaJugada(grupo.codgrupo, codtemporada)
+    const destino = ultima === undefined ? null                     // no se pudo saber -> no mover a nadie
+      : ultima === null ? (jNum !== 1 ? 1 : null)                   // no ha jugado nada -> jornada 1
+      : (jNum > ultima.jornada ? ultima.jornada : null)             // futura -> la última jugada
+    if (destino != null) {
+      redirect(`/madrid/${categoria}/${slug_comp}/${slug_grupo}/${temporada}/jornada-${destino}/${tab}`)
     }
   }
 

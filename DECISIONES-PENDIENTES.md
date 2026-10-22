@@ -1408,3 +1408,85 @@ saltado". Antes de forzar un despliegue a mano hay que esperar bastante más, de
 (El experimento NO quedó contaminado: el despliegue tardío quedó READY antes de empezar a calentar, y la
 edad de la entrada sube sin cortes durante toda la medición, lo que descarta cualquier cambio de alias
 intermedio.)
+
+### E-jornada-sin-jugar · Redirigir las jornadas sin jugar (2026-10-22, HECHO EN LOCAL, SIN DESPLEGAR)
+
+**El problema, y no era una página en blanco.** De los 2.830 pares grupo-jornada publicados de T22, **2.403
+(el 85 %) no tienen ni un partido jugado**. La página no se vaciaba: `fetchSnapshot` rebobina a la jornada
+más cercana con dato. Pero **el rótulo usa la jornada PEDIDA**, así que `/jornada-20/clasificacion` enseñaba
+la tabla de la J6 diciendo «tras la jornada 20». Dos defectos a la vez: miles de URLs duplicadas y una
+etiqueta que miente.
+
+**Las catorce pestañas no se comportan igual, y por eso la pregunta de qué redirige multiplicaba o dividía
+el efecto por 14.** Tres comportamientos distintos ante una jornada sin jugar:
+
+| Comportamiento | Pestañas | Qué pasa |
+|---|---|---|
+| **Rebobinan** (7) | clasificacion, top5-equipos-jornada, top10-{goleadores,porteros,fantasy,tarjetas}-temporada, once-optimo-temporada | enseñan otra jornada con etiqueta falsa |
+| **Se vacían** (4) | goleadores-jornada, tarjetas-jornada, top5-jugadores-jornada, once-optimo-jornada | `.eq('jornada')` exacto → página en blanco |
+| **Ignoran la jornada** (2) | top10-elo-jugadores-temporada, estadisticas | contenido idéntico en las 34 URLs |
+
+**`resultados` es la única que NO redirige.** Consulta con `.eq('jornada')` exacto igual que las que se
+vacían, pero aquí el exacto es lo correcto: devuelve **los enfrentamientos** de esa jornada, jugados o no.
+Es la única cuyo contenido para una jornada futura es el que el usuario venía a ver.
+
+**La ruta NO está cacheada, y eso simplificó el diseño.** Medido en producción: `x-vercel-cache: MISS` y
+`cache-control: private, no-cache, no-store`. Es `ƒ` en el build —no tiene `generateStaticParams`, que es lo
+que la deja dinámica en Next 16— y concuerda con que competición aporte **cero** escrituras ISR. El
+`export const revalidate = 2592000` del fichero **no se está aplicando**. Así que la decisión se toma en cada
+petición y no hay caché de ruta que la congele: **no hace falta middleware**. Lo que sí podía quedarse viejo
+era el DATO, una capa más abajo.
+
+**307, nunca 308:** la jornada 7 no está jugada hoy y lo estará la semana que viene.
+
+**La lectura, `lib/ultimaJornada.ts`:** tag `comp:<codgrupo>` + **una hora** de red de seguridad. La etiqueta
+es mejor que un tiempo a secas porque el pipeline YA la emite al cargar los resultados de ese grupo: se
+refresca exactamente cuando ese grupo juega. La hora es el respaldo (sin ella el TTL serían 30 días). **Ni
+rastro de `indices`** — ver [[E-suelo-sin-indices]].
+
+**TRES estados, no dos, y la diferencia es load-bearing:** `UltimaJornada` / `null` (no ha jugado nada) /
+`undefined` (**no se pudo saber**). Si un fallo de BD se confundiera con «no ha jugado nada», un hipo de
+medio minuto mandaría a TODO EL MUNDO a la jornada 1. Con `undefined` no se redirige a nadie: fallar en
+abierto es menos malo que mover al usuario a un sitio que no pidió. El `throw` va dentro de
+`unstable_cache`, que no guarda rechazos, así que el error no se cachea una hora.
+
+**Solo jornadas futuras (`>`).** Si la J4 se aplazó y ya se jugó la J6, pedir la J4 NO redirige: empujar al
+usuario hacia DELANTE sería peor que dejarle ver lo que pidió. La vista da la última jugada, no qué jornadas
+concretas se jugaron. **Huecos intermedios: decisión pendiente.**
+
+**La jornada a medias se acepta y se dice** (16 de 89 grupos): «tras la jornada 4 · 6 de 7 jugados».
+Retroceder a la última COMPLETA habría enseñado una tabla más vieja que la que el sitio ya sirve buena parte
+de cada semana. Es la otra mitad del mismo arreglo: ahí se dejó de decir «tras la jornada 20» enseñando la
+J6; aquí, «tras la jornada 6» enseñando seis octavos de la J6.
+
+**Fuera a propósito:** copa (sus resultados van bajo el codgrupo de familia y su clasificación bajo los
+numéricos: las dos claves no se encuentran, no hay fila) y la ruta `global`.
+
+**Verificado en el build de producción en local, contra la base viva:**
+
+| Caso | Resultado |
+|---|---|
+| G10 J20 clasificacion (futura) | **307** → `/jornada-2/clasificacion` |
+| G10 J20 **resultados** | **200**, no redirige |
+| G10 J20 goleadores-jornada | **307** → `/jornada-2/goleadores-jornada` |
+| G10 J2 (jugada) y J1 (pasada) | **200** |
+| JUV G9 J20 (**sin fila**) | **307** → `/jornada-1/clasificacion` |
+| JUV G9 J1 (sin fila, ya en destino) | **200**, sin bucle |
+| Copa `fase-de-grupos` y `final` (URLs reales) | **200**, intacta |
+| Rótulo G2 (última a medias) | «tras la jornada 4 · 6 de 7 jugados» |
+| Rótulo G10 (última completa) | «tras la jornada 2», sin sufijo |
+
+**Lo que ya estaba resuelto y no hizo falta tocar:** una jornada que NO EXISTE en el grupo (la 30 de uno de
+26) **ya da 404** — `jornadaSegValida` topa en `total_jornadas` y la ruta hace `notFound()`. Medido: 27, 30 y
+99 dan 404, igual que `jornada-abc` o un slug de ronda en una liga. Un redirect ahí habría prometido «esto
+valdrá más adelante» sobre una jornada que no va a existir nunca.
+
+**PERO `jornada-0` SÍ es alcanzable** y devuelve 200 en todos los grupos, con un test que lo afirma
+(`jornadaSeg.test.ts:32`). Lo que hace es sutil: `parseInt('0')` es **falsy**, así que cae en
+`|| grupo.jornada_actual` y sirve la jornada actual — rotulada con honestidad, no miente. Es **una URL
+duplicada por grupo y pestaña** (del orden de 1.270) que además NO redirige bajo la regla nueva, porque 0 no
+es mayor que la última jugada. **Anotado, no tocado:** no sé si fue decisión o descuido.
+
+**Anotado y no arreglado (es otro frente):** en 2ª Aficionada y 2ª Juvenil la ruta `global` junta bajo un
+mismo número de jornada partidos separados hasta **35 días**, porque el calendario va por competición ×
+tamaño de calendario y no por competición.
