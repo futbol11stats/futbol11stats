@@ -1524,3 +1524,34 @@ dice "sin la marca" o "no debe subirse". Nombrarla la dispara.
 
 **Las dos conclusiones equivocadas costaron dinero** (despliegues de más, ver
 [[coste-de-cada-deploy-agrupar]]), que es lo que las distingue de un error de redacción.
+
+**VERIFICADO EN PRODUCCIÓN (22/10, `ef40240`, `dpl_7wtC3kHivTKNDpivgeMBgGu1Yj4X`).** Los mismos siete casos
+que en local, ahora sobre el sitio vivo (por navegación: `fetch` sobre esta ruta congela el renderizador):
+
+| Caso | Resultado |
+|---|---|
+| G10 J20 clasificación | → `/jornada-2/clasificacion` |
+| G10 J20 **resultados** | se queda en la J20 |
+| G10 J20 goleadores-jornada | → `/jornada-2/goleadores-jornada` |
+| JUV G9 J20 (sin fila) | → `/jornada-1/clasificacion` |
+| JUV G9 J1 | se queda, sin bucle |
+| Copa `fase-de-grupos/clasificacion` | intacta |
+| Rótulo G2 (última a medias) | «tras la jornada 4 · 6 de 7 jugados» |
+| Rótulo G10 (última completa) | «tras la jornada 2», sin sufijo |
+
+**El arranque es escalonado, y conviene tenerlo presente al leer cualquier cifra de jornadas.** Reparto de
+los 90 grupos de liga de T22 por última jugada: **11 en la J2**, 33 en la J4, 44 en la J6, 1 en la J7 y 1 sin
+fila. Un grupo en la jornada 2 a finales de octubre no es un error de dato: 2ª Aficionados Grupo 10 arrancó
+el **11 de octubre** (J1 el 11, J2 el 18, J3 el 25), comprobado en `web_resultados`, no en la vista.
+
+**HALLAZGO LATERAL, NO TOCADO: grupos DUPLICADOS en `web_grupos`.** `JUVENIL/segunda/grupo-9` de T22 tiene
+**DOS filas** con el mismo `categoria+slug_comp+slug_grupo+codtemporada` y distinto `codgrupo` (27119635 y
+27085485), las dos `tipo='LIGA'` y con el mismo nombre. Una tiene fila en la vista (última jugada 4) y la
+otra no.
+
+`getGrupoBySlug` resuelve con `data.find(startsWith('fam-')) ?? data[0]` **sin `ORDER BY`**: cuál de las dos
+gana **no es determinista**. Hoy producción sirve la que no tiene fila, y por eso la J20 manda a la J1 — pero
+podría mandar a la J4 sin que cambiara nada. Es anterior a este arreglo y lo afecta todo (clasificación,
+resultados, plantillas), no solo el redirect. **Es la familia de [[jornada-semantica-difiere-por-tabla]]:
+cruzar por una clave que no identifica una sola fila devuelve la equivocada sin error.** Pendiente de
+decidir: o el pipeline deduplica, o la web ordena por algo estable.
