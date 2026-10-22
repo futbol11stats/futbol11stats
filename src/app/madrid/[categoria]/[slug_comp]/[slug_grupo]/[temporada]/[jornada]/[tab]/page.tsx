@@ -12,6 +12,7 @@ import { FAMILIA_SLUGS, OLD_A_FAMILIA, familiaSlugGrupo, jornadaSegValida, type 
 import FichaCompeticionV2 from '@/components/ficha/v2/FichaCompeticionV2'
 import { slugToCod } from '@/lib/temporadaSlug'
 import { getUltimaJornadaJugada } from '@/lib/ultimaJornada'
+import { hayQueDesempatar, elegirGrupo } from '@/lib/grupoUnico'
 
 // La vista de GRUPO de competición la renderiza FichaCompeticionV2. Este page.tsx conserva generateMetadata
 // (title/description/canonical con colapso jornada→actual + canonical de familia + noindex juvenil), el
@@ -44,10 +45,25 @@ async function getGrupoBySlug(
   if (cat) query = query.eq('categoria', cat)
   const { data, error } = await query
   if (error) throw error   // un error transitorio NO debe volverse null -> notFound() congelado como 404 en el route cache
-  if (!data || !data.length) return null
-  // Prefiere la fila de FAMILIA (codgrupo fam-*) cuando coexiste con una vieja del mismo slug (p.ej.
-  // 'copa-rffm' es slug de familia Y hubo un grupo viejo homónimo).
-  return (data as any[]).find((g) => String(g.codgrupo).startsWith('fam-')) ?? data[0]
+  const filas = (data ?? []) as any[]
+  if (!filas.length) return null
+
+  // CAMINO NORMAL, y es el único que se recorre hoy: una sola fila, sin consulta extra. En las 528 claves
+  // publicadas de las seis temporadas no hay ni un duplicado.
+  if (!hayQueDesempatar(filas)) return filas[0]
+
+  // DESEMPATE (ver lib/grupoUnico). Antes aquí había `find(fam-*) ?? data[0]`, y ese `data[0]` era
+  // determinista POR ACCIDENTE: salía la fila que Postgres devolviera primero, sin `ORDER BY` ni criterio.
+  // El 22/10/2026 eso sirvió un grupo CASCARÓN (calendario entero, 0 jugados, 0 clasificación) y la ficha
+  // de 2ª Juvenil Grupo 9 mostró "Por comenzar" con la tabla a cero llevando 4 jornadas jugadas.
+  // Una fila por codgrupo basta para saber cuál tiene tabla: `limit(1)` por candidata, y son dos o tres.
+  const conClasif = new Set<string>()
+  for (const g of filas) {
+    const { data: cl } = await supabase.from('web_clasificacion')
+      .select('codgrupo').eq('codgrupo', String(g.codgrupo)).eq('codtemporada', codtemporada).limit(1)
+    if (cl && cl.length) conClasif.add(String(g.codgrupo))
+  }
+  return elegirGrupo(filas, conClasif)
 }
 
 export async function generateMetadata({

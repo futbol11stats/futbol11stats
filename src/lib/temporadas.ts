@@ -17,6 +17,7 @@
 
 import { supabase } from '@/lib/supabase'
 import { cacheIndices, cacheTagged } from '@/lib/cacheComp'
+import { dedupeGruposPorSlug } from '@/lib/grupoUnico'
 import { esViejaCopa } from '@/lib/competiciones'
 
 export type TempActiva = { categoria: string; slug_comp: string; temporada_activa: number }
@@ -155,7 +156,10 @@ export async function getGruposIndice(categoriaBD: 'AFICIONADO' | 'JUVENIL') {
       const res = (data as any[]).filter((g) => g.slug_comp && !esViejaCopa(g.slug_comp)
         && Number(g.codtemporada) === maxPorComp.get(g.nombre_comp))
       if (res.length === 0) throw new Error(`[indices] web_grupos (${categoriaBD}) quedó vacío tras seleccionar por calendario`)
-      return res
+      // Dedupe por slug_comp+slug_grupo: el filtro de arriba descarta TEMPORADAS viejas, pero dos filas de la
+      // MISMA temporada con el mismo slug sobrevivían las dos y pintaban dos pastillas idénticas (pasó con
+      // 2ª Juvenil Grupo 9 el 22/10/2026). Ver lib/grupoUnico.
+      return dedupeGruposPorSlug(res)
     }
 
     // CAMINO ANTIGUO (solo si el flag vuelve a false): la última temporada con ≥1 partido jugado.
@@ -175,7 +179,10 @@ export async function getGruposIndice(categoriaBD: 'AFICIONADO' | 'JUVENIL') {
       .filter((g: any) => m.get(`${categoriaBD}|${g.slug_comp}`) === g.codtemporada)
       .filter((g: any) => !esViejaCopa(g.slug_comp))
     if (res.length === 0) throw new Error(`[indices] web_grupos (${categoriaBD}) quedó vacío tras filtrar por temporada activa (dato inconsistente)`)
-    return res
+    // Mismo dedupe que el camino de arriba. Va también aquí aunque este camino esté hoy inalcanzable (el
+    // flag está en true): dejarlo fuera sería plantar la mitad del arreglo esperando a que alguien gire el
+    // flag dentro de un año y se pregunte por qué vuelven las pastillas dobles.
+    return dedupeGruposPorSlug(res)
   // La clave es MANUAL (este getter no usa hashCols: el select no cambia, cambia la lógica de filtrado),
   // así que el token 'v2-nombre' es obligatorio: sin bumpearlo la home seguiría sirviendo el índice
   // cacheado con las pastillas duplicadas.

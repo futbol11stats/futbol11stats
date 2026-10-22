@@ -1587,12 +1587,33 @@ con o sin él. El redirect solo lo hizo visible (la J20 manda a la J1 en vez de 
   de la misma temporada sobreviven las dos y pintan dos pastillas idénticas. Es exactamente
   [[slug-comp-se-reciclo-en-el-rebrand]]: *deduplica con la MISMA clave con la que agrupa el consumidor*.
 
-**Arreglos posibles, a decidir:**
-1. **Pipeline (raíz):** no publicar el `codgrupo` huérfano. Lo distingue sin ambigüedad: 0 jugados y 0 filas
-   de clasificación teniendo el calendario entero.
-2. **Web (defensa):** desempatar en `getGrupoBySlug` por la fila que SÍ tiene clasificación —una consulta
-   extra solo cuando hay más de una fila, que hoy es 1 clave de 528— y deduplicar por `slug_grupo` en el
-   índice. No arregla el dato, pero quita el no-determinismo y la pastilla doble.
+**LAS DOS COSAS SE HICIERON. Ya no hay nada que decidir aquí** (actualizado 22/10/2026):
 
-Recomiendo **las dos**: la 1 porque es la causa, y la 2 porque la web no debería depender de que el dato
-venga limpio para no servir una página congelada.
+**1 · Pipeline — HECHO el 22/10.** Retirado el cascarón `27085485` con veredicto de la fuente (el listado de
+2ª Juvenil sirve 22 grupos y ese no está), copia previa y comprobación fila a fila de que no sostenía nada.
+**227 filas publicadas retiradas** — `web_resultados` 210 + `web_juego_limpio` 16 + `web_grupos` 1 — más 240
+actas locales. **Medido después: 0 pares duplicados en toda la base publicada, las seis temporadas.**
+
+**2 · Web — CONSTRUIDO el 22/10, en `lib/grupoUnico.ts`** (sin desplegar; sube con el siguiente lote).
+`getGrupoBySlug` desempata por la fila que SÍ tiene clasificación, con la consulta extra solo cuando hay más
+de una fila; y `getGruposIndice` deduplica antes de devolver, en **sus dos salidas**.
+
+**POR QUÉ LA DEFENSA SIGUE HACIENDO FALTA CON EL DATO YA LIMPIO**, que es lo que de verdad hay que recordar:
+hoy `data[0]` es determinista **por accidente** —porque solo queda una fila—, no por diseño. El código sigue
+dando por hecho que esa clave identifica UNA fila, y **el mecanismo que creó el duplicado sigue vivo**: un
+upsert que nunca borra, más una reorganización de pretemporada a nivel de GRUPO. La próxima vez puede no
+traer un discriminador tan limpio como 0 contra 28 — por eso el desempate termina **siempre** en un criterio
+estable (el `codgrupo` menor), aunque ninguna candidata tenga clasificación.
+
+**Una corrección sobre el plan:** se deduplica por **`slug_comp + slug_grupo`**, no por `slug_grupo` a secas.
+Es la clave que identifica la pastilla porque es la que compone su URL; deduplicar solo por `slug_grupo`
+borraría el "grupo-9" de una competición porque existe otro "grupo-9" en otra — cambiar un bug por otro peor.
+Hay un test que lo fija.
+
+**CONTROL POSITIVO, porque hoy esto no se puede probar contra el dato real.** Con cero duplicados en la base,
+una comprobación contra producción **no puede fallar**, y un cheque que no puede fallar no prueba nada:
+pasaría igual con las funciones vacías. Así que el caso real se reconstruye sintéticamente en
+`grupoUnico.test.ts` —las dos filas de `JUVENIL/segunda/grupo-9`, una con clasificación y el cascarón sin
+ella— y se ve desempatar y deduplicar de verdad. **16 tests, y comprobado que 8 FALLAN con la lógica vieja**
+(`find(fam-*) ?? data[0]` y sin dedupe) mientras los 8 controles negativos siguen pasando: los positivos
+cazan el bug y los negativos no saltan solos.
