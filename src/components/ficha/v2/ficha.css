@@ -266,9 +266,14 @@
    ΔELO) según el sujeto. Las clases .match/.m-* de arriba se conservan para la tira de rondas de copa. ── */
 .fjv2 .match-hb{display:block;padding:10px var(--pad) 9px;border-top:1px solid var(--line-2);text-decoration:none;color:inherit}
 .fjv2 .match-hb:first-child{border-top:0}
-.fjv2 a.match-hb-link{transition:background .12s}
-.fjv2 a.match-hb-link:hover{background:rgba(255,255,255,.05)}
-.fjv2 a.match-hb-link:hover .mh-nm{color:var(--ink)}
+/* Fila enlazada = <div> + capa .match-hb-cover (enlace al partido, cubre la fila) + los <a> de dentro por encima
+   (nombres de equipo -> su ficha). Antes era un <a> con <a> dentro (HTML inválido). Ver MatchRow.tsx. */
+.fjv2 .match-hb-link{position:relative;transition:background .12s}
+.fjv2 .match-hb-link:hover{background:rgba(255,255,255,.05)}
+.fjv2 .match-hb-link:hover .mh-nm{color:var(--ink)}
+.fjv2 .match-hb-cover{position:absolute;inset:0;z-index:1}
+.fjv2 .match-hb-cover:focus-visible{outline:2px solid var(--e2);outline-offset:-2px}
+.fjv2 .match-hb-link a:not(.match-hb-cover){position:relative;z-index:2}
 .fjv2 .mh-top{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:10px}
 .fjv2 .mh-side{display:flex;align-items:center;gap:7px;min-width:0}
 .fjv2 .mh-side.v{flex-direction:row-reverse}

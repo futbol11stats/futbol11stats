@@ -108,9 +108,21 @@ function Cuerpo(p: MatchRowProps) {
   )
 }
 
+// Fila ENLAZADA sin <a> dentro de <a>: los nombres de equipo (NombreEquipo) ya son enlaces a su ficha, y meterlos
+// dentro del <Link> de la fila era HTML inválido (error de hidratación «<a> cannot be a descendant of <a>»). Patrón
+// "enlace extendido": la fila es un <div> y el enlace al partido es una CAPA vacía que la cubre entera (primer hijo,
+// así va primero también con teclado); los <a> de dentro suben por encima (CSS .match-hb-link a:not(.match-hb-cover)).
+// Mismos clics que antes: en el nombre enlazado -> ficha del equipo; en cualquier otro punto -> ficha del partido.
+function etiquetaFila(p: MatchRowProps): string {
+  const suj = p.propioNombre ?? '', riv = p.rivalNombre ?? ''
+  const [l, v] = p.esLocal === false ? [riv, suj] : [suj, riv]
+  const jugado = !!p.marcador && /\d+-\d+/.test(p.marcador)
+  return [`Ver partido: ${l} ${jugado ? p.marcador : 'vs'} ${v}`.replace(/\s+/g, ' ').trim(), p.fecha ? fechaCortaDMY(p.fecha) : null].filter(Boolean).join(', ')
+}
+
 export default function MatchRow(p: MatchRowProps) {
   const cls = `match-hb${p.compact ? ' match-hb-compact' : ''}`
   return p.href
-    ? <Link className={`${cls} match-hb-link`} href={p.href}><Cuerpo {...p} /></Link>
+    ? <div className={`${cls} match-hb-link`}><Link className="match-hb-cover" href={p.href} aria-label={etiquetaFila(p)} /><Cuerpo {...p} /></div>
     : <div className={cls}><Cuerpo {...p} /></div>
 }

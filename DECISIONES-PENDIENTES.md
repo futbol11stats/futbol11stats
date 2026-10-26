@@ -1637,10 +1637,17 @@ Juvenil G5 (26737723); el dato real llega con el export del 26→27/10.
 2. **Línea del retirado en "Carrera de posiciones"** (`CarreraPosiciones`, ficha de competición). Sigue
    dibujándolo en el último puesto en todas las jornadas, como si fuera un puesto ganado. Por decidir:
    quitar la línea, cortarla en la jornada de la retirada, o pintarla atenuada sin número.
+   **HECHO (26/10, sin publicar): se quita la línea** — `getCarreraV2` filtra `retirado` en la última jornada
+   (fuera línea, botón y banda; la escala queda en N-1) y topa la posición en N-1 por si el retirado no
+   ocupó siempre el último puesto. Clave de caché a mano -> `v2-sinretirado`.
 3. **`<a>` anidado en `MatchRow`.** El nombre del equipo (`NombreEquipo` → `<Link>`) va dentro del `<Link>`
    de la fila del partido → error de hidratación «`<a>` cannot be a descendant of `<a>`» (visto en el log de
    `next dev` desde las 01:59 del 26/10, p. ej. partido 1443049 en la ficha de equipo). Previo a esto y sin
    relación con la retirada.
+   **HECHO (26/10, sin publicar): patrón de enlace extendido.** La fila es un `<div>`; el enlace al partido es
+   una capa vacía (`.match-hb-cover`, con `aria-label`) que la cubre, y los `<a>` de dentro suben por encima.
+   Mismo aspecto y mismos destinos de clic (nombre enlazado -> equipo; resto -> partido), comprobado fila a
+   fila con `elementFromPoint` a 390 y 1400 en ficha de equipo y de partido (incl. Cara a cara); 0 `a a`.
 
 ### E-provisional · Acta abierta como provisional (2026-10-26, DESPLEGADO; quedan dos pendientes)
 

@@ -383,9 +383,11 @@ export async function getCarreraV2(codgrupo: string, codtemporada: number): Prom
     .eq('codgrupo', codgrupo).eq('codtemporada', codtemporada).order('jornada', { ascending: false }).limit(1)
   const maxJ = jr && jr[0] ? Number(jr[0].jornada) : null
   if (maxJ == null) return { series: [], jornadas: [], bands: [] }
-  const { data: lastData } = await supabase.from('web_clasificacion').select('codequipo, nombre_equipo, pos, zona')
+  const { data: lastData } = await supabase.from('web_clasificacion').select('codequipo, nombre_equipo, pos, zona, retirado')
     .eq('codgrupo', codgrupo).eq('codtemporada', codtemporada).eq('jornada', maxJ).order('pos')
-  const last = (lastData || []) as any[]
+  // Sin el RETIRADO: su "posición" es el hueco de la última fila, no una carrera. Fuera su línea y su banda; la
+  // escala vertical (nº de series) queda en los N-1 equipos reales.
+  const last = ((lastData || []) as any[]).filter((t) => !t.retirado)
   if (!last.length) return { series: [], jornadas: [], bands: [] }
   const codequipos = last.map((t) => String(t.codequipo))
   // 2) Serie de posición por jornada, SOLO de esos equipos.
@@ -399,7 +401,9 @@ export async function getCarreraV2(codgrupo: string, codtemporada: number): Prom
   const series: CarreraSerie[] = last.map((t, idx) => {
     const m = byTeam.get(String(t.codequipo))!
     let prev = m.get(jornadas[0]) ?? t.pos
-    const pos = jornadas.map((j) => { const p = m.get(j); if (p != null) prev = p; return prev })
+    // Tope en N-1 (nº de series): si el retirado dejó de ocupar el último puesto a mitad de temporada, en
+    // jornadas anteriores alguien pudo estar por debajo del hueco que ya no se pinta.
+    const pos = jornadas.map((j) => { const p = m.get(j); if (p != null) prev = p; return Math.min(prev, last.length) })
     return { codequipo: String(t.codequipo), nombre: t.nombre_equipo, ini: iniEq(t.nombre_equipo), color: CARRERA_PAL[idx % CARRERA_PAL.length], pos }
   })
   // Bandas por posición desde la última jornada (zona real), fusionando posiciones consecutivas de la misma familia.
@@ -413,7 +417,7 @@ export async function getCarreraV2(codgrupo: string, codtemporada: number): Prom
     else raw.push({ from: p, to: p, fam: f })
   }
   return { series, jornadas, bands: raw.map((b) => ({ from: b.from, to: b.to, color: ZONA_FAM_COL[b.fam] })) }
-  }, ['getCarreraV2', codgrupo, codtemporada], [codgrupo], codtemporada)
+  }, ['getCarreraV2', 'v2-sinretirado', codgrupo, codtemporada], [codgrupo], codtemporada)
 }
 
 // Líder "más tarjetas" desde web_alertas_tarjetas. Fuente ÚNICA para ficha y global (y el pipeline replica la
