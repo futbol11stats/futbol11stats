@@ -1617,3 +1617,27 @@ pasaría igual con las funciones vacías. Así que el caso real se reconstruye s
 ella— y se ve desempatar y deduplicar de verdad. **16 tests, y comprobado que 8 FALLAN con la lógica vieja**
 (`find(fam-*) ?? data[0]` y sin dedupe) mientras los 8 controles negativos siguen pasando: los positivos
 cazan el bug y los negativos no saltan solos.
+
+### E-retirado · Equipo retirado en la clasificación (2026-10-26, DESPLEGADO; quedan tres pendientes)
+
+`web_clasificacion.retirado` (boolean, del pipeline): la RFFM deja al retirado en la última fila, con 0 puntos
+y `descenso_directo`. Donde se pintaría su puesto va el rótulo `RETIRADO` (`lib/rotulos.ts`): tablas de liga
+(por jornada incluida) y copa —sin número, sin Mov, Forma ni Racha, fondo de descenso—, vista global por
+zonas, ficha de equipo (pastilla, KPI Pos, "En su grupo", mini-tabla, carril del gráfico) y "Tras el
+partido". Verificado en local a 390 y 1400 simulando `retirado=true` para Mar Abierto 'A' (466569), Pref.
+Juvenil G5 (26737723); el dato real llega con el export del 26→27/10.
+
+**Pendientes, anotados y NO hechos:**
+
+1. **Pastilla "18º" en la ficha de JUGADOR de un equipo retirado.** `FichaJugadorV2` pinta
+   `web_equipo.posicion_actual`, que no sabe nada de la retirada. **Depende del pipeline:** que publique
+   `retirado` en `web_equipo` (o deje `posicion_actual` a NULL para el retirado). Cuando llegue, mismo
+   tratamiento que la ficha de equipo: `RETIRADO` en lugar de `Nº`. No parchear en lectura cruzando con
+   `web_clasificacion` solo para esto.
+2. **Línea del retirado en "Carrera de posiciones"** (`CarreraPosiciones`, ficha de competición). Sigue
+   dibujándolo en el último puesto en todas las jornadas, como si fuera un puesto ganado. Por decidir:
+   quitar la línea, cortarla en la jornada de la retirada, o pintarla atenuada sin número.
+3. **`<a>` anidado en `MatchRow`.** El nombre del equipo (`NombreEquipo` → `<Link>`) va dentro del `<Link>`
+   de la fila del partido → error de hidratación «`<a>` cannot be a descendant of `<a>`» (visto en el log de
+   `next dev` desde las 01:59 del 26/10, p. ej. partido 1443049 en la ficha de equipo). Previo a esto y sin
+   relación con la retirada.

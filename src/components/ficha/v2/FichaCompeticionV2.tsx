@@ -615,7 +615,7 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
                       <span className="cc">PO</span>
                     </div>
                     {clasif.map((r) => {
-                      // RETIRADO: sin puesto, sin Mov ni Forma, y fondo de descenso aunque la zona viniera vacía
+                      // RETIRADO: sin puesto, sin Mov, Forma ni Racha, y fondo de descenso aunque la zona viniera vacía
                       // (la retirada ES el descenso). El resto de columnas son sus cifras reales y se pintan.
                       const ret = !!r.retirado
                       const zonaFila = ret ? 'descenso_directo' : r.zona
@@ -647,7 +647,7 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
                             return <span className="cc c-elo" style={{ color: col }} title={eloD ? `${eloD > 0 ? '+' : '−'}${Math.abs(eloD)} esta jornada` : undefined}>{fmtNum(r.elo)}</span>
                           })()}
                           <span className="cracha">{!ret && <FormaStrip items={Array.from(r.forma || '').slice(-5)} size={13} gap={2} />}</span>
-                          <span className="ccom">{r.racha || ''}</span>
+                          <span className="ccom">{ret ? '' : (r.racha || '')}</span>
                           <span className="cc">{r.p0 ?? '—'}</span>
                         </div>
                       )
