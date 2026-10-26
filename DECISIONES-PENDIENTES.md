@@ -1641,3 +1641,22 @@ Juvenil G5 (26737723); el dato real llega con el export del 26→27/10.
    de la fila del partido → error de hidratación «`<a>` cannot be a descendant of `<a>`» (visto en el log de
    `next dev` desde las 01:59 del 26/10, p. ej. partido 1443049 en la ficha de equipo). Previo a esto y sin
    relación con la retirada.
+
+### E-provisional · Acta abierta como provisional (2026-10-26, DESPLEGADO; quedan dos pendientes)
+
+Opción A (decisión de Fernando, 2026-10-26). `web_resultados.computa=false` + marcador publicado = PROVISIONAL;
+la regla vive SOLO en `rotulos.esProvisional` (`computa` NULL/ausente = true). El pipeline lo publica con
+`elo_post_*` NULL desde el ciclo del 26→27/10. Web: pastilla "Provisional · Acta abierta" en vez de FINAL y
+sin "Tras el partido"; fuera de forma/"Últimos partidos"/rachas/cara a cara (ficha de partido y de equipo);
+con marca en el gráfico de Jornadas, filas de copa, lista de Resultados de competición y feed .ics del equipo.
+**Una sola marca, neutra: borde discontinuo en tinta secundaria** — el ámbar es de playoff/copa/disciplina.
+
+**Pendientes, anotados y NO hechos:**
+
+1. **Racha y partidos de la ficha de JUGADOR.** Salen de `web_jugador_partidos` (`racha5DePartidos`,
+   "Mejores/Últimos partidos", gráfico por jornada), no de `web_resultados`, y esa tabla no trae `computa`:
+   un provisional cuenta hoy en la racha del jugador y se pinta sin marca. **Depende de** que el pipeline
+   publique `computa` (o el estado del acta) en `web_jugador_partidos`; luego, mismo criterio que el equipo.
+2. **Fantasy de jornada de actas abiertas.** El acumulado `web_clasificacion.pts_fantasy` (barra del gráfico
+   del equipo, "Últimas 5/10") y los puntos por jugador los decide el pipeline. Si un acta abierta no debe
+   sumar fantasy hasta cerrarse, se excluye **en el pipeline**; la web solo pinta lo que llega.

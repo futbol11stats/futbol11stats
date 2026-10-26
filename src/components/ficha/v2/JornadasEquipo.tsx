@@ -173,10 +173,10 @@ export default function JornadasEquipo({ comps, cortes, temporada }: { comps: Co
         <div className="lg-row" style={{ marginTop: 6 }}>
           <span className="lg-item">Carril <b>ELO</b>: Δ ELO del partido — <b style={{ color: 'var(--e3)' }}>+ subió</b> · <b style={{ color: 'var(--e0)' }}>− bajó</b></span>
         </div>
-        {/* Solo si hay alguno: marcador subrayado = provisional (acta abierta, aún sin ELO ni efecto en la racha). */}
+        {/* Solo si hay alguno: marcador con borde discontinuo = provisional (acta abierta, aún sin ELO ni efecto en la racha). */}
         {comp.jornadas.some((d) => d.provisional) && (
           <div className="lg-row" style={{ marginTop: 6 }}>
-            <span className="lg-item"><span className="eq-marc prov">2-1</span>Marcador subrayado: <b>{PROVISIONAL.toLowerCase()}</b> (sin Δ ELO todavía)</span>
+            <span className="lg-item"><span className="eq-marc prov">2-1</span>Marcador con borde discontinuo: <b>{PROVISIONAL.toLowerCase()}</b> (sin Δ ELO todavía)</span>
           </div>
         )}
       </div>

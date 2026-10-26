@@ -13,7 +13,7 @@ import { fechaCortaDMY, equipoSlug } from '@/lib/equipo'
 import { campoMapsUrl, parseCampo } from '@/lib/club'
 import { isoMadrid } from '@/lib/horaMadrid'
 import { NO_DISPUTADO, SUSPENDIDO, SUSPENDIDO_MINI } from '@/lib/partido'
-import { RETIRADO } from '@/lib/rotulos'
+import { RETIRADO, PROVISIONAL, esProvisional } from '@/lib/rotulos'
 import { getDireccionesCampos, type DireccionCampo } from '@/lib/campo'
 import { getCamposConFicha, campoSlug } from '@/lib/campo'
 import SuperficieCampo from '@/components/SuperficieCampo'
@@ -449,6 +449,8 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
   const renderPartido = (r: ResultadoCompRow, i: number) => {
     const suspendido = r.estado_partido === 'suspendido'
     const jugado = r.goles_local != null && r.goles_visitante != null
+    // PROVISIONAL (acta abierta): el marcador se enseña con borde discontinuo; la leyenda va al pie de la lista.
+    const prov = esProvisional(r)
     const metaFH = [r.fecha ? fechaCortaDMY(r.fecha) : null, r.hora || null].filter(Boolean).join(' · ')
     const campoEl = renderCampoPartido(r)
     // Botón "Añadir a mi calendario": solo partido NO jugado, con fecha Y hora (no 00:00). El .ics lo sirve
@@ -487,8 +489,8 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
             // FUTURO con acta en la temporada actual (T22) -> botón "Previa" (pronóstico). Sin acta -> "vs" plano.
             const linkable = tieneFicha && (jugado || codtemporada === 22)
             return linkable
-              ? <Link className={`rsc rsc-link${jugado ? '' : ' rsc-prev'}`} href={`/madrid/partido/${partidoSlug(r.codacta as string, r.nombre_local, r.nombre_visitante)}`}>{inner}</Link>
-              : <div className="rsc">{inner}</div>
+              ? <Link className={`rsc rsc-link${jugado ? '' : ' rsc-prev'}${prov ? ' rsc-prov' : ''}`} title={prov ? PROVISIONAL : undefined} href={`/madrid/partido/${partidoSlug(r.codacta as string, r.nombre_local, r.nombre_visitante)}`}>{inner}</Link>
+              : <div className={`rsc${prov ? ' rsc-prov' : ''}`} title={prov ? PROVISIONAL : undefined}>{inner}</div>
           })()}
           <div className="rside v">
             <EscudoBox escudo={r.escudo_visitante} nombre={r.nombre_visitante} size={26} radius={5} />
@@ -739,6 +741,9 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
                     </div>
                   ))
                   : resultados.map(renderPartido)}
+              {resultados.some(esProvisional) && (
+                <div className="leyenda"><span className="rsc-prov-mu">2-1</span> Marcador con borde discontinuo: <b>{PROVISIONAL.toLowerCase()}</b> — el resultado aún no computa en ELO, rachas ni forma.</div>
+              )}
             </section>
           )}
 
