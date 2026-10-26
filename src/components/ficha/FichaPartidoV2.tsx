@@ -22,6 +22,7 @@ import PlayerAvatar from '@/components/ui/PlayerAvatar'
 import FormaStrip from '@/components/ui/FormaStrip'
 import type { PartidoFicha, PartidoJugador, PartidoMini, PartidoLado } from '@/lib/partido'
 import { NO_DISPUTADO, SUSPENDIDO } from '@/lib/partido'
+import { RETIRADO } from '@/lib/rotulos'
 // Fondo de la pastilla de PUNTOS fantasy (baza propia; verde para lo bueno, el ámbar está reservado).
 const ptsStyle = (p: number | null) => p == null ? { background: 'rgba(255,255,255,.05)', color: 'var(--ink-4)' }
   : p >= 8 ? { background: 'var(--e3)', color: '#08111f' }
@@ -274,8 +275,10 @@ function PronoCard({ p }: { p: PartidoFicha }) {
   const fav = favoritoFrase(p.eloPreLocal, p.eloPreVisitante)
   const prob = probsElo(p.eloPreLocal, p.eloPreVisitante)
   const pc = prob ? pct3(prob) : null
-  const ctxL = ctxPuesto(p.posPreLocal, p.posPostLocal)
-  const ctxV = ctxPuesto(p.posPreVisitante, p.posPostVisitante)
+  // Retirado tras el partido: en lugar del puesto («Nº en la clasificación · sube/baja») va RETIRADO, aunque no
+  // haya jornada anterior con la que comparar.
+  const ctxL = p.retiradoPostLocal ? RETIRADO : ctxPuesto(p.posPreLocal, p.posPostLocal)
+  const ctxV = p.retiradoPostVisitante ? RETIRADO : ctxPuesto(p.posPreVisitante, p.posPostVisitante)
   // En suspendido tampoco procede el contexto de puesto (es "cómo quedaron tras el partido").
   const susp = p.estadoPartido === 'suspendido'
   const postL = susp ? null : ctxL, postV = susp ? null : ctxV

@@ -73,11 +73,12 @@ export type ClasifRow = {
   jornada: number; pos: number | null; pts: number | null; pts_fantasy: number | null
   mov: string | null; elo: number | null; pj: number | null
   gf: number | null; gc: number | null; pg: number | null; pe: number | null; pp: number | null
+  retirado?: boolean | null     // equipo retirado de la competición en esa jornada: su pos no es un puesto
   // Fecha de la jornada (DATE, publicada por el pipeline). Sirve para ORDENAR el gráfico por cronología
   // cuando la jornada aún no se ha jugado y por tanto no hay fila de resultado de la que sacar la fecha.
   fecha_iso?: string | null
 }
-const COLS_CLASIF = 'jornada, pos, pts, pts_fantasy, mov, elo, pj, gf, gc, pg, pe, pp, fecha_iso'
+const COLS_CLASIF = 'jornada, pos, pts, pts_fantasy, mov, elo, pj, gf, gc, pg, pe, pp, fecha_iso, retirado'
 
 export async function getSerieLiga(codequipo: string, codgrupo: string | null): Promise<ClasifRow[]> {
   if (!codgrupo) return []
@@ -100,6 +101,7 @@ export type JornadaEquipoDatum = {
   jornada: number
   fan: number | null            // puntos fantasy de ESA jornada (diff del acumulado)
   pos: number | null; mov: MovDir
+  retirado: boolean             // retirado en esa jornada -> el carril no pinta puesto ni movimiento
   rivalNombre: string | null; rivalEscudo: string | null
   marcador: string | null; signo: 'G' | 'E' | 'P' | null; esLocal: boolean | null; fecha: string | null
   codacta: string | null        // -> enlace a la ficha del partido
@@ -145,7 +147,7 @@ export function buildJornadasEquipo(serie: ClasifRow[], resultados: ResultadoRow
     // Clave de orden: la fecha del PARTIDO si lo hay (la de verdad), y si la jornada no se ha jugado, la
     // fecha de la propia jornada en web_clasificacion. claveFecha manda al final lo que no tiene ninguna.
     const orden = claveFecha(r?.fecha_iso ?? c.fecha_iso ?? null, r?.fecha ?? null)
-    return { orden, d: { jornada: c.jornada, fan, pos: c.pos, mov: parseMov(c.mov), rivalNombre, rivalEscudo, marcador, signo, esLocal, fecha: r?.fecha ?? null, codacta: r?.codacta ?? null, eloDelta } }
+    return { orden, d: { jornada: c.jornada, fan, pos: c.pos, mov: parseMov(c.mov), retirado: !!c.retirado, rivalNombre, rivalEscudo, marcador, signo, esLocal, fecha: r?.fecha ?? null, codacta: r?.codacta ?? null, eloDelta } }
   })
   // Reordenar a CRONOLOGÍA ya con el fantasy calculado. Desempate por jornada: dos partidos el mismo día
   // (o dos jornadas sin fecha) mantienen el orden del calendario en vez de quedar al azar.
@@ -163,10 +165,10 @@ export async function escudosPorNombre(nombres: string[]): Promise<Map<string, s
 }
 
 // --- Mini clasificación: filas alrededor del equipo (±2), con la última jornada del grupo ---
-export type MiniRow = { pos: number; codequipo: string; nombre: string; escudo: string | null; pts: number; me: boolean }
+export type MiniRow = { pos: number; codequipo: string; nombre: string; escudo: string | null; pts: number; me: boolean; retirado: boolean }
 export async function getMiniClasif(codgrupo: string | null, codequipo: string): Promise<{ filas: MiniRow[]; jornada: number | null }> {
   if (!codgrupo) return { filas: [], jornada: null }
-  const cols = 'pos, codequipo, nombre_equipo, escudo, pts'   // select de datos que define la caché (la de 'jornada' es auxiliar)
+  const cols = 'pos, codequipo, nombre_equipo, escudo, pts, retirado'   // select de datos que define la caché (la de 'jornada' es auxiliar)
   return cacheEquipo(async () => {
     const { data: jr } = await supabase.from('web_clasificacion').select('jornada')
       .eq('codgrupo', String(codgrupo)).order('jornada', { ascending: false }).limit(1)
@@ -180,7 +182,7 @@ export async function getMiniClasif(codgrupo: string | null, codequipo: string):
     const from = Math.max(0, idx - 2), to = Math.min(rows.length, idx + 3)
     const filas: MiniRow[] = rows.slice(from, to).map((r) => ({
       pos: r.pos, codequipo: String(r.codequipo), nombre: r.nombre_equipo, escudo: r.escudo ?? null,
-      pts: r.pts, me: String(r.codequipo) === String(codequipo),
+      pts: r.pts, me: String(r.codequipo) === String(codequipo), retirado: !!r.retirado,
     }))
     return { filas, jornada }
   }, ['getMiniClasif', 'v1', hashCols(cols), String(codgrupo), codequipo], codequipo, { codgrupo })

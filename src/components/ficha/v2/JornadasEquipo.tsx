@@ -96,6 +96,8 @@ export default function JornadasEquipo({ comps, cortes, temporada }: { comps: Co
     return (<><div className="pos"><div className="chip" style={{ background: col }}>{d.fan}</div><div className="bar" style={{ height: h, background: col }} /></div><div className="neg" /></>)
   }
   function posMov(d: JornadaEquipoDatum) {
+    // Retirado esa jornada: ni puesto ni flecha (su «pos» es solo la última fila de la tabla).
+    if (d.retirado) return <span style={{ color: 'var(--ink-4)' }}>·</span>
     const m = d.mov
     const glifo = m == null ? <span style={{ color: 'var(--ink-4)' }}>·</span>
       : m.dir > 0 ? <span className="eq-mov" style={{ color: 'var(--e3)' }}><TrianguloArriba size={9} />{m.n || ''}</span>

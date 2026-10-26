@@ -25,6 +25,11 @@ export const SUSPENDIDO = 'Acta pendiente de cerrar'
 export const SUSPENDIDO_CORTO = 'Acta pendiente'
 export const SUSPENDIDO_MINI = 'Acta'
 
+// Equipo retirado de la competición (web_clasificacion.retirado). La RFFM lo deja en la última fila con 0
+// puntos y zona de descenso; el puesto que trae (N) es solo el hueco que ocupa, no un puesto ganado. Donde se
+// pintaría el número va este rótulo.
+export const RETIRADO = 'Retirado'
+
 // Explicación del método del ELO, al pie del bloque "Nivel" de la ficha de jugador. Vive aquí y no dentro
 // del componente por la misma razón que los de arriba: un rótulo escrito a mano dentro de un .tsx acaba
 // teniendo una segunda copia en otro sitio — ya pasó con 'Susp.'.

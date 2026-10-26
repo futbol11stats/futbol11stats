@@ -49,6 +49,7 @@ import PageLayout from '@/components/ui/PageLayout'
 import EntityHero from '@/components/ui/EntityHero'
 import PlayerRow from '@/components/ui/PlayerRow'
 import { fmtNum } from '@/lib/formato'
+import { RETIRADO } from '@/lib/rotulos'
 
 const med1 = (v: number | null) => (v == null ? '—' : v.toFixed(1).replace('.', ','))
 const conSigno = (n: number) => (n > 0 ? `+${n}` : `${n}`)
@@ -224,6 +225,10 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
   // con el desglose vacío (no se cae a una segunda fuente, que es justo lo que se quiere evitar).
   const ult = serie.length ? serie[serie.length - 1] : null
   const posSel = ult?.pos ?? (tempRow?.posicion_final ?? posicionActual ?? null)
+  // Retirado (última fila de su clasificación): el número que trae es el hueco que ocupa, no un puesto. Donde
+  // se pintaría «Nº» va RETIRADO. Solo se sabe por la serie: sin ella (fallback a posicion_final) no se marca.
+  const retiradoSel = !!ult?.retirado
+  const posTxt = retiradoSel ? RETIRADO : posSel != null ? `${posSel}º` : null
   const ptsSel = ult?.pts ?? tempRow?.pts ?? null
   const gfSel = ana.pj > 0 ? ana.casa.gf + ana.fuera.gf : null
   const gcSel = ana.pj > 0 ? ana.casa.gc + ana.fuera.gc : null
@@ -346,7 +351,7 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
         pills={<>
           {nombreComp && (
             <LigaPastilla nombreComp={nombreComp}
-              segments={[nombreComp, grupoNombre, inactivo || posSel == null ? null : `${posSel}º`]}
+              segments={[nombreComp, grupoNombre, inactivo ? null : posTxt]}
               href={grupoUrl} muted={inactivo} />
           )}
           {/* La línea de copas del hero refleja SIEMPRE la temporada seleccionada (copasSel), como el resto de
@@ -365,7 +370,7 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
           (son métricas de liga: quedarían todas a «—»); el ELO sigue visible en la sección Nivel. */}
       {!esSoloCopa && (
       <div className="kpis kpis-eq">
-        <div className="kpi"><div className="kpi-i"><Tabla size={14} /></div><div className="v num">{posSel != null ? `${posSel}º` : '—'}</div><div className="k">Pos</div></div>
+        <div className="kpi"><div className="kpi-i"><Tabla size={14} /></div><div className={`v num${retiradoSel ? ' v-ret' : ''}`}>{posTxt ?? '—'}</div><div className="k">Pos</div></div>
         <div className="kpi"><div className="kpi-i"><Estrella size={14} /></div><div className="v num">{fmtNum(ptsSel)}</div><div className="k">Pts</div></div>
         <div className="kpi"><div className="kpi-i"><Balon size={14} /></div><div className="v num">{dgSel != null ? conSigno(dgSel) : '—'}</div><div className="k">DG</div></div>
         <div className="kpi"><div className="kpi-i">{badge11}</div><div className="v num" style={{ color: colorMedia(mediaFan) }}>{med1(mediaFan)}</div><div className="k">Media PF</div></div>
@@ -398,7 +403,7 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
             <div className="box">
               <div className="elo-top">
                 <div><div className="cap">ELO F11S</div><div className="elo-v" style={{ color: colorElo(eloTemp) }}>{fmtNum(eloTemp)}</div></div>
-                {!esSoloCopa && posSel != null && <div style={{ textAlign: 'right' }}><div className="cap">En su grupo</div><div className="elo-v" style={{ color: colorElo(eloTemp) }}>{posSel}º</div></div>}
+                {!esSoloCopa && posTxt != null && <div style={{ textAlign: 'right' }}><div className="cap">En su grupo</div><div className="elo-v" style={{ color: retiradoSel ? 'var(--ink-2)' : colorElo(eloTemp) }}>{posTxt}</div></div>}
               </div>
               {/* Percentil/batería degradados: web_percentiles no tiene métricas de equipo. */}
               {eloSerie.length > 1 && <EloSparkline serie={eloSerie} className="w-full h-9 mt-3" />}
@@ -431,10 +436,11 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
               <>
                 <div className="mini">
                   {mini.filas.map((r) => (
-                    <div key={r.codequipo} className={`mini-r${r.me ? ' me' : ''}`}>
-                      <div className="mp">{r.pos}</div>
+                    <div key={r.codequipo} className={`mini-r${r.me ? ' me' : ''}${r.retirado ? ' ret' : ''}`}>
+                      <div className="mp">{r.retirado ? '' : r.pos}</div>
                       <EscudoBox escudo={r.escudo} nombre={r.nombre} size={22} radius={4} />
                       <div className="mn">{r.me ? nombreEquipo(r.nombre) : <NombreEquipo codequipo={r.codequipo} nombre={r.nombre} />}</div>
+                      {r.retirado && <span className="ret-tag">{RETIRADO}</span>}
                       <div className="mpts num">{r.pts}</div>
                     </div>
                   ))}

@@ -62,6 +62,9 @@
 .fjv2 .kpi-goles{display:none}
 .fjv2 .kpi .kpi-i{display:flex;justify-content:center;align-items:center;color:var(--ink-3);height:20px;margin-bottom:4px}
 .fjv2 .kpi .v{font-size:var(--n-md)}
+/* «Retirado» en el KPI de Pos: a --n-md no cabe en 1/5 de 390px. Más pequeño, con la MISMA caja de alto que el
+   número (line-height en px del tamaño grande) para que la fila de KPIs no baile. */
+.fjv2 .kpi .v.v-ret{font-size:var(--t-lead);line-height:calc(var(--n-md) * 1.2);color:var(--ink-2);text-transform:uppercase;letter-spacing:.03em}
 .fjv2 .kpi .k{font-size:var(--t-micro);letter-spacing:.07em;text-transform:uppercase;color:var(--ink-3);margin-top:5px;font-weight:600}
 
 .fjv2 .scope{border-bottom:1px solid var(--line);background:rgba(255,255,255,.02);padding:10px 0 11px}
@@ -308,6 +311,8 @@
 .fjv2 .mini-r.me{background:rgba(46,229,107,.09)}
 .fjv2 .mini-r .mp{font-family:var(--font-display),'Barlow Condensed',sans-serif;font-size:var(--t-lead);font-weight:700;width:18px;text-align:center;color:var(--ink-3);flex:none}
 .fjv2 .mini-r.me .mp{color:var(--e3)}
+/* Retirado: fondo de descenso (mismo que la tabla completa, ZONA_BG.descenso_directo), también si es la fila propia. */
+.fjv2 .mini-r.ret,.fjv2 .mini-r.me.ret{background:rgb(83,20,20)}
 .fjv2 .mini-r .mn{flex:1;min-width:0;font-family:var(--font-display),'Barlow Condensed',sans-serif;font-size:var(--t-lead);font-weight:500;color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .fjv2 .mini-r.me .mn{font-weight:700;color:var(--ink)}
 .fjv2 .mini-r .mpts{font-size:var(--n-sm);font-weight:700;flex:none}
@@ -509,6 +514,17 @@
 .fjv2 .cpos{font-family:var(--font-display),'Barlow Condensed',sans-serif;font-size:var(--t-lead);font-weight:700;color:var(--ink-3);width:20px;text-align:center;flex:none;font-variant-numeric:tabular-nums}
 .fjv2 .ceq{flex:1;min-width:0;font-family:var(--font-display),'Barlow Condensed',sans-serif;font-size:var(--t-lead);font-weight:500;color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .fjv2 .ceq a{color:inherit;text-decoration:none}
+/* Rótulo RETIRADO junto al nombre (clasificación, mini-tabla, vista por zonas). flex:none -> el que cede ancho
+   es el nombre (ellipsis), nunca el rótulo. */
+.fjv2 .ceq-ret{flex:1;min-width:0;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:3px;padding:4px 0}
+.fjv2 .ceq-ret .ceq{flex:none;max-width:100%}
+.fjv2 .ceq-ret .ret-tag{font-size:var(--t-micro);padding:2px 5px}
+@media (min-width:1000px){
+  .fjv2 .ceq-ret{flex-direction:row;align-items:center;gap:7px;padding:0}
+  .fjv2 .ceq-ret .ceq{flex:1}
+  .fjv2 .ceq-ret .ret-tag{font-size:var(--t-cap);padding:3px 6px}
+}
+.fjv2 .ret-tag{flex:none;font-family:var(--font-display),'Barlow Condensed',sans-serif;font-size:var(--t-cap);font-weight:700;letter-spacing:.04em;text-transform:uppercase;line-height:1;padding:3px 6px;border-radius:4px;color:#fca5a5;border:1px solid rgba(239,68,68,.6);background:rgba(239,68,68,.12);white-space:nowrap}
 .fjv2 .cc{width:30px;flex:none;display:grid;place-items:center;padding:9px 0;font-family:var(--font-display),'Barlow Condensed',sans-serif;font-size:var(--t-body);font-weight:600;color:var(--ink-2);font-variant-numeric:tabular-nums}
 .fjv2 .cc.pts{width:38px;font-size:var(--n-sm);font-weight:700;color:var(--ink)}
 .fjv2 .cc.dg{color:var(--ink-3)}

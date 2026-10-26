@@ -66,6 +66,8 @@ export type PartidoFicha = {
   movEloLocal: number | null; movEloVisitante: number | null
   posPreLocal: number | null; posPostLocal: number | null
   posPreVisitante: number | null; posPostVisitante: number | null
+  // Retirado en la clasificación TRAS el partido: su pos es la última fila, no un puesto -> «Retirado».
+  retiradoPostLocal: boolean; retiradoPostVisitante: boolean
   // #5 Hitos/efemérides ligados a este partido (web_jugador_hitos por codacta).
   hitos: { codjugador: string; nombre: string; pos: string | null; lado: 'local' | 'visitante'; tipo: string; detalle: string | null; valor: number | null; ambito: string | null; contexto: string | null; href: string | null }[]
 }
@@ -303,15 +305,15 @@ export async function getPartido(codacta: string): Promise<PartidoFicha | null> 
     const esCopa = String(r.codgrupo).startsWith('fam-')
     const jNum = Number(r.jornada) || 0
     const { data: clRaw } = await supabase.from('web_clasificacion')
-      .select('codequipo, jornada, pos, codgrupo, codgrupo_familia')
+      .select('codequipo, jornada, pos, codgrupo, codgrupo_familia, retirado')
       .in('codequipo', [codeqL, codeqV].filter(Boolean)).eq('codtemporada', r.codtemporada)
-    const clAll = ((clRaw || []) as Array<{ codequipo: string; jornada: number; pos: number | null; codgrupo: string; codgrupo_familia: string | null }>)
-    const posDe = (cod: string): { posPre: number | null; posPost: number | null } => {
-      if (esCopa) return { posPre: null, posPost: null }
+    const clAll = ((clRaw || []) as Array<{ codequipo: string; jornada: number; pos: number | null; codgrupo: string; codgrupo_familia: string | null; retirado: boolean | null }>)
+    const posDe = (cod: string): { posPre: number | null; posPost: number | null; retPost: boolean } => {
+      if (esCopa) return { posPre: null, posPost: null, retPost: false }
       const mias = clAll.filter((c) => String(c.codequipo) === cod && String(c.codgrupo) === String(r.codgrupo) && c.codgrupo_familia == null)
       const post = mias.find((c) => c.jornada === jNum) || null
       const preG = mias.find((c) => c.jornada === jNum - 1) || null
-      return { posPre: preG?.pos ?? null, posPost: post?.pos ?? null }
+      return { posPre: preG?.pos ?? null, posPost: post?.pos ?? null, retPost: !!post?.retirado }
     }
     const posL = posDe(codeqL), posV = posDe(codeqV)
 
@@ -392,7 +394,8 @@ export async function getPartido(codacta: string): Promise<PartidoFicha | null> 
       movEloLocal: mov(eloPreLocal, eloPostLocal), movEloVisitante: mov(eloPreVisitante, eloPostVisitante),
       posPreLocal: posL.posPre, posPostLocal: posL.posPost,
       posPreVisitante: posV.posPre, posPostVisitante: posV.posPost,
+      retiradoPostLocal: posL.retPost, retiradoPostVisitante: posV.retPost,
       hitos,
     }
-  }, ['getPartido', 'v12-estadopartido', String(r.codacta)], [String(r.codgrupo)], r.codtemporada)
+  }, ['getPartido', 'v13-retirado', String(r.codacta)], [String(r.codgrupo)], r.codtemporada)
 }

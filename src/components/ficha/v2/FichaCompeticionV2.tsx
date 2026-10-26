@@ -13,6 +13,7 @@ import { fechaCortaDMY, equipoSlug } from '@/lib/equipo'
 import { campoMapsUrl, parseCampo } from '@/lib/club'
 import { isoMadrid } from '@/lib/horaMadrid'
 import { NO_DISPUTADO, SUSPENDIDO, SUSPENDIDO_MINI } from '@/lib/partido'
+import { RETIRADO } from '@/lib/rotulos'
 import { getDireccionesCampos, type DireccionCampo } from '@/lib/campo'
 import { getCamposConFicha, campoSlug } from '@/lib/campo'
 import SuperficieCampo from '@/components/SuperficieCampo'
@@ -404,18 +405,21 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
       </div>
       {rows.map((r) => {
         const movCol = r.mov?.startsWith('↑') ? 'var(--e3)' : r.mov?.startsWith('↓') ? 'var(--e0)' : 'var(--ink-3)'
+        const ret = !!r.retirado
         return (
-          <div key={r.codequipo} className="ctr">
+          <div key={r.codequipo} className="ctr" style={ret ? { backgroundColor: ZONA_BG.descenso_directo.backgroundColor } : undefined}>
             <div className="cfix">
-              <span className="cpos">{r.pos}</span>
+              <span className="cpos">{ret ? '' : r.pos}</span>
               <EscudoBox escudo={r.escudo} nombre={r.nombre_equipo} size={22} radius={5} />
-              <span className="ceq"><NombreEquipo codequipo={r.codequipo} nombre={r.nombre_equipo} /></span>
+              {ret ? (
+                <span className="ceq-ret"><span className="ceq"><NombreEquipo codequipo={r.codequipo} nombre={r.nombre_equipo} /></span><span className="ret-tag">{RETIRADO}</span></span>
+              ) : <span className="ceq"><NombreEquipo codequipo={r.codequipo} nombre={r.nombre_equipo} /></span>}
             </div>
             <span className="cc">{r.pj}</span><span className="cc">{r.pg}</span><span className="cc">{r.pe}</span><span className="cc">{r.pp}</span>
             <span className="cc">{r.gf}</span><span className="cc">{r.gc}</span>
             <span className="cc dg">{r.dg > 0 ? `+${r.dg}` : r.dg}</span>
             <span className="cc pts">{r.pts}</span>
-            <span className="cc" style={{ color: movCol }}>{r.mov || '—'}</span>
+            <span className="cc" style={{ color: movCol }}>{ret ? '' : (r.mov || '—')}</span>
           </div>
         )
       })}
@@ -611,21 +615,29 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
                       <span className="cc">PO</span>
                     </div>
                     {clasif.map((r) => {
-                      const z = zonaEf(r.zona)
+                      // RETIRADO: sin puesto, sin Mov ni Forma, y fondo de descenso aunque la zona viniera vacía
+                      // (la retirada ES el descenso). El resto de columnas son sus cifras reales y se pintan.
+                      const ret = !!r.retirado
+                      const zonaFila = ret ? 'descenso_directo' : r.zona
+                      const z = zonaEf(zonaFila)
                       const movCol = r.mov?.startsWith('↑') ? 'var(--e3)' : r.mov?.startsWith('↓') ? 'var(--e0)' : 'var(--ink-3)'
                       return (
                         <div key={r.codequipo} className="ctr" style={ZONA_BG[z] ? { backgroundColor: ZONA_BG[z].backgroundColor } : undefined}>
                           <div className="cfix">
-                            <span className="czona" style={{ background: zonaColor(r.zona) }} />
-                            <span className="cpos">{r.pos}</span>
+                            <span className="czona" style={{ background: zonaColor(zonaFila) }} />
+                            <span className="cpos">{ret ? '' : r.pos}</span>
                             <EscudoBox escudo={r.escudo} nombre={r.nombre_equipo} size={22} radius={5} />
-                            <span className="ceq"><NombreEquipo codequipo={r.codequipo} nombre={r.nombre_equipo} /></span>
+                            {/* Retirado: nombre + rótulo en un contenedor que a <1000px apila (la columna fija mide
+                                172px y el rótulo en línea dejaba ~30px al nombre). */}
+                            {ret ? (
+                              <span className="ceq-ret"><span className="ceq"><NombreEquipo codequipo={r.codequipo} nombre={r.nombre_equipo} /></span><span className="ret-tag">{RETIRADO}</span></span>
+                            ) : <span className="ceq"><NombreEquipo codequipo={r.codequipo} nombre={r.nombre_equipo} /></span>}
                           </div>
                           <span className="cc">{r.pj}</span><span className="cc">{r.pg}</span><span className="cc">{r.pe}</span><span className="cc">{r.pp}</span>
                           <span className="cc">{r.gf}</span><span className="cc">{r.gc}</span>
                           <span className="cc dg">{r.dg > 0 ? `+${r.dg}` : r.dg}</span>
                           <span className="cc pts">{r.pts}</span>
-                          <span className="cc" style={{ color: movCol }}>{r.mov || '—'}</span>
+                          <span className="cc" style={{ color: movCol }}>{ret ? '' : (r.mov || '—')}</span>
                           <span className="cc">{fmtNum(r.pts_fantasy)}</span>
                           {(() => {
                             const prev = eloPrev.get(String(r.codequipo))
@@ -634,7 +646,7 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
                               : eloD ? (eloD > 0 ? 'var(--e3)' : 'var(--e0)') : undefined   // verde sube / rojo baja
                             return <span className="cc c-elo" style={{ color: col }} title={eloD ? `${eloD > 0 ? '+' : '−'}${Math.abs(eloD)} esta jornada` : undefined}>{fmtNum(r.elo)}</span>
                           })()}
-                          <span className="cracha"><FormaStrip items={Array.from(r.forma || '').slice(-5)} size={13} gap={2} /></span>
+                          <span className="cracha">{!ret && <FormaStrip items={Array.from(r.forma || '').slice(-5)} size={13} gap={2} />}</span>
                           <span className="ccom">{r.racha || ''}</span>
                           <span className="cc">{r.p0 ?? '—'}</span>
                         </div>

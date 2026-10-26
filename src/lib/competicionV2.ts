@@ -78,6 +78,7 @@ export type ClasifCompRow = {
   pj: number; pg: number; pe: number; pp: number; gf: number; gc: number; dg: number; pts: number
   mov: string | null; elo: number | null; pts_fantasy: number | null
   forma: string | null; racha: string | null; zona: string | null; p0: number | null
+  retirado?: boolean | null   // equipo retirado: última fila, sin puesto (se pinta RETIRADO)
 }
 export async function getClasifV2(codgrupo: string, codtemporada: number, jornada: number): Promise<ClasifCompRow[]> {
   return cacheComp(async () => {
@@ -351,7 +352,7 @@ export async function getGlobalGruposV2(categoria: string, slugComp: string, cod
 // para reutilizar kpisDeClasif y pos/zona para el bloque por zonas.
 export async function getGlobalClasifV2(codgrupos: string[], codtemporada: number, jornada: number) {
   if (!codgrupos.length) return [] as any[]
-  const cols = 'codgrupo, pos, codequipo, nombre_equipo, escudo, pj, gf, pts, elo, zona, jornada'
+  const cols = 'codgrupo, pos, codequipo, nombre_equipo, escudo, pj, gf, pts, elo, zona, jornada, retirado'
   return cacheComp(async () => {
     // REBOBINAR por equipo (acumulado): la fila de mayor jornada <= la pedida, no la exacta. Antes, al elegir
     // una jornada sin snapshot (futura, o la por-defecto mal puesta en 34), la tabla y los KPIs globales se

@@ -6,7 +6,7 @@
 
 // ClasificacionTab / ClasificacionGlobalTab: pos..p0 + mov/forma/racha/p0 (NO están en el tipo TS)
 export const COLS_CLASIFICACION =
-  'pos, codequipo, nombre_equipo, escudo, pj, pg, pe, pp, gf, gc, dg, pts, mov, elo, pts_fantasy, forma, racha, zona, p0'
+  'pos, codequipo, nombre_equipo, escudo, pj, pg, pe, pp, gf, gc, dg, pts, mov, elo, pts_fantasy, forma, racha, zona, p0, retirado'
 
 // ResultadosTab (fecha para .order)
 export const COLS_RESULTADOS =

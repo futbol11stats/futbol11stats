@@ -35,6 +35,7 @@ import {
   getGlobalLideresV2, getGlobalCifrasFullV2,
 } from '@/lib/competicionV2'
 import type { ReactNode } from 'react'
+import { RETIRADO } from '@/lib/rotulos'
 
 // Pestañas de Global: se ocultan las de jornada atadas a partidos de un grupo (Resultados, Goleadores y
 // Tarjetas de jornada) — no tienen equivalente global. El resto AGREGA los grupos.
@@ -249,10 +250,13 @@ export default async function FichaCompeticionGlobalV2({ categoria, slugComp, te
               filasZ.push(
                 <div className="zrow" key={r.codequipo}>
                   <span className="zi" style={{ background: ZONA_FAM_COL[fam] }} />
-                  <span className="zp" style={{ color: ZONA_FAM_COL[fam] }}>{r.pos}º</span>
+                  <span className="zp" style={{ color: ZONA_FAM_COL[fam] }}>{r.retirado ? '' : `${r.pos}º`}</span>
                   <EscudoBox escudo={r.escudo} nombre={r.nombre_equipo} size={22} radius={5} />
                   <span className="zn2"><NombreEquipo codequipo={r.codequipo} nombre={r.nombre_equipo} /></span>
-                  <span className="zt2" style={{ color: ZONA_FAM_COL[fam], borderColor: ZONA_FAM_COL[fam] }}>{ZONA_FAM_LABEL[fam]}</span>
+                  {r.retirado && <span className="ret-tag">{RETIRADO}</span>}
+                  {/* Retirado: su rótulo ocupa el sitio del de zona (dos chips no caben a 390px; la barra lateral ya
+                      dice descenso). */}
+                  {!r.retirado && <span className="zt2" style={{ color: ZONA_FAM_COL[fam], borderColor: ZONA_FAM_COL[fam] }}>{ZONA_FAM_LABEL[fam]}</span>}
                   <span className="zpts num">{r.pts}</span>
                 </div>,
               )
