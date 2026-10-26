@@ -59,6 +59,7 @@ import {
   type CarreraRow,
 } from '@/lib/jugadorV2'
 import { fmtNum } from '@/lib/formato'
+import { RETIRADO } from '@/lib/rotulos'
 
 const PAL = ['#f87171', '#94a3b8', '#22a050', '#2ee56b', '#8cf0a2']
 function esc(v: number, c: readonly [number, number, number, number]) { if (v < 0) return 0; let n = 1; for (let i = 0; i < 4; i++) if (v >= c[i]) n = i + 1; return n }
@@ -113,7 +114,7 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
   const eloCierre = etapaUltima?.elo_final ?? j.elo_actual ?? null
 
   const [equipoInfo, cortesElo, alerta, comps, partidosTemp, actuaciones, hitosRaw, grupoInfo, tarjetas, copasPorTempEquipo] = await Promise.all([
-    inactivo ? Promise.resolve({ copas: [], posicionActual: null }) : getEquipoActualInfo(j.codequipo_actual),
+    inactivo ? Promise.resolve({ copas: [], posicionActual: null, retirado: false }) : getEquipoActualInfo(j.codequipo_actual),
     getCortesElo(categoriaElo, tempSel ? Number(tempSel) : null),   // cortes de la categoría que aporta el ELO (última etapa)
     getAlertaActual(cod, tempSel ? Number(tempSel) : null),   // alerta SOLO de la temporada de la ficha: los ciclos no cruzan temporadas
     tempSel ? getAmbitoTemporada(cod, tempSel) : Promise.resolve([]),
@@ -126,7 +127,10 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
     // selector, igual que en la ficha de equipo. Team = el de la etapa principal de esa temporada.
     getCopasPorTemporada(filaPrincipal?.codequipo ?? j.codequipo_actual),
   ])
-  const { posicionActual } = equipoInfo   // `copas` (viva) ya no se usa: el hero muestra las de la temporada seleccionada
+  const { posicionActual, retirado: equipoRetirado } = equipoInfo   // `copas` (viva) ya no se usa: el hero muestra las de la temporada seleccionada
+  // Equipo actual RETIRADO (web_equipo.retirado): su posicion_actual es el hueco de la última fila, no un puesto.
+  // Mismo tratamiento que la ficha de equipo: «Retirado» en lugar de «Nº».
+  const puestoTxt = equipoRetirado ? RETIRADO : posicionActual != null ? `${posicionActual}º` : null
   // Honores de copa de la TEMPORADA seleccionada (vacío si el equipo no jugó copa esa temporada -> no se muestra nada).
   const copasSelHero = (tempSel != null ? copasPorTempEquipo[String(tempSel)] : null) ?? []
   // ¿La competición PRINCIPAL de la temporada es copa/playoff? (categoria_nivel NULL / codgrupo fam-*). En ese
@@ -369,7 +373,7 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
               slugFamilia={honorFusion?.slug_familia ?? undefined}
               segments={honorFusion
                 ? [filaPrincipal.nombre_comp, honorFusion.estado]   // fusionada: "Copa RFEF Fase Autonómica · En juego · Fase de grupos"
-                : [filaPrincipal?.nombre_comp ?? null, filaPrincipal?.grupo_nombre ?? null, esCopaPrincipal || inactivo || posicionActual == null ? null : `${posicionActual}º`]}
+                : [filaPrincipal?.nombre_comp ?? null, filaPrincipal?.grupo_nombre ?? null, esCopaPrincipal || inactivo ? null : puestoTxt]}
               href={honorFusion?.href ?? grupoUrl} muted={inactivo} />
           )}
           {/* Honores de copa de la temporada SELECCIONADA (no la viva). Sin la copa ya fusionada arriba. Vacío ->
@@ -711,6 +715,7 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
                     etiqueta={jlbl || undefined}
                     goles={a.goles ?? 0}
                     pts={a.pts != null ? Math.round(a.pts) : null} ptsBg={a.pts != null ? cPts(Math.round(a.pts)) : undefined}
+                    provisional={!!a.provisional}
                     href={a.codacta ? `/madrid/partido/${partidoSlug(a.codacta, local, visitante)}` : null}
                   />
                 )

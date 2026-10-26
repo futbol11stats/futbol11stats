@@ -13,7 +13,7 @@ import { derivarRol } from '@/lib/escala'
 import { marcadorLocalVisitante } from '@/lib/jugador'
 import { useComp } from './compStore'
 import type { CompAmbito, JornadaDatum } from '@/lib/jugadorV2'
-import { SUSPENDIDO_MINI } from '@/lib/rotulos'
+import { SUSPENDIDO_MINI, PROVISIONAL } from '@/lib/rotulos'
 
 const PAL = ['#f87171', '#94a3b8', '#22a050', '#2ee56b', '#8cf0a2']
 function escalonPts(v: number, c: readonly [number, number, number, number]) {
@@ -161,7 +161,7 @@ export default function Jornadas({ comps, cortes }: { comps: CompAmbito[]; corte
                         en un suspendido — pero .lane tiene altura fija (--laneH), así que no descuadra. */}
                     {d.suspendido
                       ? <div className="rival-mk rival-mk-susp">{SUSPENDIDO_MINI}</div>
-                      : d.resultado && <div className={`rival-mk res-t-${res}`}>{marcador}</div>}
+                      : d.resultado && <div className={`rival-mk res-t-${res}`}>{d.provisional ? <span className="prov-mk" title={PROVISIONAL}>{marcador}</span> : marcador}</div>}
                     <div className="rival-top">
                       <EscudoBox escudo={d.rivalEscudo ?? null} nombre={d.rivalNombre ?? undefined} size={20} radius={3} />
                       {d.esLocal != null && <IndicadorLocal esLocal={d.esLocal} />}
@@ -224,6 +224,12 @@ export default function Jornadas({ comps, cortes }: { comps: CompAmbito[]; corte
         <div className="lg-row" style={{ marginTop: 6 }}>
           <span className="lg-item">Carril <b>ELO</b>: Δ ELO del partido — <b style={{ color: 'var(--e3)' }}>+ subió</b> · <b style={{ color: 'var(--e0)' }}>− bajó</b></span>
         </div>
+        {/* Solo si hay alguno: misma leyenda que el gráfico del equipo. */}
+        {comp.jornadas.some((d) => d.provisional) && (
+          <div className="lg-row" style={{ marginTop: 6 }}>
+            <span className="lg-item"><span className="prov-mk" style={{ marginRight: 4 }}>2-1</span>Marcador con borde discontinuo: <b>{PROVISIONAL.toLowerCase()}</b> (no cuenta en la racha)</span>
+          </div>
+        )}
       </div>
     </>
   )

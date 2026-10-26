@@ -4,6 +4,7 @@ import EscudoBox from '@/components/ficha/v2/EscudoBox'
 import IndicadorLocal from '@/components/IndicadorLocal'
 import NombreEquipo from '@/components/NombreEquipo'
 import { Balon, Guante, TarjetaAmarilla, TarjetaDoble, TarjetaRoja } from '@/components/iconos'
+import { PROVISIONAL } from '@/lib/rotulos'
 
 // Fila de "partido reciente" COMPARTIDA por la ficha de equipo (Últimos partidos), la de jugador (Mejores
 // actuaciones) y la de partido (forma de cada equipo). Presentación tipo CARA A CARA: los dos equipos (escudo +
@@ -37,6 +38,7 @@ export type MatchRowProps = {
   href?: string | null
   compact?: boolean                  // partido (dos columnas): fila algo más estrecha
   noLocalInd?: boolean               // oculta el indicador casa/fuera (Cara a cara: no hay sujeto propio)
+  provisional?: boolean              // acta abierta (computa=false): marcador con borde discontinuo (.prov-mk)
 }
 
 const MESES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic']
@@ -86,7 +88,8 @@ function Cuerpo(p: MatchRowProps) {
     <>
       <div className="mh-top">
         <Lado nombre={loc.nombre} escudo={loc.escudo} cod={loc.cod} win={wL} />
-        <span className="mh-sc" style={{ color: jugado ? col : 'var(--ink-3)' }}>
+        <span className={`mh-sc${jugado && p.provisional ? ' prov-mk' : ''}`} style={{ color: jugado ? col : 'var(--ink-3)' }}
+          title={jugado && p.provisional ? PROVISIONAL : undefined}>
           {jugado ? <>{gL}<span className="mh-sep">-</span>{gV}</> : 'vs'}
         </span>
         <Lado nombre={vis.nombre} escudo={vis.escudo} cod={vis.cod} win={wV} v />

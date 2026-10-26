@@ -93,14 +93,14 @@ export async function getActuacionesV2(cod: string): Promise<any[]> {
     // se cruza por codacta para poder mostrarlos. Ver punto 10.
     const codactas = rows.map((a) => a.codacta).filter(Boolean)
     if (codactas.length) {
-      const { data } = await supabase.from('web_jugador_partidos').select('codacta, jornada, minutos, ronda_label, fecha')
+      const { data } = await supabase.from('web_jugador_partidos').select('codacta, jornada, minutos, ronda_label, fecha, computa')
         .eq('codjugador', cod).in('codacta', codactas)
-      const m = new Map<string, { jornada: number | null; minutos: number | null; ronda_label: string | null; fecha: string | null }>()
-      for (const p of (data || []) as any[]) m.set(String(p.codacta), { jornada: p.jornada, minutos: p.minutos, ronda_label: p.ronda_label ?? null, fecha: p.fecha ?? null })
-      for (const a of rows) { const e = m.get(String(a.codacta)); if (e) { a.jornada = e.jornada; a.minutos = e.minutos; a.ronda_label = e.ronda_label; a.fecha = e.fecha } }
+      const m = new Map<string, { jornada: number | null; minutos: number | null; ronda_label: string | null; fecha: string | null; provisional: boolean }>()
+      for (const p of (data || []) as any[]) m.set(String(p.codacta), { jornada: p.jornada, minutos: p.minutos, ronda_label: p.ronda_label ?? null, fecha: p.fecha ?? null, provisional: p.computa === false })
+      for (const a of rows) { const e = m.get(String(a.codacta)); if (e) { a.jornada = e.jornada; a.minutos = e.minutos; a.ronda_label = e.ronda_label; a.fecha = e.fecha; a.provisional = e.provisional } }
     }
     return rows
-  }, ['getActuacionesV2', 'v1', hashCols(COLS_ACTUACIONES + ', es_local'), cod], cod)   // clave derivada del select real (COLS_ACTUACIONES + es_local, el primario); 'v1' = versión de lógica.
+  }, ['getActuacionesV2', 'v2-prov', hashCols(COLS_ACTUACIONES + ', es_local'), cod], cod)   // clave derivada del select real (COLS_ACTUACIONES + es_local, el primario); 'v1' = versión de lógica.
 }
 
 export async function getHitosV2(cod: string): Promise<HitoRow[]> {
@@ -212,7 +212,7 @@ export async function getCortesElo(categoria: string | null, codtempInt: number 
 // `jornadaEtiqueta`, que es el nombre que avisa de para qué sirve la jornada aquí: pintar y desempatar.
 const COLS_PART = 'codacta, codtemporada, codgrupo, jornada, ronda_label, fecha, equipo_nombre, escudo, codequipo, ' +
   'rival_cod, rival_nombre, rival_escudo, resultado, titular, minutos, jugado, goles, amarillas, dobles_amarilla, ' +
-  'rojas, puntos, elo_delta, goles_encajados, competicion, estado_partido'
+  'rojas, puntos, elo_delta, goles_encajados, competicion, estado_partido, computa'
 export async function getPartidosTemporada(cod: string, codtemp: string): Promise<any[]> {
   return cacheJugador(async () => {
     const q = (c: string) => supabase.from('web_jugador_partidos').select(c)
@@ -240,6 +240,8 @@ export type JornadaDatum = {
   // SUSPENDIDO: no hay marcador que pintar, pero SÍ puntos y minutos (§8.24). El gráfico necesita saberlo
   // para rotular la casilla del resultado en vez de dejarla vacía, que descolocaba el escudo de esa columna.
   suspendido?: boolean
+  // PROVISIONAL (web_jugador_partidos.computa=false): resultado con la marca (borde discontinuo), no cuenta en la racha.
+  provisional?: boolean
 }
 export type CompAmbito = { codgrupo: string; nombre_comp: string; jornadas: JornadaDatum[] }
 
@@ -330,6 +332,7 @@ export async function getAmbitoTemporada(cod: string, codtemp: string): Promise<
           rivalNombre: p.rival_nombre ?? null, rivalEscudo: p.rival_escudo ?? null,
           resultado: p.resultado ?? null, esLocal: p.es_local ?? null,
           suspendido: p.estado_partido === 'suspendido',
+          provisional: p.computa === false && p.resultado != null,
         }
       })
     comps.push({ codgrupo, nombre_comp: nombreComp, jornadas })
@@ -339,7 +342,7 @@ export async function getAmbitoTemporada(cod: string, codtemp: string): Promise<
     // Tag SOLO jugador:<cod> (NO temporada:), como getPartidosTemporada: hechos de partido del jugador; el
     // temporada:<activa> nocturno los invalidaba en balde y enfriaba la ficha. Rebaremo cubierto por el censo
     // jugador: de `_revalidar.py --temporada <c>`. Clave conserva codtemp (caché por temporada).
-  }, ['getAmbitoTemporada', 'copa-acta-fc', cod, String(codtemp)], cod)   // copa-acta-fc: codacta + orden fecha (bugs 1/2) + resultado favor-contra
+  }, ['getAmbitoTemporada', 'copa-acta-fc-prov', cod, String(codtemp)], cod)   // -prov: marca de provisional (computa). copa-acta-fc: codacta + orden fecha (bugs 1/2) + resultado favor-contra
 }
 
 // --- Forma: ventanas de últimas 5 / 10 / temporada sobre los partidos JUGADOS de la temporada ---
@@ -347,7 +350,8 @@ export async function getAmbitoTemporada(cod: string, codtemp: string): Promise<
 // jugó -> no entra en SU racha. Ver web_jugador_partidos.jugado (spec §57/§91.1) y [[partidos-jugados-vs-convocatoria]].
 export function racha5DePartidos(partidos: any[]): ChipRacha[] {
   return partidos
-    .filter((p) => p.resultado != null && p.jugado !== false)
+    // computa=false = PROVISIONAL (acta abierta): se pinta con su marca, pero no entra en la racha.
+    .filter((p) => p.resultado != null && p.jugado !== false && p.computa !== false)
     .sort(cronoAsc)
     .slice(-5)
     .map((p): ChipRacha => {

@@ -31,6 +31,8 @@
 .fjv2 .rmatch .rsc.rsc-prov{border:1px dashed var(--ink-3);padding:2px 8px}
 .fjv2 .rsc-prov-mu{font-family:var(--font-display),'Barlow Condensed',sans-serif;font-weight:700;color:var(--ink-2);border:1px dashed var(--ink-3);border-radius:4px;padding:0 5px;margin-right:4px}
 .fjv2 .prov-tag{color:var(--ink-2);font-weight:600;border:1px dashed var(--ink-3);border-radius:3px;padding:0 4px}
+/* .prov-mk: la misma marca sobre un marcador suelto (MatchRow, gráfico y Trayectoria del jugador). */
+.fjv2 .prov-mk{border:1px dashed var(--ink-3);border-radius:4px;padding:0 4px}
 .fjv2 .pill.pos{color:#f2a3c0;border-color:rgba(242,163,192,.34);background:rgba(242,163,192,.1)}
 .fjv2 .pill.liga{color:#8cf0a2;border-color:rgba(140,239,165,.32);background:rgba(140,239,165,.1)}
 

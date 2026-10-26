@@ -13,7 +13,7 @@ import Sello from '@/components/Sello'
 import IndicadorLocal from '@/components/IndicadorLocal'
 import { tempLabel, fechaCorta, signoCls, conSigno, marcadorLocalVisitante, colorSigno } from '@/lib/jugador'
 import { claveFechaDesc } from '@/lib/fechaOrden'
-import { SUSPENDIDO_MINI } from '@/lib/rotulos'
+import { SUSPENDIDO_MINI, PROVISIONAL } from '@/lib/rotulos'
 
 export const PARTIDOS_HABILITADO = true
 
@@ -38,7 +38,9 @@ async function fetchPartidos(codjugador: string, codtemporada: string, codequipo
   // dejaría de cargar. Con esto, el día que el ciclo la publique aparece el rótulo "Susp." sin tocar código;
   // hasta entonces se cae al nivel de abajo y se pinta el resultado como hoy. Mismo patrón que ya usaba
   // `es_local` cuando era la columna que estaba por llegar.
-  let { data, error } = await q(COLS_P + ', es_local, estado_partido')
+  // computa (PROVISIONAL, acta abierta) como primer nivel: si fallara, se cae a los de abajo y la fila se pinta sin marca.
+  let { data, error } = await q(COLS_P + ', es_local, estado_partido, computa')
+  if (error) ({ data, error } = await q(COLS_P + ', es_local, estado_partido'))
   if (error) ({ data, error } = await q(COLS_P + ', es_local'))
   if (error) ({ data, error } = await q(COLS_P))
   if (error) return { error: error.message, rows: [] as any[] }
@@ -64,7 +66,9 @@ function PartidoFila({ p, portero }: { p: any; portero: boolean }) {
   //   suspendido. NO es una incoherencia que haya que "arreglar" ocultando los puntos ni descontándolos de
   //   los agregados — ya lo di por contradicción una vez y no lo era.
   const susp = p.estado_partido === 'suspendido'
-  const resTxt = susp ? SUSPENDIDO_MINI : marcador
+  // PROVISIONAL (computa=false): el resultado se enseña con la marca de borde discontinuo (.prov-mk).
+  const prov = !susp && p.computa === false && !!marcador
+  const resTxt = susp ? SUSPENDIDO_MINI : prov ? <span className="prov-mk" title={PROVISIONAL}>{marcador}</span> : marcador
   const resCls = susp ? 'text-chalk-500' : colorSigno(signo)
   const goles = p.goles ?? 0, min = p.minutos ?? 0, pts = p.puntos, gc = p.goles_encajados ?? 0
   const ta = p.amarillas ?? 0, da = p.dobles_amarilla ?? 0, tr = p.rojas ?? 0

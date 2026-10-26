@@ -7,6 +7,7 @@ import { esProvisional, PROVISIONAL_CORTO } from '@/lib/rotulos'
 import { buildJornadasEquipo, formaEquipo, type ClasifRow } from '@/lib/equipoV2'
 import type { ResultadoRow } from '@/lib/equipo'
 import { matchVevent } from '@/lib/ics'
+import { racha5DePartidos } from '@/lib/jugadorV2'
 
 // PROVISIONAL (decisión 2026-10-26, opción A): marcador publicado con el acta abierta (web_resultados.computa=false).
 // Se ENSEÑA con marca y NO CUENTA (forma, rachas, cara a cara, Últimos partidos). Esto fija la regla única y que
@@ -57,6 +58,23 @@ describe('ficha de equipo · gráfico y racha', () => {
   it('control positivo: el mismo partido con computa=true SÍ entra (y la racha acaba en P)', () => {
     const conComputa = buildJornadasEquipo(serie, [1, 2, 3, 4, 5, 6].map((j) => ({ ...res(j, j === 6), computa: true })), 'NUESTRO', '100')
     expect(formaEquipo(conComputa).racha.map((r) => r.signo)).toEqual(['G', 'G', 'G', 'G', 'P'])
+  })
+})
+
+describe('ficha de jugador · racha (web_jugador_partidos.computa)', () => {
+  // 5 victorias y una DERROTA provisional al final. Si el filtro no actuara, la racha terminaría en P.
+  const p = (j: number, resultado: string, computa: boolean | null = true) => ({
+    codacta: 'A' + j, jornada: j, fecha: `${String(j).padStart(2, '0')}/09/2026`, resultado, es_local: true, jugado: true, computa,
+  })
+  const partidos = [p(1, '2-1 G'), p(2, '2-1 G'), p(3, '2-1 G'), p(4, '2-1 G'), p(5, '2-1 G'), p(6, '0-3 P', false)]
+  it('el provisional NO entra en la racha', () => {
+    const r = racha5DePartidos(partidos)
+    expect(r.map((c) => c.jornada)).toEqual([1, 2, 3, 4, 5])
+    expect(r.every((c) => c.signo === 'G')).toBe(true)
+  })
+  it('control: con computa=true o NULL sí entra (y la racha acaba en P)', () => {
+    expect(racha5DePartidos(partidos.map((x) => ({ ...x, computa: true }))).map((c) => c.signo).at(-1)).toBe('P')
+    expect(racha5DePartidos(partidos.map((x) => ({ ...x, computa: null }))).map((c) => c.signo).at(-1)).toBe('P')
   })
 })
 

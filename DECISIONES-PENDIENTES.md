@@ -1634,6 +1634,10 @@ Juvenil G5 (26737723); el dato real llega con el export del 26→27/10.
    `retirado` en `web_equipo` (o deje `posicion_actual` a NULL para el retirado). Cuando llegue, mismo
    tratamiento que la ficha de equipo: `RETIRADO` en lugar de `Nº`. No parchear en lectura cruzando con
    `web_clasificacion` solo para esto.
+   **HECHO (26/10, sin publicar):** el pipeline ya publica `web_equipo.retirado` (default false);
+   `getEquipoActualInfo` lo trae y el hero del jugador pone «Retirado» en lugar de «Nº». Verificado simulando
+   el retiro sobre un jugador activo (6102061, Puerta de Madrid): el Mar Abierto no tiene ninguna ficha de
+   jugador con datos de esta temporada (juvenil: ni carrera ni partidos en T22) con la que probarlo.
 2. **Línea del retirado en "Carrera de posiciones"** (`CarreraPosiciones`, ficha de competición). Sigue
    dibujándolo en el último puesto en todas las jornadas, como si fuera un puesto ganado. Por decidir:
    quitar la línea, cortarla en la jornada de la retirada, o pintarla atenuada sin número.
@@ -1664,6 +1668,12 @@ con marca en el gráfico de Jornadas, filas de copa, lista de Resultados de comp
    "Mejores/Últimos partidos", gráfico por jornada), no de `web_resultados`, y esa tabla no trae `computa`:
    un provisional cuenta hoy en la racha del jugador y se pinta sin marca. **Depende de** que el pipeline
    publique `computa` (o el estado del acta) en `web_jugador_partidos`; luego, mismo criterio que el equipo.
+   **HECHO (26/10, sin publicar):** el pipeline ya publica `web_jugador_partidos.computa` (default true). Fuera
+   de la racha (`racha5DePartidos`) y con la marca en el gráfico por jornada (+ leyenda), la Trayectoria y
+   "Mejores actuaciones" (`MatchRow` gana la prop `provisional`). Claves: `getAmbitoTemporada`
+   `copa-acta-fc-prov`, `getActuacionesV2` `v2-prov`; el resto por hashCols. **Queda (pipeline):** la fila
+   provisional sigue trayendo `elo_delta` del jugador (visto −6 en la J7 de 6102061); si el acta abierta no
+   computa ELO, ese Δ también debería llegar NULL.
 2. **Fantasy de jornada de actas abiertas.** El acumulado `web_clasificacion.pts_fantasy` (barra del gráfico
    del equipo, "Últimas 5/10") y los puntos por jugador los decide el pipeline. Si un acta abierta no debe
    sumar fantasy hasta cerrarse, se excluye **en el pipeline**; la web solo pinta lo que llega.

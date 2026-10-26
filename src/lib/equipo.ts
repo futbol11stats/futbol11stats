@@ -279,14 +279,14 @@ export async function getCopasConMetricas(codequipo: string | number | null | un
 
 // Copas + posición en liga del equipo (una sola query a web_equipo). Para el hero de la ficha de
 // jugador: la pastilla de competición incluye la posición del equipo actual y la línea de copas.
-export async function getEquipoActualInfo(codequipo: string | number | null | undefined): Promise<{ copas: CopaEquipo[]; posicionActual: number | null }> {
+export async function getEquipoActualInfo(codequipo: string | number | null | undefined): Promise<{ copas: CopaEquipo[]; posicionActual: number | null; retirado?: boolean }> {
   if (codequipo == null) return { copas: [], posicionActual: null }
-  const cols = 'copas, posicion_actual'
+  const cols = 'copas, posicion_actual, retirado'   // retirado (web_equipo): en vez de «Nº» el hero pone RETIRADO
   return cacheEquipo(async () => {
     const { data, error } = await supabase.from('web_equipo').select(cols).eq('codequipo', String(codequipo)).limit(1).maybeSingle()
     if (error) throw error   // no cachear vacío por un error transitorio (ver checklist: caché envenenada)
     if (!data) return { copas: [], posicionActual: null }
-    return { copas: await resolveCopas((data as { copas?: unknown }).copas), posicionActual: (data as { posicion_actual?: number | null }).posicion_actual ?? null }
+    return { copas: await resolveCopas((data as { copas?: unknown }).copas), posicionActual: (data as { posicion_actual?: number | null }).posicion_actual ?? null, retirado: !!(data as { retirado?: boolean | null }).retirado }
   }, ['getEquipoActualInfo', 'v1', hashCols(cols), String(codequipo)], codequipo)
 }
 
