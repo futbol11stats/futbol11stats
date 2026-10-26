@@ -10,6 +10,7 @@ import MatchRow from '@/components/ficha/v2/MatchRow'
 import { Marcador, Tabla, Escudo, TrianguloArriba, TrianguloAbajo, Guion } from '@/components/iconos'
 import { useComp } from './compStore'
 import type { JornadaEquipoDatum, RondaDatum } from '@/lib/equipoV2'
+import { PROVISIONAL, PROVISIONAL_CORTO } from '@/lib/rotulos'
 
 const PAL = ['#f87171', '#94a3b8', '#22a050', '#2ee56b', '#8cf0a2']
 function escFan(v: number, c: readonly [number, number, number, number]) {
@@ -70,7 +71,7 @@ export default function JornadasEquipo({ comps, cortes, temporada }: { comps: Co
               propioNombre={r.propioNombre} propioEscudo={r.propioEscudo} propioCod={r.propioCod}
               rivalNombre={r.rivalNombre} rivalEscudo={r.rivalEscudo} rivalCod={r.rivalCod}
               esLocal={r.esLocal}
-              fecha={r.fecha} etiqueta={r.ronda}
+              fecha={r.fecha} etiqueta={r.provisional ? <>{r.ronda} · <span className="prov-tag" title={PROVISIONAL}>{PROVISIONAL_CORTO}</span></> : r.ronda}
               goles={r.goles} p0={r.p0} ta={r.ta} td={r.td} tr={r.tr}
               eloDelta={r.eloDelta}
               href={r.href}
@@ -127,7 +128,7 @@ export default function JornadasEquipo({ comps, cortes, temporada }: { comps: Co
                 <div key={d.jornada} className={`col${last ? ' now' : ''}`}>
                   <div className="plot">{barra(d)}<div className="zero" /></div>
                   <div className="lane lane-elo"><EloChip eloDelta={d.eloDelta} /></div>
-                  <div className="lane">{d.marcador ? <span className={`eq-marc res-t-${res}`}>{d.marcador}</span> : <span style={{ color: 'var(--ink-4)' }}>·</span>}</div>
+                  <div className="lane">{d.marcador ? <span className={`eq-marc res-t-${res}${d.provisional ? ' prov' : ''}`} title={d.provisional ? PROVISIONAL : undefined}>{d.marcador}</span> : <span style={{ color: 'var(--ink-4)' }}>·</span>}</div>
                   <div className="lane">{posMov(d)}</div>
                   <div className="lane eq-rival-lane">
                     <div className="eq-rival-top">
@@ -172,6 +173,12 @@ export default function JornadasEquipo({ comps, cortes, temporada }: { comps: Co
         <div className="lg-row" style={{ marginTop: 6 }}>
           <span className="lg-item">Carril <b>ELO</b>: Δ ELO del partido — <b style={{ color: 'var(--e3)' }}>+ subió</b> · <b style={{ color: 'var(--e0)' }}>− bajó</b></span>
         </div>
+        {/* Solo si hay alguno: marcador subrayado = provisional (acta abierta, aún sin ELO ni efecto en la racha). */}
+        {comp.jornadas.some((d) => d.provisional) && (
+          <div className="lg-row" style={{ marginTop: 6 }}>
+            <span className="lg-item"><span className="eq-marc prov">2-1</span>Marcador subrayado: <b>{PROVISIONAL.toLowerCase()}</b> (sin Δ ELO todavía)</span>
+          </div>
+        )}
       </div>
     </>
   )

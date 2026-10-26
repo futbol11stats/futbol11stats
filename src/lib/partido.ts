@@ -7,6 +7,7 @@ import { campoMapsUrl } from '@/lib/club'
 import { getCamposConFicha } from '@/lib/campo'
 import { fichasExistentes, jugadorHref } from '@/lib/jugador'
 import { claveFechaDesc } from '@/lib/fechaOrden'
+import { esProvisional } from '@/lib/rotulos'
 
 // Ficha de PARTIDO. Datos del acta ya publicados: web_resultados (cabecera) + web_jugador_partidos (por jugador y
 // partido: titular/minutos/goles/tarjetas/PUNTOS fantasy/Δ ELO, keyed por codacta) + web_equipo_plantilla_{rama}
@@ -32,6 +33,7 @@ export type PartidoMini = { codacta: string; fecha: string | null; local: string
   // conservan por contexto. eloDelta = el Δ ya resuelto (post − pre del lado del equipo de la forma).
   codLocal?: string; codVisitante?: string; codgrupo?: string | null; jornada?: number | null; codtemporada?: number | null
   eloPreLocal?: number | null; eloPostLocal?: number | null; eloPreVisitante?: number | null; eloPostVisitante?: number | null; eloDelta?: number | null
+  provisional?: boolean   // marcador publicado con el acta abierta (computa=false): no cuenta en forma/rachas/H2H
   // Para la forma de la ficha de PARTIDO: fantasy del equipo en ese partido (suma de puntos de sus jugadores) y
   // nombre de la competición (contexto liga/copa). fantasy null = sin datos (silencio, nunca 0 inventado).
   fantasy?: number | null; compNombre?: string | null
@@ -46,6 +48,8 @@ export type PartidoFicha = {
   incidencia: 'local' | 'visitante' | 'ambos' | null
   // estado_partido del acta: 'suspendido' = no se jugó y sigue sin resolver. NULL = sin estado conocido.
   estadoPartido: string | null
+  // Marcador publicado con el acta ABIERTA (computa=false): pastilla PROVISIONAL en vez de FINAL, sin "tras el partido".
+  provisional: boolean
   local: PartidoLado; visitante: PartidoLado
   golesLocal: number | null; golesVisitante: number | null; fecha: string | null; hora: string | null
   campoNombre: string | null; campoSuperficie: string | null; campoHref: string | null; campoLat: number | null; campoLng: number | null
@@ -92,8 +96,9 @@ const toMini = (r: Record<string, unknown>): PartidoMini => ({
   codgrupo: (r.codgrupo as string) ?? null, jornada: (r.jornada as number) ?? null, codtemporada: (r.codtemporada as number) ?? null,
   eloPreLocal: (r.elo_pre_local as number) ?? null, eloPostLocal: (r.elo_post_local as number) ?? null,
   eloPreVisitante: (r.elo_pre_visitante as number) ?? null, eloPostVisitante: (r.elo_post_visitante as number) ?? null,
+  provisional: esProvisional(r),
 })
-const MINI_COLS = 'codacta, fecha, codtemporada, codgrupo, jornada, nombre_local, escudo_local, goles_local, nombre_visitante, escudo_visitante, goles_visitante, codequipo_local, codequipo_visitante, elo_pre_local, elo_post_local, elo_pre_visitante, elo_post_visitante'
+const MINI_COLS = 'codacta, fecha, codtemporada, codgrupo, jornada, nombre_local, escudo_local, goles_local, nombre_visitante, escudo_visitante, goles_visitante, codequipo_local, codequipo_visitante, elo_pre_local, elo_post_local, elo_pre_visitante, elo_post_visitante, computa'
 
 // Historial COMPLETO de partidos jugados del equipo (DESC por fecha). Se usa para la forma (últimos 5) y para las
 // rachas (no hace falta consulta extra: ya se traían todos y se cortaban). Filtrar el propio partido va en getPartido.
@@ -135,14 +140,14 @@ async function enfrentamientos(a: string, b: string, n: number): Promise<Partido
 export async function getPartido(codacta: string): Promise<PartidoFicha | null> {
   if (!/^\d+$/.test(codacta)) return null
   const { data: rRaw } = await supabase.from('web_resultados')
-    .select('id, codacta, codtemporada, codgrupo, jornada, nombre_local, escudo_local, goles_local, goles_visitante, nombre_visitante, escudo_visitante, fecha, hora, campo, codigo_campo, campo_lat, campo_lng, codequipo_local, codequipo_visitante, ronda_slug, incidencia, estado_partido, elo_pre_local, elo_post_local, elo_pre_visitante, elo_post_visitante')
+    .select('id, codacta, codtemporada, codgrupo, jornada, nombre_local, escudo_local, goles_local, goles_visitante, nombre_visitante, escudo_visitante, fecha, hora, campo, codigo_campo, campo_lat, campo_lng, codequipo_local, codequipo_visitante, ronda_slug, incidencia, estado_partido, computa, elo_pre_local, elo_post_local, elo_pre_visitante, elo_post_visitante')
     .eq('codacta', codacta).maybeSingle()
   const r = rRaw as {
     id: number; codacta: string | null; codtemporada: number; codgrupo: string; jornada: number
     nombre_local: string; escudo_local: string | null; goles_local: number | null; goles_visitante: number | null
     nombre_visitante: string; escudo_visitante: string | null; fecha: string | null; hora: string | null
     campo: string | null; codigo_campo: string | null; campo_lat: number | null; campo_lng: number | null
-    codequipo_local: string | null; codequipo_visitante: string | null; ronda_slug: string | null; incidencia: string | null; estado_partido: string | null
+    codequipo_local: string | null; codequipo_visitante: string | null; ronda_slug: string | null; incidencia: string | null; estado_partido: string | null; computa: boolean | null
     elo_pre_local: number | null; elo_post_local: number | null; elo_pre_visitante: number | null; elo_post_visitante: number | null
   } | null
   if (!r) return null
@@ -278,9 +283,10 @@ export async function getPartido(codacta: string): Promise<PartidoFicha | null> 
       campoHref = campoMapsUrl({ codigo: r.codigo_campo ?? null, nombre: r.campo, localidad: null, lat: r.campo_lat, lng: r.campo_lng })
     }
 
-    const actaEq = (m: PartidoMini) => m.codacta !== String(r.codacta)   // fuera el propio partido de forma/H2H
+    // Fuera de forma/rachas/H2H: el propio partido y los PROVISIONALES (acta abierta, no computan).
+    const actaEq = (m: PartidoMini) => m.codacta !== String(r.codacta) && !m.provisional
     const [histL, histV, h2h, arbRaw, entRaw] = await Promise.all([
-      historialDe(codeqL), historialDe(codeqV), enfrentamientos(codeqL, codeqV, 6),
+      historialDe(codeqL), historialDe(codeqV), enfrentamientos(codeqL, codeqV, 10),
       supabase.from('web_partido_arbitro').select('nombre, rol').eq('codacta', r.codacta),
       supabase.from('web_partido_entrenador').select('codequipo, nombre').eq('codacta', r.codacta),
     ])
@@ -379,6 +385,7 @@ export async function getPartido(codacta: string): Promise<PartidoFicha | null> 
       categoria, slugComp: g?.slug_comp || '', slugGrupo: g?.slug_grupo || '', temporada, nombreComp: g?.nombre_comp || 'RFFM · Madrid', jornada: r.jornada, compHref,
       incidencia: (r.incidencia === 'local' || r.incidencia === 'visitante' || r.incidencia === 'ambos') ? r.incidencia : null,
       estadoPartido: r.estado_partido ?? null,
+      provisional: esProvisional(r),
       local, visitante, golesLocal: r.goles_local, golesVisitante: r.goles_visitante, fecha: r.fecha, hora: r.hora,
       campoNombre: campoNombre || null, campoSuperficie, campoHref, campoLat: r.campo_lat, campoLng: r.campo_lng,
       codigoCampo: r.codigo_campo != null ? String(r.codigo_campo) : null,
@@ -397,5 +404,5 @@ export async function getPartido(codacta: string): Promise<PartidoFicha | null> 
       retiradoPostLocal: posL.retPost, retiradoPostVisitante: posV.retPost,
       hitos,
     }
-  }, ['getPartido', 'v13-retirado', String(r.codacta)], [String(r.codgrupo)], r.codtemporada)
+  }, ['getPartido', 'v14-provisional', String(r.codacta)], [String(r.codgrupo)], r.codtemporada)
 }

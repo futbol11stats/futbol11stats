@@ -22,7 +22,7 @@ import PlayerAvatar from '@/components/ui/PlayerAvatar'
 import FormaStrip from '@/components/ui/FormaStrip'
 import type { PartidoFicha, PartidoJugador, PartidoMini, PartidoLado } from '@/lib/partido'
 import { NO_DISPUTADO, SUSPENDIDO } from '@/lib/partido'
-import { RETIRADO } from '@/lib/rotulos'
+import { RETIRADO, PROVISIONAL } from '@/lib/rotulos'
 // Fondo de la pastilla de PUNTOS fantasy (baza propia; verde para lo bueno, el ámbar está reservado).
 const ptsStyle = (p: number | null) => p == null ? { background: 'rgba(255,255,255,.05)', color: 'var(--ink-4)' }
   : p >= 8 ? { background: 'var(--e3)', color: '#08111f' }
@@ -127,7 +127,8 @@ function AlineacionesGrid({ p }: { p: PartidoFicha }) {
   const L = p.local, V = p.visitante
   const haySub = L.suplentes.length > 0 || V.suplentes.length > 0
   const hayTec = !!p.entrenadorLocal || !!p.entrenadorVisitante
-  const hayMov = p.movEloLocal != null || p.movEloVisitante != null
+  // Provisional: el Δ ELO de equipo es "tras el partido", que no se ha computado (aunque quedara un residuo).
+  const hayMov = !p.provisional && (p.movEloLocal != null || p.movEloVisitante != null)
   return (
     <div className="al-grid">
       {cel(<TeamHead lado={L} />, 'l', 'alg-head')}
@@ -271,7 +272,10 @@ function PronoCard({ p }: { p: PartidoFicha }) {
   // pronóstico PREVIO sí se mantiene: era cierto cuando se publicó.
   // Un resultado ADMINISTRATIVO (incidencia) SÍ lo muestra: esos cuentan en el ELO de equipo (decisión de
   // Fernando), así que su movimiento de ELO es real.
-  const hayPost = p.estadoPartido !== 'suspendido' && p.eloPostLocal != null && p.eloPostVisitante != null
+  // PROVISIONAL (acta abierta): tampoco hay "tras el partido" — el bloque entero fuera (ELO, Δ y puesto). Aunque
+  // la fila trajera un elo_post residual, no se ha computado.
+  const sinPost = p.estadoPartido === 'suspendido' || p.provisional
+  const hayPost = !sinPost && p.eloPostLocal != null && p.eloPostVisitante != null
   const fav = favoritoFrase(p.eloPreLocal, p.eloPreVisitante)
   const prob = probsElo(p.eloPreLocal, p.eloPreVisitante)
   const pc = prob ? pct3(prob) : null
@@ -279,9 +283,8 @@ function PronoCard({ p }: { p: PartidoFicha }) {
   // haya jornada anterior con la que comparar.
   const ctxL = p.retiradoPostLocal ? RETIRADO : ctxPuesto(p.posPreLocal, p.posPostLocal)
   const ctxV = p.retiradoPostVisitante ? RETIRADO : ctxPuesto(p.posPreVisitante, p.posPostVisitante)
-  // En suspendido tampoco procede el contexto de puesto (es "cómo quedaron tras el partido").
-  const susp = p.estadoPartido === 'suspendido'
-  const postL = susp ? null : ctxL, postV = susp ? null : ctxV
+  // En suspendido y provisional tampoco procede el contexto de puesto (es "cómo quedaron tras el partido").
+  const postL = sinPost ? null : ctxL, postV = sinPost ? null : ctxV
   if (!hayPre && !hayPost && !postL && !postV) return null
   const favLado = fav && fav.lado !== 'igual' ? (fav.lado === 'local' ? p.local : p.visitante) : null
   // Escudo SIEMPRE primero en el marcado; el CSS coloca el del visitante a la derecha en escritorio (fila enfrentada)
@@ -407,7 +410,8 @@ export default function FichaPartidoV2({ p }: { p: PartidoFicha }) {
             ) : p.jugado ? (
               <>
                 <span className="mres"><span style={{ color: colL }}>{gL}</span><span className="sep">-</span><span style={{ color: colV }}>{gV}</span></span>
-                <span className="pill n">FINAL</span>
+                {/* Provisional: el marcador se enseña, pero el acta sigue abierta -> no es FINAL. */}
+                {p.provisional ? <span className="pill prov">{PROVISIONAL}</span> : <span className="pill n">FINAL</span>}
               </>
             ) : (
               // Estado FUTURO: en vez del hueco del marcador, se enmarca "Próximo partido · fecha · hora". Sin hora

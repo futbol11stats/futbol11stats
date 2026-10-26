@@ -1,5 +1,6 @@
 // Generación de iCalendar (.ics, RFC 5545) para partidos. COMPARTIDO por el botón por partido (/api/ics/[id])
 // y el feed suscribible por equipo (/api/calendario/equipo/[slug]). Puro salvo Date (válido en route handlers).
+import { PROVISIONAL, PROVISIONAL_CORTO } from '@/lib/rotulos'
 
 const CRLF = '\r\n'
 // Texto en vez de emoji: los calendarios de Android (Google Calendar, el cliente más usado por nuestro público)
@@ -60,6 +61,7 @@ export type MatchIcsInput = {
   competicion: string             // "3ª RFEF Madrid · Jornada 12"
   url: string                     // ficha del partido (o resultados de la jornada)
   perspectiva: 'local' | 'visitante' | null   // lado del equipo del FEED (🏠/✈️). null = botón neutro.
+  provisional?: boolean           // marcador con el acta abierta (computa=false): el título lo dice
 }
 
 // UID estable por partido: mismo evento -> el suscriptor lo ACTUALIZA (no duplica). Independiente de hora/estado.
@@ -93,7 +95,8 @@ export function matchVevent(m: MatchIcsInput, nowMs: number): string | null {
   const label = m.perspectiva === 'local' ? HOME_LABEL : m.perspectiva === 'visitante' ? AWAY_LABEL : ''
   let summary: string
   if (jugado) {
-    const marcador = `${m.nombreLocal} ${m.golesLocal}-${m.golesVisitante} ${m.nombreVisitante}`
+    // Provisional: el marcador va, pero marcado — en un calendario no hay otro sitio donde decirlo.
+    const marcador = `${m.nombreLocal} ${m.golesLocal}-${m.golesVisitante} ${m.nombreVisitante}${m.provisional ? ` (${PROVISIONAL_CORTO.toLowerCase()})` : ''}`
     summary = label ? `${label} · ${marcador}` : marcador
   } else if (m.perspectiva) {
     summary = `${label} · ${m.perspectiva === 'local' ? m.nombreVisitante : m.nombreLocal}`
@@ -102,7 +105,9 @@ export function matchVevent(m: MatchIcsInput, nowMs: number): string | null {
   }
 
   const campoLinea = m.campoNombre ? `${m.campoNombre}${m.direccion ? `, ${m.direccion}` : ''}` : (m.direccion || '')
-  const description = [m.competicion, `${m.nombreLocal} — ${m.nombreVisitante}`, ...(campoLinea ? [campoLinea] : []), '', m.url].join('\n')
+  const description = [m.competicion, `${m.nombreLocal} — ${m.nombreVisitante}`,
+    ...(jugado && m.provisional ? [`Resultado ${PROVISIONAL.toLowerCase()}`] : []),
+    ...(campoLinea ? [campoLinea] : []), '', m.url].join('\n')
 
   // SEQUENCE monótona por tiempo de generación: cualquier cambio (hora que se concreta, aplazamiento, campo,
   // resultado) llega en el siguiente refresco y REEMPLAZA el evento (UID estable), nunca lo duplica.

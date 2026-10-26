@@ -4,6 +4,7 @@ import { matchVevent, wrapCalendar } from '@/lib/ics'
 import { parseCampo } from '@/lib/campoSlug'
 import { SITE_URL, CATEGORIA_SLUG } from '@/lib/seo'
 import { codToSlug } from '@/lib/temporadaSlug'
+import { esProvisional } from '@/lib/rotulos'
 
 // Feed .ics suscribible de UN equipo: TODA su temporada (histórico + futuro). Los partidos sin hora confirmada
 // van como evento de DÍA COMPLETO; al concretarse la hora, el mismo UID pasa a evento con hora en el siguiente
@@ -19,7 +20,7 @@ const DDMMYYYY = /^\d{2}\/\d{2}\/\d{4}$/
 export async function buildTeamCalendar(codequipo: string, nowMs: number): Promise<{ ics: string; nombre: string } | null> {
   const cod = String(codequipo)
   const { data: allRaw, error } = await supabase.from('web_resultados')
-    .select('codtemporada, codgrupo, jornada, nombre_local, nombre_visitante, codequipo_local, codequipo_visitante, goles_local, goles_visitante, fecha, fecha_iso, hora, campo, codigo_campo, campo_lat, campo_lng, ronda_slug, ronda_label, estado_partido')
+    .select('codtemporada, codgrupo, jornada, nombre_local, nombre_visitante, codequipo_local, codequipo_visitante, goles_local, goles_visitante, fecha, fecha_iso, hora, campo, codigo_campo, campo_lat, campo_lng, ronda_slug, ronda_label, estado_partido, computa')
     .or(`codequipo_local.eq.${cod},codequipo_visitante.eq.${cod}`)
   // NO tragarse el error como "sin partidos": un timeout/error transitorio debe propagarse (503 reintentado),
   // nunca convertirse en 404. Devolver null SOLO cuando de verdad no hay filas. (Ver: fallos silenciosos que
@@ -91,6 +92,7 @@ export async function buildTeamCalendar(codequipo: string, nowMs: number): Promi
       lat: (r.campo_lat as number | null) ?? null, lng: (r.campo_lng as number | null) ?? null,
       competicion, url,
       perspectiva: String(r.codequipo_local) === cod ? 'local' : 'visitante',
+      provisional: esProvisional(r),
     }, nowMs)
     if (ve) vevents.push(ve)
   }

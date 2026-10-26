@@ -25,6 +25,21 @@ export const SUSPENDIDO = 'Acta pendiente de cerrar'
 export const SUSPENDIDO_CORTO = 'Acta pendiente'
 export const SUSPENDIDO_MINI = 'Acta'
 
+// Provisional (web_resultados.computa=false, decisión 2026-10-26, opción A): el marcador está publicado pero el
+// acta sigue abierta. El pipeline no lo computa: elo_post llega NULL y el partido no entra en forma, rachas ni
+// cara a cara. Se ENSEÑA (marcador + marca), no se cuenta.
+//
+// Distinto de SUSPENDIDO: el suspendido NO tiene marcador; el provisional sí.
+export const PROVISIONAL = 'Provisional · Acta abierta'
+export const PROVISIONAL_CORTO = 'Provisional'
+export const PROVISIONAL_MINI = 'Prov.'
+
+// LA regla, en un solo sitio: marcador publicado Y computa=false. `computa` NULL/ausente = true (default de la
+// columna, y filas leídas con un select que no la trae): ausencia no es "provisional".
+export function esProvisional(r: { goles_local?: unknown; goles_visitante?: unknown; computa?: unknown }): boolean {
+  return r.goles_local != null && r.goles_visitante != null && r.computa === false
+}
+
 // Equipo retirado de la competición (web_clasificacion.retirado). La RFFM lo deja en la última fila con 0
 // puntos y zona de descenso; el puesto que trae (N) es solo el hueco que ocupa, no un puesto ganado. Donde se
 // pintaría el número va este rótulo.

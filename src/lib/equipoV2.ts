@@ -4,6 +4,7 @@
 
 import { supabase, sel } from '@/lib/supabase'
 import { getResultadosGrupo, filaEsLocal, codgrupoFamilia, type ResultadoRow, type EquipoFicha, COLS_EQUIPO } from '@/lib/equipo'
+import { esProvisional } from '@/lib/rotulos'
 import { claveFecha } from '@/lib/fechaOrden'
 import { cacheEquipo, hashCols } from '@/lib/cacheComp'
 import { partidoSlug } from '@/lib/partidoSlug'
@@ -102,6 +103,7 @@ export type JornadaEquipoDatum = {
   fan: number | null            // puntos fantasy de ESA jornada (diff del acumulado)
   pos: number | null; mov: MovDir
   retirado: boolean             // retirado en esa jornada -> el carril no pinta puesto ni movimiento
+  provisional: boolean          // marcador con el acta abierta: se pinta con marca, fuera de Últimos partidos y racha
   rivalNombre: string | null; rivalEscudo: string | null
   marcador: string | null; signo: 'G' | 'E' | 'P' | null; esLocal: boolean | null; fecha: string | null
   codacta: string | null        // -> enlace a la ficha del partido
@@ -147,7 +149,7 @@ export function buildJornadasEquipo(serie: ClasifRow[], resultados: ResultadoRow
     // Clave de orden: la fecha del PARTIDO si lo hay (la de verdad), y si la jornada no se ha jugado, la
     // fecha de la propia jornada en web_clasificacion. claveFecha manda al final lo que no tiene ninguna.
     const orden = claveFecha(r?.fecha_iso ?? c.fecha_iso ?? null, r?.fecha ?? null)
-    return { orden, d: { jornada: c.jornada, fan, pos: c.pos, mov: parseMov(c.mov), retirado: !!c.retirado, rivalNombre, rivalEscudo, marcador, signo, esLocal, fecha: r?.fecha ?? null, codacta: r?.codacta ?? null, eloDelta } }
+    return { orden, d: { jornada: c.jornada, fan, pos: c.pos, mov: parseMov(c.mov), retirado: !!c.retirado, provisional: !!r && esProvisional(r), rivalNombre, rivalEscudo, marcador, signo, esLocal, fecha: r?.fecha ?? null, codacta: r?.codacta ?? null, eloDelta } }
   })
   // Reordenar a CRONOLOGÍA ya con el fantasy calculado. Desempate por jornada: dos partidos el mismo día
   // (o dos jornadas sin fecha) mantienen el orden del calendario en vez de quedar al azar.
@@ -224,7 +226,8 @@ export function formaEquipo(jornadas: JornadaEquipoDatum[]): { ventanas: Ventana
     { label: 'Últimas 10', ...win(10) },
     { label: 'Temporada', media: mTemp, pj: pts.length, delta: null },
   ]
-  const racha = jug.slice(-5).map((j) => ({ signo: j.signo as 'G' | 'E' | 'P', jornada: j.jornada, marcador: j.marcador }))
+  // Racha: sin los PROVISIONALES (acta abierta, no computan). Sí siguen en el gráfico, con su marca.
+  const racha = jug.filter((j) => !j.provisional).slice(-5).map((j) => ({ signo: j.signo as 'G' | 'E' | 'P', jornada: j.jornada, marcador: j.marcador }))
   return { ventanas, racha }
 }
 
@@ -379,6 +382,7 @@ export type RondaDatum = {
   rivalNombre: string | null; rivalEscudo: string | null; rivalCod: string | null
   esLocal: boolean; fecha: string | null; ronda: string
   eloDelta: number | null   // ΔELO del equipo tras el partido (post − pre; null si no hay dato)
+  provisional?: boolean     // acta abierta: marcador con marca de provisional (sin ΔELO: elo_post llega NULL)
   goles: number             // goles a favor (del marcador) — mismo criterio que "Últimos partidos" de liga
   p0: boolean               // portería a cero (goles en contra == 0)
   ta: number; td: number; tr: number   // tarjetas agregadas del equipo en esa acta
@@ -448,6 +452,7 @@ export async function getCopasAmbito(codequipo: string, tempSel: string | null, 
           rivalCod: (local ? r.codequipo_visitante : r.codequipo_local) ?? null,
           esLocal: local, fecha: r.fecha, ronda: rondaPorIdx.get(r.jornada) || c.ronda_label || 'Ronda',
           eloDelta: (pre != null && post != null) ? Math.round(post - pre) : null,
+          provisional: esProvisional(r),
           goles: gf, p0: gc === 0, ta: ev?.ta ?? 0, td: ev?.td ?? 0, tr: ev?.tr ?? 0,
           href: r.codacta ? `/madrid/partido/${partidoSlug(r.codacta, r.nombre_local, r.nombre_visitante)}` : null,
         }

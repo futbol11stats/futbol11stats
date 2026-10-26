@@ -181,7 +181,8 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
   )
 
   // Últimos 3 partidos jugados (de la serie del gráfico, con fantasy de esa jornada).
-  const ultimos = jornadas.filter((j) => j.fan != null && j.marcador).slice(-3).reverse()
+  // Sin PROVISIONALES (acta abierta): no computan; siguen visibles en Jornadas con su marca.
+  const ultimos = jornadas.filter((j) => j.fan != null && j.marcador && !j.provisional).slice(-3).reverse()
   // Eventos de equipo por partido (tarjetas) para "Últimos partidos": tira mínima de ~3 actas.
   const evUltimos = await getEventosEquipo(e.codequipo, ultimos.map((u) => u.codacta).filter(Boolean) as string[])
 

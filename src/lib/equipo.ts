@@ -41,6 +41,8 @@ export type ResultadoRow = {
   // ELO de equipo POR PARTIDO (denormalizado en web_resultados). ΔELO = post − pre del lado del equipo. Se pobla
   // en el ciclo del pipeline; hasta entonces son valores viejos/null -> silencio, nunca inventado.
   elo_pre_local?: number | null; elo_post_local?: number | null; elo_pre_visitante?: number | null; elo_post_visitante?: number | null
+  // false = marcador publicado con el acta abierta (provisional, ver esProvisional): se enseña con marca, no computa.
+  computa?: boolean | null
 }
 // Perspectiva local/visitante robusta: si el codequipo del equipo casa un lado de la fila, es definitivo; si no
 // casa ninguno (copa sin codequipo, o fila con código REASIGNADO viejo), cae al nombre. El nombre es unívoco
@@ -54,7 +56,7 @@ export function filaEsLocal(r: Pick<ResultadoRow, 'codequipo_local' | 'codequipo
 }
 export async function getResultadosGrupo(codequipo: string | number | null | undefined, nombre: string | null, codgrupo: string | null | undefined): Promise<ResultadoRow[]> {
   if (!codgrupo || (codequipo == null && !nombre)) return []
-  const cols = 'jornada, fecha, fecha_iso, goles_local, goles_visitante, nombre_local, nombre_visitante, escudo_local, escudo_visitante, codequipo_local, codequipo_visitante, codacta, elo_pre_local, elo_post_local, elo_pre_visitante, elo_post_visitante'
+  const cols = 'jornada, fecha, fecha_iso, goles_local, goles_visitante, nombre_local, nombre_visitante, escudo_local, escudo_visitante, codequipo_local, codequipo_visitante, codacta, elo_pre_local, elo_post_local, elo_pre_visitante, elo_post_visitante, computa'
   return cacheTagged(async () => {
     const base = () => supabase.from('web_resultados').select(cols).eq('codgrupo', String(codgrupo))
     // UNIÓN codequipo ∪ nombre (deduplicada): codequipo casa liga (estable a renombrados); nombre casa copa (sin
@@ -243,11 +245,14 @@ export async function getCopasConMetricas(codequipo: string | number | null | un
           // filas YA están acotadas al grupo de esta copa, así que el filtro no puede añadir nada y sí
           // quitar — los 2 grupos de copa que no son fam-* (SEGUNDA JUVENIL COPA GRUPO 23 /A y /B, 13 filas)
           // tienen ronda_slug nulo, y con ese filtro se quedarían sin ELO.
+          // Solo cuenta el último partido CON elo_post. Un PROVISIONAL (acta abierta) llega con elo_post NULL; si
+          // avanzara `ultimaFecha` igualmente, el cierre dependería del orden de las filas: o se quedaba el ELO de
+          // un partido anterior leído antes, o se perdía porque los anteriores ya no pasaban el `>=`.
           const k = claveFecha(r.fecha_iso, r.fecha)
-          if (k !== FECHA_AL_FINAL && k >= ultimaFecha) {
+          const post = local ? r.elo_post_local : r.elo_post_visitante
+          if (post != null && k !== FECHA_AL_FINAL && k >= ultimaFecha) {
             ultimaFecha = k
-            const post = local ? r.elo_post_local : r.elo_post_visitante
-            if (post != null) eloUltimoPartido = Number(post)
+            eloUltimoPartido = Number(post)
           }
         }
         // ELO de cierre de la copa = elo_post del ÚLTIMO partido del equipo en ella, por fecha_iso (arriba).
@@ -269,7 +274,7 @@ export async function getCopasConMetricas(codequipo: string | number | null | un
     }
     return out
     // v5-elocierre: bump al añadir `elo` (ELO de cierre de la copa, por competición) a la salida.
-  }, ['getCopasConMetricas', 'v10-fechaorden', String(codequipo), nombre], codequipo)
+  }, ['getCopasConMetricas', 'v11-cierreconpost', String(codequipo), nombre], codequipo)
 }
 
 // Copas + posición en liga del equipo (una sola query a web_equipo). Para el hero de la ficha de
