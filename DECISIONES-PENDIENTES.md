@@ -1652,6 +1652,13 @@ Juvenil G5 (26737723); el dato real llega con el export del 26→27/10.
    una capa vacía (`.match-hb-cover`, con `aria-label`) que la cubre, y los `<a>` de dentro suben por encima.
    Mismo aspecto y mismos destinos de clic (nombre enlazado -> equipo; resto -> partido), comprobado fila a
    fila con `elementFromPoint` a 390 y 1400 en ficha de equipo y de partido (incl. Cara a cara); 0 `a a`.
+4. **"Ranking por faceta · en su grupo" (ficha de equipo).** **HECHO (27/10, sin publicar):** GF, GC y PF los
+   calcula la web (`rankFacetas` en `equipoV2.ts`, sobre la última jornada de `web_clasificacion`): el retirado
+   no entra y los demás se ordenan sin él; en su propia ficha el bloque no se pinta. Caso real Pref. Juvenil
+   G5: Carabanchel 'B' pasa de 18º a 17º en GC (el retirado, con GC 21, le adelantaba).
+   **Pendiente del PIPELINE:** la cuarta casilla, Juego limpio, sale de `web_equipo.posicion_juego_limpio`
+   y la calcula el pipeline. Ahí el Mar Abierto 'A' figura **1º** (0 tarjetas por no jugar) y desplaza un
+   puesto a los otros 17 (Carabanchel 'B' sale 2º). La web no la toca.
 
 ### E-provisional · Acta abierta como provisional (2026-10-26, DESPLEGADO; quedan dos pendientes)
 

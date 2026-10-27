@@ -247,10 +247,24 @@ export async function getTramos(codequipo: string, codgrupo: string | null): Pro
 }
 
 // --- Facetas: ranking del equipo DENTRO DE SU GRUPO en gf, gc (menos es mejor), pts_fantasy. ---
-export type Facetas = { gf: number | null; gc: number | null; ptsFan: number | null; n: number }
+// El RETIRADO (web_clasificacion.retirado) no entra: los demás se ordenan sin él, y en su propia ficha no hay
+// ranking (retirado=true -> el bloque no se pinta).
+export type Facetas = { gf: number | null; gc: number | null; ptsFan: number | null; n: number; retirado?: boolean }
+export function rankFacetas(todas: any[], codequipo: string): Facetas {
+  if (todas.find((r) => String(r.codequipo) === String(codequipo))?.retirado) return { gf: null, gc: null, ptsFan: null, n: 0, retirado: true }
+  const rows = todas.filter((r) => !r.retirado)
+  const n = rows.length
+  const rank = (key: string, desc: boolean) => {
+    const me = rows.find((r) => String(r.codequipo) === String(codequipo))
+    if (!me || me[key] == null) return null
+    const mv = me[key] as number
+    return 1 + rows.filter((r) => r[key] != null && (desc ? r[key] > mv : r[key] < mv)).length
+  }
+  return { gf: rank('gf', true), gc: rank('gc', false), ptsFan: rank('pts_fantasy', true), n }
+}
 export async function getFacetasGrupo(codgrupo: string | null, codequipo: string): Promise<Facetas> {
   if (!codgrupo) return { gf: null, gc: null, ptsFan: null, n: 0 }
-  const cols = 'codequipo, gf, gc, pts_fantasy'   // select de datos que define la caché (la de 'jornada' es auxiliar)
+  const cols = 'codequipo, gf, gc, pts_fantasy, retirado'   // select de datos que define la caché (la de 'jornada' es auxiliar)
   return cacheEquipo(async () => {
     const { data: jr } = await supabase.from('web_clasificacion').select('jornada')
       .eq('codgrupo', String(codgrupo)).order('jornada', { ascending: false }).limit(1)
@@ -258,15 +272,7 @@ export async function getFacetasGrupo(codgrupo: string | null, codequipo: string
     if (jornada == null) return { gf: null, gc: null, ptsFan: null, n: 0 }
     const { data } = await supabase.from('web_clasificacion').select(cols)
       .eq('codgrupo', String(codgrupo)).eq('jornada', jornada)
-    const rows = (data || []) as any[]
-    const n = rows.length
-    const rank = (key: string, desc: boolean) => {
-      const me = rows.find((r) => String(r.codequipo) === String(codequipo))
-      if (!me || me[key] == null) return null
-      const mv = me[key] as number
-      return 1 + rows.filter((r) => r[key] != null && (desc ? r[key] > mv : r[key] < mv)).length
-    }
-    return { gf: rank('gf', true), gc: rank('gc', false), ptsFan: rank('pts_fantasy', true), n }
+    return rankFacetas((data || []) as any[], codequipo)
   }, ['getFacetasGrupo', 'v1', hashCols(cols), String(codgrupo), codequipo], codequipo, { codgrupo })
 }
 
