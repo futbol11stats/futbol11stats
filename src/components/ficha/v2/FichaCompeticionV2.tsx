@@ -393,14 +393,14 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
   }
 
   // Tabla de clasificación de UN grupo de copa: mismo markup flex que la de liga pero con el subconjunto de
-  // columnas que la copa tiene con dato (pos, escudo, equipo, PJ, PG, PE, PP, GF, GC, DG, Pts, Mov). Sin
+  // columnas que la copa tiene con dato (pos, escudo, equipo, Pts, PJ, PG, PE, PP, GF, GC, DG, Mov). Sin
   // zona/ELO/PF/Forma/Racha/PO (NULL en copa).
   const tablaCopa = (rows: ClasifCopaRow[]) => (
     <div className="ctabla"><ScrollRail className="ctw" wrapClassName="srail-tabla">
       <div className="ctr head">
         <div className="cfix"><span className="cpos">#</span><span style={{ width: 24, flex: 'none' }} /><span className="ceq">Equipo</span></div>
-        {['PJ', 'PG', 'PE', 'PP', 'GF', 'GC', 'DG'].map((cc) => <span key={cc} className={`cc${cc === 'DG' ? ' dg' : ''}`}>{cc}</span>)}
         <span className="cc pts">Pts</span>
+        {['PJ', 'PG', 'PE', 'PP', 'GF', 'GC', 'DG'].map((cc) => <span key={cc} className={`cc${cc === 'DG' ? ' dg' : ''}`}>{cc}</span>)}
         <span className="cc">Mov</span>
       </div>
       {rows.map((r) => {
@@ -415,10 +415,10 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
                 <span className="ceq-ret"><span className="ceq"><NombreEquipo codequipo={r.codequipo} nombre={r.nombre_equipo} /></span><span className="ret-tag">{RETIRADO}</span></span>
               ) : <span className="ceq"><NombreEquipo codequipo={r.codequipo} nombre={r.nombre_equipo} /></span>}
             </div>
+            <span className="cc pts">{r.pts}</span>
             <span className="cc">{r.pj}</span><span className="cc">{r.pg}</span><span className="cc">{r.pe}</span><span className="cc">{r.pp}</span>
             <span className="cc">{r.gf}</span><span className="cc">{r.gc}</span>
             <span className="cc dg">{r.dg > 0 ? `+${r.dg}` : r.dg}</span>
-            <span className="cc pts">{r.pts}</span>
             <span className="cc" style={{ color: movCol }}>{ret ? '' : (r.mov || '—')}</span>
           </div>
         )
@@ -607,8 +607,8 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
                   <div className="ctabla"><ScrollRail className="ctw" wrapClassName="srail-tabla">
                     <div className="ctr head">
                       <div className="cfix"><span className="czona" /><span className="cpos">#</span><span style={{ width: 24, flex: 'none' }} /><span className="ceq">Equipo</span></div>
-                      {['PJ', 'PG', 'PE', 'PP', 'GF', 'GC', 'DG'].map((c) => <span key={c} className={`cc${c === 'DG' ? ' dg' : ''}`}>{c}</span>)}
                       <span className="cc pts">Pts</span>
+                      {['PJ', 'PG', 'PE', 'PP', 'GF', 'GC', 'DG'].map((c) => <span key={c} className={`cc${c === 'DG' ? ' dg' : ''}`}>{c}</span>)}
                       <span className="cc">Mov</span>
                       <span className="cc">PF</span>
                       <span className="cc c-elo">ELO</span>
@@ -635,10 +635,10 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
                               <span className="ceq-ret"><span className="ceq"><NombreEquipo codequipo={r.codequipo} nombre={r.nombre_equipo} /></span><span className="ret-tag">{RETIRADO}</span></span>
                             ) : <span className="ceq"><NombreEquipo codequipo={r.codequipo} nombre={r.nombre_equipo} /></span>}
                           </div>
+                          <span className="cc pts">{r.pts}</span>
                           <span className="cc">{r.pj}</span><span className="cc">{r.pg}</span><span className="cc">{r.pe}</span><span className="cc">{r.pp}</span>
                           <span className="cc">{r.gf}</span><span className="cc">{r.gc}</span>
                           <span className="cc dg">{r.dg > 0 ? `+${r.dg}` : r.dg}</span>
-                          <span className="cc pts">{r.pts}</span>
                           <span className="cc" style={{ color: movCol }}>{ret ? '' : (r.mov || '—')}</span>
                           <span className="cc">{fmtNum(r.pts_fantasy)}</span>
                           {(() => {

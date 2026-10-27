@@ -36,3 +36,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# los genera next dev (agentRules) en la raíz
+/AGENTS.md
+/CLAUDE.md

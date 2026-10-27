@@ -1684,3 +1684,14 @@ con marca en el gráfico de Jornadas, filas de copa, lista de Resultados de comp
 2. **Fantasy de jornada de actas abiertas.** El acumulado `web_clasificacion.pts_fantasy` (barra del gráfico
    del equipo, "Últimas 5/10") y los puntos por jugador los decide el pipeline. Si un acta abierta no debe
    sumar fantasy hasta cerrarse, se excluye **en el pipeline**; la web solo pinta lo que llega.
+
+### E-pts-primero · Pts como primera columna de datos en la clasificación de competición (2026-10-27, SIN DESPLEGAR)
+
+**Se aparta de la maqueta aprobada, por decisión de Fernando (2026-10-27).** En la página de competición, la
+columna Pts pasa a ser la primera de datos: justo después del equipo y por delante de PJ, con el mismo estilo
+destacado (`.cc.pts`). Cabecera y filas, incluida la del retirado. Afecta a la tabla de liga (también al ver una
+jornada anterior) y a las tablas de grupo de copa (`tablaCopa`, que usan el mismo marcado). **No cambian** la
+mini-tabla de la ficha de equipo ni la vista global por zonas.
+Verificado en local a 390 y 1400 (Pref. Juvenil G5 J7 y J3, Copa RFEF fase de grupos): la columna fija sigue
+midiendo 172 / 280 px, el ancho de la tabla no cambia (746 px a 390, mismo scroll interno que antes) y la página
+no tiene scroll horizontal.
