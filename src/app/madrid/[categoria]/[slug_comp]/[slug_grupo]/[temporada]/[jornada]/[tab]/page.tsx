@@ -151,12 +151,15 @@ export default async function GrupoPage({
   const rondas: Ronda[] = isCopa && Array.isArray(grupo.rondas) ? grupo.rondas : []
   const esFamilia = rondas.length > 0
 
-  // PRETEMPORADA (liga sin partidos jugados): la entrada por defecto es jornada_actual (= final del calendario,
-  // ya cargado) + clasificación. Se lleva al PRINCIPIO —J1 + resultados—, que es lo que se busca al empezar (los
-  // emparejamientos de la 1ª jornada). Redirect TEMPORAL (mismo discriminante que la pastilla, tienePartidosJugados):
-  // en cuanto haya un solo partido jugado deja de redirigir y abre en clasificación/última jornada como siempre.
-  // Solo se dispara en la entrada por defecto (jornada actual + clasificación); ver clasificación en pretemporada
-  // sigue siendo posible (su URL es jornada-1/clasificación, que no cumple la condición).
+  // PRETEMPORADA (liga sin partidos jugados): la entrada por defecto es jornada_actual + clasificación. En
+  // pretemporada jornada_actual es la jornada MÁS BAJA del calendario (normalmente la 1): el pipeline la fija por
+  // calendario (db.sql_jornada_actual) y, si aún no ha llegado ninguna jornada, cae a MIN(jornada). Se lleva a
+  // J1 + resultados, que es lo que se busca al empezar (los emparejamientos de la 1ª jornada). Redirect TEMPORAL
+  // (mismo discriminante que la pastilla, tienePartidosJugados): en cuanto haya un solo partido jugado deja de
+  // redirigir y abre en clasificación/última jornada como siempre.
+  // Se dispara en la clasificación de la jornada actual. Como esa es normalmente la 1, en pretemporada
+  // jornada-1/clasificación TAMBIÉN redirige a resultados: la clasificación no es alcanzable hasta el primer partido
+  // (sería la tabla de pretemporada, todo a cero).
   if (!isCopa && tab === 'clasificacion') {
     const jactNum = grupo.jornada_actual || 1
     const jNum = parseInt(jornada.replace('jornada-', ''), 10) || jactNum
