@@ -5,7 +5,7 @@
 import { supabase, sel } from '@/lib/supabase'
 import { getResultadosGrupo, filaEsLocal, codgrupoFamilia, type ResultadoRow, type EquipoFicha, COLS_EQUIPO } from '@/lib/equipo'
 import { esProvisional } from '@/lib/rotulos'
-import { claveFecha } from '@/lib/fechaOrden'
+import { claveFecha, claveFechaDesc } from '@/lib/fechaOrden'
 import { cacheEquipo, hashCols } from '@/lib/cacheComp'
 import { partidoSlug } from '@/lib/partidoSlug'
 import { badgeEdad, type BadgeEdad } from '@/lib/badgeEdad'
@@ -346,12 +346,28 @@ export async function getMovimientosEquipo(cod: string) {
     return ((data || []) as any[]).sort((a, b) => String(b.fecha || b.codtemporada || '').localeCompare(String(a.fecha || a.codtemporada || '')))
   }, ['getMovimientosEquipo', 'v1', hashCols(cols), cod], cod)
 }
+// Hitos del MÁS RECIENTE al más antiguo. Clave = la fecha (DD/MM/YYYY): partidos_acumulados, mayor_goleada y
+// mejor_racha la traen siempre (medido: 100 % de cada tipo). mejor_temporada no trae fecha (0 %) y va al FINAL
+// DE SU TEMPORADA: el 30/06 del año en que acaba, que es posterior a cualquier fecha de esa temporada (medido:
+// ninguna fecha cae fuera de su julio–junio). Empate -> orden fijo por tipo, con mejor_temporada primero para
+// que el cierre de temporada siga encabezando la suya. Sin fecha ni temporada -> al final.
+const ORDEN_TIPO_HITO = ['mejor_temporada', 'mejor_racha', 'mayor_goleada', 'partidos_acumulados']
+function claveHito(h: { fecha?: string | null; codtemporada?: string | number | null }): string {
+  const k = claveFechaDesc(null, h.fecha)
+  if (k) return k
+  const ini = anioInicioTemporada(h.codtemporada)   // codtemporada llega como TEXTO en web_equipo_hitos
+  return h.codtemporada != null && ini != null ? `${ini + 1}-06-30` : ''
+}
+export function ordenarHitos<T extends { tipo_hito: string; fecha?: string | null; codtemporada?: string | number | null }>(hitos: T[]): T[] {
+  const tipo = (t: string) => { const i = ORDEN_TIPO_HITO.indexOf(t); return i < 0 ? ORDEN_TIPO_HITO.length : i }
+  return [...hitos].sort((a, b) => claveHito(b).localeCompare(claveHito(a)) || tipo(a.tipo_hito) - tipo(b.tipo_hito))
+}
 export async function getHitosEquipo(cod: string) {
   const cols = 'tipo_hito, fecha, codtemporada, detalle, valor, rival_cod, rival_nombre, rival_escudo, resultado'
   return cacheEquipo(async () => {
     const { data } = await supabase.from('web_equipo_hitos').select(cols).eq('codequipo', String(cod))
-    return (data || []) as any[]
-  }, ['getHitosEquipo', 'v1', hashCols(cols), cod], cod)   // clave derivada del select (antes 'v2-rival' a mano); 'v1' = versión de lógica.
+    return ordenarHitos((data || []) as any[])
+  }, ['getHitosEquipo', 'v2-orden', hashCols(cols), cod], cod)   // clave derivada del select; 'v2-orden' = versión de lógica (ordena por fecha).
 }
 
 // Media de fantasy y ELO de cierre POR temporada (para las tarjetas de Temporadas). Una query: todas las

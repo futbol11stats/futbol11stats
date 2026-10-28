@@ -771,8 +771,9 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
                   const texto = cfg ? cfg.label(h) : h.tipo_hito
                   // Contexto = competición del equipo esa temporada (web_equipo_hitos no trae categoría propia).
                   const ctx = temporadas.find((t) => t.codtemporada === h.codtemporada)?.nombre_comp
-                  // fecha (DD/MM/YYYY) -> si no la hay, la temporada; mejor_racha no trae ninguna de las dos
-                  // (una racha no tiene fecha única ni temporada en el pipeline) -> no se pinta línea vacía.
+                  // fecha (DD/MM/YYYY) -> si no la hay, la temporada (mejor_temporada: sin fecha, con temporada).
+                  // mejor_racha SÍ trae fecha (medido: 1.672 de 1.672). Sin ninguna de
+                  // las dos no se pinta línea vacía. El orden (más reciente primero) viene de getHitosEquipo.
                   const meta = fechaCortaDMY(h.fecha) || (h.codtemporada ? tempLabel(h.codtemporada) : '')
                   return (
                     <div className="hito" key={i}>
