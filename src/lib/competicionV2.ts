@@ -284,8 +284,9 @@ export type ResultadoCompRow = {
   codigo_campo?: string | null; campo_lat?: number | null; campo_lng?: number | null; campo_localidad?: string | null
 }
 // ¿La competición tiene ALGÚN partido jugado? Discriminante del estado de la cabecera (sin empezar vs en juego/
-// finalizada): jornada_actual/total_jornadas NO basta -> una temporada sin empezar trae el calendario cargado
-// (jornada_actual >= total) con 0 resultados. Uniforme para liga y copa (por codgrupo). limit(1), no count (el
+// finalizada): jornada_actual NO basta -> el pipeline la fija por calendario (db.sql_jornada_actual) y una temporada
+// sin empezar trae la jornada MÁS BAJA (normalmente 1) con 0 resultados. Uniforme para liga y copa (por codgrupo).
+// La usan la vista por grupo y la global (una por grupo). limit(1), no count (el
 // count con anon key falla en silencio, ver checklist).
 export async function tienePartidosJugados(codgrupo: string, codtemporada: number): Promise<boolean> {
   return cacheComp(async () => {

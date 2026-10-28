@@ -32,7 +32,7 @@ import {
   zonaFamilia, ZONA_FAM_COL, ZONA_FAM_LABEL,
   getGlobalTopTemporadaV2, getGlobalMvpV2, getGlobalEquiposFormaV2,
   getGlobalXiV2, getGlobalCifrasV2, getGlobalTeamGoalsV2, getGlobalTramosV2, getJuegoLimpioV2, getAlertasV2,
-  getGlobalLideresV2, getGlobalCifrasFullV2,
+  getGlobalLideresV2, getGlobalCifrasFullV2, tienePartidosJugados,
 } from '@/lib/competicionV2'
 import type { ReactNode } from 'react'
 import { RETIRADO } from '@/lib/rotulos'
@@ -71,9 +71,13 @@ export default async function FichaCompeticionGlobalV2({ categoria, slugComp, te
 
   const nombre = nombreOficial(grupos[0].nombre_comp) ?? ensureMadrid(denominacion(grupos[0].nombre_comp))
   // TRES estados como en la vista por grupo (el fix no había llegado a la global): la competición está TERMINADA
-  // cuando TODOS los grupos han alcanzado su última jornada; sin empezar si ninguno tiene jornada disputada; en
-  // juego solo si es la temporada activa y queda calendario. El contador usa el avance real (máx de los grupos).
-  const hayJugadosG = grupos.some((g) => (g.jornada_actual || 0) > 0)
+  // cuando TODOS los grupos han alcanzado su última jornada; sin empezar si NINGÚN grupo tiene un partido con
+  // resultado; en juego solo si es la temporada activa y queda calendario. El contador usa el avance (máx de los grupos).
+  // "Sin empezar" NO se deduce de jornada_actual: el pipeline (db.sql_jornada_actual) la fija por CALENDARIO y, si
+  // aún no ha llegado ninguna jornada, cae a la MÁS BAJA (normalmente 1) -> `jornada_actual > 0` daba "en juego" en
+  // agosto sin un partido jugado. Mismo discriminante que la vista por grupo: tienePartidosJugados (limit 1,
+  // cacheado por grupo con su tag comp:).
+  const hayJugadosG = (await Promise.all(grupos.map((g) => tienePartidosJugados(String(g.codgrupo), codtemporada)))).some(Boolean)
   const todosTerminados = grupos.every((g) => !!g.total_jornadas && (g.jornada_actual || 0) >= g.total_jornadas)
   const jAvance = Math.max(...grupos.map((g) => g.jornada_actual || 0), 0)
   const sinEmpezarG = !hayJugadosG

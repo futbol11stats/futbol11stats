@@ -264,8 +264,9 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
 
   const nombre = nombreOficial(grupo.nombre_comp) ?? ensureMadrid(denominacion(grupo.nombre_comp))
   const tituloGrupo = `${nombre}${grupo.nombre_grupo ? ` · ${grupo.nombre_grupo}` : ''}`
-  // TRES estados de la cabecera, discriminados por PARTIDOS JUGADOS (jornada_actual/total no basta: una temporada
-  // SIN EMPEZAR trae el calendario cargado con jornada_actual >= total y 0 resultados):
+  // TRES estados de la cabecera, discriminados por PARTIDOS JUGADOS (jornada_actual no basta: el pipeline la fija por
+  // CALENDARIO -db.sql_jornada_actual- y una temporada SIN EMPEZAR trae la jornada MÁS BAJA, normalmente 1, con 0
+  // resultados; también puede ir por delante de lo jugado si faltan resultados):
   //  - SIN EMPEZAR: 0 partidos jugados -> "Por comenzar".
   //  - EN JUEGO: hay jugados, quedan jornadas/rondas por jugar (jornada_actual < total) y es la temporada activa.
   //  - FINALIZADA: hay jugados y no quedan (o es una temporada pasada ya cerrada).
