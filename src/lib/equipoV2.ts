@@ -362,6 +362,15 @@ export function ordenarHitos<T extends { tipo_hito: string; fecha?: string | nul
   const tipo = (t: string) => { const i = ORDEN_TIPO_HITO.indexOf(t); return i < 0 ? ORDEN_TIPO_HITO.length : i }
   return [...hitos].sort((a, b) => claveHito(b).localeCompare(claveHito(a)) || tipo(a.tipo_hito) - tipo(b.tipo_hito))
 }
+// Contexto del hito = competición del equipo esa temporada (web_equipo_hitos no trae categoría propia).
+// mejor_temporada NO lo lleva: su detalle ya trae la categoría ("10º · Nacional Juvenil"; medido 2.052 de 2.052)
+// y saldría repetida.
+export function contextoHito<T extends { codtemporada?: unknown; nombre_comp?: string | null }>(
+  h: { tipo_hito: string; codtemporada?: unknown }, temporadas: T[],
+): string | null {
+  if (h.tipo_hito === 'mejor_temporada') return null
+  return temporadas.find((t) => t.codtemporada === h.codtemporada)?.nombre_comp ?? null
+}
 export async function getHitosEquipo(cod: string) {
   const cols = 'tipo_hito, fecha, codtemporada, detalle, valor, rival_cod, rival_nombre, rival_escudo, resultado'
   return cacheEquipo(async () => {

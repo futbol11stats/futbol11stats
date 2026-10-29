@@ -3,7 +3,7 @@ import { describe, it, expect, vi } from 'vitest'
 // equipoV2.ts crea el cliente de Supabase al cargar el módulo: se mockea (mismo recurso que provisional.test.ts).
 vi.mock('@/lib/supabase', () => ({ supabase: {}, sel: vi.fn() }))
 
-import { ordenarHitos } from '@/lib/equipoV2'
+import { ordenarHitos, contextoHito } from '@/lib/equipoV2'
 
 // Hitos de equipo: del MÁS RECIENTE al más antiguo por fecha; mejor_temporada (sin fecha) al final de su temporada.
 // codtemporada llega como TEXTO desde web_equipo_hitos.
@@ -38,5 +38,21 @@ describe('hitos de equipo · orden', () => {
     const entrada = [h('mejor_temporada', null, null as any), h('mayor_goleada', '18/09/2021', '17')]
     expect(ordenarHitos(entrada).map((x) => x.tipo_hito)).toEqual(['mayor_goleada', 'mejor_temporada'])
     expect(entrada[0].tipo_hito).toBe('mejor_temporada')
+  })
+})
+
+// mejor_temporada ya trae la categoría en su detalle ("10º · Nacional Juvenil"): sin contexto, para no repetirla.
+describe('hitos de equipo · contexto (competición de la temporada)', () => {
+  const temporadas = [{ codtemporada: '17', nombre_comp: 'Nacional Juvenil' }, { codtemporada: '21', nombre_comp: 'Preferente Juvenil' }]
+  it('mejor_temporada -> sin contexto', () => {
+    expect(contextoHito({ tipo_hito: 'mejor_temporada', codtemporada: '17' }, temporadas)).toBeNull()
+  })
+  it('control: los demás tipos siguen llevando la competición de su temporada', () => {
+    expect(contextoHito({ tipo_hito: 'mayor_goleada', codtemporada: '17' }, temporadas)).toBe('Nacional Juvenil')
+    expect(contextoHito({ tipo_hito: 'mejor_racha', codtemporada: '17' }, temporadas)).toBe('Nacional Juvenil')
+    expect(contextoHito({ tipo_hito: 'partidos_acumulados', codtemporada: '21' }, temporadas)).toBe('Preferente Juvenil')
+  })
+  it('temporada sin fila -> sin contexto', () => {
+    expect(contextoHito({ tipo_hito: 'mayor_goleada', codtemporada: '99' }, temporadas)).toBeNull()
   })
 })

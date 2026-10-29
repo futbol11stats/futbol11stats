@@ -40,7 +40,7 @@ import {
   getEquipoV2, getTemporadasEquipo, getCopaTemporadas, getSerieLiga, getResultadosGrupo, buildJornadasEquipo,
   escudosPorNombre, getMiniClasif, colorMedia, colorElo, CORTES_EQUIPO,
   analisisResultados, getTramos, getFacetasGrupo, getPlantillaEquipoV2, getMovimientosEquipo,
-  getHitosEquipo, getMediasPorTemporada, getCopasAmbito, formaEquipo, getEventosEquipo, type PlantillaEqRow,
+  getHitosEquipo, contextoHito, getMediasPorTemporada, getCopasAmbito, formaEquipo, getEventosEquipo, type PlantillaEqRow,
 } from '@/lib/equipoV2'
 import type { CompEquipo } from '@/components/ficha/v2/JornadasEquipo'
 import Badge11 from '@/components/ui/Badge11'
@@ -769,8 +769,8 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
                 {hitos.slice(0, 8).map((h: any, i: number) => {
                   const cfg = HITO_EQUIPO[h.tipo_hito]
                   const texto = cfg ? cfg.label(h) : h.tipo_hito
-                  // Contexto = competición del equipo esa temporada (web_equipo_hitos no trae categoría propia).
-                  const ctx = temporadas.find((t) => t.codtemporada === h.codtemporada)?.nombre_comp
+                  // Contexto = competición de esa temporada; mejor_temporada no (ya la trae su detalle).
+                  const ctx = contextoHito(h, temporadas)
                   // fecha (DD/MM/YYYY) -> si no la hay, la temporada (mejor_temporada: sin fecha, con temporada).
                   // mejor_racha SÍ trae fecha (medido: 1.672 de 1.672). Sin ninguna de
                   // las dos no se pinta línea vacía. El orden (más reciente primero) viene de getHitosEquipo.
