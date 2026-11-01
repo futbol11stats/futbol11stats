@@ -30,3 +30,16 @@ export function claveFechaDesc(fechaIso: unknown, fecha: unknown): string {
   const k = claveFecha(fechaIso, fecha)
   return k === FECHA_AL_FINAL ? '' : k
 }
+
+// Clave cronológica FECHA + HORA, comparable como texto. Sin hora -> al final de SU día ('~' ordena detrás de
+// cualquier "HH:MM"); sin fecha -> al final de todo (centinela de claveFecha).
+export function claveFechaHora(fechaIso: unknown, fecha: unknown, hora: unknown): string {
+  const h = typeof hora === 'string' && /^\d{1,2}:\d{2}/.test(hora.trim()) ? hora.trim().padStart(5, '0').slice(0, 5) : '~'
+  return `${claveFecha(fechaIso, fecha)} ${h}`
+}
+
+// Orden cronológico PURO (fecha + hora, ascendente). Estable: a igual fecha y hora se conserva el orden de entrada.
+export function ordenarPorFechaHora<T extends { fecha?: string | null; hora?: string | null; fecha_iso?: string | null }>(rows: T[]): T[] {
+  return rows.map((r) => ({ r, k: claveFechaHora(r.fecha_iso, r.fecha, r.hora) }))
+    .sort((a, b) => (a.k < b.k ? -1 : a.k > b.k ? 1 : 0)).map((x) => x.r)
+}

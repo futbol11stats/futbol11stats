@@ -6,6 +6,7 @@ import { cacheComp, hashCols } from '@/lib/cacheComp'
 import { COLS_CLASIFICACION, COLS_TOP_JUGADORES, COLS_EQUIPOS_FORMA, COLS_XI_OPTIMO } from '@/lib/columns'
 import { CORTES_FIJOS } from '@/lib/escala'
 import { type Ronda } from '@/lib/competiciones'
+import { ordenarPorFechaHora } from '@/lib/fechaOrden'
 
 // Color de la MEDIA de puntos fantasy de un jugador (por partido), con los cortes fijos de la escala
 // (mediaPartido) — misma semántica que la ficha de jugador. Sin ámbar como escalón.
@@ -273,6 +274,7 @@ export type ResultadoCompRow = {
   nombre_local: string; escudo_local: string | null; goles_local: number | null
   nombre_visitante: string; escudo_visitante: string | null; goles_visitante: number | null
   fecha: string | null; hora: string | null; campo: string | null
+  fecha_iso?: string | null   // DATE del pipeline: solo para ordenar (respaldo de `fecha`, ver fechaOrden.ts)
   // Resultado ADMINISTRATIVO: 'local'|'visitante'|'ambos' = no se disputó (ver web_resultados.incidencia).
   incidencia?: 'local' | 'visitante' | 'ambos' | null
   estado_partido?: string | null   // 'suspendido' = no se jugó y sigue pendiente de resolución
@@ -299,14 +301,17 @@ export async function tienePartidosJugados(codgrupo: string, codtemporada: numbe
 
 export async function getResultadosV2(codgrupo: string, codtemporada: number, jornada: number): Promise<ResultadoCompRow[]> {
   const cols = 'id, codacta, nombre_local, escudo_local, goles_local, goles_visitante, nombre_visitante, escudo_visitante, ' +
-    'fecha, hora, campo, grupo_label, codigo_campo, campo_lat, campo_lng, incidencia, estado_partido, computa'
+    'fecha, fecha_iso, hora, campo, grupo_label, codigo_campo, campo_lat, campo_lng, incidencia, estado_partido, computa'
   return cacheComp(async () => {
+    // El .order de la BD se queda como orden de partida (desempate estable a igual fecha y hora). Ordenar `fecha`
+    // en SQL es TEXTO DD/MM/AAAA ("01/11" antes que "31/10"): el orden cronológico real lo pone ordenarPorFechaHora,
+    // sin separar jugados de pendientes; sin hora, al final de su día.
     const { data, error } = await supabase.from('web_resultados').select(cols)
       .eq('codgrupo', codgrupo).eq('codtemporada', codtemporada).eq('jornada', jornada).order('fecha').order('hora')
     if (error) throw error   // no cachear [] por un error transitorio (ver checklist: caché envenenada)
-    return (data || []) as unknown as ResultadoCompRow[]
+    return ordenarPorFechaHora((data || []) as unknown as ResultadoCompRow[])
     // clave derivada del select (hashCols(cols) auto-invalida al cambiar columnas; antes 'v4-id' a mano); 'v1' = versión de lógica.
-  }, ['getResultadosV2', 'v1', hashCols(cols), codgrupo, codtemporada, jornada], [codgrupo], codtemporada)
+  }, ['getResultadosV2', 'v2-cronologico', hashCols(cols), codgrupo, codtemporada, jornada], [codgrupo], codtemporada)
 }
 
 // Clasificación de FASE DE GRUPOS de copa: TODOS los snapshots (matchdays 1..3) de los DOS grupos, de una vez.
