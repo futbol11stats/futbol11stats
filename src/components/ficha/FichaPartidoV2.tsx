@@ -288,7 +288,8 @@ function PronoCard({ p }: { p: PartidoFicha }) {
   const postL = sinPost ? null : ctxL, postV = sinPost ? null : ctxV
   // Rachas tras el partido (antes -> después). getPartido ya las deja en null si no hay resultado que compute.
   const rasL = sinPost ? null : p.rachasTrasLocal, rasV = sinPost ? null : p.rachasTrasVisitante
-  const hayRas = !!(rasL || rasV)
+  const cambia = (r: RachasTras | null) => !!r && [r.marcando, r.victorias, r.invicto].some((x) => x.antes !== x.despues)
+  const hayRas = cambia(rasL) || cambia(rasV)   // si todas quedan 0 → 0 no hay nada que enseñar
   if (!hayPre && !hayPost && !postL && !postV && !hayRas) return null
   const favLado = fav && fav.lado !== 'igual' ? (fav.lado === 'local' ? p.local : p.visitante) : null
   // Escudo SIEMPRE primero en el marcado; el CSS coloca el del visitante a la derecha en escritorio (fila enfrentada)
@@ -343,8 +344,11 @@ function PronoCard({ p }: { p: PartidoFicha }) {
 
 // Rachas TRAS el partido, por equipo: «Marcando 6 → 7», «Sin perder 0 → 1»; rota «… → 0». Si iguala o bate el
 // récord que tenía ANTES del partido, la marca ámbar del bloque Rachas («▲ iguala su récord» / «▲ nuevo récord»).
+// Las que no cambian (0 → 0, la única posible: una racha o suma uno o se rompe) no se pintan.
 function RachasTrasLado({ ras }: { ras: RachasTras }) {
-  const filas: [string, RachaTras][] = [['Marcando', ras.marcando], ['Victorias', ras.victorias], ['Sin perder', ras.invicto]]
+  const filas = ([['Marcando', ras.marcando], ['Victorias', ras.victorias], ['Sin perder', ras.invicto]] as [string, RachaTras][])
+    .filter(([, r]) => r.antes !== r.despues)
+  if (filas.length === 0) return null
   return (
     <span className="pp-ras">
       {filas.map(([k, r]) => (
