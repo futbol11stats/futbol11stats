@@ -957,6 +957,12 @@
 .fpv2 .pp-elo b{font-size:var(--t-cap)}
 .fpv2 .pp-elo-lbl{font-family:var(--font-sans),sans-serif;font-weight:600;font-size:var(--t-cap);letter-spacing:.03em;color:var(--ink-3)}
 .fpv2 .pp-ctx{color:var(--ink-3)}
+/* Rachas tras el partido: una línea por concepto («Marcando 6 → 7»), récord igualado/batido con la marca ámbar del bloque Rachas. */
+.fpv2 .pp-ras{display:flex;flex-direction:column;gap:1px;margin-top:2px}
+.fpv2 .pp-ra{font-variant-numeric:tabular-nums}
+.fpv2 .pp-ra b{color:var(--ink-2);font-weight:700}
+.fpv2 .pp-ra b.rota{color:var(--ink-3)}
+.fpv2 .pp-ra .ra-hit{margin-left:6px}
 /* Barra de probabilidad por ELO: local azul (--zona-po), empate gris (--e1), visitante naranja (identificador del sitio,
    como los avatares POR). No-moralizante. Sin cifras: la proporción la da la barra. */
 .fpv2 .prono-bar{display:flex;height:12px;border-radius:6px;overflow:hidden;margin-top:10px;background:var(--pitch-700)}

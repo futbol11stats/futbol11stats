@@ -21,6 +21,7 @@ import PartidoTabs from '@/components/ficha/PartidoTabs'
 import PlayerAvatar from '@/components/ui/PlayerAvatar'
 import FormaStrip from '@/components/ui/FormaStrip'
 import type { PartidoFicha, PartidoJugador, PartidoMini, PartidoLado } from '@/lib/partido'
+import type { RachaTras, RachasTras } from '@/lib/rachasPartido'
 import { NO_DISPUTADO, SUSPENDIDO } from '@/lib/partido'
 import { RETIRADO, PROVISIONAL } from '@/lib/rotulos'
 // Fondo de la pastilla de PUNTOS fantasy (baza propia; verde para lo bueno, el ámbar está reservado).
@@ -285,16 +286,20 @@ function PronoCard({ p }: { p: PartidoFicha }) {
   const ctxV = p.retiradoPostVisitante ? RETIRADO : ctxPuesto(p.posPreVisitante, p.posPostVisitante)
   // En suspendido y provisional tampoco procede el contexto de puesto (es "cómo quedaron tras el partido").
   const postL = sinPost ? null : ctxL, postV = sinPost ? null : ctxV
-  if (!hayPre && !hayPost && !postL && !postV) return null
+  // Rachas tras el partido (antes -> después). getPartido ya las deja en null si no hay resultado que compute.
+  const rasL = sinPost ? null : p.rachasTrasLocal, rasV = sinPost ? null : p.rachasTrasVisitante
+  const hayRas = !!(rasL || rasV)
+  if (!hayPre && !hayPost && !postL && !postV && !hayRas) return null
   const favLado = fav && fav.lado !== 'igual' ? (fav.lado === 'local' ? p.local : p.visitante) : null
   // Escudo SIEMPRE primero en el marcado; el CSS coloca el del visitante a la derecha en escritorio (fila enfrentada)
   // y apila ambos a ancho completo en móvil (escudo a la izquierda). pp-info toma el ancho restante -> sin amontonar.
-  const teamPost = (post: number | null, mov: number | null, ctx: string | null, lado: PartidoLado, side: 'l' | 'v') => (
+  const teamPost = (post: number | null, mov: number | null, ctx: string | null, ras: RachasTras | null, lado: PartidoLado, side: 'l' | 'v') => (
     <div className={`pp-team pp-${side}`}>
       <EscudoBox escudo={lado.escudo} nombre={lado.nombre} size={18} radius={4} />
       <div className="pp-info">
         {post != null && <span className="pp-elo"><span className="pp-elo-lbl">ELO</span> {fmtElo(post)}{mov != null && <b style={{ color: mov >= 0 ? 'var(--e3)' : 'var(--e0)' }}> {fmtDelta(mov)}</b>}</span>}
         {ctx && <span className="pp-ctx">{ctx}</span>}
+        {ras && <RachasTrasLado ras={ras} />}
       </div>
     </div>
   )
@@ -325,14 +330,30 @@ function PronoCard({ p }: { p: PartidoFicha }) {
       </>)}
       {fav && <div className="prono-fav">{favLado ? <><b><NombreEquipo codequipo={favLado.codequipo} nombre={favLado.nombre} /></b> {fav.texto}</> : fav.texto}</div>}
       {prob && <div className="prono-note">Probabilidad estimada a partir del ELO, no una predicción.</div>}
-      {(hayPost || postL || postV) && <>
+      {(hayPost || postL || postV || hayRas) && <>
         <div className="prono-div"><span>tras el partido</span></div>
         <div className="prono-post">
-          {teamPost(p.eloPostLocal, p.movEloLocal, postL, p.local, 'l')}
-          {teamPost(p.eloPostVisitante, p.movEloVisitante, postV, p.visitante, 'v')}
+          {teamPost(p.eloPostLocal, p.movEloLocal, postL, rasL, p.local, 'l')}
+          {teamPost(p.eloPostVisitante, p.movEloVisitante, postV, rasV, p.visitante, 'v')}
         </div>
       </>}
     </section>
+  )
+}
+
+// Rachas TRAS el partido, por equipo: «Marcando 6 → 7», «Sin perder 0 → 1»; rota «… → 0». Si iguala o bate el
+// récord que tenía ANTES del partido, la marca ámbar del bloque Rachas («▲ iguala su récord» / «▲ nuevo récord»).
+function RachasTrasLado({ ras }: { ras: RachasTras }) {
+  const filas: [string, RachaTras][] = [['Marcando', ras.marcando], ['Victorias', ras.victorias], ['Sin perder', ras.invicto]]
+  return (
+    <span className="pp-ras">
+      {filas.map(([k, r]) => (
+        <span key={k} className="pp-ra">
+          {k} <b className={r.despues === 0 ? 'rota' : ''}>{r.antes} → {r.despues}</b>
+          {r.record && <span className="ra-hit">▲ {r.record === 'bate' ? 'nuevo récord' : 'iguala su récord'}</span>}
+        </span>
+      ))}
+    </span>
   )
 }
 
@@ -507,7 +528,9 @@ export default function FichaPartidoV2({ p }: { p: PartidoFicha }) {
                   Actual hacia fuera, récord hacia el centro; récord igualado en ámbar; racha rota (0) vacía. */}
               {(p.formaLocal.length > 0 || p.formaVisitante.length > 0) && (
                 <section className="gc-rachas">
-                  <SectionHeader title="Rachas" sub="ahora vs récord" />
+                  {/* Datos de ANTES del partido (getPartido corta el historial en su fecha): «cómo llegan» si aún no se
+                      ha jugado, «cómo llegaban» una vez jugado. Lo que cambió con el partido va en «Tras el partido». */}
+                  <SectionHeader title="Rachas" sub={p.jugado ? 'cómo llegaban' : 'cómo llegan'} />
                   <div className="rachas">
                     {/* Escudo de cada equipo sobre su lado (no el nombre: ocupa menos y ya se reconoce del hero/pronóstico). */}
                     <div className="rrow ra-head">
