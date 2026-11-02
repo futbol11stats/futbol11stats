@@ -114,19 +114,19 @@ export async function getClasifPretemporada(codgrupo: string, codtemporada: numb
     }
     if (teams.size === 0) return []
     const codeqs = Array.from(teams.keys())
-    // Último ELO por equipo: sus filas de clasificación (cualquier temporada) de más nueva a más vieja; la PRIMERA
-    // de cada equipo es su ELO más reciente (los últimos están arriba del orden, así que limit 1000 los cubre).
-    const { data: cl, error: elErr } = await supabase.from('web_clasificacion')
-      .select('codequipo, elo, codtemporada, jornada')
-      .in('codequipo', codeqs).not('elo', 'is', null)
-      .order('codtemporada', { ascending: false }).order('jornada', { ascending: false }).limit(1000)
-    // NO tragarse un error como "sin ELO" (todos a 1000 sería una tabla engañosa). Con el índice
-    // web_clasificacion(codequipo) esta .in(...) no debe dar timeout; si diera, que se propague y reintente.
-    if (elErr) throw elErr
+    // Último ELO por equipo: su fila de clasificación (cualquier temporada) más nueva, UNA consulta limit(1) por
+    // equipo (~16-20, en paralelo, por el índice web_clasificacion(codequipo)). Antes era una sola .in(...) con
+    // .limit(1000) sobre el historial de todos: un equipo cuyo último ELO quedara más allá de la fila 1.000 salía
+    // con 1000 en silencio. web_equipo.elo_actual NO vale de atajo: difiere en 12 de 2.054 equipos (medido).
+    const ultimos = await Promise.all(codeqs.map((cod) => supabase.from('web_clasificacion')
+      .select('codequipo, elo').eq('codequipo', cod).not('elo', 'is', null)
+      .order('codtemporada', { ascending: false }).order('jornada', { ascending: false }).limit(1)))
     const eloUlt = new Map<string, number>()
-    for (const r of (cl || []) as Array<{ codequipo: string; elo: number }>) {
-      const cod = String(r.codequipo)
-      if (!eloUlt.has(cod)) eloUlt.set(cod, Number(r.elo))
+    for (const { data: cl, error: elErr } of ultimos) {
+      // NO tragarse un error como "sin ELO" (todos a 1000 sería una tabla engañosa): que se propague y reintente.
+      if (elErr) throw elErr
+      const r = (cl || [])[0] as { codequipo: string; elo: number } | undefined
+      if (r) eloUlt.set(String(r.codequipo), Number(r.elo))
     }
     const rows: ClasifCompRow[] = codeqs.map((cod) => {
       const info = teams.get(cod) as { nombre: string; escudo: string | null }
@@ -139,7 +139,7 @@ export async function getClasifPretemporada(codgrupo: string, codtemporada: numb
     rows.sort((a, b) => (b.elo as number) - (a.elo as number))
     rows.forEach((r, i) => { r.pos = i + 1 })
     return rows
-  }, ['getClasifPretemporada', 'v2-idx', codgrupo, codtemporada], [codgrupo], codtemporada)
+  }, ['getClasifPretemporada', 'v3-limit1', codgrupo, codtemporada], [codgrupo], codtemporada)
 }
 
 // KPIs de la cabecera a partir de la clasificación de la jornada: nº equipos, partidos disputados,
