@@ -172,7 +172,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   // Partidos JUGADOS de la temporada actual (T22): contenido rico y único (alineaciones + PUNTOS FANTASY). Solo
   // aficionados (juveniles noindex por menores) y solo jugados (los futuros son thin -> noindex, fuera del sitemap).
-  // Paginado (PostgREST topa a 1000/página; en temporada pueden ser miles) para NO truncar en silencio.
+  // Paginado (PostgREST topa a 1000/página; en temporada pueden ser miles) para NO truncar en silencio. Orden
+  // ÚNICO por id: sin orden, Postgres no garantiza el mismo orden entre páginas y range() podía repetir u omitir filas.
   // Sección OPCIONAL: si falla, degradar ruidoso (menos URLs) sin abortar el deploy.
   try {
   const afiT22 = new Set(grupos.filter((g: any) => g.codtemporada === 22 && g.categoria === 'AFICIONADO').map((g: any) => String(g.codgrupo)))
@@ -181,7 +182,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     for (let from = 0; ; from += 1000) {
       const { data: pg, error: pgErr } = await supabase.from('web_resultados')
         .select('codacta, nombre_local, nombre_visitante, fecha, codgrupo')
-        .eq('codtemporada', 22).not('goles_local', 'is', null).range(from, from + 999)
+        .eq('codtemporada', 22).not('goles_local', 'is', null).order('id').range(from, from + 999)
       if (pgErr) { console.error(`[sitemap] partidos T22 TRUNCADO tras ${partidos.length} (deploy continúa): ${pgErr.message}`); break }  // ruidoso, NO silencioso
       if (!pg || !pg.length) break
       partidos.push(...pg)
