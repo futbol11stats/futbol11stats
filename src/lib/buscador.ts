@@ -98,8 +98,9 @@ export async function buscarJugadores(q: string, limit: number, offset = 0): Pro
   if (normFull(q).length < 2 || toks.length === 0) return { rows: [], count: 0 }
   let query = supabase.from('web_jugador').select(COLS_J, { count: 'exact' })
   for (const t of toks) query = query.ilike(COL_JUG, `%${t}%`)
-  // Titular histórico sobre el tocayo de un partido: pj_total DESC.
-  const { data, count } = await query.order('pj_total', { ascending: false, nullsFirst: false }).range(offset, offset + limit - 1)
+  // Titular histórico sobre el tocayo de un partido: pj_total DESC. Desempate por código: con empates (muchos
+  // jugadores con el mismo pj_total) el orden no es estable entre páginas y «ver más» repetía u omitía filas.
+  const { data, count } = await query.order('pj_total', { ascending: false, nullsFirst: false }).order('codjugador').range(offset, offset + limit - 1)
   return { rows: rankPrefijo((data || []) as unknown as JugadorHit[], q), count: count || 0 }
 }
 
@@ -108,7 +109,7 @@ export async function buscarEquipos(q: string, limit: number, offset = 0): Promi
   if (normFull(q).length < 2 || toks.length === 0) return { rows: [], count: 0 }
   let query = supabase.from('web_equipo').select(COLS_E, { count: 'exact' })
   for (const t of toks) query = query.ilike(COL_EQ, `%${t}%`)
-  const { data, count } = await query.order('pj_total', { ascending: false, nullsFirst: false }).range(offset, offset + limit - 1)
+  const { data, count } = await query.order('pj_total', { ascending: false, nullsFirst: false }).order('codequipo').range(offset, offset + limit - 1)
   return { rows: rankPrefijo((data || []) as unknown as EquipoHit[], q), count: count || 0 }
 }
 
@@ -119,7 +120,7 @@ export async function buscarClubes(q: string, limit: number, offset = 0): Promis
   if (normFull(q).length < 2 || toks.length === 0) return { rows: [], count: 0 }
   let query = supabase.from('web_club').select(COLS_C, { count: 'exact' }).gt('n_equipos', 0)
   for (const t of toks) query = query.ilike('nombre_club', `%${t}%`)
-  const { data, count } = await query.order('n_equipos', { ascending: false, nullsFirst: false }).range(offset, offset + limit - 1)
+  const { data, count } = await query.order('n_equipos', { ascending: false, nullsFirst: false }).order('codclub').range(offset, offset + limit - 1)
   const rows = (data || []) as unknown as ClubHit[]
   const nq = normFull(q)
   rows.sort((a, b) => Number(normFull(b.nombre_club || '').startsWith(nq)) - Number(normFull(a.nombre_club || '').startsWith(nq)))
@@ -134,7 +135,7 @@ export async function buscarCampos(q: string, limit: number, offset = 0): Promis
   if (normFull(q).length < 2 || toks.length === 0) return { rows: [], count: 0 }
   let query = supabase.from('web_campo').select(COLS_CAMPO, { count: 'exact' })
   for (const t of toks) query = query.ilike('nombre_campo', `%${t}%`)
-  const { data, count } = await query.order('nombre_campo', { ascending: true }).range(offset, offset + limit - 1)
+  const { data, count } = await query.order('nombre_campo', { ascending: true }).order('codigo_campo').range(offset, offset + limit - 1)
   const rows = (data || []) as unknown as CampoHit[]
   const nq = normFull(q)
   rows.sort((a, b) => Number(normFull(b.nombre_campo || '').startsWith(nq)) - Number(normFull(a.nombre_campo || '').startsWith(nq)))
