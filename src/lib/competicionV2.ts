@@ -7,6 +7,7 @@ import { COLS_CLASIFICACION, COLS_TOP_JUGADORES, COLS_EQUIPOS_FORMA, COLS_XI_OPT
 import { CORTES_FIJOS } from '@/lib/escala'
 import { type Ronda } from '@/lib/competiciones'
 import { ordenarPorFechaHora } from '@/lib/fechaOrden'
+import { todasLasFilas } from '@/lib/paginar'
 
 // Color de la MEDIA de puntos fantasy de un jugador (por partido), con los cortes fijos de la escala
 // (mediaPartido) — misma semántica que la ficha de jugador. Sin ámbar como escalón.
@@ -93,9 +94,9 @@ export async function getClasifV2(codgrupo: string, codtemporada: number, jornad
     // futura o la por-defecto=34), vaciando la tabla Y las cifras Competición/Goles que derivan de aquí (mientras
     // Disciplina/Resultados, con otras fuentes, sí traían dato). Por eso se añade `jornada` al select.
     const rows = await fetchSnapshot((q: any) => q.from('web_clasificacion').select(COLS_CLASIFICACION + ', jornada')
-      .eq('codgrupo', codgrupo).eq('codtemporada', codtemporada).order('pos'), jornada)
+      .eq('codgrupo', codgrupo).eq('codtemporada', codtemporada), jornada, 'pos')
     return rows as unknown as ClasifCompRow[]
-  }, ['getClasifV2', 'v1', hashCols(COLS_CLASIFICACION + ', jornada'), codgrupo, codtemporada, jornada], [codgrupo], codtemporada)
+  }, ['getClasifV2', 'v2-vecina', hashCols(COLS_CLASIFICACION + ', jornada'), codgrupo, codtemporada, jornada], [codgrupo], codtemporada)
 }
 
 // Clasificación de PRETEMPORADA (liga sin partidos jugados: web_clasificacion está vacía). Se compone con los
@@ -190,20 +191,29 @@ export const RACHA_COL: Record<string, string> = { G: 'var(--e3)', E: 'var(--ink
 export const FORMA_COL: Record<string, string> = { '🟢': 'var(--e3)', '🟡': 'var(--ink-3)', '🔴': 'var(--e0)' }
 
 // --- Time-machine (foto por jornada -> foto-final -> jornada más cercana), como la ruta actual. ---
-async function fetchSnapshot(build: (q: any) => any, jornada: number) {
-  const exact = await build(supabase).eq('jornada', jornada)
+// `orden` va APARTE de `build` para que la búsqueda de la jornada vecina pueda ordenar por jornada (un .order()
+// dentro de build quedaría delante y mandaría él).
+async function fetchSnapshot(build: (q: any) => any, jornada: number, orden?: string) {
+  const ordenar = (q: any) => (orden ? q.order(orden) : q)
+  const exact = await ordenar(build(supabase).eq('jornada', jornada))
   if (exact.data && exact.data.length > 0) return exact.data
-  const foto = await build(supabase).is('jornada', null)
+  const foto = await ordenar(build(supabase).is('jornada', null))
   if (foto.data && foto.data.length > 0) return foto.data
-  const todos = await build(supabase).not('jornada', 'is', null)
-  const rows = (todos.data || []) as any[]
-  if (rows.length === 0) return []
-  const jornadas = Array.from(new Set(rows.map((r) => Number(r.jornada))))
-  const objetivo = jornadas.reduce((mejor, j) => {
-    const d = Math.abs(j - jornada), dm = Math.abs(mejor - jornada)
-    return d < dm || (d === dm && j < mejor) ? j : mejor
-  }, jornadas[0])
-  return rows.filter((r) => Number(r.jornada) === objetivo)
+  // La jornada con datos MÁS CERCANA (a igual distancia, la anterior), con dos lecturas de UNA fila. Antes se
+  // bajaban TODAS las jornadas del grupo para elegirla: con la temporada avanzada pasaba de 1.000 y PostgREST lo
+  // cortaba en silencio.
+  const [abajo, arriba] = await Promise.all([
+    build(supabase).select('jornada').lt('jornada', jornada).order('jornada', { ascending: false }).limit(1),
+    build(supabase).select('jornada').gt('jornada', jornada).order('jornada', { ascending: true }).limit(1),
+  ])
+  if (abajo.error) throw abajo.error
+  if (arriba.error) throw arriba.error
+  const ja = abajo.data?.[0]?.jornada as number | undefined, jb = arriba.data?.[0]?.jornada as number | undefined
+  if (ja == null && jb == null) return []
+  const objetivo = ja == null ? jb : jb == null ? ja : (jornada - ja <= jb - jornada ? ja : jb)
+  const r = await ordenar(build(supabase).eq('jornada', objetivo))
+  if (r.error) throw r.error
+  return r.data || []
 }
 
 // Destacados de UNA jornada (web_top_jugadores por tipo): mvp_jornada, goleadores_jornada, xi_jornada…
@@ -221,9 +231,9 @@ export async function getEquiposFormaV2(codgrupo: string, codtemporada: number, 
     // Forma = ventana móvil "a fecha de la jornada N" (acumulado): rebobina al snapshot <= N (fetchSnapshot),
     // no exacto (si no, se vacía en una jornada sin jugar). COLS_EQUIPOS_FORMA no trae jornada -> se añade.
     const rows = await fetchSnapshot((q: any) => q.from('web_equipos_forma').select(COLS_EQUIPOS_FORMA + ', jornada')
-      .eq('codgrupo', codgrupo).eq('codtemporada', codtemporada).order('rank'), jornada)
+      .eq('codgrupo', codgrupo).eq('codtemporada', codtemporada), jornada, 'rank')
     return rows as any[]
-  }, ['getEquiposFormaV2', 'v1', hashCols(COLS_EQUIPOS_FORMA + ', jornada'), codgrupo, codtemporada, jornada], [codgrupo], codtemporada)
+  }, ['getEquiposFormaV2', 'v2-vecina', hashCols(COLS_EQUIPOS_FORMA + ', jornada'), codgrupo, codtemporada, jornada], [codgrupo], codtemporada)
 }
 
 // Rankings de TEMPORADA (acumulado hasta la jornada): goleadores/porteros/fantasy rebobinan (snapshot);
@@ -233,7 +243,7 @@ export async function getTopTemporadaV2(codgrupo: string, codtemporada: number, 
     const [snap, elo] = await Promise.all([
       fetchSnapshot((q: any) => q.from('web_top_jugadores').select(COLS_TOP_JUGADORES)
         .eq('codgrupo', codgrupo).eq('codtemporada', codtemporada)
-        .in('tipo', ['goleadores_temp', 'fantasy_temp', 'porteros_temp']).order('rank'), jornada),
+        .in('tipo', ['goleadores_temp', 'fantasy_temp', 'porteros_temp']), jornada, 'rank'),
       supabase.from('web_top_jugadores').select(COLS_TOP_JUGADORES)
         .eq('codgrupo', codgrupo).eq('codtemporada', codtemporada).eq('tipo', 'elo_temp').is('jornada', null).order('rank'),
     ])
@@ -244,15 +254,15 @@ export async function getTopTemporadaV2(codgrupo: string, codtemporada: number, 
       fantasy: all.filter((j) => j.tipo === 'fantasy_temp'),
       elo: all.filter((j) => j.tipo === 'elo_temp'),
     }
-  }, ['getTopTemporadaV2', 'v1', hashCols(COLS_TOP_JUGADORES), codgrupo, codtemporada, jornada], [codgrupo], codtemporada)
+  }, ['getTopTemporadaV2', 'v2-vecina', hashCols(COLS_TOP_JUGADORES), codgrupo, codtemporada, jornada], [codgrupo], codtemporada)
 }
 
 // XI Óptimo de temporada (web_xi_optimo tipo temporada, acumulado por jornada).
 export async function getXiTemporadaV2(codgrupo: string, codtemporada: number, jornada: number) {
   return cacheComp(async () => (
     fetchSnapshot((q: any) => q.from('web_xi_optimo').select(COLS_XI_OPTIMO)
-      .eq('tipo', 'temporada').eq('codgrupo', codgrupo).eq('codtemporada', codtemporada).order('pos_orden'), jornada) as Promise<any[]>
-  ), ['getXiTemporadaV2', 'v1', hashCols(COLS_XI_OPTIMO), codgrupo, codtemporada, jornada], [codgrupo], codtemporada)
+      .eq('tipo', 'temporada').eq('codgrupo', codgrupo).eq('codtemporada', codtemporada), jornada, 'pos_orden') as Promise<any[]>
+  ), ['getXiTemporadaV2', 'v2-vecina', hashCols(COLS_XI_OPTIMO), codgrupo, codtemporada, jornada], [codgrupo], codtemporada)
 }
 
 // XI Óptimo de UNA jornada: en copa vive en web_xi_optimo (tipo jornada); en liga, en web_top_jugadores (xi_jornada).
@@ -355,25 +365,82 @@ export async function getGlobalGruposV2(categoria: string, slugComp: string, cod
   return ((data || []) as any[]).filter((g) => !g.tipo || g.tipo === 'LIGA')
     .sort((a, b) => (parseInt(a.nombre_grupo?.replace(/\D/g, '') || '0') || 0) - (parseInt(b.nombre_grupo?.replace(/\D/g, '') || '0') || 0))
 }
+// --- GLOBAL: FOTO POR GRUPO ---
+// Antes cada lectura global pedía TODAS las jornadas <= la mostrada de todos los grupos y se quedaba en JS con
+// la última de cada equipo/jugador: en 2ª Aficionados T22 a la J6, 2.008 filas de clasificación y 3.821 de
+// rankings, y PostgREST las cortaba a 1.000 SIN error (la global veía 173 de 344 equipos). Ahora, en dos pasos:
+//  1) por grupo, la última jornada con datos <= la mostrada, leyendo una fila TESTIGO por grupo y jornada
+//     (pos=1 en la clasificación, rank=1 en los rankings): ~22 filas por jornada;
+//  2) solo las filas de esas (grupo, jornada). La clasificación son ~344 filas y ya no crece con la temporada.
+type Testigo = (q: any) => any
+async function ultimaJornadaPorGrupo(tabla: string, codgrupos: string[], codtemporada: number, jornada: number, testigo: Testigo, porTipo = false): Promise<Map<string, number>> {
+  const cols = porTipo ? 'codgrupo, tipo, jornada' : 'codgrupo, jornada'
+  const filas = await todasLasFilas<{ codgrupo: string; tipo?: string; jornada: number }>(() =>
+    testigo(supabase.from(tabla).select(cols).in('codgrupo', codgrupos).eq('codtemporada', codtemporada).lte('jornada', jornada)))
+  const m = new Map<string, number>()
+  for (const r of filas) {
+    const k = porTipo ? `${r.codgrupo}|${r.tipo}` : String(r.codgrupo)
+    const j = Number(r.jornada)
+    if (!m.has(k) || j > (m.get(k) as number)) m.set(k, j)
+  }
+  return m
+}
+// Filtro de la foto: or=(and(jornada.eq.6,codgrupo.in.(…)),and(jornada.eq.4,codgrupo.in.(…))). Agrupado por
+// jornada (normalmente 1-3 distintas) y no un and() por grupo, para que la URL no crezca con los grupos.
+function filtroFoto(mapa: Map<string, number>, porTipo = false): string | null {
+  const grupos = new Map<string, string[]>()   // "jornada" o "jornada|tipo" -> codgrupos
+  for (const [k, j] of Array.from(mapa)) {
+    const [g, tipo] = k.split('|')
+    const kk = porTipo ? `${j}|${tipo}` : String(j)
+    grupos.set(kk, [...(grupos.get(kk) || []), g])
+  }
+  if (!grupos.size) return null
+  return Array.from(grupos, ([kk, gs]) => {
+    const [j, tipo] = kk.split('|')
+    return `and(jornada.eq.${j}${porTipo ? `,tipo.eq.${tipo}` : ''},codgrupo.in.(${gs.join(',')}))`
+  }).join(',')
+}
+const testigoClasif: Testigo = (q) => q.eq('pos', 1)
+// Foto de clasificación de todos los grupos (cada uno en su última jornada <= la mostrada).
+async function fotoClasifGlobal<T>(cols: string, codgrupos: string[], codtemporada: number, jornada: number): Promise<T[]> {
+  const mapa = await ultimaJornadaPorGrupo('web_clasificacion', codgrupos, codtemporada, jornada, testigoClasif)
+  const f = filtroFoto(mapa)
+  return f ? todasLasFilas<T>(() => supabase.from('web_clasificacion').select(cols).eq('codtemporada', codtemporada).or(f)) : []
+}
+// Reparto V/E/D de los partidos con resultado, CONTADO por PostgREST (cabecera count, sin descargar filas).
+// PostgREST no compara dos columnas, así que "gana el local" se expresa como
+// or(and(goles_local.eq.1,goles_visitante.lt.1),and(goles_local.eq.2,goles_visitante.lt.2),…) hasta el
+// máximo de goles; los empates salen por diferencia. Cinco peticiones pequeñas en vez de ~5.000 filas.
+async function repartoResultados(codgrupos: string[], codtemporada: number): Promise<{ vl: number; em: number; vv: number; disputados: number }> {
+  const filtro = (q: any) => q.in('codgrupo', codgrupos).eq('codtemporada', codtemporada)
+  const maxGoles = async (col: string) => {
+    const { data, error } = await filtro(supabase.from('web_resultados').select(col)).not(col, 'is', null).order(col, { ascending: false }).limit(1)
+    if (error) throw error
+    return Number((data || [])[0]?.[col]) || 0
+  }
+  const contar = async (q: any) => { const { count, error } = await q; if (error) throw error; return (count || 0) as number }
+  const base = () => filtro(supabase.from('web_resultados').select('id', { count: 'exact', head: true }))
+  const gana = (a: string, b: string, max: number) => Array.from({ length: max }, (_, i) => `and(${a}.eq.${i + 1},${b}.lt.${i + 1})`).join(',')
+  const [mL, mV] = await Promise.all([maxGoles('goles_local'), maxGoles('goles_visitante')])
+  const [disputados, vl, vv] = await Promise.all([
+    contar(base().not('goles_local', 'is', null).not('goles_visitante', 'is', null)),
+    mL ? contar(base().or(gana('goles_local', 'goles_visitante', mL))) : 0,
+    mV ? contar(base().or(gana('goles_visitante', 'goles_local', mV))) : 0,
+  ])
+  return { vl, vv, em: disputados - vl - vv, disputados }
+}
+
 // Clasificación de TODOS los grupos a una jornada (para KPIs agregados + vista por zonas). Trae pj/gf/elo
 // para reutilizar kpisDeClasif y pos/zona para el bloque por zonas.
 export async function getGlobalClasifV2(codgrupos: string[], codtemporada: number, jornada: number) {
   if (!codgrupos.length) return [] as any[]
   const cols = 'codgrupo, pos, codequipo, nombre_equipo, escudo, pj, gf, pts, elo, zona, jornada, retirado'
   return cacheComp(async () => {
-    // REBOBINAR por equipo (acumulado): la fila de mayor jornada <= la pedida, no la exacta. Antes, al elegir
-    // una jornada sin snapshot (futura, o la por-defecto mal puesta en 34), la tabla y los KPIs globales se
-    // vaciaban. Mismo patrón que getJuegoLimpioV2. Ordena por pos en JS (ya no en la query).
-    const { data } = await supabase.from('web_clasificacion')
-      .select(cols)
-      .in('codgrupo', codgrupos).eq('codtemporada', codtemporada).lte('jornada', jornada)
-    const latest = new Map<string, any>()
-    for (const r of (data || []) as any[]) {
-      const k = `${r.codgrupo}|${r.codequipo}`; const cur = latest.get(k)
-      if (!cur || (Number(r.jornada) || 0) > (Number(cur.jornada) || 0)) latest.set(k, r)
-    }
-    return Array.from(latest.values()).sort((a, b) => (Number(a.pos) || 0) - (Number(b.pos) || 0))
-  }, ['getGlobalClasifV2', 'v1', hashCols(cols), codgrupos.join(','), codtemporada, jornada], codgrupos, codtemporada)
+    // Foto por grupo (última jornada con datos <= la pedida): rebobina igual que antes ante una jornada sin
+    // jugar, sin bajarse todas las jornadas. Ordena por pos en JS.
+    const rows = await fotoClasifGlobal<any>(cols, codgrupos, codtemporada, jornada)
+    return rows.sort((a, b) => (Number(a.pos) || 0) - (Number(b.pos) || 0))
+  }, ['getGlobalClasifV2', 'v2-foto', hashCols(cols), codgrupos.join(','), codtemporada, jornada], codgrupos, codtemporada)
 }
 
 // --- Carrera de posiciones: posición por jornada de cada equipo + bandas de zona (de la última jornada). ---
@@ -593,28 +660,23 @@ export async function getTramosCompeticionV2(codgrupo: string, codtemporada: num
 export async function getGlobalTopTemporadaV2(codgrupos: string[], codtemporada: number, jornada: number) {
   if (!codgrupos.length) return { goleadores: [], porteros: [], fantasy: [], elo: [] }
   return cacheComp(async () => {
+    // Foto por grupo y TIPO (rebobina a la última jornada <= la pedida). Cada grupo guarda su top 10 por tipo
+    // (rank máx. 10, medido), así que la foto son ~3 x grupos x 10 filas; paginada por si acaso.
+    const TIPOS = ['goleadores_temp', 'porteros_temp', 'fantasy_temp']
+    const mapa = await ultimaJornadaPorGrupo('web_top_jugadores', codgrupos, codtemporada, jornada, (q) => q.in('tipo', TIPOS).eq('rank', 1), true)
+    const f = filtroFoto(mapa, true)
     const [snap, elo] = await Promise.all([
-      supabase.from('web_top_jugadores').select(COLS_TOP_JUGADORES)
-        .in('codgrupo', codgrupos).eq('codtemporada', codtemporada)
-        // REBOBINAR (acumulado "hasta la jornada N"): <= en vez de = exacto. El por-grupo (getTopTemporadaV2)
-        // ya rebobina con fetchSnapshot; el global no, y divergían -> al elegir una jornada sin jugar el global
-        // se vaciaba. Mismo patrón que getJuegoLimpioV2 (robusto ante grupos de distinta longitud).
-        .in('tipo', ['goleadores_temp', 'porteros_temp', 'fantasy_temp']).lte('jornada', jornada),
+      f ? todasLasFilas<any>(() => supabase.from('web_top_jugadores').select(COLS_TOP_JUGADORES).eq('codtemporada', codtemporada).or(f)) : Promise.resolve([] as any[]),
       supabase.from('web_top_jugadores').select(COLS_TOP_JUGADORES)
         .in('codgrupo', codgrupos).eq('codtemporada', codtemporada).eq('tipo', 'elo_temp').is('jornada', null),
     ])
-    // Cada jugador: su snapshot de mayor jornada <= la pedida (por tipo).
-    const latest = new Map<string, any>()
-    for (const r of (snap.data || []) as any[]) {
-      const k = `${r.tipo}|${r.codjugador}`; const cur = latest.get(k)
-      if (!cur || (Number(r.jornada) || 0) > (Number(cur.jornada) || 0)) latest.set(k, r)
-    }
-    const all = [...Array.from(latest.values()), ...((elo.data || []) as any[])]
+    if (elo.error) throw elo.error
+    const all = [...snap, ...((elo.data || []) as any[])]
     const top = (tipo: string, key: string) => all.filter((j) => j.tipo === tipo)
       .sort((a, b) => (Number(b[key]) || 0) - (Number(a[key]) || 0)).slice(0, 10)
       .map((j, i) => ({ ...j, rank: i + 1 }))
     return { goleadores: top('goleadores_temp', 'goles'), porteros: top('porteros_temp', 'goles'), fantasy: top('fantasy_temp', 'pts_fantasy'), elo: top('elo_temp', 'elo') }
-  }, ['getGlobalTopTemporadaV2', 'v1', hashCols(COLS_TOP_JUGADORES), codgrupos.join(','), codtemporada, jornada], codgrupos, codtemporada)
+  }, ['getGlobalTopTemporadaV2', 'v2-foto', hashCols(COLS_TOP_JUGADORES), codgrupos.join(','), codtemporada, jornada], codgrupos, codtemporada)
 }
 
 // GLOBAL: destacados de jornada agregando grupos (mvp / equipos en forma). Top 5 por valor.
@@ -631,15 +693,12 @@ export async function getGlobalEquiposFormaV2(codgrupos: string[], codtemporada:
   return cacheComp(async () => {
     // Forma = ventana móvil "a fecha de la jornada N" (acumulado) -> rebobinar al último snapshot <= N por
     // equipo, no exacto (si no, se vacía en una jornada sin jugar). COLS_EQUIPOS_FORMA no trae jornada -> se añade.
-    const { data } = await supabase.from('web_equipos_forma').select(COLS_EQUIPOS_FORMA + ', jornada')
-      .in('codgrupo', codgrupos).eq('codtemporada', codtemporada).lte('jornada', jornada)
-    const latest = new Map<string, any>()
-    for (const r of (data || []) as any[]) {
-      const k = `${r.codgrupo}|${r.codequipo}`; const cur = latest.get(k)
-      if (!cur || (Number(r.jornada) || 0) > (Number(cur.jornada) || 0)) latest.set(k, r)
-    }
-    return Array.from(latest.values()).sort((a, b) => (Number(b.pts_fantasy) || 0) - (Number(a.pts_fantasy) || 0)).slice(0, 5).map((e, i) => ({ ...e, rank: i + 1 }))
-  }, ['getGlobalEquiposFormaV2', 'v1', hashCols(COLS_EQUIPOS_FORMA + ', jornada'), codgrupos.join(','), codtemporada, jornada], codgrupos, codtemporada)
+    // Foto por grupo (testigo rank=1): cada grupo guarda su top 5, así que son ~5 filas por grupo.
+    const mapa = await ultimaJornadaPorGrupo('web_equipos_forma', codgrupos, codtemporada, jornada, (q) => q.eq('rank', 1))
+    const f = filtroFoto(mapa)
+    const rows = f ? await todasLasFilas<any>(() => supabase.from('web_equipos_forma').select(COLS_EQUIPOS_FORMA + ', jornada').eq('codtemporada', codtemporada).or(f)) : []
+    return rows.sort((a, b) => (Number(b.pts_fantasy) || 0) - (Number(a.pts_fantasy) || 0)).slice(0, 5).map((e, i) => ({ ...e, rank: i + 1 }))
+  }, ['getGlobalEquiposFormaV2', 'v2-foto', hashCols(COLS_EQUIPOS_FORMA + ', jornada'), codgrupos.join(','), codtemporada, jornada], codgrupos, codtemporada)
 }
 
 // --- Tarjetas de TEMPORADA (grupo o global): juego limpio (web_juego_limpio) + sancionados
@@ -648,29 +707,22 @@ export async function getJuegoLimpioV2(codgrupos: string[], codtemporada: number
   if (!codgrupos.length) return [] as any[]
   const cols = 'codequipo, nombre_equipo, escudo, amarillas, dobles, rojas, amarillas_tec, dobles_tec, rojas_tec, jornada'
   return cacheComp(async () => {
-    // Rebobina por equipo: la fila de mayor jornada <= la pedida. Robusto ante grupos de distinta longitud
-    // (categorías con grupos de 22-30 partidos) y ante la foto-final por jornada.
-    const { data } = await supabase.from('web_juego_limpio')
-      .select(cols)
-      .in('codgrupo', codgrupos).eq('codtemporada', codtemporada).lte('jornada', jornada)
-    const best = new Map<string, any>()
-    for (const r of (data || []) as any[]) {
-      const k = String(r.codequipo)
-      const cur = best.get(k)
-      if (!cur || (r.jornada || 0) > (cur.jornada || 0)) best.set(k, r)
-    }
-    return Array.from(best.values())
-  }, ['getJuegoLimpioV2', 'v1', hashCols(cols), codgrupos.join(','), codtemporada, jornada], codgrupos, codtemporada)
+    // Foto por grupo: la jornada de cada grupo la da la CLASIFICACIÓN (web_juego_limpio no tiene una fila testigo
+    // por grupo y jornada). Medido 2026-11-02: misma última jornada en los 44 grupos de 2ª Aficionados y 2ª
+    // Juvenil T22. Robusto ante grupos de distinta longitud, como antes.
+    const mapa = await ultimaJornadaPorGrupo('web_clasificacion', codgrupos, codtemporada, jornada, testigoClasif)
+    const f = filtroFoto(mapa)
+    return f ? todasLasFilas<any>(() => supabase.from('web_juego_limpio').select(cols).eq('codtemporada', codtemporada).or(f)) : []
+  }, ['getJuegoLimpioV2', 'v2-foto', hashCols(cols), codgrupos.join(','), codtemporada, jornada], codgrupos, codtemporada)
 }
 export async function getAlertasV2(codgrupos: string[], codtemporada: number) {
   if (!codgrupos.length) return [] as any[]
   const cols = 'codjugador, nombre, posicion, codequipo, nombre_equipo, escudo, amarillas_ciclo, amarillas_simples, dobles_amarillas, rojas_directas, ciclos_completados, ciclo_umbral'
   return cacheComp(async () => {
-    const { data } = await supabase.from('web_alertas_tarjetas')
-      .select(cols)
-      .in('codgrupo', codgrupos).eq('codtemporada', codtemporada)
-    return (data || []) as any[]
-  }, ['getAlertasV2', 'v1', hashCols(cols), codgrupos.join(','), codtemporada], codgrupos, codtemporada)
+    // Foto final de sancionados: la lista se pinta ENTERA (no hay top), así que se pide todo, paginado por id
+    // (425 filas en 2ª Aficionados T22 a la J6 y crece con la temporada).
+    return todasLasFilas<any>(() => supabase.from('web_alertas_tarjetas').select(cols).in('codgrupo', codgrupos).eq('codtemporada', codtemporada))
+  }, ['getAlertasV2', 'v2-paginado', hashCols(cols), codgrupos.join(','), codtemporada], codgrupos, codtemporada)
 }
 
 // --- GLOBAL: XI óptimo de la competición (el pipeline lo calcula con normalización entre grupos y lo
@@ -690,18 +742,10 @@ export async function getGlobalXiV2(codgrupos: string[], codtemporada: number, t
 export async function getGlobalCifrasV2(codgrupos: string[], codtemporada: number) {
   if (!codgrupos.length) return { vLocalPct: 0, empPct: 0, vVisitPct: 0, disputados: 0 }
   return cacheComp(async () => {
-    const { data } = await supabase.from('web_resultados').select('goles_local, goles_visitante')
-      .in('codgrupo', codgrupos).eq('codtemporada', codtemporada)
-    let vl = 0, em = 0, vv = 0
-    for (const m of (data || []) as any[]) {
-      if (m.goles_local == null || m.goles_visitante == null) continue
-      if (m.goles_local > m.goles_visitante) vl++
-      else if (m.goles_local < m.goles_visitante) vv++
-      else em++
-    }
+    const { vl, em, vv } = await repartoResultados(codgrupos, codtemporada)
     const tot = vl + em + vv || 1
     return { vLocalPct: Math.round((vl / tot) * 100), empPct: Math.round((em / tot) * 100), vVisitPct: Math.round((vv / tot) * 100), disputados: vl + em + vv }
-  }, ['getGlobalCifrasV2', codgrupos.join(','), codtemporada], codgrupos, codtemporada)
+  }, ['getGlobalCifrasV2', 'v2-count', codgrupos.join(','), codtemporada], codgrupos, codtemporada)
 }
 
 // GLOBAL: perfil goleador de cada equipo de la categoría (gf/gc a foto-final), ordenado por goles marcados.
@@ -710,30 +754,24 @@ export async function getGlobalTeamGoalsV2(codgrupos: string[], codtemporada: nu
   if (!codgrupos.length) return [] as any[]
   const cols = 'codgrupo, codequipo, nombre_equipo, escudo, gf, gc, jornada'
   return cacheComp(async () => {
-    // Rebobinar por equipo (gf/gc acumulados): último snapshot <= jornada, no el exacto (mismo motivo que
-    // getGlobalClasifV2: al elegir una jornada sin jugar se vaciaba).
-    const { data } = await supabase.from('web_clasificacion')
-      .select(cols)
-      .in('codgrupo', codgrupos).eq('codtemporada', codtemporada).lte('jornada', jornada)
-    const latest = new Map<string, any>()
-    for (const r of (data || []) as any[]) {
-      const k = `${r.codgrupo}|${r.codequipo}`; const cur = latest.get(k)
-      if (!cur || (Number(r.jornada) || 0) > (Number(cur.jornada) || 0)) latest.set(k, r)
-    }
-    return Array.from(latest.values()).sort((a, b) => (b.gf || 0) - (a.gf || 0))
-  }, ['getGlobalTeamGoalsV2', 'v1', hashCols(cols), codgrupos.join(','), codtemporada, jornada], codgrupos, codtemporada)
+    // Foto por grupo (gf/gc acumulados a la última jornada <= la pedida), como getGlobalClasifV2.
+    const rows = await fotoClasifGlobal<any>(cols, codgrupos, codtemporada, jornada)
+    return rows.sort((a, b) => (b.gf || 0) - (a.gf || 0))
+  }, ['getGlobalTeamGoalsV2', 'v2-foto', hashCols(cols), codgrupos.join(','), codtemporada, jornada], codgrupos, codtemporada)
 }
 
 // GLOBAL: goles por tramo del partido en toda la categoría (suma de web_goles_tramos de todos los grupos).
 export async function getGlobalTramosV2(codgrupos: string[], codtemporada: number) {
   if (!codgrupos.length) return TRAMOS_ORDEN.map((t) => ({ tramo: t, gf: 0 }))
   return cacheComp(async () => {
-    const { data } = await supabase.from('web_goles_tramos').select('tramo, gf')
-      .in('codgrupo', codgrupos).eq('codtemporada', codtemporada)
+    // Total de temporada por equipo y tramo (~equipos x 6 filas, no crece con las jornadas): paginado por id.
+    // Es una suma; una vista agregada del pipeline lo dejaría en ~6 filas.
+    const data = await todasLasFilas<{ tramo: string; gf: number | null }>(() => supabase.from('web_goles_tramos').select('tramo, gf')
+      .in('codgrupo', codgrupos).eq('codtemporada', codtemporada))
     const m = new Map<string, number>()
-    for (const r of (data || []) as any[]) m.set(r.tramo, (m.get(r.tramo) || 0) + (r.gf || 0))
+    for (const r of data) m.set(r.tramo, (m.get(r.tramo) || 0) + (r.gf || 0))
     return TRAMOS_ORDEN.map((t) => ({ tramo: t, gf: m.get(t) || 0 }))
-  }, ['getGlobalTramosV2', codgrupos.join(','), codtemporada], codgrupos, codtemporada)
+  }, ['getGlobalTramosV2', 'v2-paginado', codgrupos.join(','), codtemporada], codgrupos, codtemporada)
 }
 
 // --- GLOBAL: Panorama (líderes + cifras) de toda la categoría, para el mismo componente Panorama. ---
@@ -747,13 +785,15 @@ export async function getGlobalLideresV2(codgrupos: string[], codtemporada: numb
       // "Mejor Media PF" a nivel GLOBAL: media_fantasy_temp (foto final, jornada null) de todos los grupos; el mejor
       // por media entre grupos. El dato existe por grupo (no hay codgrupo agregado), se fusiona aquí como el resto.
       supabase.from('web_top_jugadores').select(COLS_TOP_JUGADORES)
-        .in('codgrupo', codgrupos).eq('codtemporada', codtemporada).eq('tipo', 'media_fantasy_temp').is('jornada', null),
+        // Solo el 1º de cada grupo (su rank sigue la media, medido): el mejor global es el mejor de esos.
+        .in('codgrupo', codgrupos).eq('codtemporada', codtemporada).eq('tipo', 'media_fantasy_temp').is('jornada', null).eq('rank', 1),
     ])
+    if (media.error) throw media.error
     const tarjetas = lidTarjetas(al as any[])
     const mediaPf = ((media.data || []) as any[])
       .sort((a, b) => (Number(b.media_fantasy) || 0) - (Number(a.media_fantasy) || 0))[0] || null
     return { goleador: top.goleadores[0] || null, portero: top.porteros[0] || null, elo: top.elo[0] || null, tarjetas, pf: top.fantasy[0] || null, mediaPf }
-  }, ['getGlobalLideresV2', 'v2-pf', codgrupos.join(','), codtemporada, jornada], codgrupos, codtemporada)
+  }, ['getGlobalLideresV2', 'v3-foto', codgrupos.join(','), codtemporada, jornada], codgrupos, codtemporada)
 }
 
 // Cifras completas de la categoría (agrega los grupos; cuenta partidos, NO suma puntos).
@@ -761,12 +801,13 @@ export async function getGlobalCifrasFullV2(grupos: any[], codtemporada: number,
   const codgrupos = grupos.map((g) => String(g.codgrupo))
   if (!codgrupos.length) return { disputados: 0, totalPartidos: 0, goles: 0, mediaGoles: null, vLocalPct: 0, empPct: 0, vVisitPct: 0, amarillas: 0, dobles: 0, rojas: 0, p0: 0 }
   return cacheComp(async () => {
-    const [clasRes, resRes, jl] = await Promise.all([
-      supabase.from('web_clasificacion').select('codgrupo, pj, gf, p0').in('codgrupo', codgrupos).eq('codtemporada', codtemporada).eq('jornada', jornada),
-      supabase.from('web_resultados').select('goles_local, goles_visitante').in('codgrupo', codgrupos).eq('codtemporada', codtemporada),
+    // Partidos, goles y porterías a cero: suma de la FOTO de clasificación por grupo (antes .eq('jornada') exacta:
+    // un grupo que iba por detrás, p. ej. en la J4 con la global en la J6, no sumaba nada). V/E/D: contado.
+    const [clas, reparto, jl] = await Promise.all([
+      fotoClasifGlobal<any>('codgrupo, pj, gf, p0', codgrupos, codtemporada, jornada),
+      repartoResultados(codgrupos, codtemporada),
       getJuegoLimpioV2(codgrupos, codtemporada, jornada),
     ])
-    const clas = (clasRes.data || []) as any[]
     const disputados = Math.round(clas.reduce((s, r) => s + (r.pj || 0), 0) / 2)
     const goles = clas.reduce((s, r) => s + (r.gf || 0), 0)
     const p0 = clas.reduce((s, r) => s + (r.p0 || 0), 0)
@@ -775,13 +816,7 @@ export async function getGlobalCifrasFullV2(grupos: any[], codtemporada: number,
     let totalPartidos = 0
     for (const g of grupos) totalPartidos += Math.round(((g.total_jornadas || 0) * (eqPorGrupo.get(String(g.codgrupo)) || 0)) / 2)
     if (!totalPartidos) totalPartidos = disputados
-    let vl = 0, em = 0, vv = 0
-    for (const m of (resRes.data || []) as any[]) {
-      if (m.goles_local == null || m.goles_visitante == null) continue
-      if (m.goles_local > m.goles_visitante) vl++
-      else if (m.goles_local < m.goles_visitante) vv++
-      else em++
-    }
+    const { vl, em, vv } = reparto
     const tot = vl + em + vv || 1
     return {
       disputados, totalPartidos, goles, mediaGoles: disputados ? goles / disputados : null,
@@ -791,5 +826,5 @@ export async function getGlobalCifrasFullV2(grupos: any[], codtemporada: number,
       rojas: jl.reduce((s, r) => s + (r.rojas || 0), 0),
       p0,
     }
-  }, ['getGlobalCifrasFullV2', codgrupos.join(','), codtemporada, jornada], codgrupos, codtemporada)
+  }, ['getGlobalCifrasFullV2', 'v2-foto', codgrupos.join(','), codtemporada, jornada], codgrupos, codtemporada)
 }
