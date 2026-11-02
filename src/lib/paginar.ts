@@ -16,3 +16,25 @@ export async function todasLasFilas<T>(build: () => any): Promise<T[]> {
     if (filas.length < MAX_FILAS) return out
   }
 }
+
+// GUARDA COMÚN contra el corte silencioso de PostgREST (max-rows = 1.000, sin error). Una lectura SIN paginar
+// (sin limit/offset en la URL: ni .range() ni .limit()) que vuelve con exactamente 1.000 filas casi seguro que
+// estaba cortada -> se convierte en ERROR en vez de devolver datos a medias. Se reconoce por la cabecera
+// Content-Range "0-999/…" que PostgREST pone en toda respuesta. Solo GET a /rest/v1/ (HEAD de count no trae filas).
+// OJO: supabase-js convierte cualquier fallo en { data: null, error }: quien lea `error` (sel(), `if (error)
+// throw`) lanza; quien lo ignore recibe null -> vacío. Por eso además se deja rastro en el log con la ruta.
+export const CODIGO_CORTE = 'F11S_CORTE_1000'
+export async function fetchConGuarda(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
+  const res = await fetch(input, init)
+  if ((init?.method || 'GET').toUpperCase() !== 'GET' || !res.ok) return res
+  const url = new URL(typeof input === 'string' ? input : input instanceof URL ? input.href : input.url)
+  if (!url.pathname.includes('/rest/v1/') || url.searchParams.has('limit') || url.searchParams.has('offset')) return res
+  if (!(res.headers.get('content-range') || '').startsWith(`0-${MAX_FILAS - 1}/`)) return res
+  const donde = `${url.pathname.replace(/^.*\/rest\/v1\//, '')}?${url.searchParams.toString()}`.slice(0, 500)
+  console.error(`[supabase] ${CODIGO_CORTE}: lectura sin paginar con ${MAX_FILAS} filas (corte de PostgREST): ${donde}`)
+  await res.body?.cancel()
+  return new Response(JSON.stringify({
+    code: CODIGO_CORTE, details: donde, hint: 'Paginar con todasLasFilas (lib/paginar.ts) o pedir menos filas',
+    message: `Lectura sin paginar con ${MAX_FILAS} filas: PostgREST la habría cortado en silencio`,
+  }), { status: 422, headers: { 'content-type': 'application/json' } })
+}

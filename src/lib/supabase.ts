@@ -1,9 +1,11 @@
 import { createClient } from '@supabase/supabase-js'
+import { fetchConGuarda } from '@/lib/paginar'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
-export const supabase = createClient(supabaseUrl, supabaseKey)
+// Guarda común contra el corte silencioso de 1.000 filas de PostgREST: ver fetchConGuarda (lib/paginar.ts).
+export const supabase = createClient(supabaseUrl, supabaseKey, { global: { fetch: fetchConGuarda } })
 
 // Ejecuta una lectura de Supabase y LANZA si la query dio error, en vez de devolver el vacío en silencio.
 // Mata el mecanismo más común de "resultado vacío sin rastro": `const { data } = await q` sin mirar `error`
