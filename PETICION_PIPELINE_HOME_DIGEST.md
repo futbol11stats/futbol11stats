@@ -42,7 +42,7 @@ Nacional Juvenil, …): el mejor jugador por **PUNTOS FANTASY** de esa categorí
 |---|---|
 | `categoria_nivel` | nivel de categoría (la web ordena por él, de más alta a más baja) |
 | `nombre_comp` | nombre de la categoría/competición (cabecera de la tarjeta + sello) |
-| `codjugador`, `nombre` | el mejor PF de esa categoría **con ficha** |
+| `codjugador`, `nombre` | el mejor PF de esa categoría (con o sin ficha; ver regla 1) |
 | `codequipo`, `equipo_nombre`, `escudo` | su equipo |
 | `codgrupo`, `grupo_nombre` | su grupo (contexto bajo el líder + enlace) |
 | `valor` | sus **puntos fantasy** totales de la temporada |
@@ -71,9 +71,11 @@ de competición, agregados a nivel federación.)
 
 ## Reglas (imprescindibles)
 
-1. **SOLO jugadores con ficha publicada**, en A y en B. Un líder que no se puede enlazar es una tarjeta
-   muerta —y en juvenil la mayoría son menores sin ficha—: elegir siempre el mejor **de entre los que
-   tienen ficha** (saltar a los que no la tienen).
+1. **Jugadores sin ficha: se nombran, pero no se enlazan** (en A y en B). La portada puede mostrar como
+   líder a un jugador sin ficha publicada, **solo con su nombre: sin enlace a la ficha y sin edad**. Lo que
+   se protege es la ficha, no el nombre: el líder es el mejor de verdad, tenga o no ficha (no se salta a
+   nadie). *Sustituye a la regla anterior («solo jugadores con ficha publicada»), ya no vigente.*
+   **En redes sociales la regla es otra:** nunca se nombra a nadie sin ficha.
 2. **Desempate por CATEGORÍA SUPERIOR — SOLO en el bloque B.** Al empatar el `valor`, gana el de categoría
    más alta (20 goles en 3ª RFEF valen más que 20 en 2ª Aficionado); ordenar por `categoria_nivel`. En el
    bloque A no aplica (cada tarjeta es de una sola categoría). En las fichas de competición tampoco (una sola
