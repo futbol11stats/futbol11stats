@@ -86,9 +86,11 @@ El sistema es **determinista**: no interviene ninguna valoración subjetiva y lo
 
 ### Puestos y rankings
 
-A partir de los puntos fantasy acumulados en la temporada, cada jugador ocupa un **puesto** en tres escalas: **general** (entre los jugadores que compitieron esa temporada), **por competición** (entre quienes juegan en su misma categoría) y **por demarcación** (entre quienes ocupan su puesto). Hay además escalas por franja de edad para juveniles y sub-23.
+A partir de los puntos fantasy de la temporada, cada jugador ocupa un **puesto** en tres escalas: **general** (entre los jugadores que compitieron esa temporada), **por competición** (entre quienes juegan en su misma categoría) y **por demarcación** (entre quienes ocupan su puesto). Hay además escalas por franja de edad para juveniles y sub-23.
 
 Un puesto alto en el general y otro modesto en el de su competición cuentan cosas distintas, y esa es precisamente la gracia.
+
+El puesto **general**, el **Sub-23** y el **Juvenil** comparan a jugadores de categorías distintas, así que no suman los puntos tal cual: cada punto se **pondera por el nivel de la categoría** en que se consiguió. Ese peso lo medimos con miles de jugadores que cambian de categoría de una temporada a otra, viendo cuánto cambia su puntuación al subir o bajar. Los puntos que ves en cada ficha son los del acta: solo cambia el orden. Los rankings de categoría y de posición no llevan ese peso, porque ahí todos compiten en el mismo nivel.
 
 ### XI Óptimo
 
