@@ -14,6 +14,7 @@ import { campoMapsUrl, parseCampo } from '@/lib/club'
 import { isoMadrid } from '@/lib/horaMadrid'
 import { NO_DISPUTADO, SUSPENDIDO, SUSPENDIDO_MINI } from '@/lib/partido'
 import { RETIRADO, PROVISIONAL, esProvisional } from '@/lib/rotulos'
+import { tandaPenaltis } from '@/lib/penaltis'
 import { getDireccionesCampos, type DireccionCampo } from '@/lib/campo'
 import { getCamposConFicha, campoSlug } from '@/lib/campo'
 import SuperficieCampo from '@/components/SuperficieCampo'
@@ -489,9 +490,15 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
             // JUGADO con acta -> el marcador abre la ficha del partido en CUALQUIER temporada (las fichas son ISR).
             // FUTURO con acta en la temporada actual (T22) -> botón "Previa" (pronóstico). Sin acta -> "vs" plano.
             const linkable = tieneFicha && (jugado || codtemporada === 22)
-            return linkable
+            const celda = linkable
               ? <Link className={`rsc rsc-link${jugado ? '' : ' rsc-prev'}${prov ? ' rsc-prov' : ''}`} title={prov ? PROVISIONAL : undefined} href={`/madrid/partido/${partidoSlug(r.codacta as string, r.nombre_local, r.nombre_visitante)}`}>{inner}</Link>
               : <div className={`rsc${prov ? ' rsc-prov' : ''}`} title={prov ? PROVISIONAL : undefined}>{inner}</div>
+            // Tanda de penaltis (copa/playoff): el marcador sigue de empate y la tanda va debajo, en pequeño, con la
+            // cifra de cada equipo de su lado (verde el que pasa, rojo el eliminado). Reglas en lib/penaltis.ts.
+            const tanda = suspendido ? null : tandaPenaltis(r)
+            return tanda
+              ? <div className="rsc-col">{celda}<span className="rsc-pen">pen. <span style={{ color: tanda.pasa === 'local' ? 'var(--e3)' : 'var(--e0)' }}>{tanda.local}</span>-<span style={{ color: tanda.pasa === 'visitante' ? 'var(--e3)' : 'var(--e0)' }}>{tanda.visitante}</span></span></div>
+              : celda
           })()}
           <div className="rside v">
             <EscudoBox escudo={r.escudo_visitante} nombre={r.nombre_visitante} size={26} radius={5} />

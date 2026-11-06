@@ -289,6 +289,8 @@ export type ResultadoCompRow = {
   incidencia?: 'local' | 'visitante' | 'ambos' | null
   estado_partido?: string | null   // 'suspendido' = no se jugó y sigue pendiente de resolución
   computa?: boolean | null   // false + marcador = PROVISIONAL (acta abierta): marcador con marca, ver esProvisional
+  // Copa/playoff: tanda (NULL si no hubo) + resolución posterior; qué se enseña lo decide tandaPenaltis.
+  penaltis_local?: number | null; penaltis_visitante?: number | null; motivo_estado?: string | null
   grupo_label: string | null   // copa fase de grupos: "Grupo A"/"Grupo B" (NULL en liga y eliminatorias)
   // Enlace a Maps del campo del PARTIDO (no la instalación habitual del equipo). PENDIENTE de cableado: el
   // pipeline publicará codigo_campo (y quizá campo_lat/campo_lng) en web_resultados -> añadir al select de abajo.
@@ -311,7 +313,8 @@ export async function tienePartidosJugados(codgrupo: string, codtemporada: numbe
 
 export async function getResultadosV2(codgrupo: string, codtemporada: number, jornada: number): Promise<ResultadoCompRow[]> {
   const cols = 'id, codacta, nombre_local, escudo_local, goles_local, goles_visitante, nombre_visitante, escudo_visitante, ' +
-    'fecha, fecha_iso, hora, campo, grupo_label, codigo_campo, campo_lat, campo_lng, incidencia, estado_partido, computa'
+    'fecha, fecha_iso, hora, campo, grupo_label, codigo_campo, campo_lat, campo_lng, incidencia, estado_partido, computa, ' +
+    'penaltis_local, penaltis_visitante, motivo_estado'
   return cacheComp(async () => {
     // El .order de la BD se queda como orden de partida (desempate estable a igual fecha y hora). Ordenar `fecha`
     // en SQL es TEXTO DD/MM/AAAA ("01/11" antes que "31/10"): el orden cronológico real lo pone ordenarPorFechaHora,

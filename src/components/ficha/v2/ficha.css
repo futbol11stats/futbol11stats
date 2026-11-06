@@ -826,6 +826,11 @@
 
 /* Resultados: separador del marcador siempre neutro (los goles se colorean por resultado). */
 .fjv2 .rsc-sep{color:var(--ink-3);margin:0 1px}
+/* Tanda de penaltis bajo el marcador (copa/playoff): pequeña, cifra de cada equipo de su lado (verde pasa,
+   rojo eliminado). En la lista, la celda pasa a columna (marcador + tanda) sin ensanchar la rejilla de 390px. */
+.fjv2 .rsc-col{display:flex;flex-direction:column;align-items:center;gap:2px;flex:none}
+.fjv2 .rsc-pen,.fpv2 .mpen{font-family:var(--font-display),'Barlow Condensed',sans-serif;font-size:var(--t-cap);font-weight:700;font-variant-numeric:tabular-nums;color:var(--ink-3);line-height:1;white-space:nowrap}
+.fpv2 .mpen{margin-top:-2px}
 /* Marcador enlazable a la ficha de partido (temporada actual). */
 .fjv2 a.rsc.rsc-link{text-decoration:none;transition:background .12s}
 .fjv2 a.rsc.rsc-link:hover{background:rgba(255,255,255,.13)}

@@ -435,6 +435,11 @@ export default function FichaPartidoV2({ p }: { p: PartidoFicha }) {
             ) : p.jugado ? (
               <>
                 <span className="mres"><span style={{ color: colL }}>{gL}</span><span className="sep">-</span><span style={{ color: colV }}>{gV}</span></span>
+                {/* Tanda de penaltis (copa/playoff): el marcador se queda de empate; debajo, en pequeño, la cifra de cada
+                    equipo de su lado, verde el que pasa y rojo el eliminado. Con resolución posterior no sale (p.tanda). */}
+                {p.tanda && (
+                  <span className="mpen">pen. <span style={{ color: p.tanda.pasa === 'local' ? 'var(--e3)' : 'var(--e0)' }}>{p.tanda.local}</span>-<span style={{ color: p.tanda.pasa === 'visitante' ? 'var(--e3)' : 'var(--e0)' }}>{p.tanda.visitante}</span></span>
+                )}
                 {/* Provisional: el marcador se enseña, pero el acta sigue abierta -> no es FINAL. */}
                 {p.provisional ? <span className="pill prov">{PROVISIONAL}</span> : <span className="pill n">FINAL</span>}
               </>

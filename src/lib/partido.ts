@@ -8,6 +8,7 @@ import { getCamposConFicha } from '@/lib/campo'
 import { fichasExistentes, jugadorHref } from '@/lib/jugador'
 import { claveFechaDesc } from '@/lib/fechaOrden'
 import { esProvisional } from '@/lib/rotulos'
+import { tandaPenaltis, type Tanda } from '@/lib/penaltis'
 import { anterioresAl, rachasDe, rachasTras, type Rachas, type RachasTras } from '@/lib/rachasPartido'
 
 // Ficha de PARTIDO. Datos del acta ya publicados: web_resultados (cabecera) + web_jugador_partidos (por jugador y
@@ -51,6 +52,9 @@ export type PartidoFicha = {
   estadoPartido: string | null
   // Marcador publicado con el acta ABIERTA (computa=false): pastilla PROVISIONAL en vez de FINAL, sin "tras el partido".
   provisional: boolean
+  // Copa/playoff: tanda de penaltis tras un EMPATE sin resolución posterior (lib/penaltis.ts). NULL = no se enseña.
+  // Solo nota bajo el marcador: rachas y chips V/E/D siguen leyendo el partido como empate.
+  tanda: Tanda | null
   local: PartidoLado; visitante: PartidoLado
   golesLocal: number | null; golesVisitante: number | null; fecha: string | null; hora: string | null
   campoNombre: string | null; campoSuperficie: string | null; campoHref: string | null; campoLat: number | null; campoLng: number | null
@@ -131,7 +135,7 @@ async function enfrentamientos(a: string, b: string): Promise<PartidoMini[]> {
 export async function getPartido(codacta: string): Promise<PartidoFicha | null> {
   if (!/^\d+$/.test(codacta)) return null
   const { data: rRaw } = await supabase.from('web_resultados')
-    .select('id, codacta, codtemporada, codgrupo, jornada, nombre_local, escudo_local, goles_local, goles_visitante, nombre_visitante, escudo_visitante, fecha, hora, campo, codigo_campo, campo_lat, campo_lng, codequipo_local, codequipo_visitante, ronda_slug, incidencia, estado_partido, computa, elo_pre_local, elo_post_local, elo_pre_visitante, elo_post_visitante')
+    .select('id, codacta, codtemporada, codgrupo, jornada, nombre_local, escudo_local, goles_local, goles_visitante, nombre_visitante, escudo_visitante, fecha, hora, campo, codigo_campo, campo_lat, campo_lng, codequipo_local, codequipo_visitante, ronda_slug, incidencia, estado_partido, computa, elo_pre_local, elo_post_local, elo_pre_visitante, elo_post_visitante, penaltis_local, penaltis_visitante, motivo_estado')
     .eq('codacta', codacta).maybeSingle()
   const r = rRaw as {
     id: number; codacta: string | null; codtemporada: number; codgrupo: string; jornada: number
@@ -140,6 +144,7 @@ export async function getPartido(codacta: string): Promise<PartidoFicha | null> 
     campo: string | null; codigo_campo: string | null; campo_lat: number | null; campo_lng: number | null
     codequipo_local: string | null; codequipo_visitante: string | null; ronda_slug: string | null; incidencia: string | null; estado_partido: string | null; computa: boolean | null
     elo_pre_local: number | null; elo_post_local: number | null; elo_pre_visitante: number | null; elo_post_visitante: number | null
+    penaltis_local: number | null; penaltis_visitante: number | null; motivo_estado: string | null
   } | null
   if (!r) return null
 
@@ -382,6 +387,7 @@ export async function getPartido(codacta: string): Promise<PartidoFicha | null> 
       incidencia: (r.incidencia === 'local' || r.incidencia === 'visitante' || r.incidencia === 'ambos') ? r.incidencia : null,
       estadoPartido: r.estado_partido ?? null,
       provisional: esProvisional(r),
+      tanda: tandaPenaltis(r),
       local, visitante, golesLocal: r.goles_local, golesVisitante: r.goles_visitante, fecha: r.fecha, hora: r.hora,
       campoNombre: campoNombre || null, campoSuperficie, campoHref, campoLat: r.campo_lat, campoLng: r.campo_lng,
       codigoCampo: r.codigo_campo != null ? String(r.codigo_campo) : null,
@@ -402,5 +408,5 @@ export async function getPartido(codacta: string): Promise<PartidoFicha | null> 
       retiradoPostLocal: posL.retPost, retiradoPostVisitante: posV.retPost,
       hitos,
     }
-  }, ['getPartido', 'v15-antes-del-partido', String(r.codacta)], [String(r.codgrupo)], r.codtemporada)
+  }, ['getPartido', 'v16-penaltis', String(r.codacta)], [String(r.codgrupo)], r.codtemporada)
 }
