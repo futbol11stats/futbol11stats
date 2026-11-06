@@ -153,7 +153,7 @@ export function sportsEventLd(ev: {
   // web_resultados.estado_partido: 'suspendido' | 'resuelto' | 'programado' | null. NULL = sin estado
   // conocido -> se trata como programado, NO se deduce del marcador.
   estadoPartido?: string | null
-  incidencia?: 'local' | 'visitante' | 'ambos' | null   // resultado ADMINISTRATIVO -> no hubo evento
+  incidencia?: string | null   // resultado ADMINISTRATIVO (cualquier valor, también 'administrativo') -> no hubo evento
 }): Record<string, unknown> | null {
   // Un partido con resultado administrativo (retirada o incomparecencia) NO SE DISPUTÓ: no es un evento, y
   // marcarlo como tal afirma que ocurrió algo que no ocurrió. Fuera, aunque tenga fecha, hora y campo.

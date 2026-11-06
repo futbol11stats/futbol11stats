@@ -8,6 +8,7 @@ import { CORTES_FIJOS } from '@/lib/escala'
 import { type Ronda } from '@/lib/competiciones'
 import { ordenarPorFechaHora } from '@/lib/fechaOrden'
 import { todasLasFilas } from '@/lib/paginar'
+import type { Incidencia } from '@/lib/rotulos'
 
 // Color de la MEDIA de puntos fantasy de un jugador (por partido), con los cortes fijos de la escala
 // (mediaPartido) — misma semántica que la ficha de jugador. Sin ámbar como escalón.
@@ -285,8 +286,8 @@ export type ResultadoCompRow = {
   nombre_visitante: string; escudo_visitante: string | null; goles_visitante: number | null
   fecha: string | null; hora: string | null; campo: string | null
   fecha_iso?: string | null   // DATE del pipeline: solo para ordenar (respaldo de `fecha`, ver fechaOrden.ts)
-  // Resultado ADMINISTRATIVO: 'local'|'visitante'|'ambos' = no se disputó (ver web_resultados.incidencia).
-  incidencia?: 'local' | 'visitante' | 'ambos' | null
+  // Resultado ADMINISTRATIVO: no NULL = no se disputó (valores y lado en rotulos.ts: Incidencia).
+  incidencia?: Incidencia | null
   estado_partido?: string | null   // 'suspendido' = no se jugó y sigue pendiente de resolución
   computa?: boolean | null   // false + marcador = PROVISIONAL (acta abierta): marcador con marca, ver esProvisional
   // Copa/playoff: tanda (NULL si no hubo) + resolución posterior; qué se enseña lo decide tandaPenaltis.

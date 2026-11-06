@@ -12,6 +12,20 @@
 // Deliberadamente no dice "incomparecencia" ni "retirada": `incidencia` marca el LADO, no la causa.
 export const NO_DISPUTADO = 'No disputado · resultado administrativo'
 
+// Valores de web_resultados.incidencia. 'local'|'visitante'|'ambos' = el lado que no lo disputó;
+// 'administrativo' = no disputado (3-0/0-3 sin ningún gol, tarjeta ni cambio, regla 2.5) SIN saber qué equipo:
+// mismo rótulo y mismo trato que los demás, pero sin señalar a nadie. NULL = partido disputado normal.
+export type Incidencia = 'local' | 'visitante' | 'ambos' | 'administrativo'
+export function parseIncidencia(v: unknown): Incidencia | null {
+  return v === 'local' || v === 'visitante' || v === 'ambos' || v === 'administrativo' ? v : null
+}
+// Frase del lado que no lo disputó (sin nombrar la causa). '' cuando el dato no dice quién ('administrativo').
+export function ladoNoDisputado(incidencia: Incidencia | null, local: string, visitante: string): string {
+  return incidencia === 'ambos' ? 'Ninguno de los dos equipos lo disputó'
+    : incidencia === 'local' ? `${local} no lo disputó`
+    : incidencia === 'visitante' ? `${visitante} no lo disputó` : ''
+}
+
 // Suspendido (web_resultados.estado_partido): el acta existe y no está cerrada.
 //
 // GENÉRICO A PROPÓSITO, por el mismo motivo que NO_DISPUTADO: el dato NO dice por qué se suspendió ni en qué

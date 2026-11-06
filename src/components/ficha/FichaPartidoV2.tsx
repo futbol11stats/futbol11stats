@@ -23,7 +23,7 @@ import FormaStrip from '@/components/ui/FormaStrip'
 import type { PartidoFicha, PartidoJugador, PartidoMini, PartidoLado } from '@/lib/partido'
 import type { RachaTras, RachasTras } from '@/lib/rachasPartido'
 import { NO_DISPUTADO, SUSPENDIDO } from '@/lib/partido'
-import { RETIRADO, PROVISIONAL } from '@/lib/rotulos'
+import { RETIRADO, PROVISIONAL, ladoNoDisputado } from '@/lib/rotulos'
 // Fondo de la pastilla de PUNTOS fantasy (baza propia; verde para lo bueno, el ámbar está reservado).
 const ptsStyle = (p: number | null) => p == null ? { background: 'rgba(255,255,255,.05)', color: 'var(--ink-4)' }
   : p >= 8 ? { background: 'var(--e3)', color: '#08111f' }
@@ -405,9 +405,8 @@ export default function FichaPartidoV2({ p }: { p: PartidoFicha }) {
     || p.local.suplentes.length > 0 || p.visitante.suplentes.length > 0
   // Resultado administrativo (incidencia != NULL): el lado que no compareció/fue retirado. NUNCA habrá detalle.
   // Lado afectado, SIN nombrar la causa: `incidencia` dice quién, no si fue retirada o incomparecencia.
-  const ladoTexto = p.incidencia === 'ambos' ? 'Ninguno de los dos equipos lo disputó'
-    : p.incidencia === 'local' ? `${nombreEquipo(p.local.nombre)} no lo disputó`
-    : p.incidencia === 'visitante' ? `${nombreEquipo(p.visitante.nombre)} no lo disputó` : ''
+  // 'administrativo' no dice quién -> '' (no se señala a ningún equipo; queda solo el rótulo).
+  const ladoTexto = ladoNoDisputado(p.incidencia, nombreEquipo(p.local.nombre), nombreEquipo(p.visitante.nombre))
   const colL = p.jugado ? (gL > gV ? 'var(--e3)' : gL < gV ? 'var(--e0)' : 'var(--ink)') : 'var(--ink)'
   const colV = p.jugado ? (gV > gL ? 'var(--e3)' : gV < gL ? 'var(--e0)' : 'var(--ink)') : 'var(--ink)'
   const mvpLado = p.mvp?.lado === 'local' ? p.local : p.visitante

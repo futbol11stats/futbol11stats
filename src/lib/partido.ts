@@ -7,7 +7,7 @@ import { campoMapsUrl } from '@/lib/club'
 import { getCamposConFicha } from '@/lib/campo'
 import { fichasExistentes, jugadorHref } from '@/lib/jugador'
 import { claveFechaDesc } from '@/lib/fechaOrden'
-import { esProvisional } from '@/lib/rotulos'
+import { esProvisional, parseIncidencia, type Incidencia } from '@/lib/rotulos'
 import { tandaPenaltis, type Tanda } from '@/lib/penaltis'
 import { anterioresAl, rachasDe, rachasTras, type Rachas, type RachasTras } from '@/lib/rachasPartido'
 
@@ -45,9 +45,10 @@ export type PartidoFicha = {
   id: string; codacta: string; jugado: boolean; esJuvenil: boolean; codtemporada: number
   categoria: string; slugComp: string; slugGrupo: string; temporada: string; nombreComp: string; jornada: number; compHref: string
   // Resultado ADMINISTRATIVO (web_resultados.incidencia): NULL = partido disputado normal; 'local'/'visitante'/
-  // 'ambos' = el lado que no compareció o fue retirado -> nunca habrá detalle de acta (no se jugó). El histórico
+  // 'ambos' = el lado que no compareció o fue retirado; 'administrativo' = no disputado sin saber qué lado ->
+  // nunca habrá detalle de acta (no se jugó). El histórico
   // (~2.459 walkovers viejos) NO se backfillea: queda NULL y cae al mensaje neutral de "sin detalle".
-  incidencia: 'local' | 'visitante' | 'ambos' | null
+  incidencia: Incidencia | null
   // estado_partido del acta: 'suspendido' = no se jugó y sigue sin resolver. NULL = sin estado conocido.
   estadoPartido: string | null
   // Marcador publicado con el acta ABIERTA (computa=false): pastilla PROVISIONAL en vez de FINAL, sin "tras el partido".
@@ -384,7 +385,7 @@ export async function getPartido(codacta: string): Promise<PartidoFicha | null> 
     return {
       id: String(r.id), codacta: String(r.codacta ?? ''), jugado, esJuvenil, codtemporada: r.codtemporada,
       categoria, slugComp: g?.slug_comp || '', slugGrupo: g?.slug_grupo || '', temporada, nombreComp: g?.nombre_comp || 'RFFM · Madrid', jornada: r.jornada, compHref,
-      incidencia: (r.incidencia === 'local' || r.incidencia === 'visitante' || r.incidencia === 'ambos') ? r.incidencia : null,
+      incidencia: parseIncidencia(r.incidencia),
       estadoPartido: r.estado_partido ?? null,
       provisional: esProvisional(r),
       tanda: tandaPenaltis(r),
@@ -408,5 +409,5 @@ export async function getPartido(codacta: string): Promise<PartidoFicha | null> 
       retiradoPostLocal: posL.retPost, retiradoPostVisitante: posV.retPost,
       hitos,
     }
-  }, ['getPartido', 'v16-penaltis', String(r.codacta)], [String(r.codgrupo)], r.codtemporada)
+  }, ['getPartido', 'v17-administrativo', String(r.codacta)], [String(r.codgrupo)], r.codtemporada)
 }
