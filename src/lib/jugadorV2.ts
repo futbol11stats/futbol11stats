@@ -81,7 +81,10 @@ export async function getCarreraV2(cod: string): Promise<CarreraRow[]> {
     // PROPIO select: añadir/quitar columna cambia el hash -> cache-miss automático, sin bump a mano (mata la
     // familia que recayó 3 veces aquí: copa, flag jugado, fecha_fin). 'v1' es la versión de LÓGICA -> se bumpea a
     // mano SOLO si cambia la transformación post-fetch (el sort/map), no las columnas. (Fase 1 de la opción 2.)
-  }, ['getCarreraV2', 'v1', hashCols(COLS_CARRERA), cod], cod)
+    // 'v2-factor-cat': mismas columnas, VALORES nuevos -> hashCols no lo ve. El pipeline reordena
+    // rank_general_temp/_season, rank_sub23_season y rank_juvenil_season por puntos × factor de nivel de la
+    // categoría; sin el bump la ficha seguiría sirviendo los puestos viejos desde la caché de datos.
+  }, ['getCarreraV2', 'v2-factor-cat', hashCols(COLS_CARRERA), cod], cod)
 }
 
 export async function getActuacionesV2(cod: string): Promise<any[]> {

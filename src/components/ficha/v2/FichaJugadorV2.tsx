@@ -501,8 +501,13 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
                 <RankFila insignia={badge11} label="Juvenil · Madrid" rank={filaPrincipal?.rank_juvenil_season ?? null} total={filaPrincipal?.rank_juvenil_season_total ?? null} />
               </div>
               {/* Aclara el criterio: rankings por PUNTOS FANTASY de la temporada seleccionada (rank_*_temp de la
-                  fila principal), no de toda la carrera. Distinto del percentil de arriba, que mide ELO. */}
-              <p className="rank-note">Por puntos fantasy de la temporada.</p>
+                  fila principal), no de toda la carrera. Distinto del percentil de arriba, que mide ELO.
+                  Segunda frase: general/Sub-23/Juvenil MEZCLAN categorías y el pipeline los ordena por puntos ×
+                  factor de nivel (los puntos mostrados no cambian). Pie y no tooltip: en 390 px no hay hover. Solo
+                  si se pinta alguno de los tres (RankFila se oculta con rank null). Categoría y posición no ponderan. */}
+              <p className="rank-note">Por puntos fantasy de la temporada.{
+                (filaPrincipal?.rank_general_season ?? filaPrincipal?.rank_sub23_season ?? filaPrincipal?.rank_juvenil_season) != null
+                  && ' El puesto general, Sub-23 y Juvenil pondera el nivel de cada categoría.'}</p>
             </div>
           </section>
 
