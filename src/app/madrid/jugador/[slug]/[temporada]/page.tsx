@@ -9,8 +9,11 @@ import { getJugadorV2 } from '@/lib/jugadorV2'
 import { codFromSlug, jugadorSlug, formatNombre } from '@/lib/jugador'
 import { OG_IMAGE } from '@/lib/seo'
 
-// Vista por TEMPORADA de la ficha de jugador: cada temporada es una página indexable por derecho.
-//  - canonical PROPIO apuntando a sí misma (no a la ficha base), para que sea indexable por derecho.
+// Vista por TEMPORADA de la ficha de jugador.
+//  - canonical a la FICHA PRINCIPAL (antes era propio): el Disallow de robots.txt para todo agente salvo
+//    Googlebot y bingbot y el nofollow del selector sacan estas ~128k variantes del rastreo (cada visita de bot
+//    = una escritura ISR); a esos dos se les sigue dejando entrar y el canonical consolida su señal en la ficha.
+//    og:url sigue siendo la propia URL: lo que se comparte es la temporada.
 //  - title con la temporada, para que no compita con la ficha base.
 //  - redirect 308 al slug canónico (paridad con la ruta base [slug]/page.tsx).
 
@@ -21,11 +24,12 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const j = await getJugadorV2(cod)
   if (!j) return { title: 'Jugador no encontrado | Fútbol11Stats' }
   const nombre = formatNombre(j.nombre)
-  const canonical = `/madrid/jugador/${jugadorSlug(j.codjugador, j.nombre)}/${temporada}`
+  const canonical = `/madrid/jugador/${jugadorSlug(j.codjugador, j.nombre)}`
+  const url = `${canonical}/${temporada}`
   const title = `${nombre} — temporada ${temporada} | Fútbol11Stats`
   const description = `${nombre} en ${temporada}: partidos jornada a jornada, forma, goles, ELO y análisis del ` +
     `fútbol aficionado de Madrid.`
-  return { title, description, alternates: { canonical }, openGraph: { title, description, url: canonical, siteName: 'Fútbol11Stats', locale: 'es_ES', type: 'profile', images: [OG_IMAGE] } }
+  return { title, description, alternates: { canonical }, openGraph: { title, description, url, siteName: 'Fútbol11Stats', locale: 'es_ES', type: 'profile', images: [OG_IMAGE] } }
 }
 
 export default async function Page({ params }: { params: Promise<{ slug: string; temporada: string }> }) {

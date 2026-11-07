@@ -10,8 +10,9 @@ import { codFromSlug, equipoSlug } from '@/lib/equipo'
 import { OG_IMAGE } from '@/lib/seo'
 
 // Vista por TEMPORADA de la ficha de equipo: la temporada va por segmento de ruta (mismo caso que en jugador).
-// Canonical PROPIO a sí misma (indexable por derecho) + title con la temporada (para no competir con la ficha
-// base) + noindex juvenil + 308 al slug canónico.
+// Canonical a la FICHA PRINCIPAL (mismo motivo que en jugador: fuera del rastreo salvo Googlebot y bingbot, que
+// consolidan en la ficha) + title con la temporada (para no competir con la ficha base) + noindex juvenil + 308
+// al slug canónico. og:url sigue siendo la propia URL.
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string; temporada: string }> }): Promise<Metadata> {
   const { slug, temporada } = await params
@@ -19,7 +20,8 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   if (!cod) return { title: 'Fútbol11Stats' }
   const e = await getEquipoV2(cod)
   if (!e) return { title: 'Equipo no encontrado | Fútbol11Stats' }
-  const canonical = `/madrid/equipo/${equipoSlug(e.codequipo, e.nombre)}/${temporada}`
+  const canonical = `/madrid/equipo/${equipoSlug(e.codequipo, e.nombre)}`
+  const url = `${canonical}/${temporada}`
   const title = `${e.nombre} — temporada ${temporada} | Fútbol11Stats`
   const description = `${e.nombre} en ${temporada}: clasificación jornada a jornada, análisis, plantilla y ` +
     `resultados del fútbol aficionado de Madrid.`
@@ -27,7 +29,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     title, description,
     alternates: { canonical },
     ...(e.rama === 'juvenil' ? { robots: { index: false, follow: true } } : {}),
-    openGraph: { title, description, url: canonical, siteName: 'Fútbol11Stats', locale: 'es_ES', type: 'website', images: [OG_IMAGE] },
+    openGraph: { title, description, url, siteName: 'Fútbol11Stats', locale: 'es_ES', type: 'website', images: [OG_IMAGE] },
   }
 }
 

@@ -408,7 +408,7 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
         <div className="scope-lbl">Temporada</div>
         <div className="track"><div className="rail">
           {temporadas.map((t) => (
-            <Link key={t} href={`/madrid/jugador/${slug}/${tempLabel(t)}`} className={t === tempSel ? 'on' : ''}>{tempLabel(t)}</Link>
+            <Link key={t} href={`/madrid/jugador/${slug}/${tempLabel(t)}`} rel="nofollow" className={t === tempSel ? 'on' : ''}>{tempLabel(t)}</Link>
           ))}
         </div></div>
         {comps.length > 0 && <>

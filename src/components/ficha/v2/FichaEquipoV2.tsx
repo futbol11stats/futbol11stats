@@ -384,7 +384,7 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
         <div className="scope-lbl">Temporada</div>
         <div className="track"><div className="rail">
           {cods.map((c) => (
-            <Link key={c} href={`/madrid/equipo/${slug}/${tempLabel(c)}`} className={c === tempSel ? 'on' : ''}>{tempLabel(c)}</Link>
+            <Link key={c} href={`/madrid/equipo/${slug}/${tempLabel(c)}`} rel="nofollow" className={c === tempSel ? 'on' : ''}>{tempLabel(c)}</Link>
           ))}
         </div></div>
         {chartComps.length > 0 && <>

@@ -33,7 +33,14 @@ export default async function robots(): Promise<MetadataRoute.Robots> {
   const parts = (base: string, n: number) =>
     Array.from({ length: n }, (_, i) => `${SITE_URL}/${base}/sitemap/${i}.xml`)
   return {
-    rules: { userAgent: '*', allow: '/' },
+    // Variantes por temporada (/madrid/{jugador,equipo}/<slug>/<temporada>, ~130k URLs fuera del sitemap y
+    // con canonical a la ficha): solo Googlebot y bingbot, que traen los clics. El resto de agentes (OAI-SearchBot
+    // incluido) las regeneraba en ISR sin traer tráfico. Un grupo específico SUSTITUYE al de '*', por eso el suyo
+    // repite el allow. `*/*` exige un segundo segmento: la ficha principal no casa.
+    rules: [
+      { userAgent: ['Googlebot', 'bingbot'], allow: '/' },
+      { userAgent: '*', allow: '/', disallow: ['/madrid/jugador/*/*', '/madrid/equipo/*/*'] },
+    ],
     sitemap: [
       `${SITE_URL}/sitemap.xml`,
       ...parts('jugadores', nJug),
