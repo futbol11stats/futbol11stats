@@ -37,8 +37,12 @@ export default async function robots(): Promise<MetadataRoute.Robots> {
     // con canonical a la ficha): solo Googlebot y bingbot, que traen los clics. El resto de agentes (OAI-SearchBot
     // incluido) las regeneraba en ISR sin traer tráfico. Un grupo específico SUSTITUYE al de '*', por eso el suyo
     // repite el allow. `*/*` exige un segundo segmento: la ficha principal no casa.
+    // GoogleOther (rastreador genérico de Google, sin efecto en el buscador): 77k peticiones/día, ~la mitad de
+    // las regeneraciones ISR, y renderiza con JS (prefetch .rsc de competición, Web Analytics). Fuera de fichas
+    // y partidos; portada y competiciones siguen abiertas. Al tener grupo propio no hereda el de '*'.
     rules: [
       { userAgent: ['Googlebot', 'bingbot'], allow: '/' },
+      { userAgent: 'GoogleOther', allow: '/', disallow: ['/madrid/jugador/', '/madrid/equipo/', '/madrid/partido/'] },
       { userAgent: '*', allow: '/', disallow: ['/madrid/jugador/*/*', '/madrid/equipo/*/*'] },
     ],
     sitemap: [
