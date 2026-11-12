@@ -43,7 +43,7 @@ export async function getEquipoV2(cod: string): Promise<EquipoFicha | null> {
 }
 
 export async function getTemporadasEquipo(cod: string) {
-  const cols = 'codtemporada, nombre_comp, categoria_nivel, rama, codgrupo, grupo_nombre, pj, pts, posicion_final, gf, gc, badge, fecha_inicio, fecha_fin'
+  const cols = 'codtemporada, nombre_comp, categoria_nivel, rama, codgrupo, grupo_nombre, pj, pts, posicion_final, gf, gc, badge, fecha_inicio, fecha_fin, zona_actual, zona_jornada'
   return cacheEquipo(async () => {
     const { data, error } = await supabase.from('web_equipo_temporadas').select(cols).eq('codequipo', cod)
     if (error) throw error   // no cachear [] si la query falla (ver checklist: caché envenenada)

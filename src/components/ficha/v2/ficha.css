@@ -404,6 +404,13 @@
 .fjv2 .badge.po{background:rgba(79,159,224,.18);color:#a8cef5;border:1px solid rgba(79,159,224,.3)}
 .fjv2 .badge.camp{background:rgba(240,180,41,.18);color:#f7d78a;border:1px solid rgba(240,180,41,.32)}
 .fjv2 .badge.neu{background:rgba(255,255,255,.05);color:var(--ink-3);border:1px solid var(--line)}
+/* Temporada en curso: posición + zona de hoy en CONTORNO (sin fondo), frente al badge relleno de una temporada cerrada. */
+.fjv2 .season .s-final.duo{display:flex;gap:6px}
+.fjv2 .season .s-final.duo .badge.neu{width:auto;flex:none}
+.fjv2 .badge.out.camp{background:transparent;border-color:rgba(240,180,41,.6);color:#f7d78a}
+.fjv2 .badge.out.asc{background:transparent;border-color:rgba(46,229,107,.55);color:#a8f2bd}
+.fjv2 .badge.out.po{background:transparent;border-color:rgba(79,159,224,.6);color:#a8cef5}
+.fjv2 .badge.out.desc{background:transparent;border-color:rgba(224,72,63,.6);color:#f5aeae}
 /* Plantilla: cabecera de línea + filas con barra de minutos. */
 .fjv2 .line-h{display:flex;align-items:center;gap:8px;padding:11px var(--pad) 7px;border-top:1px solid var(--line);background:rgba(255,255,255,.02)}
 .fjv2 .line-lp{font-family:var(--font-display),'Barlow Condensed',sans-serif;font-size:var(--t-sm);font-weight:700;letter-spacing:.06em;padding:2px 7px;border-radius:4px}

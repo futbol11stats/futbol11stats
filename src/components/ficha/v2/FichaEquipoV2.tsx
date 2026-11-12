@@ -202,6 +202,9 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
     [facetas.gf, 'GF'], [facetas.gc, 'GC'], [facetas.ptsFan, 'PF'], [e.posicion_juego_limpio ?? null, 'Juego limpio'],
   ]
   const BADGE_CLS: Record<string, string> = { CAMPEON: 'camp', ASCENSO: 'asc', DESCENSO: 'desc', PLAYOFF: 'po' }
+  // Zona de la temporada en curso (web_equipo_temporadas.zona_actual; el pipeline ya no publica badge en ella).
+  const ZONA_CLS: Record<string, string> = { lider: 'camp', ascenso: 'asc', playoff: 'po', descenso: 'desc' }
+  const ZONA_LABEL: Record<string, string> = { lider: 'Líder', ascenso: 'Ascenso', playoff: 'Playoff', descenso: 'Descenso' }
 
   // Movimientos recientes garantizando que las promociones internas no queden fuera del corte: la ficha
   // actual las mostraba en su propia categoría, pero al mezclar fichajes+promociones y cortar a 8 por
@@ -623,6 +626,7 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
                   // LIGA (si la hubo): media, ELO, PTS/GF/GC y el badge de posición/ascenso/descenso/playoff.
                   if (t) {
                     const badgeCls = t.badge ? BADGE_CLS[t.badge] : null
+                    const zonaCls = t.zona_actual ? ZONA_CLS[t.zona_actual] ?? null : null   // solo en la temporada en curso
                     cards.push({ fase: faseCompeticion(t.nombre_comp, t.categoria_nivel), fechaOrden: (t.fecha_fin as string | null) || null, node: (
                       <div className="season" key={`${cStr}-liga`}>
                         <div className="accent" style={{ background: colorMedia(media) || 'var(--line)' }} />
@@ -640,7 +644,17 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
                           <div><div className="d-v" style={{ color: colorElo(ligaElo) }}>{fmtNum(ligaElo)}</div><div className="d-k">ELO</div></div>
                         </div>
                         <div className="s-stats"><div><b>{fmtNum(t.pts)}</b>PTS</div><div><b>{fmtNum(t.gf)}</b>GF</div><div><b>{fmtNum(t.gc)}</b>GC</div></div>
-                        <div className="s-final"><span className={`badge ${badgeCls || 'neu'}`}>{badgeCls ? (BADGE[t.badge]?.label ?? t.badge) : (t.posicion_final != null ? `${t.posicion_final}º` : '—')}</span></div>
+                        {zonaCls ? (
+                          // Temporada en curso: la zona de HOY (zona_actual), en contorno para no confundirla con el
+                          // badge relleno de un logro cerrado. Salvo «Líder» (que ya dice la posición), va junto a la
+                          // posición: «Ascenso» sola no dice si es 1º o 3º.
+                          <div className="s-final duo">
+                            {t.zona_actual !== 'lider' && t.posicion_final != null && <span className="badge neu">{`${t.posicion_final}º`}</span>}
+                            <span className={`badge out ${zonaCls}`} title={`Posición actual tras la jornada ${t.zona_jornada}`}>{ZONA_LABEL[t.zona_actual]}</span>
+                          </div>
+                        ) : (
+                          <div className="s-final"><span className={`badge ${badgeCls || 'neu'}`}>{badgeCls ? (BADGE[t.badge]?.label ?? t.badge) : (t.posicion_final != null ? `${t.posicion_final}º` : '—')}</span></div>
+                        )}
                       </div>
                     ) })
                   }
