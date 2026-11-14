@@ -9,6 +9,7 @@ import Buscador from '@/components/buscador/Buscador'
 import { getSueloVivo } from '@/lib/temporadas'
 import Instagram from '@/components/icons/Instagram'
 import TikTok from '@/components/icons/TikTok'
+import Distintivo from '@/components/Distintivo'
 import './globals.css'
 
 // Fuentes self-hosted por next/font (elimina la cadena externa a fonts.googleapis/gstatic).
@@ -44,9 +45,7 @@ export default async function RootLayout({
         <header className="border-b border-pitch-700 bg-pitch-800/80 backdrop-blur-sm sticky top-0 z-50">
           <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
             <a href="/" className="flex items-center gap-2.5 group">
-              <div className="w-10 h-10 rounded-full bg-grass-500 flex items-center justify-center text-lg font-bold text-white flex-shrink-0">
-                11
-              </div>
+              <Distintivo className="w-10 h-10 flex-shrink-0" />
               <span className="font-display font-bold text-3xl md:text-4xl tracking-tight text-white group-hover:text-grass-400 transition-colors">
                 Fútbol<span className="text-grass-400">11</span>Stats
               </span>

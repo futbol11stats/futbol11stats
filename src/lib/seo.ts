@@ -9,9 +9,10 @@ export const SITE_URL = 'https://www.futbol11stats.com'
 // URL ABSOLUTA a propósito: el robot que lee la tarjeta no tiene contexto de dominio y una ruta relativa
 // no la resuelve. `metadataBase` arregla eso para Next, pero esto viaja a lectores que no son Next.
 //
-// RECURSO PROPIO, en /public: NO es el logo de RRSS (public/LogoF11S_ig.svg), que no se toca. Tampoco es
-// el src/app/opengraph-image.png de la convención de fichero, cuya URL lleva un hash que cambia con el
-// build; esta es estable y por eso se puede pegar en sitios ajenos.
+// RECURSO PROPIO, en /public, con el distintivo de la cabecera (maestro: archivo/marca/distintivo.svg; el
+// escudo «F11S» anterior y su logo de RRSS están en archivo/escudo-f11s/, fuera de la web). Mismo contenido
+// que src/app/opengraph-image.png de la convención de fichero, pero aquella URL lleva un hash que cambia con
+// el build; esta es estable y por eso se puede pegar en sitios ajenos.
 //
 // HAY QUE REPETIRLA EN CADA PÁGINA que declare su propio `openGraph`: Next no fusiona el objeto del
 // layout con el de la página, lo sustituye entero. Por eso existe esta constante y no un literal suelto.

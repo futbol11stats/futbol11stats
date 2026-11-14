@@ -14,7 +14,7 @@
 // `/favicon.ico` entra aquí aunque NO viva en `public/` (lo sirve la convención `src/app/favicon.ico`):
 // salía con el mismo `max-age=0, must-revalidate` y se pide ~200 veces al día. Dejarlo fuera habría sido
 // arreglar media familia.
-const ESTATICOS_PUBLIC = ['/sellos/:path*', '/logo.png', '/og-f11s.png', '/LogoF11S_ig.svg', '/favicon.ico']
+const ESTATICOS_PUBLIC = ['/sellos/:path*', '/logo.png', '/og-f11s.png', '/favicon.ico']
 const CACHE_ESTATICOS = 'public, max-age=604800, s-maxage=2592000, stale-while-revalidate=86400'
 
 /** @type {import('next').NextConfig} */
