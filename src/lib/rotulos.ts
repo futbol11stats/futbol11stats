@@ -64,3 +64,11 @@ export const RETIRADO = 'Retirado'
 // teniendo una segunda copia en otro sitio — ya pasó con 'Susp.'.
 export const ELO_METODO =
   'Compara los puntos del jugador en cada partido con la media de su propio equipo: sube si destaca dentro del equipo y baja si no.'
+
+// Etapa de carrera con 0 PJ: el pipeline la publica cuando el último acta del jugador (convocado, sin jugar) es de
+// otro club. Sin minutos no hay media ni nada que dividir: se rotula la convocatoria. `convocatorias` es columna
+// nueva de web_jugador_carrera; hasta que exista llega null y el rótulo omite la cifra. null = no es ese caso.
+export function rotuloConvocado(c: { pj: number | null; convocatorias?: number | null }): string | null {
+  if (c.pj !== 0) return null
+  return ['Convocado', c.convocatorias != null ? `${c.convocatorias} conv.` : null, '0 PJ'].filter(Boolean).join(' · ')
+}

@@ -59,7 +59,7 @@ import {
   type CarreraRow,
 } from '@/lib/jugadorV2'
 import { fmtNum } from '@/lib/formato'
-import { RETIRADO } from '@/lib/rotulos'
+import { RETIRADO, rotuloConvocado } from '@/lib/rotulos'
 
 const PAL = ['#f87171', '#94a3b8', '#22a050', '#2ee56b', '#8cf0a2']
 function esc(v: number, c: readonly [number, number, number, number]) { if (v < 0) return 0; let n = 1; for (let i = 0; i < 4; i++) if (v >= c[i]) n = i + 1; return n }
@@ -90,6 +90,17 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
   //    orden_temporada NO elige etapa aquí; solo ordena la Trayectoria.
   const filaPrincipal: CarreraRow | undefined = etapas.find((c) => c.rank_principal) ?? etapas[0]
   const categoriaSel = filaPrincipal?.nombre_comp ?? j.categoria_rama ?? null
+  //  - etapaDefecto: la que pintan por defecto la cabecera (KPIs), la pastilla de liga, las copas y las jornadas.
+  //    Es filaPrincipal salvo un caso: una etapa de 0 PJ del equipo ACTUAL (el pipeline la publica cuando el último
+  //    acta, convocado sin jugar, es de otro club) -> manda esa: el jugador ya está allí. SOLO con 0 PJ: con partidos
+  //    en los dos, rank_principal y codequipo_actual ya discrepan en ~1.100 fichas (sobre todo filiales A/B que
+  //    alternan acta a acta) y llevar el defecto al equipo actual las haría cambiar de equipo cada semana.
+  //    rank_principal sigue mandando en los rankings, rotulados «ranking con <equipo>» cuando difiere.
+  const etapaActual0 = j.codequipo_actual != null
+    ? etapas.find((c) => c.pj === 0 && String(c.codequipo) === String(j.codequipo_actual))
+    : undefined
+  const etapaDefecto = etapaActual0 ?? filaPrincipal
+  const rankingCon = etapaActual0 && filaPrincipal && filaPrincipal !== etapaActual0 ? filaPrincipal.equipo_nombre : null
   //  - El ELO es un valor PROPIO del jugador que evoluciona en el tiempo, NO depende de la categoría: el ELO de
   //    una temporada es el último que registró cronológicamente en ella, cierre en el equipo que sea (= la
   //    ÚLTIMA etapa, orden_temporada máximo). Sus CORTES de color deben venir de la categoría de ESA etapa
@@ -100,8 +111,11 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
   // vigente; ordenar por fecha_inicio podía dejar arriba una etapa que terminó antes y mostrar un ELO caduco); fase
   // playoff>liga>copa como respaldo si falta fecha_fin. ROBUSTO al orden con que la BD devuelva las filas. NO cambia
   // categoriaSel (rank_principal/etapas[0]). El comparador ordena por `fechaOrden`; aquí es fecha_fin.
+  // Solo etapas CON elo_final: una de 0 PJ (categoría nueva, sin partido) no aporta ELO, y elegirla pintaría el ELO
+  // anterior con los cortes de la categoría nueva. Sin ninguna con ELO, se cae a todas (comportamiento previo).
+  const etapasConElo = etapas.filter((c) => c.elo_final != null)
   const etapaUltima: CarreraRow | undefined = etapas.length
-    ? [...etapas].sort((a, b) => ordenPorFechaOFase(
+    ? [...(etapasConElo.length ? etapasConElo : etapas)].sort((a, b) => ordenPorFechaOFase(
         { fechaOrden: a.fecha_fin, fase: faseCompeticion(a.nombre_comp, a.categoria_nivel) },
         { fechaOrden: b.fecha_fin, fase: faseCompeticion(b.nombre_comp, b.categoria_nivel) }))[0]
     : undefined
@@ -121,11 +135,11 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
     tempSel ? getPartidosTemporada(cod, tempSel) : Promise.resolve([] as any[]),
     getActuacionesV2(cod),
     getHitosV2(cod),
-    getGrupoInfo(filaPrincipal?.codgrupo),
+    getGrupoInfo(etapaDefecto?.codgrupo),
     getTarjetasTotales(cod),
     // Copas del EQUIPO de la temporada seleccionada (no la viva) -> la línea de honores del hero sigue el
-    // selector, igual que en la ficha de equipo. Team = el de la etapa principal de esa temporada.
-    getCopasPorTemporada(filaPrincipal?.codequipo ?? j.codequipo_actual),
+    // selector, igual que en la ficha de equipo. Team = el de la etapa por defecto de esa temporada.
+    getCopasPorTemporada(etapaDefecto?.codequipo ?? j.codequipo_actual),
   ])
   const { posicionActual, retirado: equipoRetirado } = equipoInfo   // `copas` (viva) ya no se usa: el hero muestra las de la temporada seleccionada
   // Equipo actual RETIRADO (web_equipo.retirado): su posicion_actual es el hueco de la última fila, no un puesto.
@@ -135,7 +149,7 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
   const copasSelHero = (tempSel != null ? copasPorTempEquipo[String(tempSel)] : null) ?? []
   // ¿La competición PRINCIPAL de la temporada es copa/playoff? (categoria_nivel NULL / codgrupo fam-*). En ese
   // caso el hero NO pega la posición de liga a la pastilla (en copa no hay clasificación por puntos).
-  const esCopaPrincipal = filaPrincipal != null && filaPrincipal.categoria_nivel == null
+  const esCopaPrincipal = etapaDefecto != null && etapaDefecto.categoria_nivel == null
   const grupoUrl = grupoHref(grupoInfo)
   // FUSIÓN pastilla competición + honor de copa: si la principal es copa y existe un honor de la MISMA
   // familia (mismo slug_comp de web_grupos que el grupo de la etapa, ambos ya de la temporada seleccionada),
@@ -147,14 +161,16 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
   const honorFusion = idxHonorFusion >= 0 ? copasSelHero[idxHonorFusion] : null
   const copasResto = honorFusion ? copasSelHero.filter((_, i) => i !== idxHonorFusion) : copasSelHero
 
-  // Reorden de las competiciones (pastillas): la INSTALADA (rank_principal) primero, luego el resto por
+  // Reorden de las competiciones (pastillas): la de etapaDefecto primero (la INSTALADA, rank_principal, salvo la
+  // etapa de 0 PJ del equipo actual), luego el resto por
   // categoria_nivel ascendente (menor nivel = categoría superior). El orden se COMPARTE con las pastillas y el
   // gráfico de jornadas (CompChips/Jornadas) y con el bloque Nivel, para que el índice de pastilla mapee igual
   // en los tres. Se une a las etapas por codgrupo. Con una sola competición el reorden es trivial (idéntico).
   const etapaPorGrupo = new Map(etapas.map((e) => [String(e.codgrupo), e]))
   const compsOrd = [...comps].sort((a, b) => {
     const ea = etapaPorGrupo.get(String(a.codgrupo)), eb = etapaPorGrupo.get(String(b.codgrupo))
-    const ia = !!ea?.rank_principal, ib = !!eb?.rank_principal
+    const pri = (e: CarreraRow | undefined) => (etapaActual0 ? e === etapaActual0 : !!e?.rank_principal)
+    const ia = pri(ea), ib = pri(eb)
     if (ia !== ib) return ia ? -1 : 1
     return (ea?.categoria_nivel ?? 99) - (eb?.categoria_nivel ?? 99)
   })
@@ -368,12 +384,12 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
               {inactivo && j.codtemporada_ultima && <span style={{ color: 'var(--ink-3)' }}> ({tempLabel(j.codtemporada_ultima)})</span>}
             </span>
           )}
-          {filaPrincipal?.nombre_comp && (
-            <LigaPastilla nombreComp={filaPrincipal?.nombre_comp ?? null}
+          {etapaDefecto?.nombre_comp && (
+            <LigaPastilla nombreComp={etapaDefecto?.nombre_comp ?? null}
               slugFamilia={honorFusion?.slug_familia ?? undefined}
               segments={honorFusion
-                ? [filaPrincipal.nombre_comp, honorFusion.estado]   // fusionada: "Copa RFEF Fase Autonómica · En juego · Fase de grupos"
-                : [filaPrincipal?.nombre_comp ?? null, filaPrincipal?.grupo_nombre ?? null, esCopaPrincipal || inactivo ? null : puestoTxt]}
+                ? [etapaDefecto.nombre_comp, honorFusion.estado]   // fusionada: "Copa RFEF Fase Autonómica · En juego · Fase de grupos"
+                : [etapaDefecto?.nombre_comp ?? null, etapaDefecto?.grupo_nombre ?? null, esCopaPrincipal || inactivo ? null : puestoTxt]}
               href={honorFusion?.href ?? grupoUrl} muted={inactivo} />
           )}
           {/* Honores de copa de la temporada SELECCIONADA (no la viva). Sin la copa ya fusionada arriba. Vacío ->
@@ -484,6 +500,9 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
                   rating_serie es null/vacío. Eje cronológico con huecos visibles (ver RatingSerie). */}
               <RatingSerie serie={j.rating_serie} />
               <div style={{ marginTop: 13 }}>
+                {/* Los rankings son de la fila rank_principal; si la cabecera sigue a otra etapa (0 PJ del equipo
+                    actual), se dice con qué equipo es el ranking. */}
+                {rankingCon && <div className="cap rank-con">Ranking con {nombreEquipo(rankingCon)}</div>}
                 {/* Cada ranking con su icono: badge (11) F11S, Sello de competición, Pastilla de posición. */}
                 {/* General: agregado sobre el total fantasy de la temporada (rank_general_season, fila
                     rank_principal). NO sigue la pastilla. Categoría/posición: SÍ la siguen (cliente). */}
@@ -654,9 +673,11 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
             <div className="track"><div className="rail" id="seasons">
               {carreraOrd.map((c, i) => {
                 const compartida = (cuentaTemp.get(c.codtemporada) ?? 0) > 1
+                const conv = rotuloConvocado(c)   // etapa de 0 PJ: sin media (aunque el pipeline publique 0), rótulo de convocatoria
+                const mediaC = conv ? null : c.media_fantasy
                 return (
                   <div className="season" key={`${c.codtemporada}-${c.codequipo}-${i}`}>
-                    <div className="accent" style={{ background: cMed(c.media_fantasy) || 'var(--line)' }} />
+                    <div className="accent" style={{ background: cMed(mediaC) || 'var(--line)' }} />
                     {compartida && <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'var(--amber)', opacity: .7 }} />}
                     <div className="s-top">
                       <EscudoBox escudo={c.escudo} nombre={c.equipo_nombre ?? undefined} size={22} radius={3} />
@@ -669,12 +690,13 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
                       </span>
                     </div>
                     <div className="s-duo">
-                      <div><div className="d-v" style={{ color: cMed(c.media_fantasy) }}>{c.media_fantasy != null ? med1(c.media_fantasy) : '—'}</div><div className="d-k">MEDIA PF</div></div>
+                      <div><div className="d-v" style={{ color: cMed(mediaC) }}>{mediaC != null ? med1(mediaC) : '—'}</div><div className="d-k">MEDIA PF</div></div>
                       <div><div className="d-v" style={{ color: cElo(c.elo_final) }}>{c.elo_final != null ? fmtNum(Math.round(c.elo_final)) : '—'}</div><div className="d-k">ELO</div></div>
                     </div>
                     <div className="s-stats">
                       <div><b>{fmtNum(c.pj)}</b>PJ</div><div><b>{fmtNum(c.minutos)}</b>MIN</div><div><b>{fmtNum(c.goles)}</b>GOLES</div>
                     </div>
+                    {conv && <div className="s-conv">{conv}</div>}
                   </div>
                 )
               })}

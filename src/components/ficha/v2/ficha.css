@@ -242,6 +242,7 @@
 .fjv2 .season .s-duo .d-k{font-size:var(--t-micro);color:var(--ink-3);letter-spacing:.06em;margin-top:4px}
 .fjv2 .season .s-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin-top:10px;padding-top:9px;border-top:1px solid var(--line-2)}
 .fjv2 .season .s-stats div{font-size:var(--t-micro);color:var(--ink-3)}
+.fjv2 .season .s-conv{margin-top:7px;font-size:var(--t-micro);color:var(--ink-3)}
 .fjv2 .season .s-stats b{font-family:var(--font-display),'Barlow Condensed',sans-serif;font-size:var(--t-lead);font-weight:700;color:var(--ink-2);display:block;line-height:1.1;margin-bottom:1px}
 
 .fjv2 .match{display:flex;align-items:center;gap:10px;padding:10px var(--pad);border-top:1px solid var(--line-2)}
@@ -1144,6 +1145,7 @@
 .fjv2 .cat-inline{display:inline-flex;align-items:center;gap:4px;vertical-align:middle}
 .fjv2 .cat-inline :where(img,svg){vertical-align:middle}
 /* #9 Nota que aclara el criterio de los rankings. */
+.fjv2 .rank-con{margin-bottom:6px}
 .fjv2 .rank-note{font-size:var(--t-micro);color:var(--ink-3);line-height:1.45;margin-top:9px}
 /* #3/#5 Segunda parrilla de totales (Temporadas y, en porteros, Goles enc./GC por partido). El nº de
    columnas lo fija el inline-style según cuántas fichas haya, así la fila queda siempre completa. */

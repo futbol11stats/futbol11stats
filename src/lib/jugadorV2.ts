@@ -69,11 +69,19 @@ export type CarreraRow = {
   // temporada); es el partido real del jugador. La ficha de EQUIPO sí usa el arranque de competición (correcto allí).
   fecha_inicio: string | null
   fecha_fin: string | null
+  // Actas en las que fue convocado en esa etapa (jugara o no). Columna NUEVA del pipeline, pensada para las etapas
+  // de 0 PJ (rotuloConvocado); undefined/null mientras no exista.
+  convocatorias?: number | null
 }
 // Carrera ordenada: temporada DESC, y dentro de la temporada orden_temporada ASC (lo decide el pipeline).
 export async function getCarreraV2(cod: string): Promise<CarreraRow[]> {
   return cacheJugador(async () => {
-    const { data, error } = await supabase.from('web_jugador_carrera').select(COLS_CARRERA).eq('codjugador', cod)
+    let r: { data: unknown[] | null; error: { code?: string } | null } =
+      await supabase.from('web_jugador_carrera').select(`${COLS_CARRERA}, convocatorias`).eq('codjugador', cod)
+    // `convocatorias` aún no existe en la tabla (la añade el pipeline): 42703 = columna inexistente -> mismo select
+    // sin ella, para que la ficha no caiga mientras tanto. Cualquier otro error sigue lanzando.
+    if (r.error?.code === '42703') r = await supabase.from('web_jugador_carrera').select(COLS_CARRERA).eq('codjugador', cod)
+    const { data, error } = r
     if (error) throw error   // fecha_inicio es columna NUEVA -> no cachear [] si la query falla (ver checklist)
     return ((data || []) as any[]).sort((a, b) =>
       String(b.codtemporada).localeCompare(String(a.codtemporada)) || (a.orden_temporada ?? 0) - (b.orden_temporada ?? 0)) as CarreraRow[]
@@ -84,7 +92,7 @@ export async function getCarreraV2(cod: string): Promise<CarreraRow[]> {
     // 'v2-factor-cat': mismas columnas, VALORES nuevos -> hashCols no lo ve. El pipeline reordena
     // rank_general_temp/_season, rank_sub23_season y rank_juvenil_season por puntos × factor de nivel de la
     // categoría; sin el bump la ficha seguiría sirviendo los puestos viejos desde la caché de datos.
-  }, ['getCarreraV2', 'v2-factor-cat', hashCols(COLS_CARRERA), cod], cod)
+  }, ['getCarreraV2', 'v2-factor-cat', hashCols(`${COLS_CARRERA}, convocatorias`), cod], cod)
 }
 
 export async function getActuacionesV2(cod: string): Promise<any[]> {

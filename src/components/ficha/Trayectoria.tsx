@@ -13,7 +13,7 @@ import Sello from '@/components/Sello'
 import IndicadorLocal from '@/components/IndicadorLocal'
 import { tempLabel, fechaCorta, signoCls, conSigno, marcadorLocalVisitante, colorSigno } from '@/lib/jugador'
 import { claveFechaDesc } from '@/lib/fechaOrden'
-import { SUSPENDIDO_MINI, PROVISIONAL } from '@/lib/rotulos'
+import { SUSPENDIDO_MINI, PROVISIONAL, rotuloConvocado } from '@/lib/rotulos'
 
 export const PARTIDOS_HABILITADO = true
 
@@ -198,6 +198,7 @@ export default function Trayectoria({ carrera, portero, codjugador, railWrap = f
                       {/* El nombre navega a la ficha de equipo (en ESA temporada); stopPropagation evita desplegar. */}
                       <span className="truncate" onClick={(e) => e.stopPropagation()}>
                         <NombreEquipo codequipo={c.codequipo} nombre={c.equipo_nombre} temporada={tempLabel(c.codtemporada)} />
+                        {rotuloConvocado(c) && <span className="block text-[11px] text-chalk-600">{rotuloConvocado(c)}</span>}
                       </span>
                     </span>
                   </td>
