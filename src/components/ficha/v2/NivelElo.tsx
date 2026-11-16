@@ -1,22 +1,17 @@
-'use client'
-
 import type { ReactNode } from 'react'
-import { useComp } from './compStore'
 import { fmtNum } from '@/lib/formato'
 import { ELO_METODO } from '@/lib/rotulos'
 
 export type CompPct = { pct: number | null; nombreComp: string | null; selloSm?: ReactNode }
 
-// Bloque ELO / Percentil del Nivel. El ELO (valor propio del jugador al cierre de la temporada = última etapa)
-// NO cambia con el selector. El PERCENTIL SÍ: es el elo_percentil_temp de la etapa SELECCIONADA, medido en SU
-// pool (categoría de liga, o la familia de la copa) -> con la copa activa, el percentil es el del pool de la
-// copa. La batería y la frase (nombrando la competición) lo acompañan. `maxLbl` (techo histórico) va fijo,
-// entre el ELO y la batería, como en el original.
-export default function NivelElo({ elo, eloColor, comps, maxLbl }: {
-  elo: number | null; eloColor: string; comps: CompPct[]; maxLbl?: ReactNode
+// Bloque ELO / Percentil del Nivel. ELO y percentil salen de la MISMA etapa (la última de la temporada, ver
+// lib/eloEtapa.ts) y no cambian con el selector de competición: el percentil es el elo_percentil_temp de esa etapa,
+// medido en SU pool, y la frase nombra esa competición. `maxLbl` (techo histórico) va fijo, entre el ELO y la
+// batería, como en el original.
+export default function NivelElo({ elo, eloColor, comp, maxLbl }: {
+  elo: number | null; eloColor: string; comp: CompPct | null; maxLbl?: ReactNode
 }) {
-  const sel = useComp()
-  const c = comps.length ? comps[Math.min(sel, comps.length - 1)] : null
+  const c = comp
   const pct = c?.pct ?? null
   const llenos = pct != null ? Math.min(10, Math.round(pct / 10)) : 0
   return (

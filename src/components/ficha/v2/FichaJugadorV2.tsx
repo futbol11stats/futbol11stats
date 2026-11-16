@@ -23,6 +23,7 @@ import { faseCompeticion, ordenPorFechaOFase } from '@/lib/competiciones'
 import NivelRankings, { type CompRank } from '@/components/ficha/v2/NivelRankings'
 import KpiJugador, { type CompKpi } from '@/components/ficha/v2/KpiJugador'
 import NivelElo, { type CompPct } from '@/components/ficha/v2/NivelElo'
+import { etapaDelElo, percentilDelElo } from '@/lib/eloEtapa'
 import CompReset from '@/components/ficha/v2/CompReset'
 import RankFila from '@/components/ficha/v2/RankFila'
 import Prime from '@/components/ui/Prime'
@@ -113,12 +114,7 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
   // categoriaSel (rank_principal/etapas[0]). El comparador ordena por `fechaOrden`; aquí es fecha_fin.
   // Solo etapas CON elo_final: una de 0 PJ (categoría nueva, sin partido) no aporta ELO, y elegirla pintaría el ELO
   // anterior con los cortes de la categoría nueva. Sin ninguna con ELO, se cae a todas (comportamiento previo).
-  const etapasConElo = etapas.filter((c) => c.elo_final != null)
-  const etapaUltima: CarreraRow | undefined = etapas.length
-    ? [...(etapasConElo.length ? etapasConElo : etapas)].sort((a, b) => ordenPorFechaOFase(
-        { fechaOrden: a.fecha_fin, fase: faseCompeticion(a.nombre_comp, a.categoria_nivel) },
-        { fechaOrden: b.fecha_fin, fase: faseCompeticion(b.nombre_comp, b.categoria_nivel) }))[0]
-    : undefined
+  const etapaUltima: CarreraRow | undefined = etapaDelElo(etapas)
   const categoriaElo = etapaUltima?.nombre_comp ?? categoriaSel
 
   const sum = (f: (c: CarreraRow) => number | null) => etapas.reduce((s, c) => s + (f(c) ?? 0), 0)
@@ -192,7 +188,7 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
   const cPts = (v: number) => PAL[esc(v, CORTES_FIJOS.puntosPartido)]
 
   // Datos por competición para las superficies REACTIVAS (mismo orden que las pastillas): la cabecera (KpiBar)
-  // y el percentil del Nivel siguen la etapa seleccionada. Cada etapa trae sus cifras propias (la copa NO se
+  // sigue la etapa seleccionada. Cada etapa trae sus cifras propias (la copa NO se
   // suma con la liga: son competiciones distintas). `kpiFallback` = temporada sin competiciones (sin partidos).
   const compsKpi: CompKpi[] = compsOrd.map((c) => {
     const e = etapaPorGrupo.get(String(c.codgrupo))
@@ -202,13 +198,10 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
       ptsFantasy: Math.round(ptsE), media: pjE > 0 ? ptsE / pjE : null, mediaColor: cMed(pjE > 0 ? ptsE / pjE : null),
     }
   })
-  const compsPct: CompPct[] = compsOrd.map((c) => {
-    const e = etapaPorGrupo.get(String(c.codgrupo))
-    return {
-      pct: e?.elo_percentil_temp != null ? Math.min(99, Math.floor(e.elo_percentil_temp)) : null,
-      nombreComp: c.nombre_comp, selloSm: <Sello nombreComp={c.nombre_comp} size={14} />,
-    }
-  })
+  // Percentil del ELO: de la MISMA etapa que el ELO mostrado (etapaUltima), no de la competición del selector.
+  // Antes seguía al selector y con otra competición activa casaba el ELO de una etapa con el percentil de otra.
+  const pctElo = percentilDelElo(etapaUltima)
+  const nivelPct: CompPct = { ...pctElo, selloSm: pctElo.nombreComp ? <Sello nombreComp={pctElo.nombreComp} size={14} /> : undefined }
   const kpiFallback: CompKpi = { pj, minutos: minT, goles: golesT, porterias_cero: p0Sel, ptsFantasy: Math.round(ptsF), media, mediaColor: cMed(media) }
 
   // Orden CRONOLÓGICO INVERSO (más reciente primero) por fecha_fin (último partido del jugador en la etapa), con la
@@ -444,14 +437,13 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
             {/* Rankings y etiqueta de categoría: de la fila rank_principal de la TEMPORADA seleccionada
                 (rank_*_temp, no el snapshot de web_jugador) -> cambian con el selector. ELO: el de la ÚLTIMA
                 etapa de la temporada (eloCierre; valor propio del jugador, mismo que la KpiBar), coloreado con
-                los cortes de SU categoría (categoriaElo). El percentil sigue siendo el de web_jugador (mide
-                ELO, otro KPI; pendiente uno por temporada — ver DECISIONES). El subtítulo indica la temporada. */}
+                los cortes de SU categoría (categoriaElo). El percentil, de esa MISMA etapa (elo_percentil_temp).
+                El subtítulo indica la temporada. */}
             <SectionHeader title="Nivel" scope={tempTxt ? `en ${tempTxt}` : 'Situación actual'} />
             <div className="box">
-              {/* ELO + percentil REACTIVOS: el ELO no cambia (cierre de la temporada, última etapa); el percentil
-                  sí sigue la competición del selector -> con la copa activa, el percentil es el de SU pool
-                  (elo_percentil_temp de la etapa). El techo histórico (máx) va entre el ELO y la batería. */}
-              <NivelElo elo={eloBig != null ? Math.round(eloBig) : null} eloColor={cElo(eloBig)} comps={compsPct}
+              {/* ELO + percentil de la MISMA etapa (etapaUltima: cierre de la temporada); no cambian con el
+                  selector. El techo histórico (máx) va entre el ELO y la batería. */}
+              <NivelElo elo={eloBig != null ? Math.round(eloBig) : null} eloColor={cElo(eloBig)} comp={nivelPct}
                 maxLbl={j.elo_max != null
                   ? <div className="elo-max">máx {fmtNum(Math.round(j.elo_max))}{j.temporada_elo_max ? ` · ${tempLabel(j.temporada_elo_max)}` : ''}</div>
                   : null} />
