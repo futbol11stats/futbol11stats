@@ -23,8 +23,9 @@ import Panorama from '@/components/ficha/v2/Panorama'
 import ScrollRail from '@/components/ficha/v2/ScrollRail'
 import TabBar from '@/components/ui/TabBar'
 import {
-  datosGoleadorTemp, datosPorteroTemp, datosFantasyTemp, datosEloTemp, datosXiTemp,
-  leyGoleadorTemp, leyPorteroTemp, leyFantasyTemp, leyEloTemp, leyXiTemp,
+  datosGoleadorTemp, datosPorteroTemp, datosFantasyTemp, datosEloTemp, datosXiTemp, xiPorFantasy,
+  valorXiGlobal, valorXiGlobalCampo, datosXiGlobal,
+  leyGoleadorTemp, leyPorteroTemp, leyFantasyTemp, leyEloTemp, leyXiTemp, leyXiGlobalFantasy,
 } from '@/components/ficha/v2/lineasComp'
 import { Balon } from '@/components/iconos'
 import {
@@ -113,26 +114,30 @@ export default async function FichaCompeticionGlobalV2({ categoria, slugComp, te
     else { gRank = { title: 'ELO jugadores', sub: `tras J${jornadaNum} · ${subCat}`, leyenda: leyEloTemp, items: t.elo.map((j) => ({ ...base3(j), pre: <PrimeValor pct={calcPrime(j.elo, j.elo_min, j.elo_max, j.elo_curva_n)} px={2} />, valor: j.elo != null ? fmtNum(j.elo) : '—', valorColor: colorElo(j.elo) || 'var(--e1)', extra: datosEloTemp(j) })) } }
   }
 
-  // XI Óptimo global (lo calcula el pipeline con normalización entre grupos: tipo temporada_global / jornada_global).
+  // XI Óptimo global (lo calcula el pipeline: tipo temporada_global / jornada_global). El de temporada se elige por
+  // puntos fantasy por jornada de su grupo (pts_por_jornada); con la columna nula (datos anteriores), como antes.
   let xiG: { title: string; sub: string; players: { posicion: string; nombre: string; valor: number | string }[]; items: RankItem[]; leyenda: ReactNode } | null = null
   if (tabEf === 'once-optimo-temporada' || tabEf === 'once-optimo-jornada') {
     const esTemp = tabEf === 'once-optimo-temporada'
     let xi = await getGlobalXiV2(codgrupos, codtemporada, esTemp ? 'temporada_global' : 'jornada_global', jornadaNum)
     if (esTemp && xi.length === 0) xi = await getGlobalXiV2(codgrupos, codtemporada, 'temporada_global')
     fichas = await fichasInfo(xi.map((j) => j.codjugador))
+    const porFantasy = esTemp && xiPorFantasy(xi)
     const valOf = (j: any) => fmtNum((esTemp ? j.pts_totales : (j.pts_jornada ?? j.pts_totales)) ?? 0)
     xiG = {
       title: esTemp ? 'XI Óptimo de la temporada' : 'XI Óptimo de la jornada',
       sub: `${esTemp ? `acumulado hasta J${jornadaNum}` : `jornada ${jornadaNum}`} · ${subCat}`,
-      players: xi.map((j) => ({ posicion: j.posicion, nombre: j.nombre, valor: valOf(j) })),
+      players: xi.map((j) => ({ posicion: j.posicion, nombre: j.nombre, valor: porFantasy ? valorXiGlobalCampo(j) : valOf(j) })),
       items: xi.map((j) => ({
         codjugador: j.codjugador, nombre: j.nombre, pos: j.posicion,
-        escudo: j.escudo, nombreEquipo: j.nombre_equipo, valor: valOf(j), valorColor: POSC[j.posicion] ?? 'var(--e3)',
-        extra: esTemp
+        escudo: j.escudo, nombreEquipo: j.nombre_equipo, valor: porFantasy ? valorXiGlobal(j) : valOf(j), valorColor: POSC[j.posicion] ?? 'var(--e3)',
+        extra: porFantasy
+          ? datosXiGlobal(j)
+          : esTemp
           ? datosXiTemp(j)
           : ((j.goles ?? 0) > 0 ? <span style={{ color: 'var(--e3)' }}>{j.goles}<Balon size={11} /></span> : null),
       })),
-      leyenda: <>{leyXiTemp} Once ideal de toda la categoría, calculado con normalización entre grupos.</>,
+      leyenda: porFantasy ? leyXiGlobalFantasy : <>{leyXiTemp} Once ideal de toda la categoría, calculado con normalización entre grupos.</>,
     }
   }
 

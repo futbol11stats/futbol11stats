@@ -26,8 +26,11 @@ export const COLS_JUEGO_LIMPIO =
   'codgrupo, jornada, codequipo, nombre_equipo, escudo, amarillas, dobles, rojas, amarillas_tec, dobles_tec, rojas_tec'
 
 // web_xi_optimo: XI temporada (pts_totales) y XI jornada (pts_jornada). pos_orden para .order.
-export const COLS_XI_OPTIMO =
+// pts_por_jornada / jornadas_grupo: columnas NUEVAS (XI de temporada elegido por puntos fantasy; nulas en los XI de
+// jornada y en los datos anteriores). Mientras no existan en la tabla se lee COLS_XI_OPTIMO_BASE (ver colsXi).
+export const COLS_XI_OPTIMO_BASE =
   'codgrupo, jornada, pos_orden, posicion, codjugador, nombre, codequipo, nombre_equipo, escudo, pts_jornada, pts_totales, goles, racha_5p, power_ranking'
+export const COLS_XI_OPTIMO = `${COLS_XI_OPTIMO_BASE}, pts_por_jornada, jornadas_grupo`
 
 // web_equipos_forma (Top5EquiposTab): no usa 'forma'
 export const COLS_EQUIPOS_FORMA =

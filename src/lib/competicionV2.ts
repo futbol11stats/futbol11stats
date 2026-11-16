@@ -3,7 +3,7 @@
 
 import { supabase } from '@/lib/supabase'
 import { cacheComp, hashCols } from '@/lib/cacheComp'
-import { COLS_CLASIFICACION, COLS_TOP_JUGADORES, COLS_EQUIPOS_FORMA, COLS_XI_OPTIMO } from '@/lib/columns'
+import { COLS_CLASIFICACION, COLS_TOP_JUGADORES, COLS_EQUIPOS_FORMA, COLS_XI_OPTIMO, COLS_XI_OPTIMO_BASE } from '@/lib/columns'
 import { CORTES_FIJOS } from '@/lib/escala'
 import { type Ronda } from '@/lib/competiciones'
 import { ordenarPorFechaHora } from '@/lib/fechaOrden'
@@ -258,19 +258,33 @@ export async function getTopTemporadaV2(codgrupo: string, codtemporada: number, 
   }, ['getTopTemporadaV2', 'v2-vecina', hashCols(COLS_TOP_JUGADORES), codgrupo, codtemporada, jornada], [codgrupo], codtemporada)
 }
 
+// Columnas del XI: pts_por_jornada/jornadas_grupo son nuevas del pipeline. Si la tabla aún no las tiene (42703 =
+// columna inexistente) se lee el select anterior, y la vista se pinta como antes (con ellas nulas). El sí se
+// recuerda en el proceso: una vez creadas no desaparecen.
+let xiColsNuevas = false
+async function colsXi(): Promise<string> {
+  if (xiColsNuevas) return COLS_XI_OPTIMO
+  const { error } = await supabase.from('web_xi_optimo').select('pts_por_jornada, jornadas_grupo').limit(1)
+  if (error?.code === '42703') return COLS_XI_OPTIMO_BASE
+  if (error) throw error
+  xiColsNuevas = true
+  return COLS_XI_OPTIMO
+}
+
 // XI Óptimo de temporada (web_xi_optimo tipo temporada, acumulado por jornada).
 export async function getXiTemporadaV2(codgrupo: string, codtemporada: number, jornada: number) {
-  return cacheComp(async () => (
-    fetchSnapshot((q: any) => q.from('web_xi_optimo').select(COLS_XI_OPTIMO)
+  return cacheComp(async () => {
+    const cols = await colsXi()
+    return fetchSnapshot((q: any) => q.from('web_xi_optimo').select(cols)
       .eq('tipo', 'temporada').eq('codgrupo', codgrupo).eq('codtemporada', codtemporada), jornada, 'pos_orden') as Promise<any[]>
-  ), ['getXiTemporadaV2', 'v2-vecina', hashCols(COLS_XI_OPTIMO), codgrupo, codtemporada, jornada], [codgrupo], codtemporada)
+  }, ['getXiTemporadaV2', 'v2-vecina', hashCols(COLS_XI_OPTIMO), codgrupo, codtemporada, jornada], [codgrupo], codtemporada)
 }
 
 // XI Óptimo de UNA jornada: en copa vive en web_xi_optimo (tipo jornada); en liga, en web_top_jugadores (xi_jornada).
 export async function getXiJornadaV2(codgrupo: string, codtemporada: number, jornada: number, isCopa: boolean) {
   return cacheComp(async () => {
     if (isCopa) {
-      const { data } = await supabase.from('web_xi_optimo').select(COLS_XI_OPTIMO)
+      const { data } = await supabase.from('web_xi_optimo').select(await colsXi())
         .eq('codgrupo', codgrupo).eq('codtemporada', codtemporada).eq('tipo', 'jornada').eq('jornada', jornada).order('pos_orden')
       return (data || []) as any[]
     }
@@ -729,12 +743,12 @@ export async function getAlertasV2(codgrupos: string[], codtemporada: number) {
   }, ['getAlertasV2', 'v2-paginado', hashCols(cols), codgrupos.join(','), codtemporada], codgrupos, codtemporada)
 }
 
-// --- GLOBAL: XI óptimo de la competición (el pipeline lo calcula con normalización entre grupos y lo
-// guarda como tipo temporada_global / jornada_global). Solo se consume, no se recalcula. ---
+// --- GLOBAL: XI óptimo de la competición (el pipeline lo guarda como tipo temporada_global / jornada_global;
+// el de temporada se elige por puntos fantasy por jornada de su grupo, pts_por_jornada). Solo se consume. ---
 export async function getGlobalXiV2(codgrupos: string[], codtemporada: number, tipo: 'temporada_global' | 'jornada_global', jornada?: number) {
   if (!codgrupos.length) return [] as any[]
   return cacheComp(async () => {
-    let q = supabase.from('web_xi_optimo').select(COLS_XI_OPTIMO)
+    let q = supabase.from('web_xi_optimo').select(await colsXi())
       .eq('codtemporada', codtemporada).in('codgrupo', codgrupos).eq('tipo', tipo)
     if (jornada != null) q = q.eq('jornada', jornada)
     const { data } = await q.order('pos_orden')

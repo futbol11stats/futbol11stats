@@ -44,8 +44,8 @@ import Panorama from '@/components/ficha/v2/Panorama'
 import ScrollRail from '@/components/ficha/v2/ScrollRail'
 import TabBar from '@/components/ui/TabBar'
 import {
-  datosGoleadorTemp, datosPorteroTemp, datosFantasyTemp, datosEloTemp, datosXiTemp,
-  leyGoleadorTemp, leyPorteroTemp, leyFantasyTemp, leyEloTemp, leyXiTemp, leyJornada,
+  datosGoleadorTemp, datosPorteroTemp, datosFantasyTemp, datosEloTemp, datosXiTemp, xiPorFantasy,
+  leyGoleadorTemp, leyPorteroTemp, leyFantasyTemp, leyEloTemp, leyXiTemp, leyXiTempFantasy, leyJornada,
 } from '@/components/ficha/v2/lineasComp'
 import {
   slugToCod, codToSlug, universoTemporadas, getGrupoV2, getVariantesV2, getGruposHermanos,
@@ -375,6 +375,7 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
   let xiView: XiView | null = null
   if (xi.length && (tabEf === 'once-optimo-jornada' || tabEf === 'once-optimo-temporada')) {
     const esTemp = tabEf === 'once-optimo-temporada'
+    const porFantasy = esTemp && xiPorFantasy(xi)   // elegido por puntos fantasy (columnas nuevas); si no, como antes
     const valOf = (j: any) => fmtNum((esTemp ? j.pts_totales : (j.pts_fantasy ?? j.pts_jornada)) ?? 0)
     xiView = {
       title: esTemp ? 'XI Óptimo de la temporada' : 'XI Óptimo de la jornada',
@@ -383,14 +384,14 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
       items: xi.map((j) => {
         const p = esTemp ? null : partMap.get(String(j.codjugador))
         const extra = esTemp
-          ? datosXiTemp(j)
+          ? datosXiTemp(j, porFantasy)
           : (p ? filaJornada(p) : <span className="cfj-none">Sin datos del partido</span>)
         return {
           codjugador: j.codjugador, nombre: j.nombre, pos: j.posicion,
           escudo: j.escudo, nombreEquipo: j.nombre_equipo, valor: valOf(j), valorColor: POSC[j.posicion] ?? 'var(--e3)', extra,
         }
       }),
-      leyenda: esTemp ? leyXiTemp : leyJornada,
+      leyenda: esTemp ? (porFantasy ? leyXiTempFantasy : leyXiTemp) : leyJornada,
     }
   }
 

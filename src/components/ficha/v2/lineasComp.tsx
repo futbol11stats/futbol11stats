@@ -68,13 +68,31 @@ export function datosEloTemp(j: any): ReactNode {
   )
 }
 
-// XI de la temporada (web_xi_optimo): goles + racha 5p + power. El chip son los puntos fantasy totales.
-export function datosXiTemp(j: any): ReactNode {
+// XI de la temporada (web_xi_optimo). Desde el ciclo del 16/11/2026 el pipeline lo elige por puntos fantasy y
+// publica pts_por_jornada/jornadas_grupo; con ellas nulas (datos anteriores, elegidos por power ranking) se pinta
+// como antes: goles + racha 5p + power. El chip son los puntos fantasy totales (en el global, por jornada).
+export const xiPorFantasy = (xi: any[]): boolean => xi.some((j) => j.pts_por_jornada != null)
+const dec1 = (v: number) => v.toFixed(1).replace('.', ',')
+export function datosXiTemp(j: any, porFantasy = false): ReactNode {
   return (
     <>
       <span style={{ color: 'var(--e3)' }}>{j.goles ?? 0}<Balon size={11} /></span>
-      {j.racha_5p != null && <span>racha {j.racha_5p}</span>}
-      {j.power_ranking != null && <span>power {j.power_ranking}</span>}
+      {!porFantasy && j.racha_5p != null && <span>racha {j.racha_5p}</span>}
+      {!porFantasy && j.power_ranking != null && <span>power {j.power_ranking}</span>}
+    </>
+  )
+}
+// XI global elegido por puntos fantasy: chip «X,X pts/jornada» (en el campo, solo la cifra) y, en la línea de
+// datos, el total y las jornadas de su grupo.
+export const valorXiGlobalCampo = (j: any): string => dec1(j.pts_por_jornada ?? 0)
+export const valorXiGlobal = (j: any): ReactNode => (
+  <>{dec1(j.pts_por_jornada ?? 0)}<span style={{ fontSize: '.72em', marginLeft: 3 }}>pts/jornada</span></>
+)
+export function datosXiGlobal(j: any): ReactNode {
+  return (
+    <>
+      <span style={{ color: 'var(--e3)' }}>{j.goles ?? 0}<Balon size={11} /></span>
+      <span><b className="num">{fmtNum(j.pts_totales ?? 0)}</b> pts{j.jornadas_grupo != null && <> en {j.jornadas_grupo} jornadas</>}</span>
     </>
   )
 }
@@ -116,6 +134,8 @@ export const leyFantasyTemp = (<>{leyItem(null, 'valor: puntos fantasy acumulado
 // dos entradas cuentan la misma historia y conviene que se lean juntas.
 export const leyEloTemp = (<>{leyItem(null, 'valor: ELO actual')}{leyItem(null, 'PJ: partidos jugados')}{leyItem(null, 'máx / mín: su horquilla de ELO de toda la carrera')}{leyItem(<Prime pct={100} px={1} decorativo />, 'Prime: dónde está dentro de esa horquilla (100% = su mejor momento)')}</>)
 export const leyXiTemp = (<>{leyItem(null, 'valor: puntos fantasy acumulados')}{leyItem(<Balon size={12} />, 'goles', 'var(--e3)')}{leyItem(null, 'racha 5p · power ranking')}</>)
+export const leyXiTempFantasy = (<>{leyItem(null, 'valor: puntos fantasy de la temporada')}{leyItem(<Balon size={12} />, 'goles', 'var(--e3)')}</>)
+export const leyXiGlobalFantasy = (<>{leyItem(null, 'valor: puntos fantasy por jornada de su grupo, para comparar grupos de distinto tamaño')}{leyItem(<Balon size={12} />, 'goles', 'var(--e3)')}{leyItem(null, 'pts en N jornadas: total y jornadas de su grupo')}</>)
 export const leySancionados = (umbral: number): ReactNode => (<>{leyItem(<TarjetaAmarilla size={11} />, `ciclos de ${umbral} amarillas`, 'var(--card-y)')}{leyItem(<TarjetaDoble size={12} />, 'dobles amarillas', 'var(--card-y)')}{leyItem(<TarjetaRoja size={11} />, 'rojas directas', 'var(--card-r)')}</>)
 export const leyJuegoLimpio = (<>{leyItem(<TarjetaAmarilla size={11} />, 'amarillas', 'var(--card-y)')}{leyItem(<TarjetaDoble size={12} />, 'dobles (expulsión)', 'var(--card-y)')}{leyItem(<TarjetaRoja size={11} />, 'rojas directas', 'var(--card-r)')}</>)
 // Leyenda de las líneas de JORNADA (filaJornada): titular/suplente, minutos, gol/portería a cero, tarjetas.
