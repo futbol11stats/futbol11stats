@@ -30,6 +30,7 @@ import Prime from '@/components/ui/Prime'
 import { calcPrime } from '@/lib/prime'
 import Echo from '@/components/ficha/v2/Echo'
 import Jornadas from '@/components/ficha/v2/Jornadas'
+import PorComp from '@/components/ficha/v2/PorComp'
 import {
   Balon, Reloj, Camiseta, CamisetaHueca, TarjetaAmarilla, TarjetaDoble, TarjetaRoja, Guante,
   Estrella, Calendario,
@@ -182,6 +183,58 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
       rankPos: e?.rank_posicion_temp ?? null, rankPosTotal: e?.rank_posicion_temp_total ?? null,
     }
   })
+
+  // CABECERA POR ETAPA: chip de equipo y de competición/puesto (con sus honores de copa) de la etapa de cada
+  // pastilla. La de etapaDefecto es la de siempre (cabeceraDefecto). Equipo actual -> su chip de siempre (con
+  // «Último equipo» si está inactivo); otro equipo -> el de la etapa. Puesto: el del equipo actual como hasta
+  // ahora; el de otro equipo solo en la temporada en curso (posicion_actual es de hoy).
+  const pillEquipoActual = j.equipo_actual_nombre ? (
+    <span className="pill n">
+      <EscudoBox escudo={j.escudo_actual} nombre={j.equipo_actual_nombre ?? undefined} size={26} radius={4} />
+      {inactivo && <span style={{ color: 'var(--ink-3)' }}>Último equipo · </span>}
+      <NombreEquipo codequipo={j.codequipo_actual} nombre={j.equipo_actual_nombre} />
+      {inactivo && j.codtemporada_ultima && <span style={{ color: 'var(--ink-3)' }}> ({tempLabel(j.codtemporada_ultima)})</span>}
+    </span>
+  ) : null
+  const esEquipoActual = (e: CarreraRow) => j.codequipo_actual != null && String(e.codequipo) === String(j.codequipo_actual)
+  const pillsComp = (e: CarreraRow | undefined, href: string | null, honor: typeof honorFusion, puesto: string | null, honores: typeof copasSelHero) => (<>
+    {e?.nombre_comp && (
+      <LigaPastilla nombreComp={e.nombre_comp}
+        slugFamilia={honor?.slug_familia ?? undefined}
+        segments={honor
+          ? [e.nombre_comp, honor.estado]   // fusionada: "Copa RFEF Fase Autonómica · En juego · Fase de grupos"
+          : [e.nombre_comp, e.grupo_nombre ?? null, e.categoria_nivel == null || inactivo ? null : puesto]}
+        href={honor?.href ?? href} muted={inactivo} />
+    )}
+    {/* Honores de copa de la temporada SELECCIONADA (no la viva). Sin la copa ya fusionada arriba. Vacío ->
+        CopasLinea no renderiza. Mismo criterio que la ficha de equipo. */}
+    <CopasLinea copas={honores} />
+  </>)
+  const pillEquipoDe = (e: CarreraRow | undefined) => (!e || esEquipoActual(e) ? pillEquipoActual : (
+    <span className="pill n">
+      <EscudoBox escudo={e.escudo} nombre={e.equipo_nombre ?? undefined} size={26} radius={4} />
+      <NombreEquipo codequipo={e.codequipo} nombre={e.equipo_nombre} temporada={tempLabel(e.codtemporada)} />
+    </span>
+  ))
+  // Sin etapa (temporada sin carrera) o etapa del equipo actual: chip de siempre. Etapa de otro equipo (filial
+  // con rank_principal en el primer equipo, temporada pasada): el de esa etapa, coherente con su competición.
+  const esTempViva = tempSel != null && tempSel === carrera[0]?.codtemporada
+  const puestoDe = async (e: CarreraRow): Promise<string | null> => {
+    if (esEquipoActual(e)) return puestoTxt
+    if (!esTempViva || e.categoria_nivel == null) return null
+    const info = await getEquipoActualInfo(e.codequipo)
+    return info.retirado ? RETIRADO : info.posicionActual != null ? `${info.posicionActual}º` : null
+  }
+  const cabeceraDefecto = <>{pillEquipoDe(etapaDefecto)}{pillsComp(etapaDefecto, grupoUrl, honorFusion, etapaDefecto ? await puestoDe(etapaDefecto) : puestoTxt, copasResto)}</>
+  const cabeceras: ReactNode[] = await Promise.all(compsOrd.map(async (c) => {
+    const e = etapaPorGrupo.get(String(c.codgrupo))
+    if (!e || e === etapaDefecto) return cabeceraDefecto
+    const [gi, puesto, copasT] = await Promise.all([getGrupoInfo(e.codgrupo), puestoDe(e), getCopasPorTemporada(e.codequipo)])
+    const honores = (tempSel != null ? copasT[String(tempSel)] : null) ?? []
+    const fam = e.categoria_nivel == null ? (gi?.slug_comp ?? null) : null
+    const iH = fam != null ? honores.findIndex((h) => h.slug_familia === fam) : -1
+    return <>{pillEquipoDe(e)}{pillsComp(e, grupoHref(gi), iH >= 0 ? honores[iH] : null, puesto, iH >= 0 ? honores.filter((_, k) => k !== iH) : honores)}</>
+  }))
 
   const cMed = (v: number | null) => (v == null ? '' : PAL[esc(v, CORTES_FIJOS.mediaPartido)])
   const cElo = (v: number | null) => (v == null ? '' : PAL[esc(v, cortesElo)])
@@ -369,25 +422,9 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
               cosa del REGISTRO histórico (fila de plantilla del equipo), no de la identidad. */}
           <EdadBadge badge={badgeEdadDeEdad(j.edad)} />
           {j.edad != null && <span className="pill n">{j.anio_nacimiento != null ? `${j.anio_nacimiento} · ${j.edad} años` : `${j.edad} años`}</span>}
-          {j.equipo_actual_nombre && (
-            <span className="pill n">
-              <EscudoBox escudo={j.escudo_actual} nombre={j.equipo_actual_nombre ?? undefined} size={26} radius={4} />
-              {inactivo && <span style={{ color: 'var(--ink-3)' }}>Último equipo · </span>}
-              <NombreEquipo codequipo={j.codequipo_actual} nombre={j.equipo_actual_nombre} />
-              {inactivo && j.codtemporada_ultima && <span style={{ color: 'var(--ink-3)' }}> ({tempLabel(j.codtemporada_ultima)})</span>}
-            </span>
-          )}
-          {etapaDefecto?.nombre_comp && (
-            <LigaPastilla nombreComp={etapaDefecto?.nombre_comp ?? null}
-              slugFamilia={honorFusion?.slug_familia ?? undefined}
-              segments={honorFusion
-                ? [etapaDefecto.nombre_comp, honorFusion.estado]   // fusionada: "Copa RFEF Fase Autonómica · En juego · Fase de grupos"
-                : [etapaDefecto?.nombre_comp ?? null, etapaDefecto?.grupo_nombre ?? null, esCopaPrincipal || inactivo ? null : puestoTxt]}
-              href={honorFusion?.href ?? grupoUrl} muted={inactivo} />
-          )}
-          {/* Honores de copa de la temporada SELECCIONADA (no la viva). Sin la copa ya fusionada arriba. Vacío ->
-              CopasLinea no renderiza. Mismo criterio que la ficha de equipo. */}
-          <CopasLinea copas={copasResto} />
+          {/* Chip de equipo + competición/puesto + honores: siguen a la etapa del selector (PorComp). Por defecto,
+              la etapaDefecto; sin competiciones, la cabecera de siempre. */}
+          <PorComp nodos={cabeceras} fallback={cabeceraDefecto} />
         </>}
       >
         {alertaTxt && (

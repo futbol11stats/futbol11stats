@@ -144,6 +144,7 @@
 /* Banquillo (convocado sin entrar): punto gris de bajo peso en la base de la columna, forma distinta de la línea
    discontinua de "no convocado" (.bar.aus). En .plot .pos (flex-end, centrado) queda pegado abajo y al centro. */
 .fjv2 .banq{width:6px;height:6px;border-radius:50%;background:var(--ink-3);opacity:.55}
+.fjv2 .otro-eq{font-size:13px;line-height:1;color:var(--ink-3);opacity:.8}
 /* Rating por temporada: mini-gráfico de barras, escala fija 0-100 (percentil). Estructura de la maqueta aprobada
    con TOKENS del sitio. Y-axis 0/50/100; la MEDIANA (50) reutiliza el punteado de .avg-line (referencia ya
    existente en el gráfico), no un tratamiento nuevo; hueco = línea punteada + "no jugó" (distinto de rating bajo). */

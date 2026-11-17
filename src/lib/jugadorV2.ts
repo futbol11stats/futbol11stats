@@ -13,6 +13,7 @@ import { slugToCod } from '@/lib/temporadaSlug'
 import { getResultadosGrupo, filaEsLocal, type ChipRacha } from '@/lib/equipo'
 import { derivarRol, escalon, cortesValidos, CORTES_FIJOS, type RolPartido } from '@/lib/escala'
 import { claveFecha } from '@/lib/fechaOrden'
+import { tramoDeGrupo, clasificarAusencia, esCopaGrupo, type ActaCrono } from '@/lib/tramoEtapa'
 import { cronoAsc, aPartidoCrono } from '@/lib/forma'
 // Re-export: la lógica pura de forma vive en lib/forma.ts (testeable sin cliente de BD), pero se sigue
 // importando desde aquí en toda la ficha.
@@ -243,7 +244,9 @@ export type JornadaDatum = {
   jornada: number
   codacta?: string   // clave ÚNICA por partido (en copa la jornada colisiona entre rondas) -> React key del gráfico
   ronda?: string | null   // COPA: texto de la ronda ("Fase de grupos", "Final"...) -> el front lo muestra en vez de "J N"
-  estado: { tipo: 'valor'; v: number } | { tipo: 'no_jugo' } | { tipo: 'banquillo' } | { tipo: 'sin_dato' }
+  // otro_equipo: el equipo jugó y él no tiene acta aquí, pero sí con su otro equipo esa jornada (vínculo, ida y
+  // vuelta; ver lib/tramoEtapa.ts). No es desconvocado.
+  estado: { tipo: 'valor'; v: number } | { tipo: 'no_jugo' } | { tipo: 'banquillo' } | { tipo: 'sin_dato' } | { tipo: 'otro_equipo'; equipo: string | null }
   goles?: number; amarillas?: number; dobles?: number; rojas?: number; gc?: number | null
   eloDelta?: number | null   // #7 Δ ELO del partido, para el carril de ELO por jornada
   titular?: boolean; minutos?: number; rol?: RolPartido
@@ -296,6 +299,13 @@ export async function getAmbitoTemporada(cod: string, codtemp: string): Promise<
     porGrupo.get(g)!.push(p)
   }
 
+  // Actas del jugador en la temporada (todas las competiciones) por fecha: marcan el tramo de cada etapa de liga
+  // (desde su primera acta con el equipo hasta la primera con el siguiente) y las jornadas «con su otro equipo».
+  const diaDe = (f: unknown) => { const k = claveFecha(null, f); return /^9999/.test(k) ? '' : k }
+  const actas: ActaCrono[] = partidos.map((p) => ({ codgrupo: String(p.codgrupo ?? ''), codequipo: p.codequipo != null ? String(p.codequipo) : null, dia: diaDe(p.fecha) }))
+  const equipoDeGrupo = new Map<string, string | null>()
+  for (const p of partidos) if (!equipoDeGrupo.has(String(p.codgrupo ?? ''))) equipoDeGrupo.set(String(p.codgrupo ?? ''), p.equipo_nombre ?? null)
+
   const comps: CompAmbito[] = []
   for (const [codgrupo, ps] of Array.from(porGrupo.entries())) {
     const nombreEquipo: string | null = ps[0]?.equipo_nombre ?? null
@@ -316,24 +326,29 @@ export async function getAmbitoTemporada(cod: string, codtemp: string): Promise<
     // lo que no tiene fecha al final, igual que hacía el '99999999' de antes.
     const fechaDeActa = (a: string) => (jugadas.get(a)?.fecha ?? teamPorActa.get(a)?.fecha) as string | null | undefined
 
+    // Copa/playoff (fam-*): sin tramo, todas las actas del equipo como siempre.
+    const tramo = esCopaGrupo(codgrupo) ? null : tramoDeGrupo(actas, codgrupo)
     const jornadas: JornadaDatum[] = Array.from(actasEquipo)
       .sort((a, b) => claveFecha(null, fechaDeActa(a)).localeCompare(claveFecha(null, fechaDeActa(b))))   // más antiguo primero
-      .map((acta) => {
+      .flatMap((acta): JornadaDatum[] => {
         const p = jugadas.get(acta)
         if (!p) {
           // Ausencia: rival y resultado desde los resultados del equipo (perspectiva del equipo).
           const r = teamPorActa.get(acta)
-          if (!r) return { codacta: acta, jornada: 0, estado: { tipo: 'no_jugo' } }
+          if (!r) return [{ codacta: acta, jornada: 0, estado: { tipo: 'no_jugo' } }]
+          const aus = clasificarAusencia(diaDe(r.fecha) || null, tramo, actas, codgrupo, codeqEquipo)
+          if (aus.tipo === 'fuera') return []   // antes de llegar al equipo o después de irse
           const local = filaEsLocal({ codequipo_local: r.cl, codequipo_visitante: r.cv, nombre_local: r.nl }, nombreEquipo, codeqEquipo)
           const gf = (local ? r.gl : r.gv) ?? 0, gc = (local ? r.gv : r.gl) ?? 0
-          return {
-            codacta: acta, jornada: r.jornada, ronda: r.ronda_label ?? null, estado: { tipo: 'no_jugo' },
+          return [{
+            codacta: acta, jornada: r.jornada, ronda: r.ronda_label ?? null,
+            estado: aus.tipo === 'otro_equipo' ? { tipo: 'otro_equipo', equipo: equipoDeGrupo.get(aus.acta.codgrupo) ?? null } : { tipo: 'no_jugo' },
             rivalNombre: local ? r.nv : r.nl, rivalEscudo: local ? r.ev : r.el,
             resultado: `${gf}-${gc} ${gf > gc ? 'G' : gf < gc ? 'P' : 'E'}`, esLocal: local,
-          }
+          }]
         }
         const rol = derivarRol(!!p.titular, p.minutos ?? 0, p.rojas ?? 0, p.dobles_amarilla ?? 0)
-        return {
+        return [{
           codacta: acta, jornada: p.jornada, ronda: p.ronda_label ?? null,
           // jugado=false = convocado sin entrar (banquillo): estado propio -> NO barra de valor (no puntúa 0 ni
           // entra en la media/recuento) y distinto de "no convocado" (ausencia). Ver [[partidos-jugados-vs-convocatoria]].
@@ -344,7 +359,7 @@ export async function getAmbitoTemporada(cod: string, codtemp: string): Promise<
           resultado: p.resultado ?? null, esLocal: p.es_local ?? null,
           suspendido: p.estado_partido === 'suspendido',
           provisional: p.computa === false && p.resultado != null,
-        }
+        }]
       })
     comps.push({ codgrupo, nombre_comp: nombreComp, jornadas })
   }
@@ -353,7 +368,7 @@ export async function getAmbitoTemporada(cod: string, codtemp: string): Promise<
     // Tag SOLO jugador:<cod> (NO temporada:), como getPartidosTemporada: hechos de partido del jugador; el
     // temporada:<activa> nocturno los invalidaba en balde y enfriaba la ficha. Rebaremo cubierto por el censo
     // jugador: de `_revalidar.py --temporada <c>`. Clave conserva codtemp (caché por temporada).
-  }, ['getAmbitoTemporada', 'copa-acta-fc-prov', cod, String(codtemp)], cod)   // -prov: marca de provisional (computa). copa-acta-fc: codacta + orden fecha (bugs 1/2) + resultado favor-contra
+  }, ['getAmbitoTemporada', 'copa-acta-fc-prov-tramo', cod, String(codtemp)], cod)   // -prov: marca de provisional (computa). copa-acta-fc: codacta + orden fecha (bugs 1/2) + resultado favor-contra
 }
 
 // --- Forma: ventanas de últimas 5 / 10 / temporada sobre los partidos JUGADOS de la temporada ---

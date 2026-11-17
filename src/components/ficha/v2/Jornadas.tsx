@@ -81,6 +81,9 @@ export default function Jornadas({ comps, cortes }: { comps: CompAmbito[]; corte
     // Banquillo (convocado sin entrar): punto gris en la base, sin cifra ni barra. Distinto de "no convocado"
     // (línea discontinua .bar aus) y de "jugó" (barra con valor); fuera de la media (no es estado 'valor').
     if (d.estado.tipo === 'banquillo') return (<><div className="pos"><span className="banq" /></div><div className="neg" /></>)
+    // Con su otro equipo (vínculo filial/primer equipo, ida y vuelta): jugó esa jornada en otra competición. No es
+    // desconvocado: flecha doble en la base, con el equipo en el tooltip.
+    if (d.estado.tipo === 'otro_equipo') return (<><div className="pos"><span className="otro-eq" title={`Con su otro equipo${d.estado.equipo ? ` · ${d.estado.equipo}` : ''}`}>⇄</span></div><div className="neg" /></>)
     if (d.estado.tipo !== 'valor') return (<><div className="pos" /><div className="neg" /></>)
     const v = d.estado.v
     if (v === 0) return (<><div className="pos"><div className="chip" style={{ background: 'var(--e1)', color: '#0a1628' }}>0</div><div className="bar cero" /></div><div className="neg" /></>)
@@ -211,6 +214,9 @@ export default function Jornadas({ comps, cortes }: { comps: CompAmbito[]; corte
           <span className="lg-item"><span className="gl"><CamisetaHueca size={13} /></span>Suplente</span>
           <span className="lg-item"><span className="gl" style={{ color: 'var(--ink-4)' }}><Guion size={11} /></span>No jugó</span>
           <span className="lg-item"><span className="gl"><span className="banq" /></span>En el banquillo</span>
+          {comp.jornadas.some((d) => d.estado.tipo === 'otro_equipo') && (
+            <span className="lg-item"><span className="gl"><span className="otro-eq">⇄</span></span>Con su otro equipo</span>
+          )}
         </div>
         <div className="lg-row" style={{ marginTop: 6 }}>
           <span className="lg-item"><span className="gl" style={{ color: 'var(--e0)' }}><FlechaSale size={9} /></span>Salió</span>
