@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { tramoDeGrupo, clasificarAusencia, type ActaCrono } from '@/lib/tramoEtapa'
+import { tramoDeGrupo, bloqueDeGrupo, clasificarAusencia, type ActaCrono } from '@/lib/tramoEtapa'
 
 const a = (codgrupo: string, codequipo: string, dia: string): ActaCrono => ({ codgrupo, codequipo, dia })
 
@@ -60,5 +60,36 @@ describe('casos de borde', () => {
   it('otra competición con el MISMO equipo no es «otro equipo»', () => {
     const mismo = [a('L', '1', '2026-09-13'), a('L2', '1', '2026-09-20')]
     expect(clasificarAusencia('2026-09-20', { desde: '2026-09-13', hasta: null }, mismo, 'L', '1').tipo).toBe('no_jugo')
+  })
+})
+
+// club_grupo: etapas del mismo club (o clubes vinculados) no se recortan entre ellas; un club distinto sí recorta.
+describe('club_grupo', () => {
+  // Vínculo (Griñón juvenil 'G' + Tomás García 'T'), y después se va a un club de fuera 'X'.
+  const actas = [
+    a('T', '961', '2026-09-27'), a('G', '216', '2026-10-04'), a('G', '216', '2026-10-11'),
+    a('T', '961', '2026-10-25'), a('G', '216', '2026-11-01'), a('X', '700', '2026-11-15'),
+  ]
+  const club = new Map<string, string | null>([['G', 'k1'], ['T', 'k1'], ['X', 'k2'], ['fam-copa', 'k1']])
+  it('el bloque son los grupos de liga con el mismo club_grupo', () => {
+    expect(bloqueDeGrupo('G', club)).toEqual(new Set(['G', 'T']))
+    expect(bloqueDeGrupo('X', club)).toEqual(new Set(['X']))
+  })
+  it('mismo club_grupo: las dos etapas empiezan en la primera acta con cualquiera y no se cortan entre ellas', () => {
+    expect(tramoDeGrupo(actas, 'G', bloqueDeGrupo('G', club))).toEqual({ desde: '2026-09-27', hasta: '2026-11-15' })
+    expect(tramoDeGrupo(actas, 'T', bloqueDeGrupo('T', club))).toEqual({ desde: '2026-09-27', hasta: '2026-11-15' })
+    // Antes (sin club_grupo), T se cortaba en la primera acta con G posterior a su última acta.
+    expect(tramoDeGrupo(actas, 'T')).toEqual({ desde: '2026-09-27', hasta: '2026-11-01' })
+  })
+  it('dentro del bloque, la jornada con el otro equipo es «con su otro equipo»; la del club nuevo queda fuera', () => {
+    const t = tramoDeGrupo(actas, 'T', bloqueDeGrupo('T', club))
+    expect(clasificarAusencia('2026-11-01', t, actas, 'T', '961').tipo).toBe('otro_equipo')
+    expect(clasificarAusencia('2026-10-18', t, actas, 'T', '961').tipo).toBe('no_jugo')
+    expect(clasificarAusencia('2026-11-15', t, actas, 'T', '961').tipo).toBe('fuera')
+  })
+  it('club_grupo distinto o nulo: recorte por fecha como siempre', () => {
+    expect(tramoDeGrupo(actas, 'X', bloqueDeGrupo('X', club))).toEqual({ desde: '2026-11-15', hasta: null })
+    const nulo = new Map<string, string | null>([['G', null], ['T', null]])
+    expect(tramoDeGrupo(actas, 'T', bloqueDeGrupo('T', nulo))).toEqual(tramoDeGrupo(actas, 'T'))
   })
 })

@@ -9,6 +9,9 @@
 //    misma jornada de fin de semana) es «con su otro equipo», no desconvocado. Es el vínculo filial/primer
 //    equipo, y también la ida y vuelta: el tramo se alarga hasta la última acta con el equipo.
 // Solo LIGA: copas y playoffs (codgrupo fam-*) se pintan como siempre, ni se recortan ni recortan a nadie.
+// Etapas del mismo CLUB_GRUPO (web_jugador_carrera.club_grupo: mismo club o clubes vinculados esa temporada) forman
+// un BLOQUE y no se recortan entre ellas: el tramo es el del bloque entero (desde la primera acta con cualquiera de
+// sus equipos) y solo lo corta un equipo de fuera del bloque. club_grupo nulo = bloque de un solo grupo (lo de antes).
 
 export type ActaCrono = { codgrupo: string; codequipo: string | null; dia: string }   // dia = 'YYYY-MM-DD'
 export type Tramo = { desde: string; hasta: string | null }   // hasta EXCLUSIVO; null = sin corte (etapa en curso)
@@ -19,12 +22,22 @@ const DIA = /^\d{4}-\d{2}-\d{2}$/
 const ms = (d: string) => Date.parse(`${d}T12:00:00Z`)
 const MARGEN_DIAS = 3
 
-export function tramoDeGrupo(actas: ActaCrono[], codgrupo: string): Tramo | null {
+// Grupos de liga que comparten club_grupo con `codgrupo` (él incluido). Sin club_grupo, solo él.
+export function bloqueDeGrupo(codgrupo: string, clubGrupoDe: Map<string, string | null>): Set<string> {
+  const k = clubGrupoDe.get(codgrupo)
+  if (k == null || esCopaGrupo(codgrupo)) return new Set([codgrupo])
+  const b = new Set<string>([codgrupo])
+  for (const [g, kg] of Array.from(clubGrupoDe.entries())) if (kg === k && !esCopaGrupo(g)) b.add(g)
+  return b
+}
+
+export function tramoDeGrupo(actas: ActaCrono[], codgrupo: string, bloque?: Set<string>): Tramo | null {
+  const enBloque = (g: string) => g === codgrupo || !!bloque?.has(g)
   const ord = actas.filter((a) => DIA.test(a.dia) && !esCopaGrupo(a.codgrupo)).sort((a, b) => a.dia.localeCompare(b.dia))
-  const propias = ord.filter((a) => a.codgrupo === codgrupo)
+  const propias = ord.filter((a) => enBloque(a.codgrupo))
   if (!propias.length) return null
   const ultima = propias[propias.length - 1].dia
-  const siguiente = ord.find((a) => a.codgrupo !== codgrupo && a.dia > ultima)
+  const siguiente = ord.find((a) => !enBloque(a.codgrupo) && a.dia > ultima)
   return { desde: propias[0].dia, hasta: siguiente?.dia ?? null }
 }
 

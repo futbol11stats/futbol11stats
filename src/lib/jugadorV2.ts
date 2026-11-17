@@ -13,7 +13,7 @@ import { slugToCod } from '@/lib/temporadaSlug'
 import { getResultadosGrupo, filaEsLocal, type ChipRacha } from '@/lib/equipo'
 import { derivarRol, escalon, cortesValidos, CORTES_FIJOS, type RolPartido } from '@/lib/escala'
 import { claveFecha } from '@/lib/fechaOrden'
-import { tramoDeGrupo, clasificarAusencia, esCopaGrupo, type ActaCrono } from '@/lib/tramoEtapa'
+import { tramoDeGrupo, bloqueDeGrupo, clasificarAusencia, esCopaGrupo, type ActaCrono } from '@/lib/tramoEtapa'
 import { cronoAsc, aPartidoCrono } from '@/lib/forma'
 // Re-export: la lógica pura de forma vive en lib/forma.ts (testeable sin cliente de BD), pero se sigue
 // importando desde aquí en toda la ficha.
@@ -305,6 +305,18 @@ export async function getAmbitoTemporada(cod: string, codtemp: string): Promise<
   const actas: ActaCrono[] = partidos.map((p) => ({ codgrupo: String(p.codgrupo ?? ''), codequipo: p.codequipo != null ? String(p.codequipo) : null, dia: diaDe(p.fecha) }))
   const equipoDeGrupo = new Map<string, string | null>()
   for (const p of partidos) if (!equipoDeGrupo.has(String(p.codgrupo ?? ''))) equipoDeGrupo.set(String(p.codgrupo ?? ''), p.equipo_nombre ?? null)
+  // club_grupo de cada etapa (mismo club o clubes vinculados): sus etapas de liga no se recortan entre ellas.
+  // Columna NUEVA del pipeline: si no existe (42703) o viene nula, cada etapa es su propio bloque (recorte por fecha).
+  const clubGrupoDe = new Map<string, string | null>()
+  {
+    const { data, error } = await supabase.from('web_jugador_carrera').select('codgrupo, club_grupo')
+      .eq('codjugador', cod).eq('codtemporada', codtemp)
+    if (error && error.code !== '42703') throw error
+    for (const r of (data || []) as any[]) {
+      const g = String(r.codgrupo ?? '')
+      if (r.club_grupo != null || !clubGrupoDe.has(g)) clubGrupoDe.set(g, r.club_grupo ?? null)
+    }
+  }
 
   const comps: CompAmbito[] = []
   for (const [codgrupo, ps] of Array.from(porGrupo.entries())) {
@@ -327,7 +339,7 @@ export async function getAmbitoTemporada(cod: string, codtemp: string): Promise<
     const fechaDeActa = (a: string) => (jugadas.get(a)?.fecha ?? teamPorActa.get(a)?.fecha) as string | null | undefined
 
     // Copa/playoff (fam-*): sin tramo, todas las actas del equipo como siempre.
-    const tramo = esCopaGrupo(codgrupo) ? null : tramoDeGrupo(actas, codgrupo)
+    const tramo = esCopaGrupo(codgrupo) ? null : tramoDeGrupo(actas, codgrupo, bloqueDeGrupo(codgrupo, clubGrupoDe))
     const jornadas: JornadaDatum[] = Array.from(actasEquipo)
       .sort((a, b) => claveFecha(null, fechaDeActa(a)).localeCompare(claveFecha(null, fechaDeActa(b))))   // más antiguo primero
       .flatMap((acta): JornadaDatum[] => {
@@ -368,7 +380,7 @@ export async function getAmbitoTemporada(cod: string, codtemp: string): Promise<
     // Tag SOLO jugador:<cod> (NO temporada:), como getPartidosTemporada: hechos de partido del jugador; el
     // temporada:<activa> nocturno los invalidaba en balde y enfriaba la ficha. Rebaremo cubierto por el censo
     // jugador: de `_revalidar.py --temporada <c>`. Clave conserva codtemp (caché por temporada).
-  }, ['getAmbitoTemporada', 'copa-acta-fc-prov-tramo', cod, String(codtemp)], cod)   // -prov: marca de provisional (computa). copa-acta-fc: codacta + orden fecha (bugs 1/2) + resultado favor-contra
+  }, ['getAmbitoTemporada', 'copa-acta-fc-prov-tramo-clubgrupo', cod, String(codtemp)], cod)   // -prov: marca de provisional (computa). copa-acta-fc: codacta + orden fecha (bugs 1/2) + resultado favor-contra
 }
 
 // --- Forma: ventanas de últimas 5 / 10 / temporada sobre los partidos JUGADOS de la temporada ---
