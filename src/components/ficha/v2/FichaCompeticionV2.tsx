@@ -56,6 +56,7 @@ import {
   golesEquipoJornada, type GolEquipoRow, getJuegoLimpioV2, getAlertasV2,
   getClasifCopaV2, type ClasifCopaRow,
 } from '@/lib/competicionV2'
+import { zonaDeFila } from '@/lib/zonaFila'
 import MatchdaySelector from '@/components/ficha/v2/MatchdaySelector'
 
 
@@ -626,10 +627,10 @@ export default async function FichaCompeticionV2({ categoria, slugComp, slugGrup
                       <span className="cc">PO</span>
                     </div>
                     {clasif.map((r) => {
-                      // RETIRADO: sin puesto, sin Mov, Forma ni Racha, y fondo de descenso aunque la zona viniera vacía
-                      // (la retirada ES el descenso). El resto de columnas son sus cifras reales y se pintan.
+                      // RETIRADO: sin puesto, sin Mov, Forma ni Racha. Fondo de descenso si el pipeline le da zona; con
+                      // la zona vacía (categoría sin descensos), sin color (zonaDeFila). El resto son sus cifras reales.
                       const ret = !!r.retirado
-                      const zonaFila = ret ? 'descenso_directo' : r.zona
+                      const zonaFila = zonaDeFila(ret, r.zona)
                       const z = zonaEf(zonaFila)
                       const movCol = r.mov?.startsWith('↑') ? 'var(--e3)' : r.mov?.startsWith('↓') ? 'var(--e0)' : 'var(--ink-3)'
                       return (
