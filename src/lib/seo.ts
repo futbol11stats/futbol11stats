@@ -13,11 +13,13 @@ export const SITE_URL = 'https://www.futbol11stats.com'
 // escudo «F11S» anterior y su logo de RRSS están en archivo/escudo-f11s/, fuera de la web). Mismo contenido
 // que src/app/opengraph-image.png de la convención de fichero, pero aquella URL lleva un hash que cambia con
 // el build; esta es estable y por eso se puede pegar en sitios ajenos.
+// «-v2»: WhatsApp, Facebook, Instagram y X guardan la vista previa por URL; con el nombre de siempre seguían
+// enseñando el escudo «F11S» tras cambiar la imagen. Un dibujo nuevo = un nombre nuevo (y en next.config.js).
 //
 // HAY QUE REPETIRLA EN CADA PÁGINA que declare su propio `openGraph`: Next no fusiona el objeto del
 // layout con el de la página, lo sustituye entero. Por eso existe esta constante y no un literal suelto.
 export const OG_IMAGE = {
-  url: `${SITE_URL}/og-f11s.png`,
+  url: `${SITE_URL}/og-f11s-v2.png`,
   width: 1200,
   height: 630,
   alt: 'Fútbol11Stats — estadísticas del fútbol aficionado y juvenil de Madrid',
