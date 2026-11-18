@@ -39,10 +39,21 @@ export default async function robots(): Promise<MetadataRoute.Robots> {
     // repite el allow. `*/*` exige un segundo segmento: la ficha principal no casa.
     // GoogleOther (rastreador genérico de Google, sin efecto en el buscador): 77k peticiones/día, ~la mitad de
     // las regeneraciones ISR, y renderiza con JS (prefetch .rsc de competición, Web Analytics). Fuera de fichas
-    // y partidos; portada y competiciones siguen abiertas. Al tener grupo propio no hereda el de '*'.
+    // y partidos y, desde el 18/11, también de las competiciones (39k .rsc de competición fuera de caché al día,
+    // render dinámico: CPU). Portada e índices de categoría siguen abiertos. Al tener grupo propio no hereda el de '*'.
+    // Rastreadores de entrenamiento de IA (sin efecto en buscadores): GPTBot regeneraba ~8,9k fichas y partidos
+    // al día (~40 % de las unidades de ISR Writes, 18/11); los demás, mismo perfil. Fuera de fichas y partidos.
+    // OAI-SearchBot y PerplexityBot (buscadores con IA, traen clics) siguen en '*'.
     rules: [
       { userAgent: ['Googlebot', 'bingbot'], allow: '/' },
-      { userAgent: 'GoogleOther', allow: '/', disallow: ['/madrid/jugador/', '/madrid/equipo/', '/madrid/partido/'] },
+      {
+        userAgent: 'GoogleOther', allow: '/',
+        disallow: ['/madrid/jugador/', '/madrid/equipo/', '/madrid/partido/', '/madrid/aficionados/', '/madrid/juveniles/'],
+      },
+      {
+        userAgent: ['GPTBot', 'ClaudeBot', 'CCBot', 'Google-Extended', 'Applebot-Extended', 'Bytespider', 'meta-externalagent'],
+        allow: '/', disallow: ['/madrid/jugador/', '/madrid/equipo/', '/madrid/partido/'],
+      },
       { userAgent: '*', allow: '/', disallow: ['/madrid/jugador/*/*', '/madrid/equipo/*/*'] },
     ],
     sitemap: [
