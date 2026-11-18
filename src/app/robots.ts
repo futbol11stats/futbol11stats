@@ -44,8 +44,12 @@ export default async function robots(): Promise<MetadataRoute.Robots> {
     // Rastreadores de entrenamiento de IA (sin efecto en buscadores): GPTBot regeneraba ~8,9k fichas y partidos
     // al día (~40 % de las unidades de ISR Writes, 18/11); los demás, mismo perfil. Fuera de fichas y partidos.
     // OAI-SearchBot y PerplexityBot (buscadores con IA, traen clics) siguen en '*'.
+    // Lectores de VISTAS PREVIAS (la tarjeta del enlace compartido), abiertos expresamente a todo, también a las
+    // variantes por temporada: facebookexternalhit es el de Instagram, Facebook y WhatsApp (de Meta solo se cierra
+    // meta-externalagent, el de entrenamiento). Mismo criterio que la regla «Bypass vistas previas» del cortafuegos.
     rules: [
       { userAgent: ['Googlebot', 'bingbot'], allow: '/' },
+      { userAgent: ['facebookexternalhit', 'Twitterbot', 'LinkedInBot', 'Slackbot', 'TelegramBot'], allow: '/' },
       {
         userAgent: 'GoogleOther', allow: '/',
         disallow: ['/madrid/jugador/', '/madrid/equipo/', '/madrid/partido/', '/madrid/aficionados/', '/madrid/juveniles/'],
