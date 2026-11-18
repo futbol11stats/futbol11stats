@@ -167,10 +167,11 @@ export async function escudosPorNombre(nombres: string[]): Promise<Map<string, s
 }
 
 // --- Mini clasificación: filas alrededor del equipo (±2), con la última jornada del grupo ---
-export type MiniRow = { pos: number; codequipo: string; nombre: string; escudo: string | null; pts: number; me: boolean; retirado: boolean }
+// zona: la de web_clasificacion; solo decide el fondo del RETIRADO (zonaDeFila), el resto de filas no pinta zona.
+export type MiniRow = { pos: number; codequipo: string; nombre: string; escudo: string | null; pts: number; me: boolean; retirado: boolean; zona: string | null }
 export async function getMiniClasif(codgrupo: string | null, codequipo: string): Promise<{ filas: MiniRow[]; jornada: number | null }> {
   if (!codgrupo) return { filas: [], jornada: null }
-  const cols = 'pos, codequipo, nombre_equipo, escudo, pts, retirado'   // select de datos que define la caché (la de 'jornada' es auxiliar)
+  const cols = 'pos, codequipo, nombre_equipo, escudo, pts, retirado, zona'   // select de datos que define la caché (la de 'jornada' es auxiliar)
   return cacheEquipo(async () => {
     const { data: jr } = await supabase.from('web_clasificacion').select('jornada')
       .eq('codgrupo', String(codgrupo)).order('jornada', { ascending: false }).limit(1)
@@ -184,7 +185,7 @@ export async function getMiniClasif(codgrupo: string | null, codequipo: string):
     const from = Math.max(0, idx - 2), to = Math.min(rows.length, idx + 3)
     const filas: MiniRow[] = rows.slice(from, to).map((r) => ({
       pos: r.pos, codequipo: String(r.codequipo), nombre: r.nombre_equipo, escudo: r.escudo ?? null,
-      pts: r.pts, me: String(r.codequipo) === String(codequipo), retirado: !!r.retirado,
+      pts: r.pts, me: String(r.codequipo) === String(codequipo), retirado: !!r.retirado, zona: r.zona ?? null,
     }))
     return { filas, jornada }
   }, ['getMiniClasif', 'v1', hashCols(cols), String(codgrupo), codequipo], codequipo, { codgrupo })

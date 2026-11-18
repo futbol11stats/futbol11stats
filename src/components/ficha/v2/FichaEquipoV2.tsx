@@ -50,6 +50,7 @@ import EntityHero from '@/components/ui/EntityHero'
 import PlayerRow from '@/components/ui/PlayerRow'
 import { fmtNum } from '@/lib/formato'
 import { RETIRADO } from '@/lib/rotulos'
+import { zonaDeFila } from '@/lib/zonaFila'
 
 const med1 = (v: number | null) => (v == null ? '—' : v.toFixed(1).replace('.', ','))
 const conSigno = (n: number) => (n > 0 ? `+${n}` : `${n}`)
@@ -440,7 +441,7 @@ export default async function FichaEquipoV2({ cod, temporadaLabel }: { cod: stri
               <>
                 <div className="mini">
                   {mini.filas.map((r) => (
-                    <div key={r.codequipo} className={`mini-r${r.me ? ' me' : ''}${r.retirado ? ' ret' : ''}`}>
+                    <div key={r.codequipo} className={`mini-r${r.me ? ' me' : ''}${r.retirado && zonaDeFila(r.retirado, r.zona) ? ' ret' : ''}`}>
                       <div className="mp">{r.retirado ? '' : r.pos}</div>
                       <EscudoBox escudo={r.escudo} nombre={r.nombre} size={22} radius={4} />
                       <div className="mn">{r.me ? nombreEquipo(r.nombre) : <NombreEquipo codequipo={r.codequipo} nombre={r.nombre} />}</div>

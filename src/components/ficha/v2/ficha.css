@@ -332,7 +332,8 @@
 .fjv2 .mini-r.me{background:rgba(46,229,107,.09)}
 .fjv2 .mini-r .mp{font-family:var(--font-display),'Barlow Condensed',sans-serif;font-size:var(--t-lead);font-weight:700;width:18px;text-align:center;color:var(--ink-3);flex:none}
 .fjv2 .mini-r.me .mp{color:var(--e3)}
-/* Retirado: fondo de descenso (mismo que la tabla completa, ZONA_BG.descenso_directo), también si es la fila propia. */
+/* Retirado con zona (descenso_directo): fondo de descenso (mismo que la tabla completa, ZONA_BG.descenso_directo), también
+   si es la fila propia. Con la zona vacía (categoría sin descensos) no lleva la clase: solo el rótulo (zonaDeFila). */
 .fjv2 .mini-r.ret,.fjv2 .mini-r.me.ret{background:rgb(83,20,20)}
 .fjv2 .mini-r .mn{flex:1;min-width:0;font-family:var(--font-display),'Barlow Condensed',sans-serif;font-size:var(--t-lead);font-weight:500;color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .fjv2 .mini-r.me .mn{font-weight:700;color:var(--ink)}
