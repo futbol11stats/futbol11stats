@@ -53,7 +53,7 @@ import PageLayout from '@/components/ui/PageLayout'
 import EntityHero from '@/components/ui/EntityHero'
 import FormaStrip from '@/components/ui/FormaStrip'
 import PlayerAvatar from '@/components/ui/PlayerAvatar'
-import { getSueloVivo } from '@/lib/temporadas'
+import { getSueloVivo, getTemporadaEnCurso } from '@/lib/temporadas'
 import {
   getJugadorV2, getCarreraV2, getAlertaActual, getAmbitoTemporada, getCortesElo, labelToCod,
   getPartidosTemporada, ventanasForma, racha5DePartidos, splitCasaFuera, balanceEquipo,
@@ -68,7 +68,7 @@ function esc(v: number, c: readonly [number, number, number, number]) { if (v < 
 const med1 = (v: number) => v.toFixed(1).replace('.', ',')
 
 export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: string; temporadaLabel: string | null }) {
-  const [j, carrera, suelo] = await Promise.all([getJugadorV2(cod), getCarreraV2(cod), getSueloVivo()])
+  const [j, carrera, suelo, tempEnCurso] = await Promise.all([getJugadorV2(cod), getCarreraV2(cod), getSueloVivo(), getTemporadaEnCurso()])
   if (!j) notFound()
 
   const rawNombre = j.nombre || ''
@@ -85,6 +85,8 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
   const codPedido = labelToCod(temporadaLabel)
   const tempSel = (codPedido && temporadas.includes(codPedido)) ? codPedido : (carrera[0]?.codtemporada ?? null)
   const etapas = carrera.filter((c) => c.codtemporada === tempSel)
+  // Aviso disciplinario solo en la temporada en curso; en las cerradas ni se lee (ver alertaHumana).
+  const tempAviso = tempSel && Number(tempSel) === tempEnCurso ? Number(tempSel) : null
   // Dos ámbitos distintos, no confundir:
   //  - filaPrincipal (rank_principal): elige la CATEGORÍA contra la que se rankea al jugador (un puesto solo
   //    existe dentro de una población). Manda en los RANKINGS y en la ETIQUETA de categoría (hero + Nivel).
@@ -127,7 +129,7 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
   const [equipoInfo, cortesElo, alerta, comps, partidosTemp, actuaciones, hitosRaw, grupoInfo, tarjetas, copasPorTempEquipo, sancion] = await Promise.all([
     inactivo ? Promise.resolve({ copas: [], posicionActual: null, retirado: false }) : getEquipoActualInfo(j.codequipo_actual),
     getCortesElo(categoriaElo, tempSel ? Number(tempSel) : null),   // cortes de la categoría que aporta el ELO (última etapa)
-    getAlertaActual(cod, tempSel ? Number(tempSel) : null),   // alerta SOLO de la temporada de la ficha: los ciclos no cruzan temporadas
+    tempAviso != null ? getAlertaActual(cod, tempAviso) : Promise.resolve(null),   // alerta SOLO de la temporada de la ficha: los ciclos no cruzan temporadas
     tempSel ? getAmbitoTemporada(cod, tempSel) : Promise.resolve([]),
     tempSel ? getPartidosTemporada(cod, tempSel) : Promise.resolve([] as any[]),
     getActuacionesV2(cod),
@@ -137,7 +139,7 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
     // Copas del EQUIPO de la temporada seleccionada (no la viva) -> la línea de honores del hero sigue el
     // selector, igual que en la ficha de equipo. Team = el de la etapa por defecto de esa temporada.
     getCopasPorTemporada(etapaDefecto?.codequipo ?? j.codequipo_actual),
-    getSancionPendiente(cod, tempSel ? Number(tempSel) : null),   // «Sancionado» solo mientras no la haya cumplido
+    getSancionPendiente(cod, tempAviso),   // «Sancionado» solo mientras no la haya cumplido
   ])
   const { posicionActual, retirado: equipoRetirado } = equipoInfo   // `copas` (viva) ya no se usa: el hero muestra las de la temporada seleccionada
   // Equipo actual RETIRADO (web_equipo.retirado): su posicion_actual es el hueco de la última fila, no un puesto.
@@ -325,7 +327,7 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
   for (const c of carrera) cuentaTemp.set(c.codtemporada, (cuentaTemp.get(c.codtemporada) ?? 0) + 1)
 
   const tempTxt = tempSel ? tempLabel(tempSel) : ''
-  const aviso = alertaHumana(alerta, sancion)
+  const aviso = alertaHumana(alerta, sancion, { ficha: tempSel ? Number(tempSel) : null, enCurso: tempEnCurso })
 
   // Orden EXACTO de aparición en el DOM: primero el aside (Nivel, Totales, Compañeros), luego el main.
   // `aside:true` -> el scroll-spy las ignora en desktop (columna sticky, siempre visible). Ver NavSpy.

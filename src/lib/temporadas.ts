@@ -123,6 +123,12 @@ export async function getSueloVivo(): Promise<number> {
   return sueloVivo(await getActivasSinIndices())
 }
 
+// Temporada EN CURSO = la más alta de web_temporada_activa (T_top). No es el suelo: con alguna copa aún en
+// T21 el suelo se queda en 21, y T21 ya está cerrada para todo lo demás. Sin `indices`, como getSueloVivo.
+export async function getTemporadaEnCurso(): Promise<number> {
+  return ventana(await getActivasSinIndices()).tTop
+}
+
 // Grupos a mostrar en el índice de una categoría: cada competición en SU temporada activa (dentro de la
 // ventana), sin las páginas viejas de copa (familia canónica). Centralizado aquí para que home, aficionados y
 // juveniles compartan la misma lógica (fuente única). Devuelve un array (serializable) -> cacheable.

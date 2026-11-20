@@ -39,7 +39,11 @@ export function sancionPendiente(sanciones: SuspensionRow[], partidos: PartidoEq
 // 1. Sancionado, solo con una sanción pendiente (las rojas/dobles de la temporada no salen aquí: ya están
 //    en Totales). 2. Apercibido: a una amarilla de la sanción (estado del pipeline o el conteo del ciclo),
 //    sin caducar por jornadas. 3. En ciclo. Ver DECISIONES (D23).
-export function alertaHumana(a: AlertaRow | null, sancion?: SuspensionRow | null): Aviso | null {
+// `temporadas`: el aviso solo sale en la temporada EN CURSO. En una cerrada la sanción de la última jornada
+// quedaría «pendiente» para siempre (su equipo ya no juega) y el apercibimiento no caduca: ninguno sale.
+export function alertaHumana(a: AlertaRow | null, sancion: SuspensionRow | null | undefined,
+  temporadas: { ficha: number | null; enCurso: number }): Aviso | null {
+  if (temporadas.ficha == null || temporadas.ficha !== temporadas.enCurso) return null
   if (sancion) {
     const t = tipoSancion(sancion.motivo)
     return { html: `<b>Sancionado</b> — ${t.txt} · no juega el próximo partido`, tarjeta: t.tarjeta }

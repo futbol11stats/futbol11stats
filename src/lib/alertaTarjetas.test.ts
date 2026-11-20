@@ -44,27 +44,36 @@ describe('tipoSancion', () => {
   })
 })
 
+const T22 = { ficha: 22, enCurso: 22 }
+
 describe('alertaHumana', () => {
+  it('temporada cerrada: ni Sancionado ni Apercibido (la sanción de la última jornada no se cumple nunca)', () => {
+    const T21 = { ficha: 21, enCurso: 22 }
+    expect(alertaHumana(alerta({ codtemporada: 21 }), sancion({ jornada: 34 }), T21)).toBeNull()
+    expect(alertaHumana(alerta({ codtemporada: 21, amarillas_ciclo: 4 }), null, T21)).toBeNull()
+    expect(alertaHumana(alerta({ codtemporada: 21, estado: 'APERCIBIDO' }), null, T21)).toBeNull()
+    expect(alertaHumana(alerta({ amarillas_ciclo: 4 }), null, { ficha: null, enCurso: 22 })).toBeNull()
+  })
   it('Sancionado solo con sanción pendiente', () => {
-    expect(alertaHumana(alerta({}), sancion())?.html).toBe('<b>Sancionado</b> — roja directa · no juega el próximo partido')
-    expect(alertaHumana(null, sancion({ motivo: 'Doble Amarilla' }))?.html).toContain('doble amarilla')
+    expect(alertaHumana(alerta({}), sancion(), T22)?.html).toBe('<b>Sancionado</b> — roja directa · no juega el próximo partido')
+    expect(alertaHumana(null, sancion({ motivo: 'Doble Amarilla' }), T22)?.html).toContain('doble amarilla')
   })
   it('sin sanción pendiente, una roja de la temporada no pone «Sancionado»', () => {
-    expect(alertaHumana(alerta({ estado: 'SUSPENDIDO', rojas_directas: 1 }), null)).toBeNull()
-    expect(alertaHumana(alerta({ estado: 'SANCIONADO', dobles_amarillas: 1 }), null)).toBeNull()
+    expect(alertaHumana(alerta({ estado: 'SUSPENDIDO', rojas_directas: 1 }), null, T22)).toBeNull()
+    expect(alertaHumana(alerta({ estado: 'SANCIONADO', dobles_amarillas: 1 }), null, T22)).toBeNull()
   })
   it('APERCIBIDO: estado del pipeline, o 4 de 5 / 2 de 3', () => {
-    expect(alertaHumana(alerta({ estado: 'APERCIBIDO', amarillas_ciclo: 4 }))?.html)
+    expect(alertaHumana(alerta({ estado: 'APERCIBIDO', amarillas_ciclo: 4 }), null, T22)?.html)
       .toBe('<b>Apercibido</b> — 4 de 5 amarillas. Una más y cumple sanción.')
-    expect(alertaHumana(alerta({ estado: 'APERCIBIDO', amarillas_ciclo: null }))?.html).toBe('<b>Apercibido</b>. Una más y cumple sanción.')
-    expect(alertaHumana(alerta({ estado: 'SUSPENDIDO', amarillas_ciclo: 4 }))?.html).toContain('Apercibido')
-    expect(alertaHumana(alerta({ amarillas_ciclo: 2, ciclo_umbral: 3 }))?.html).toContain('Apercibido')
+    expect(alertaHumana(alerta({ estado: 'APERCIBIDO', amarillas_ciclo: null }), null, T22)?.html).toBe('<b>Apercibido</b>. Una más y cumple sanción.')
+    expect(alertaHumana(alerta({ estado: 'SUSPENDIDO', amarillas_ciclo: 4 }), null, T22)?.html).toContain('Apercibido')
+    expect(alertaHumana(alerta({ amarillas_ciclo: 2, ciclo_umbral: 3 }), null, T22)?.html).toContain('Apercibido')
   })
   it('la sanción manda sobre el apercibimiento', () => {
-    expect(alertaHumana(alerta({ estado: 'APERCIBIDO', amarillas_ciclo: 4 }), sancion())?.html).toContain('Sancionado')
+    expect(alertaHumana(alerta({ estado: 'APERCIBIDO', amarillas_ciclo: 4 }), sancion(), T22)?.html).toContain('Sancionado')
   })
   it('en ciclo y ciclo reiniciado', () => {
-    expect(alertaHumana(alerta({ amarillas_ciclo: 2 }))?.html).toBe('<b>En ciclo</b> — 2 de 5 amarillas.')
-    expect(alertaHumana(alerta({ estado: 'CICLO_COMPLETADO', amarillas_ciclo: 0 }))).toBeNull()
+    expect(alertaHumana(alerta({ amarillas_ciclo: 2 }), null, T22)?.html).toBe('<b>En ciclo</b> — 2 de 5 amarillas.')
+    expect(alertaHumana(alerta({ estado: 'CICLO_COMPLETADO', amarillas_ciclo: 0 }), null, T22)).toBeNull()
   })
 })
