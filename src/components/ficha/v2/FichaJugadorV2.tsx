@@ -57,7 +57,7 @@ import { getSueloVivo } from '@/lib/temporadas'
 import {
   getJugadorV2, getCarreraV2, getAlertaActual, getAmbitoTemporada, getCortesElo, labelToCod,
   getPartidosTemporada, ventanasForma, racha5DePartidos, splitCasaFuera, balanceEquipo,
-  getActuacionesV2, getHitosV2, alertaHumana, getTarjetasTotales,
+  getActuacionesV2, getHitosV2, alertaHumana, getTarjetasTotales, getSancionPendiente,
   type CarreraRow,
 } from '@/lib/jugadorV2'
 import { fmtNum } from '@/lib/formato'
@@ -124,7 +124,7 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
   const media = pj > 0 ? ptsF / pj : null
   const eloCierre = etapaUltima?.elo_final ?? j.elo_actual ?? null
 
-  const [equipoInfo, cortesElo, alerta, comps, partidosTemp, actuaciones, hitosRaw, grupoInfo, tarjetas, copasPorTempEquipo] = await Promise.all([
+  const [equipoInfo, cortesElo, alerta, comps, partidosTemp, actuaciones, hitosRaw, grupoInfo, tarjetas, copasPorTempEquipo, sancion] = await Promise.all([
     inactivo ? Promise.resolve({ copas: [], posicionActual: null, retirado: false }) : getEquipoActualInfo(j.codequipo_actual),
     getCortesElo(categoriaElo, tempSel ? Number(tempSel) : null),   // cortes de la categoría que aporta el ELO (última etapa)
     getAlertaActual(cod, tempSel ? Number(tempSel) : null),   // alerta SOLO de la temporada de la ficha: los ciclos no cruzan temporadas
@@ -137,6 +137,7 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
     // Copas del EQUIPO de la temporada seleccionada (no la viva) -> la línea de honores del hero sigue el
     // selector, igual que en la ficha de equipo. Team = el de la etapa por defecto de esa temporada.
     getCopasPorTemporada(etapaDefecto?.codequipo ?? j.codequipo_actual),
+    getSancionPendiente(cod, tempSel ? Number(tempSel) : null),   // «Sancionado» solo mientras no la haya cumplido
   ])
   const { posicionActual, retirado: equipoRetirado } = equipoInfo   // `copas` (viva) ya no se usa: el hero muestra las de la temporada seleccionada
   // Equipo actual RETIRADO (web_equipo.retirado): su posicion_actual es el hueco de la última fila, no un puesto.
@@ -324,7 +325,7 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
   for (const c of carrera) cuentaTemp.set(c.codtemporada, (cuentaTemp.get(c.codtemporada) ?? 0) + 1)
 
   const tempTxt = tempSel ? tempLabel(tempSel) : ''
-  const alertaTxt = alertaHumana(alerta)
+  const aviso = alertaHumana(alerta, sancion)
 
   // Orden EXACTO de aparición en el DOM: primero el aside (Nivel, Totales, Compañeros), luego el main.
   // `aside:true` -> el scroll-spy las ignora en desktop (columna sticky, siempre visible). Ver NavSpy.
@@ -427,10 +428,12 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
           <PorComp nodos={cabeceras} fallback={cabeceraDefecto} />
         </>}
       >
-        {alertaTxt && (
+        {aviso && (
           <div className="alert">
-            <span style={{ color: 'var(--card-y)', display: 'flex' }}><TarjetaAmarilla size={13} /></span>
-            <span dangerouslySetInnerHTML={{ __html: alertaTxt }} />
+            <span style={{ color: aviso.tarjeta === 'roja' ? 'var(--card-r)' : 'var(--card-y)', display: 'flex' }}>
+              {aviso.tarjeta === 'roja' ? <TarjetaRoja size={13} /> : aviso.tarjeta === 'doble' ? <TarjetaDoble size={14} /> : <TarjetaAmarilla size={13} />}
+            </span>
+            <span dangerouslySetInnerHTML={{ __html: aviso.html }} />
           </div>
         )}
         {/* Sin posición: el aviso se queda en el hero, donde el hueco es visible (los demás casos bajan al pie). */}

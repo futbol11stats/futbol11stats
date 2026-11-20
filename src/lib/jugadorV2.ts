@@ -3,7 +3,9 @@
 // exportan) — se reimplementan aquí para no tocar archivos existentes. Ver DECISIONES-PENDIENTES.md (D1).
 
 import { supabase } from '@/lib/supabase'
-import { cacheJugador, cacheTagged, hashCols } from '@/lib/cacheComp'
+import { cacheJugador, cacheEquipo, cacheTagged, hashCols } from '@/lib/cacheComp'
+import { sancionPendiente, type AlertaRow, type SuspensionRow, type PartidoEquipo } from '@/lib/alertaTarjetas'
+export { alertaHumana, type AlertaRow } from '@/lib/alertaTarjetas'
 import {
   COLS_JUGADOR, COLS_CARRERA, COLS_HITOS, COLS_ACTUACIONES,
   tempLabel, marcadorLocalVisitante,
@@ -123,11 +125,6 @@ export async function getHitosV2(cod: string): Promise<HitoRow[]> {
 }
 
 // Alerta disciplinaria MÁS RECIENTE del jugador (web_alertas_tarjetas es por jornada). Null si no hay.
-export type AlertaRow = {
-  estado: string | null; codtemporada: number | null; jornada: number | null
-  amarillas_ciclo: number | null; ciclo_umbral: number | null; dobles_amarillas: number | null
-  rojas_directas: number | null; nombre_equipo: string | null
-}
 // `temp` = temporada de la ficha: los ciclos de tarjetas NO cruzan temporadas, así que la alerta debe ser de
 // ESA temporada (si no, en una ficha de 2026-27 se colaba la foto-final de un ciclo de T21). Sin temp -> la
 // más reciente de cualquier temporada (comportamiento antiguo, por si algún llamador lo necesita).
@@ -141,18 +138,36 @@ export async function getAlertaActual(cod: string, temp?: number | null): Promis
   }, ['getAlertaActual', 'v1', hashCols(cols), cod, String(temp ?? '')], cod)   // clave derivada del select (cols izado para estar en scope); 'v1' = versión de lógica.
 }
 
-// Texto humano de la alerta disciplinaria. NUNCA muestra el código crudo (CICLO_COMPLETADO…) ni dice
-// "completado" con un ciclo a medias: prioriza el conteo real del ciclo vigente. Ver DECISIONES (D23).
-export function alertaHumana(a: AlertaRow | null): string | null {
-  if (!a) return null
-  const um = a.ciclo_umbral ?? 5
-  const ac = a.amarillas_ciclo ?? 0
-  if (ac > 0 && ac < um) return `<b>En ciclo</b> — ${ac} de ${um} amarillas.${ac === um - 1 ? ' Una más y cumple sanción.' : ''}`
-  if (ac >= um && um > 0) return `<b>Ciclo completado</b> — ${ac} amarillas: sanción por acumulación.`
-  if ((a.rojas_directas ?? 0) > 0) return `<b>Sancionado</b> — roja directa.`
-  if ((a.dobles_amarillas ?? 0) > 0) return `<b>Sancionado</b> — doble amarilla.`
-  if (a.estado === 'SANCIONADO') return `<b>Sancionado</b>`
-  return null
+// Sanción de web_suspendidos de la temporada `temp` que el jugador aún no ha cumplido (ver sancionPendiente).
+async function leerSancionPendiente(cod: string, temp: number, cols: string): Promise<SuspensionRow | null> {
+  const { data, error } = await supabase.from('web_suspendidos').select(cols).eq('codjugador', cod).eq('codtemporada', temp)
+  if (error) throw error
+  const sanciones = ((data || []) as unknown as SuspensionRow[]).map((s) => ({ ...s, codgrupo: String(s.codgrupo), codequipo: String(s.codequipo) }))
+  if (!sanciones.length) return null
+  const grupos = Array.from(new Set(sanciones.map((s) => s.codgrupo)))
+  const equipos = Array.from(new Set(sanciones.map((s) => s.codequipo)))
+  const desde = Math.min(...sanciones.map((s) => s.jornada))
+  const { data: res, error: e2 } = await supabase.from('web_resultados')
+    .select('codgrupo, jornada, codequipo_local, codequipo_visitante, goles_local, goles_visitante')
+    .eq('codtemporada', temp).in('codgrupo', grupos).gt('jornada', desde).not('goles_local', 'is', null)
+    .or(equipos.map((e) => `codequipo_local.eq.${e},codequipo_visitante.eq.${e}`).join(','))
+  if (e2) throw e2
+  return sancionPendiente(sanciones, (res || []) as unknown as PartidoEquipo[])
+}
+
+// Dos capas de caché para no colgar la ficha de `equipo:` sin necesidad: la primera (jugador:<cod>, que se
+// revalida cuando el jugador sale en un acta, también la de su sanción) resuelve el caso normal, sin sanción o
+// ya cumplida, que no vuelve atrás. Solo si queda una PENDIENTE se relee colgado de `equipo:<codequipo>`: el
+// pipeline declara esa etiqueta cuando el equipo juega, y el sancionado no sale en esa acta, así que con la
+// de jugador el aviso se quedaría puesto.
+export async function getSancionPendiente(cod: string, temp: number | null | undefined): Promise<SuspensionRow | null> {
+  if (temp == null) return null
+  const cols = 'codgrupo, jornada, codequipo, motivo, equipo_eliminado'
+  const s = await cacheJugador(() => leerSancionPendiente(cod, temp, cols),
+    ['getSancionPendiente', 'v1', hashCols(cols), cod, String(temp)], cod)
+  if (!s) return null
+  return cacheEquipo(() => leerSancionPendiente(cod, temp, cols),
+    ['getSancionPendiente:equipo', 'v1', hashCols(cols), cod, String(temp)], s.codequipo)
 }
 
 // ¿El jugador tiene algún partido con goles_encajados no nulo? (para decidir si mostrar "P. a 0").
