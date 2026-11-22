@@ -9,6 +9,7 @@ import Pastilla from '@/components/Pastilla'
 import SuperficieCampo from '@/components/SuperficieCampo'
 import CalendarLink from '@/components/calendario/CalendarLink'
 import { Balon, TarjetaAmarilla, TarjetaDoble, TarjetaRoja, FlechaEntra, FlechaSale, Guante } from '@/components/iconos'
+import { sufijoGol } from '@/lib/golSubtipo'
 import { googleRenderUrl } from '@/lib/ics'
 import { SITE_URL } from '@/lib/seo'
 import { partidoSlug } from '@/lib/partidoSlug'
@@ -41,7 +42,8 @@ const fechaCorta = (f: string | null): string => {
 // Eventos del jugador CON SU MINUTO (web_partido_eventos); si no hubiera minuto, cae a los conteos.
 function Eventos({ j }: { j: PartidoJugador }) {
   const out: ReactNode[] = []
-  if (j.golesMin.length) j.golesMin.forEach((m, i) => out.push(<span key={`g${i}`} className="ev ev-gol"><Balon size={11} />{m}′</span>))
+  // Penalti: balón naranja y «(p)»; propia puerta: balón rojo y «(p.p.)», en la fila de quien se lo mete.
+  if (j.golesEv.length) j.golesEv.forEach((g, i) => out.push(<span key={`g${i}`} className={`ev ev-gol${g.sub ? ` ev-gol-${g.sub}` : ''}`}><Balon size={11} />{g.m}′{sufijoGol(g.sub)}</span>))
   else if (j.goles > 0) out.push(<span key="gc" className="ev ev-gol"><Balon size={11} />{j.goles > 1 ? `×${j.goles}` : ''}</span>)
   if (j.dobleMin != null || j.dobles > 0) out.push(<span key="td" className="ev ev-td"><TarjetaDoble size={11} />{j.dobleMin != null ? `${j.dobleMin}′` : ''}</span>)
   else if (j.amarillaMin != null || j.amarillas > 0) out.push(<span key="ta" className="ev ev-ta"><TarjetaAmarilla size={11} />{j.amarillaMin != null ? `${j.amarillaMin}′` : ''}</span>)
@@ -613,6 +615,8 @@ export default function FichaPartidoV2({ p }: { p: PartidoFicha }) {
               {/* Leyenda de iconos (misma que la plantilla) para que la ficha se lea igual que las demás. */}
               <div className="pl-ley">
                 <span className="lg-item"><span style={{ color: 'var(--e3)', display: 'inline-flex' }}><Balon size={11} /></span>Gol</span>
+                <span className="lg-item"><span style={{ color: 'var(--gol-pen)', display: 'inline-flex' }}><Balon size={11} /></span>Penalti (p)</span>
+                <span className="lg-item"><span style={{ color: 'var(--e0)', display: 'inline-flex' }}><Balon size={11} /></span>Propia puerta (p.p.)</span>
                 <span className="lg-item"><span style={{ color: 'var(--card-y)', display: 'inline-flex' }}><TarjetaAmarilla size={10} /></span>Amarilla</span>
                 <span className="lg-item"><span style={{ color: 'var(--e0)', display: 'inline-flex' }}><TarjetaRoja size={11} /></span>Roja</span>
                 <span className="lg-item"><span style={{ color: 'var(--e3)', display: 'inline-flex' }}><FlechaEntra size={11} /></span><span style={{ color: 'var(--e0)', display: 'inline-flex' }}><FlechaSale size={11} /></span>Cambio</span>

@@ -9,6 +9,7 @@ import { fichasExistentes, jugadorHref } from '@/lib/jugador'
 import { claveFechaDesc } from '@/lib/fechaOrden'
 import { esProvisional, parseIncidencia, type Incidencia } from '@/lib/rotulos'
 import { tandaPenaltis, type Tanda } from '@/lib/penaltis'
+import { subtipoGol, esColumnaInexistente, type GolEv } from '@/lib/golSubtipo'
 import { anterioresAl, rachasDe, rachasTras, type Rachas, type RachasTras } from '@/lib/rachasPartido'
 
 // Ficha de PARTIDO. Datos del acta ya publicados: web_resultados (cabecera) + web_jugador_partidos (por jugador y
@@ -22,8 +23,8 @@ export type PartidoJugador = {
   titular: boolean; jugado: boolean; minutos: number
   goles: number; amarillas: number; dobles: number; rojas: number
   puntos: number | null; eloDelta: number | null
-  // Minutos de cada evento (de web_partido_eventos): golesMin[], y el minuto de tarjeta/cambio.
-  golesMin: number[]; amarillaMin: number | null; dobleMin: number | null; rojaMin: number | null
+  // Minutos de cada evento (de web_partido_eventos): goles con su subtipo (penalti / p.p.), y el minuto de tarjeta/cambio.
+  golesEv: GolEv[]; amarillaMin: number | null; dobleMin: number | null; rojaMin: number | null
   entra: number | null; sale: number | null
   golesEncajados: number | null   // solo porteros (portería a cero = 0); null para el resto
   href: string | null   // ficha del jugador solo si la tiene
@@ -197,14 +198,16 @@ export async function getPartido(codacta: string): Promise<PartidoFicha | null> 
         }
         const conFicha = await fichasExistentes(codjugs)
         // Eventos CON MINUTO (web_partido_eventos): gol/amarilla/doble_amarilla/roja/cambio_entra/cambio_sale.
-        const { data: evRaw } = await supabase.from('web_partido_eventos')
-          .select('codjugador, tipo, minuto').eq('codacta', r.codacta)
-        const evMap = new Map<string, { golesMin: number[]; amarillaMin: number | null; dobleMin: number | null; rojaMin: number | null; entra: number | null; sale: number | null }>()
-        for (const ev of (evRaw || []) as Array<{ codjugador: string; tipo: string; minuto: number | null }>) {
+        // subtipo (penalti / pp) es columna nueva del pipeline: si aún no existe, se relee sin ella (gol normal).
+        const leerEventos = (cols: string) => supabase.from('web_partido_eventos').select(cols).eq('codacta', r.codacta)
+        let { data: evRaw, error: evErr } = await leerEventos('codjugador, tipo, minuto, subtipo')
+        if (esColumnaInexistente(evErr)) ({ data: evRaw } = await leerEventos('codjugador, tipo, minuto'))
+        const evMap = new Map<string, { golesEv: GolEv[]; amarillaMin: number | null; dobleMin: number | null; rojaMin: number | null; entra: number | null; sale: number | null }>()
+        for (const ev of (evRaw || []) as unknown as Array<{ codjugador: string; tipo: string; minuto: number | null; subtipo?: string | null }>) {
           const cod = String(ev.codjugador)
-          const e = evMap.get(cod) || { golesMin: [], amarillaMin: null, dobleMin: null, rojaMin: null, entra: null, sale: null }
+          const e = evMap.get(cod) || { golesEv: [], amarillaMin: null, dobleMin: null, rojaMin: null, entra: null, sale: null }
           const m = ev.minuto ?? null
-          if (ev.tipo === 'gol') { if (m != null) e.golesMin.push(m) }
+          if (ev.tipo === 'gol') { if (m != null) e.golesEv.push({ m, sub: subtipoGol(ev.subtipo) }) }
           else if (ev.tipo === 'amarilla') e.amarillaMin = m
           else if (ev.tipo === 'doble_amarilla') e.dobleMin = m
           else if (ev.tipo === 'roja') e.rojaMin = m
@@ -215,13 +218,13 @@ export async function getPartido(codacta: string): Promise<PartidoFicha | null> 
         const toJ = (p: Record<string, unknown>): PartidoJugador => {
           const cod = String(p.codjugador)
           const meta = metaDe(cod)
-          const ev = evMap.get(cod) || { golesMin: [], amarillaMin: null, dobleMin: null, rojaMin: null, entra: null, sale: null }
+          const ev = evMap.get(cod) || { golesEv: [], amarillaMin: null, dobleMin: null, rojaMin: null, entra: null, sale: null }
           return {
             codjugador: cod, nombre: meta.nombre, dorsal: meta.dorsal, pos: meta.pos,
             titular: !!p.titular, jugado: !!p.jugado, minutos: (p.minutos as number) || 0,
             goles: (p.goles as number) || 0, amarillas: (p.amarillas as number) || 0, dobles: (p.dobles_amarilla as number) || 0, rojas: (p.rojas as number) || 0,
             puntos: (p.puntos as number) ?? null, eloDelta: (p.elo_delta as number) ?? null,
-            golesMin: ev.golesMin.sort((a, b) => a - b), amarillaMin: ev.amarillaMin, dobleMin: ev.dobleMin, rojaMin: ev.rojaMin, entra: ev.entra, sale: ev.sale,
+            golesEv: ev.golesEv.sort((a, b) => a.m - b.m), amarillaMin: ev.amarillaMin, dobleMin: ev.dobleMin, rojaMin: ev.rojaMin, entra: ev.entra, sale: ev.sale,
             golesEncajados: (p.goles_encajados as number) ?? null,
             href: conFicha.has(cod) && meta.nombre ? jugadorHref(cod, meta.nombre) : null,
           }
@@ -409,5 +412,5 @@ export async function getPartido(codacta: string): Promise<PartidoFicha | null> 
       retiradoPostLocal: posL.retPost, retiradoPostVisitante: posV.retPost,
       hitos,
     }
-  }, ['getPartido', 'v17-administrativo', String(r.codacta)], [String(r.codgrupo)], r.codtemporada)
+  }, ['getPartido', 'v18-subtipo-gol', String(r.codacta)], [String(r.codgrupo)], r.codtemporada)
 }

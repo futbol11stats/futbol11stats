@@ -943,6 +943,10 @@
 .fpv2 .ev{display:inline-flex;align-items:center;gap:2px;font-size:var(--t-micro);font-weight:700;font-variant-numeric:tabular-nums;color:var(--ink-3)}
 .fpv2 .ev svg{flex:none}
 .fpv2 .ev-gol{color:var(--e3)}
+/* Gol de penalti (naranja, sin token global: solo este rol) y en propia puerta (rojo negativo). */
+.fpv2{--gol-pen:#fb923c}
+.fpv2 .ev-gol-penalti{color:var(--gol-pen)}
+.fpv2 .ev-gol-pp{color:var(--e0)}
 .fpv2 .ev-ta,.fpv2 .ev-td{color:var(--card-y)}
 .fpv2 .ev-tr,.fpv2 .ev-out{color:var(--e0)}
 .fpv2 .ev-in{color:var(--e3)}
