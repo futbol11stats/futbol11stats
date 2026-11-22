@@ -43,6 +43,8 @@ export default async function robots(): Promise<MetadataRoute.Robots> {
     // render dinámico: CPU). Portada e índices de categoría siguen abiertos. Al tener grupo propio no hereda el de '*'.
     // Rastreadores de entrenamiento de IA (sin efecto en buscadores): GPTBot regeneraba ~8,9k fichas y partidos
     // al día (~40 % de las unidades de ISR Writes, 18/11); los demás, mismo perfil. Fuera de fichas y partidos.
+    // GPTBot, grupo aparte: desde el 20/11, fuera de fichas y partidos, se fue en bloque a las competiciones (115k MISS
+    // el 22/11, render dinámico: CPU), así que también fuera de ellas. Índices de categoría (sin barra final) abiertos.
     // OAI-SearchBot y PerplexityBot (buscadores con IA, traen clics) siguen en '*'.
     // Lectores de VISTAS PREVIAS (la tarjeta del enlace compartido), abiertos expresamente a todo, también a las
     // variantes por temporada: facebookexternalhit es el de Instagram, Facebook y WhatsApp (de Meta solo se cierra
@@ -55,7 +57,11 @@ export default async function robots(): Promise<MetadataRoute.Robots> {
         disallow: ['/madrid/jugador/', '/madrid/equipo/', '/madrid/partido/', '/madrid/aficionados/', '/madrid/juveniles/'],
       },
       {
-        userAgent: ['GPTBot', 'ClaudeBot', 'CCBot', 'Google-Extended', 'Applebot-Extended', 'Bytespider', 'meta-externalagent'],
+        userAgent: 'GPTBot', allow: '/',
+        disallow: ['/madrid/jugador/', '/madrid/equipo/', '/madrid/partido/', '/madrid/aficionados/', '/madrid/juveniles/'],
+      },
+      {
+        userAgent: ['ClaudeBot', 'CCBot', 'Google-Extended', 'Applebot-Extended', 'Bytespider', 'meta-externalagent'],
         allow: '/', disallow: ['/madrid/jugador/', '/madrid/equipo/', '/madrid/partido/'],
       },
       { userAgent: '*', allow: '/', disallow: ['/madrid/jugador/*/*', '/madrid/equipo/*/*'] },
