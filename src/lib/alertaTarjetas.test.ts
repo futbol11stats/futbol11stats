@@ -72,6 +72,16 @@ describe('alertaHumana', () => {
   it('la sanción manda sobre el apercibimiento', () => {
     expect(alertaHumana(alerta({ estado: 'APERCIBIDO', amarillas_ciclo: 4 }), sancion(), T22)?.html).toContain('Sancionado')
   })
+  it('fila no vigente: ni Sancionado, ni Apercibido, ni En ciclo', () => {
+    expect(alertaHumana(alerta({ vigente: false }), sancion(), T22)).toBeNull()
+    expect(alertaHumana(alerta({ vigente: false, estado: 'APERCIBIDO', amarillas_ciclo: 4 }), null, T22)).toBeNull()
+    expect(alertaHumana(alerta({ vigente: false, amarillas_ciclo: 2 }), null, T22)).toBeNull()
+  })
+  it('vigente true, nulo o sin columna: como antes', () => {
+    expect(alertaHumana(alerta({ vigente: true, amarillas_ciclo: 2 }), null, T22)?.html).toBe('<b>En ciclo</b> — 2 de 5 amarillas.')
+    expect(alertaHumana(alerta({ vigente: null, estado: 'APERCIBIDO', amarillas_ciclo: 4 }), null, T22)?.html).toContain('Apercibido')
+    expect(alertaHumana(alerta({}), sancion(), T22)?.html).toContain('Sancionado')
+  })
   it('en ciclo y ciclo reiniciado', () => {
     expect(alertaHumana(alerta({ amarillas_ciclo: 2 }), null, T22)?.html).toBe('<b>En ciclo</b> — 2 de 5 amarillas.')
     expect(alertaHumana(alerta({ estado: 'CICLO_COMPLETADO', amarillas_ciclo: 0 }), null, T22)).toBeNull()

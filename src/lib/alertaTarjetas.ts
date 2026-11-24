@@ -5,6 +5,9 @@ export type AlertaRow = {
   estado: string | null; codtemporada: number | null; jornada: number | null
   amarillas_ciclo: number | null; ciclo_umbral: number | null; dobles_amarillas: number | null
   rojas_directas: number | null; nombre_equipo: string | null
+  // false = la fila ya no describe la situación actual del jugador (la marca el pipeline). null/ausente = como
+  // antes de existir la columna.
+  vigente?: boolean | null
 }
 
 // Sanción de web_suspendidos (la jornada es la DEL HECHO, no la que se pierde).
@@ -41,9 +44,11 @@ export function sancionPendiente(sanciones: SuspensionRow[], partidos: PartidoEq
 //    sin caducar por jornadas. 3. En ciclo. Ver DECISIONES (D23).
 // `temporadas`: el aviso solo sale en la temporada EN CURSO. En una cerrada la sanción de la última jornada
 // quedaría «pendiente» para siempre (su equipo ya no juega) y el apercibimiento no caduca: ninguno sale.
+// Con la fila de web_alertas_tarjetas marcada vigente = false tampoco sale ninguno, ni «Sancionado».
 export function alertaHumana(a: AlertaRow | null, sancion: SuspensionRow | null | undefined,
   temporadas: { ficha: number | null; enCurso: number }): Aviso | null {
   if (temporadas.ficha == null || temporadas.ficha !== temporadas.enCurso) return null
+  if (a?.vigente === false) return null
   if (sancion) {
     const t = tipoSancion(sancion.motivo)
     return { html: `<b>Sancionado</b> — ${t.txt} · no juega el próximo partido`, tarjeta: t.tarjeta }

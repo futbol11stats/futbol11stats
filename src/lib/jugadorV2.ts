@@ -5,6 +5,7 @@
 import { supabase } from '@/lib/supabase'
 import { cacheJugador, cacheEquipo, cacheTagged, hashCols } from '@/lib/cacheComp'
 import { sancionPendiente, type AlertaRow, type SuspensionRow, type PartidoEquipo } from '@/lib/alertaTarjetas'
+import { esColumnaInexistente } from '@/lib/golSubtipo'
 export { alertaHumana, type AlertaRow } from '@/lib/alertaTarjetas'
 import {
   COLS_JUGADOR, COLS_CARRERA, COLS_HITOS, COLS_ACTUACIONES,
@@ -131,11 +132,16 @@ export async function getHitosV2(cod: string): Promise<HitoRow[]> {
 export async function getAlertaActual(cod: string, temp?: number | null): Promise<AlertaRow | null> {
   const cols = 'estado, codtemporada, jornada, amarillas_ciclo, ciclo_umbral, dobles_amarillas, rojas_directas, nombre_equipo'
   return cacheJugador(async () => {
-    let q = supabase.from('web_alertas_tarjetas').select(cols).eq('codjugador', cod)
-    if (temp != null) q = q.eq('codtemporada', temp)
-    const { data } = await q.order('codtemporada', { ascending: false }).order('jornada', { ascending: false }).limit(1)
-    return ((data && data[0]) as AlertaRow) || null
-  }, ['getAlertaActual', 'v1', hashCols(cols), cod, String(temp ?? '')], cod)   // clave derivada del select (cols izado para estar en scope); 'v1' = versión de lógica.
+    const leer = (c: string) => {
+      let q = supabase.from('web_alertas_tarjetas').select(c).eq('codjugador', cod)
+      if (temp != null) q = q.eq('codtemporada', temp)
+      return q.order('codtemporada', { ascending: false }).order('jornada', { ascending: false }).limit(1)
+    }
+    // `vigente` (pipeline): si la columna no existe, el mismo select sin ella -> aviso como antes.
+    let { data, error } = await leer(`${cols}, vigente`)
+    if (esColumnaInexistente(error)) ({ data } = await leer(cols))
+    return ((data && data[0]) as unknown as AlertaRow) || null
+  }, ['getAlertaActual', 'v1', hashCols(`${cols}, vigente`), cod, String(temp ?? '')], cod)   // clave derivada del select (cols izado para estar en scope); 'v1' = versión de lógica.
 }
 
 // Sanción de web_suspendidos de la temporada `temp` que el jugador aún no ha cumplido (ver sancionPendiente).
