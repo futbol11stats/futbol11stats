@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { alertaHumana, sancionPendiente, tipoSancion, type AlertaRow, type SuspensionRow, type PartidoEquipo } from './alertaTarjetas'
+import { alertaHumana, elegirAlerta, sancionPendiente, tipoSancion, type AlertaRow, type SuspensionRow, type PartidoEquipo } from './alertaTarjetas'
 
 const alerta = (o: Partial<AlertaRow>): AlertaRow => ({
   estado: 'EN_CICLO', codtemporada: 22, jornada: 10, amarillas_ciclo: 0, ciclo_umbral: 5,
@@ -41,6 +41,24 @@ describe('tipoSancion', () => {
     expect(tipoSancion('Doble Amarilla').tarjeta).toBe('doble')
     expect(tipoSancion('5ª Tarjeta Amarilla (Ciclo)').txt).toBe('5ª amarilla')
     expect(tipoSancion('3ª amarilla (ciclo 3) · equipo eliminado (próxima edición)').txt).toBe('3ª amarilla')
+  })
+})
+
+describe('elegirAlerta', () => {
+  const liga = alerta({ jornada: 7, vigente: true, amarillas_ciclo: 1 })
+  const copa = alerta({ jornada: 9, vigente: false, ciclo_umbral: 3 })   // ronda de copa por encima de la jornada de liga
+  it('una fila no vigente no tapa a una vigente aunque sea más reciente', () => {
+    expect(elegirAlerta([copa, liga])).toBe(liga)
+    expect(elegirAlerta([liga, copa])).toBe(liga)
+  })
+  it('entre vigentes (o sin columna), la más reciente', () => {
+    const j10 = alerta({ jornada: 10, vigente: null })
+    expect(elegirAlerta([liga, j10])).toBe(j10)
+    expect(elegirAlerta([alerta({ codtemporada: 21, jornada: 34 }), liga])).toBe(liga)
+  })
+  it('sin ninguna vigente, la no vigente más reciente (alertaHumana la deja sin aviso); sin filas, null', () => {
+    expect(elegirAlerta([copa])).toBe(copa)
+    expect(elegirAlerta([])).toBeNull()
   })
 })
 

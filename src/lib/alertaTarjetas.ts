@@ -17,6 +17,15 @@ export type PartidoEquipo = { codgrupo: string; jornada: number; codequipo_local
 
 export type Aviso = { html: string; tarjeta: 'amarilla' | 'doble' | 'roja' }
 
+// Fila de web_alertas_tarjetas que manda en el aviso: la más reciente (codtemporada y luego jornada, ambas DESC)
+// entre las VIGENTES (vigente true o null, que es «sin columna»). Una no vigente nunca tapa a una vigente; solo si
+// no hay ninguna vigente se devuelve la no vigente más reciente, y alertaHumana la deja sin aviso.
+// OJO: en copa `jornada` es la ronda, así que entre liga y copa este orden no es cronológico.
+export function elegirAlerta(filas: AlertaRow[]): AlertaRow | null {
+  const orden = [...filas].sort((a, b) => (b.codtemporada ?? 0) - (a.codtemporada ?? 0) || (b.jornada ?? 0) - (a.jornada ?? 0))
+  return orden.find((f) => f.vigente !== false) ?? orden[0] ?? null
+}
+
 // Motivo de web_suspendidos -> texto corto. Formatos vistos: «Roja Directa», «Doble Amarilla», «5ª Tarjeta
 // Amarilla (Ciclo)», «3ª amarilla (ciclo 3) · …» (copa).
 export function tipoSancion(motivo: string | null): { txt: string; tarjeta: Aviso['tarjeta'] } {

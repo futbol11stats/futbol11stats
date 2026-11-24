@@ -4,7 +4,7 @@
 
 import { supabase } from '@/lib/supabase'
 import { cacheJugador, cacheEquipo, cacheTagged, hashCols } from '@/lib/cacheComp'
-import { sancionPendiente, type AlertaRow, type SuspensionRow, type PartidoEquipo } from '@/lib/alertaTarjetas'
+import { sancionPendiente, elegirAlerta, type AlertaRow, type SuspensionRow, type PartidoEquipo } from '@/lib/alertaTarjetas'
 import { esColumnaInexistente } from '@/lib/golSubtipo'
 export { alertaHumana, type AlertaRow } from '@/lib/alertaTarjetas'
 import {
@@ -135,13 +135,14 @@ export async function getAlertaActual(cod: string, temp?: number | null): Promis
     const leer = (c: string) => {
       let q = supabase.from('web_alertas_tarjetas').select(c).eq('codjugador', cod)
       if (temp != null) q = q.eq('codtemporada', temp)
-      return q.order('codtemporada', { ascending: false }).order('jornada', { ascending: false }).limit(1)
+      return q
     }
     // `vigente` (pipeline): si la columna no existe, el mismo select sin ella -> aviso como antes.
     let { data, error } = await leer(`${cols}, vigente`)
     if (esColumnaInexistente(error)) ({ data } = await leer(cols))
-    return ((data && data[0]) as unknown as AlertaRow) || null
-  }, ['getAlertaActual', 'v1', hashCols(`${cols}, vigente`), cod, String(temp ?? '')], cod)   // clave derivada del select (cols izado para estar en scope); 'v1' = versión de lógica.
+    // Todas las filas y la elección en elegirAlerta: con limit(1) una fila no vigente podía tapar a una vigente.
+    return elegirAlerta((data || []) as unknown as AlertaRow[])
+  }, ['getAlertaActual', 'v2-vigente', hashCols(`${cols}, vigente`), cod, String(temp ?? '')], cod)   // clave derivada del select (cols izado para estar en scope); 'v1' = versión de lógica.
 }
 
 // Sanción de web_suspendidos de la temporada `temp` que el jugador aún no ha cumplido (ver sancionPendiente).
