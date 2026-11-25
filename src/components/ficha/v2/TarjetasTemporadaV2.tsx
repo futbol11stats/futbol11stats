@@ -10,6 +10,8 @@ import { datosSancionado, leySancionados, leyJuegoLimpio } from '@/components/fi
 // Iconos y cifras con los colores de tarjeta del sitio (--card-y / --card-r, en globals.css).
 const TARJETA_Y = 'var(--card-y)'
 const TARJETA_R = 'var(--card-r)'
+// Cifra en blanco sobre --card-r (unos 5:1; el oscuro se queda en ~3,7:1); sobre --card-y, el oscuro de siempre.
+const TINTA_SOBRE_R = '#fff'
 
 function expuls(dobles: number, rojas: number): ReactNode {
   if (!dobles && !rojas) return <span>sin expulsiones</span>
@@ -57,7 +59,8 @@ export default function TarjetasTemporadaV2({ equipos = [], jugadores = [], fich
   const sancItems: RankItem[] = jg.map((j, i) => ({
     rank: i + 1, codjugador: j.codjugador, nombre: j.nombre, pos: j.posicion, escudo: j.escudo, nombreEquipo: j.nombre_equipo,
     valor: j.ciclos_completados + j.dobles_amarillas + j.rojas_directas,
-    valorColor: (j.dobles_amarillas || j.rojas_directas) ? TARJETA_R : TARJETA_Y, extra: datosSancionado(j, umbral),
+    valorColor: (j.dobles_amarillas || j.rojas_directas) ? TARJETA_R : TARJETA_Y,
+    valorTinta: (j.dobles_amarillas || j.rojas_directas) ? TINTA_SOBRE_R : undefined, extra: datosSancionado(j, umbral),
   }))
 
   return (

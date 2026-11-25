@@ -15,6 +15,7 @@ export type RankItem = {
   nombreEquipo?: string | null
   valor: ReactNode
   valorColor?: string
+  valorTinta?: string               // color del texto del valor (por defecto, el oscuro de .rv/.pl-val)
   extra?: ReactNode                 // línea de contexto bajo el nombre (PJ · ratio · …)
   pre?: ReactNode                   // a la izquierda del valor (Prime). Solo lo usa el top de ELO.
   barPct?: number | null            // barra de progreso (0-100) opcional
@@ -33,7 +34,7 @@ export default function RankingComp({ items, fichas, barColor }: {
       <div className={items.some((r) => r.pre != null) ? 'rk-pre' : undefined}>
         {items.map((r, i) => (
           <FilaJugador key={i} rank={r.rank} rankColor={r.rankColor} codjugador={r.codjugador} nombre={r.nombre}
-            pos={r.pos} escudo={r.escudo} nombreEquipo={r.nombreEquipo} datos={r.extra} pre={r.pre} valor={r.valor} valorColor={r.valorColor} fichas={fichas} />
+            pos={r.pos} escudo={r.escudo} nombreEquipo={r.nombreEquipo} datos={r.extra} pre={r.pre} valor={r.valor} valorColor={r.valorColor} valorTinta={r.valorTinta} fichas={fichas} />
         ))}
       </div>
     )
@@ -49,7 +50,7 @@ export default function RankingComp({ items, fichas, barColor }: {
             {r.extra && <div className="re">{r.extra}</div>}
             {r.barPct != null && <div className="rbar"><span style={{ width: `${r.barPct}%`, background: barColor || 'var(--e3)' }} /></div>}
           </div>
-          <div className="rv" style={{ background: r.valorColor || 'var(--e3)' }}>{r.valor}</div>
+          <div className="rv" style={{ background: r.valorColor || 'var(--e3)', color: r.valorTinta }}>{r.valor}</div>
         </div>
       ))}
     </div>
