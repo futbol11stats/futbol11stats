@@ -618,7 +618,7 @@ export default function FichaPartidoV2({ p }: { p: PartidoFicha }) {
                 <span className="lg-item"><span style={{ color: 'var(--gol-pen)', display: 'inline-flex' }}><Balon size={11} /></span>Penalti (p)</span>
                 <span className="lg-item"><span style={{ color: 'var(--e0)', display: 'inline-flex' }}><Balon size={11} /></span>Propia puerta (p.p.)</span>
                 <span className="lg-item"><span style={{ color: 'var(--card-y)', display: 'inline-flex' }}><TarjetaAmarilla size={10} /></span>Amarilla</span>
-                <span className="lg-item"><span style={{ color: 'var(--e0)', display: 'inline-flex' }}><TarjetaRoja size={11} /></span>Roja</span>
+                <span className="lg-item"><span style={{ color: 'var(--card-r)', display: 'inline-flex' }}><TarjetaRoja size={11} /></span>Roja</span>
                 <span className="lg-item"><span style={{ color: 'var(--e3)', display: 'inline-flex' }}><FlechaEntra size={11} /></span><span style={{ color: 'var(--e0)', display: 'inline-flex' }}><FlechaSale size={11} /></span>Cambio</span>
                 <span className="lg-item"><span style={{ color: 'var(--amber)', display: 'inline-flex' }}><Guante size={11} /></span>Portería a cero</span>
                 <span className="lg-item"><b style={{ color: 'var(--e3)' }}>+</b>/<b style={{ color: 'var(--e0)' }}>−</b> Δ ELO del partido</span>

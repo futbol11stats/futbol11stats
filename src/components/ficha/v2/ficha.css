@@ -948,7 +948,8 @@
 .fpv2 .ev-gol-penalti{color:var(--gol-pen)}
 .fpv2 .ev-gol-pp{color:var(--e0)}
 .fpv2 .ev-ta,.fpv2 .ev-td{color:var(--card-y)}
-.fpv2 .ev-tr,.fpv2 .ev-out{color:var(--e0)}
+.fpv2 .ev-tr{color:var(--card-r)}
+.fpv2 .ev-out{color:var(--e0)}
 .fpv2 .ev-in{color:var(--e3)}
 /* Árbitros: SOLO nombre + rol. Sin enlace, sin ranking, sin superficie que agregue por árbitro (privacidad). */
 /* #3/#4 Tarjeta de pronóstico (enfrentada, como el marcador): ELO pre, frase del favorito, y tras el partido ELO+Δ+puesto. */
