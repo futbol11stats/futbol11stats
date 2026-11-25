@@ -25,11 +25,12 @@ import type { PartidoFicha, PartidoJugador, PartidoMini, PartidoLado } from '@/l
 import type { RachaTras, RachasTras } from '@/lib/rachasPartido'
 import { NO_DISPUTADO, SUSPENDIDO } from '@/lib/partido'
 import { RETIRADO, PROVISIONAL, ladoNoDisputado } from '@/lib/rotulos'
-// Fondo de la pastilla de PUNTOS fantasy (baza propia; verde para lo bueno, el ámbar está reservado).
+// Fondo de la pastilla de PUNTOS fantasy (baza propia; verde para lo bueno, el ámbar está reservado). Negativos con
+// --e0, el rojo de los valores negativos (--card-r es solo para tarjetas), y texto oscuro como las demás.
 const ptsStyle = (p: number | null) => p == null ? { background: 'rgba(255,255,255,.05)', color: 'var(--ink-4)' }
   : p >= 8 ? { background: 'var(--e3)', color: '#08111f' }
     : p >= 4 ? { background: 'var(--e2)', color: '#08111f' }
-      : p < 0 ? { background: 'var(--card-r)', color: '#fff' }
+      : p < 0 ? { background: 'var(--e0)', color: '#08111f' }
         : { background: 'rgba(255,255,255,.09)', color: 'var(--ink-2)' }
 
 // "05/09/2026" -> "5 sep" (hero de partido futuro): mes en minúscula, día sin cero a la izquierda.

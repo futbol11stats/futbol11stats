@@ -7,9 +7,9 @@ import { datosSancionado, leySancionados, leyJuegoLimpio } from '@/components/fi
 // Tarjetas de TEMPORADA en estilo v2, compartido por ficha de grupo y global. Reproduce la lógica de la
 // tabla clásica (TarjetasTemporadaTab): 3 bloques — Juego limpio (equipos, menos expulsiones primero),
 // Banquillos más calientes (cuerpo técnico, top 5, se oculta si no hay) y Sancionados/en ciclo (jugadores).
-// Iconos con su color de siempre (mismos que el resto de listados).
-const YEL = '#d9a400'
-const RED = 'var(--e0)'
+// Iconos y cifras con los colores de tarjeta del sitio (--card-y / --card-r, en globals.css).
+const TARJETA_Y = 'var(--card-y)'
+const TARJETA_R = 'var(--card-r)'
 
 function expuls(dobles: number, rojas: number): ReactNode {
   if (!dobles && !rojas) return <span>sin expulsiones</span>
@@ -32,7 +32,7 @@ export default function TarjetasTemporadaV2({ equipos = [], jugadores = [], fich
   const eqShow = limiteJL ? eq.slice(0, limiteJL) : eq
   const jlItems: RankItem[] = eqShow.map((t, i) => ({
     rank: i + 1, codequipo: t.codequipo, nombre: t.nombre_equipo, escudo: t.escudo, nombreEquipo: t.nombre_equipo,
-    valor: t.amarillas, valorColor: YEL, extra: expuls(t.dobles, t.rojas),
+    valor: t.amarillas, valorColor: TARJETA_Y, extra: expuls(t.dobles, t.rojas),
   }))
 
   // Bloque 1b — Banquillos más calientes: top 5 con tarjetas al cuerpo técnico, desc por expulsiones.
@@ -45,7 +45,7 @@ export default function TarjetasTemporadaV2({ equipos = [], jugadores = [], fich
     .slice(0, 5)
   const banqItems: RankItem[] = banq.map((t, i) => ({
     rank: i + 1, codequipo: t.codequipo, nombre: t.nombre_equipo, escudo: t.escudo, nombreEquipo: t.nombre_equipo,
-    valor: t.amarillas_tec + t.dobles_tec * 2 + t.rojas_tec, valorColor: YEL, extra: expuls(t.dobles_tec, t.rojas_tec),
+    valor: t.amarillas_tec + t.dobles_tec * 2 + t.rojas_tec, valorColor: TARJETA_Y, extra: expuls(t.dobles_tec, t.rojas_tec),
   }))
 
   // Bloque 2 — Sancionados: desc por (ciclos+dobles+rojas), luego más rojas, luego más dobles.
@@ -57,7 +57,7 @@ export default function TarjetasTemporadaV2({ equipos = [], jugadores = [], fich
   const sancItems: RankItem[] = jg.map((j, i) => ({
     rank: i + 1, codjugador: j.codjugador, nombre: j.nombre, pos: j.posicion, escudo: j.escudo, nombreEquipo: j.nombre_equipo,
     valor: j.ciclos_completados + j.dobles_amarillas + j.rojas_directas,
-    valorColor: (j.dobles_amarillas || j.rojas_directas) ? RED : YEL, extra: datosSancionado(j, umbral),
+    valorColor: (j.dobles_amarillas || j.rojas_directas) ? TARJETA_R : TARJETA_Y, extra: datosSancionado(j, umbral),
   }))
 
   return (
