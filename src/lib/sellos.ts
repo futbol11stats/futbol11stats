@@ -117,6 +117,12 @@ export function nombreCortoCopa(nombreComp: string | null): string {
   return n.includes('rfef') ? 'Copa RFEF' : 'Copa RFFM'
 }
 
+// Nombre corto de CUALQUIER competición (liga o copa): el de COMP_MAP si lo tiene; si no, el nombre tal cual (las
+// ligas de web_jugador_carrera ya vienen cortas: «Preferente», «1ª Autonómica Juvenil»).
+export function nombreCortoComp(nombreComp: string | null): string {
+  return COMP_MAP[norm(nombreComp)]?.corto ?? (nombreComp || '')
+}
+
 // Acento de color de la pastilla de competición (liga -> verde; copas por tipo).
 export function colorPastilla(nombreComp: string | null): AcentoPastilla {
   const n = norm(nombreComp)

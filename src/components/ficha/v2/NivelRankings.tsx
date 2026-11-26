@@ -3,11 +3,13 @@
 import type { ReactNode } from 'react'
 import { useComp } from './compStore'
 import RankFila from './RankFila'
+import { rotuloCategoria, rotuloPosicion } from '@/lib/rotuloNivel'
 
 // Filas de ranking de CATEGORÍA y POSICIÓN del bloque Nivel. Siguen la pastilla de competición activa
 // (compStore, el mismo store que filtra el gráfico de jornadas). El ranking GENERAL no está aquí: no cambia
 // con el selector (va en servidor, fijo). La POSICIÓN del jugador es la misma en todas las etapas (su
-// demarcación); lo que cambia con la pastilla es el rank/total de esa etapa.
+// demarcación); lo que cambia con la pastilla es el rank/total de esa etapa, y el rótulo de posición lleva la
+// competición de la etapa («Delantero · Preferente»), con el mismo nombre que la fila de categoría.
 export type CompRank = {
   nombreComp: string; sello: ReactNode; selloSm?: ReactNode
   rankCat: number | null; rankCatTotal: number | null
@@ -22,8 +24,8 @@ export default function NivelRankings({ comps, posInsignia, posLabel }: {
   if (!c) return null
   return (
     <>
-      <RankFila insignia={c.sello} label={c.nombreComp} rank={c.rankCat} total={c.rankCatTotal} />
-      <RankFila insignia={posInsignia} label={posLabel} rank={c.rankPos} total={c.rankPosTotal} />
+      <RankFila insignia={c.sello} label={rotuloCategoria(c.nombreComp)} rank={c.rankCat} total={c.rankCatTotal} />
+      <RankFila insignia={posInsignia} label={rotuloPosicion(posLabel, c.nombreComp)} rank={c.rankPos} total={c.rankPosTotal} />
     </>
   )
 }
