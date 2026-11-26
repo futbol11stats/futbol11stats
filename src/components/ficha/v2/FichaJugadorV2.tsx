@@ -540,7 +540,7 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
                 {/* Cada ranking con su icono: badge (11) F11S, Sello de competición, Pastilla de posición. */}
                 {/* General: agregado sobre el total fantasy de la temporada (rank_general_season, fila
                     rank_principal). NO sigue la pastilla. Categoría/posición: SÍ la siguen (cliente). */}
-                <RankFila insignia={badge11} label="Fútbol11Stats · Madrid" rank={filaPrincipal?.rank_general_season ?? null} total={filaPrincipal?.rank_general_season_total ?? null} />
+                <RankFila insignia={badge11} label="Fútbol11Stats" sub="Madrid" rank={filaPrincipal?.rank_general_season ?? null} total={filaPrincipal?.rank_general_season_total ?? null} />
                 {/* Categoría + posición (cliente, siguen la pastilla). Categoría sale casi siempre; posición ya
                     puede faltar. Van antes que las de edad. */}
                 <NivelRankings comps={compsRank}
