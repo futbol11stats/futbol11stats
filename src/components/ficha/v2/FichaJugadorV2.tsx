@@ -550,8 +550,8 @@ export default async function FichaJugadorV2({ cod, temporadaLabel }: { cod: str
                     JUVENIL (<=18), nunca en ambos; RankFila se oculta si el rank es null). Las opcionales van a la
                     cola para que el bloque tenga forma CONSTANTE entre fichas: arriba lo que sale siempre
                     (general + categoría), luego posición, y por último la de edad. Mismo badge 11: misma métrica. */}
-                <RankFila insignia={badge11} label="Sub-23 · Madrid" rank={filaPrincipal?.rank_sub23_season ?? null} total={filaPrincipal?.rank_sub23_season_total ?? null} />
-                <RankFila insignia={badge11} label="Juvenil · Madrid" rank={filaPrincipal?.rank_juvenil_season ?? null} total={filaPrincipal?.rank_juvenil_season_total ?? null} />
+                <RankFila insignia={badge11} label="Sub-23" sub="Madrid" rank={filaPrincipal?.rank_sub23_season ?? null} total={filaPrincipal?.rank_sub23_season_total ?? null} />
+                <RankFila insignia={badge11} label="Juvenil" sub="Madrid" rank={filaPrincipal?.rank_juvenil_season ?? null} total={filaPrincipal?.rank_juvenil_season_total ?? null} />
               </div>
               {/* Aclara el criterio: rankings por PUNTOS FANTASY de la temporada seleccionada (rank_*_temp de la
                   fila principal), no de toda la carrera. Distinto del percentil de arriba, que mide ELO.
